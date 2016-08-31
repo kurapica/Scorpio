@@ -1,0 +1,23 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+	<Script file="PLoop\Core.lua"/>
+	<Script file="PLoop\System\System.lua"/>
+	<Script file="PLoop\System\Collections.lua"/>
+	<!--Script file="PLoop\Error.lua"/-->
+	<Script file="PLoop\System\Logger.lua"/>
+	<Script file="PLoop\System\Data.lua"/>
+	<Script file="PLoop\System\Text.lua"/>
+	<Script file="PLoop\System\IO.lua"/>
+	<Script file="PLoop\System\Recycle.lua"/>
+	<Script file="PLoop\System\Serialization.lua"/>
+	<Script file="PLoop\System\Threading.lua"/>
+
+	<Script file="PLoop\System\Collections\List.lua"/>
+	<Script file="PLoop\System\Collections\Dictionary.lua"/>
+	<Script file="PLoop\System\Collections\IIndexedListSorter.lua"/>
+	<Script file="PLoop\System\Array.lua"/>
+
+	<Script file="PLoop\System\Text\UTF8Encoding.lua"/>
+	<Script file="PLoop\System\Text\UTF16Encoding.lua"/>
+	<Script file="PLoop\System\Serialization\LuaFormatProvider.lua"/>
+	<Script file="PLoop\System\Serialization\StringFormatProvider.lua"/>
+</Ui>
