@@ -1,9 +1,10 @@
 ## Interface: 70000
-## Title: !Scorpio
+## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: a1
-## Notes: .Scorpio Addon FrameWork
-## URL: http://github.com/kurapica
+## Notes: Scorpio Addon FrameWork
+## URL: http://github.com/kurapica/Scorpio
+## Dependencies: PLoop
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: Scorpio_DB

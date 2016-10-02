@@ -1,0 +1,18 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+	<!-- Core Task System -->
+	<Script file="Task.lua"/>
+
+	<!-- System Event Provider -->
+	<Script file="IFSystemEvent.lua"/>
+
+	<!-- Hook Provider -->
+	<Script file="IFHook.lua"/>
+
+	<!-- Slash Command Provider -->
+	<Script file="IFSlashCommand.lua"/>
+
+	<!-- The Addon & Sub-Module System -->
+	<Script file="Addon.lua"/>
+
+	<Include file="Widget.xml"/>
+</Ui>

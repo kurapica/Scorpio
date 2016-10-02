@@ -2,5 +2,9 @@
 	<!-- Pure Object Oriented Program System -->
 	<Include file="PLoop.xml"/>
 
+	<!-- Global Environment Settings -->
+	<Script file="Global.lua"/>
 	<Script file="Scorpio.lua"/>
+
+	<Include file="System.xml"/>
 </Ui>
