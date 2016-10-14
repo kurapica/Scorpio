@@ -1,7 +1,10 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
 	<!-- Global Environment Settings -->
 	<Script file="Global.lua"/>
+
+	<!-- Scorpio Core -->
 	<Script file="Scorpio.lua"/>
 
-	<Include file="System\System.xml"/>
+	<!-- Scorpio NameSpace  -->
+	<Include file="Scorpio\Scorpio.xml"/>
 </Ui>
