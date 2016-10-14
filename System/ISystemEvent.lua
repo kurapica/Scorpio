@@ -1,16 +1,16 @@
 --========================================================--
---                IFSystemEvent                           --
+--                Scorpio.ISystemEvent                    --
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/09/09                              --
 --========================================================--
 
 --========================================================--
-Module            "Scorpio.IFSystemEvent"            "1.0.0"
+Module            "Scorpio.ISystemEvent"             "1.0.0"
 --========================================================--
 
 __Doc__[[The system event or custom event provider]]
-__Sealed__() interface "IFSystemEvent" (function(_ENV)
+__Sealed__() interface "ISystemEvent" (function(_ENV)
 
     ----------------------------------------------
     ------------------- Helper -------------------
@@ -60,11 +60,12 @@ __Sealed__() interface "IFSystemEvent" (function(_ENV)
         <desc>Register system event or custom event</desc>
         <param name="event" type="string">the system|custom event name</param>
     ]]
+    __Arguments__{ String }
     function RegisterEvent(self, evt)
         local objs = _EventDistribution[evt]
         if objs then
             if not next(objs) then
-                _EventManager:RegisterEvent(evt)
+                pcall(_EventManager.RegisterEvent, _EventManager, evt)
             end
             objs[self] = true
         end
@@ -75,6 +76,7 @@ __Sealed__() interface "IFSystemEvent" (function(_ENV)
         <param name="event" type="string">the system|custom event name</param>
         <return>true if the event is registered</return>
     ]]
+    __Arguments__{ String }
     function IsEventRegistered(self, evt)
         local objs = rawget(_EventDistribution, evt)
         return objs and objs[self] and true or false
@@ -84,12 +86,13 @@ __Sealed__() interface "IFSystemEvent" (function(_ENV)
         <desc>Unregister system event or custom event</desc>
         <param name="event" type="string">the system|custom event name</param>
     ]]
+    __Arguments__{ String }
     function UnregisterEvent(self, evt)
         local objs = rawget(_EventDistribution, evt)
         if objs and objs[self] then
             objs[self] = nil
             if not next(objs) then
-                _EventManager:UnregisterEvent(evt)
+                pcall(_EventManager.UnregisterEvent, _EventManager, evt)
             end
         end
     end
@@ -100,7 +103,7 @@ __Sealed__() interface "IFSystemEvent" (function(_ENV)
             if objs[self] then
                 objs[self] = nil
                 if not next(objs) then
-                    _EventManager:UnregisterEvent(evt)
+                    pcall(_EventManager.UnregisterEvent, _EventManager, evt)
                 end
             end
         end
@@ -113,5 +116,12 @@ __Sealed__() interface "IFSystemEvent" (function(_ENV)
     ]]
     function FireEvent(self, evt, ...)
         return _EventManager:OnEvent(evt, ...)
+    end
+
+    ----------------------------------------------
+    ------------------- Dispose ------------------
+    ----------------------------------------------
+    function Dispose(self)
+        self:UnregisterAllEvents()
     end
 end)

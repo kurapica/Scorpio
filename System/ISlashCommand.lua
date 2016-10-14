@@ -1,21 +1,22 @@
 --========================================================--
---                IFSlashCommand                          --
+--                Scorpio.ISlashCommand                   --
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/09/09                              --
 --========================================================--
 
 --========================================================--
-Module            "Scorpio.IFSlashCommand"           "1.0.0"
+Module            "Scorpio.ISlashCommand"            "1.0.0"
 --========================================================--
 
 __Doc__[[The slash command system provider]]
-__Sealed__() interface "IFSlashCommand" (function(_ENV)
+__Sealed__() interface "ISlashCommand" (function(_ENV)
 
     ----------------------------------------------
     ------------------- Helper -------------------
     ----------------------------------------------
     local FireObjectEvent = System.Reflector.FireObjectEvent
+    local _SlashCmdList = _G.SlashCmdList
 
     _SlashCmdCount = 0
     _SlashCmdNameMap = setmetatable({}, META_WEAKKEY)
@@ -60,45 +61,64 @@ __Sealed__() interface "IFSlashCommand" (function(_ENV)
         <param name="...">the slash command list</param>
         <usage>obj:RegisterSlashCommand("/test", "test_cmd")</usage>
     ]]
+    __Arguments__{ Argument{ Type = String, IsList = true } }
     function RegisterSlashCommand(self, ...)
-        if IsSlashCommandRegistered(self) then return end
-        if select('#', ...) == 0 then return end
-
         local slashCmd = _SlashCmdNameMap[self]
         local slashFunc = _SlashCmdFuncMap[self]
 
         if not slashCmd then
+            -- New Slash Command
             _SlashCmdCount = _SlashCmdCount + 1
 
             slashCmd = "Scorpio_SlashCommand_" .. _SlashCmdCount .. "_"
-            _SlashCmdNameMap[self] = slashCmd
 
             slashFunc = function(msg, input)
                 return FireObjectEvent(self, "OnSlashCommand", GetSlashCmdArgs(msg, input))
             end
         end
 
-        local index = 0
+        -- Generate the command list
+        local slash = {}
+
         for i = 1, select('#', ...) do
-            local cmd = select(1, ...)
-            if type(cmd) == "string" then
-                cmd = "/" .. strtrim(cmd):match("^/?([%w_]+)")
-                if #cmd > 0 then
-                    index = index + 1
-                    _G["SLASH_"..slashCmd..index] = cmd
-                end
+            local cmd = select(i, ...)
+            cmd = "/" .. strtrim(cmd):match("^/?([%w_]+)")
+            if #cmd > 0 then
+                slash[cmd:upper()] = true
             end
         end
 
-        if index > 0 then
+        -- Check existed
+        local index = 1
+
+        while type(_G["SLASH_"..slashCmd..index]) == "string" do
+            slash[_G["SLASH_"..slashCmd..index]:upper()] = nil
+            index = index + 1
+        end
+
+        if next(slash) then
             _SlashCmdNameMap[self] = slashCmd
             _SlashCmdFuncMap[self] = slashFunc
-            _G.SlashCmdList[slashCmd] = slashFunc
+
+            for cmd in pairs(slash) do
+                _G["SLASH_"..slashCmd..index] = cmd
+                index = index + 1
+            end
+
+            -- Need to register the slash command each time to update
+            _SlashCmdList[slashCmd] = slashFunc
         end
     end
 
-    __Doc__[[Whether the slash command is registered]]
-    function IsSlashCommandRegistered(self)
-        return _SlashCmdNameMap[self] and true or false
+    ----------------------------------------------
+    ------------------- Dispose ------------------
+    ----------------------------------------------
+    function Dispose(self)
+        if _SlashCmdNameMap[self] then
+            -- Don't clear the map since it's a weak table
+            -- Since we can't remove the slash commands
+            -- Just make it useless
+            _SlashCmdList[_SlashCmdNameMap[self]] = function() end
+        end
     end
 end)

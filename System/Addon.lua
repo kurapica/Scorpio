@@ -6,15 +6,36 @@
 --========================================================--
 
 --========================================================--
-Module                "Scorpio.Addon"                "0.1.0"
+Module            "Scorpio.Addon"                    "0.1.0"
 --========================================================--
 
-------------------------------------------------------------
---                     IFWowModule                        --
-------------------------------------------------------------
-__Sealed__()
-interface "IFWowModule" (function(_ENV)
-    extend "IFSystemEvent" "IFHook" "IFSlashCmd"
+__Doc__[[The hook & secure hook provider]]
+__Sealed__() interface "IModule" (function(_ENV)
+    extend "ISystemEvent" "IHook" "ISlashCmd"
 
+    ----------------------------------------------
+    ------------------- Helper -------------------
+    ----------------------------------------------
+    local function OnEventOrHook(self, event, ...)
+        if type(self[event]) == "function" then
+            return self[event](self, ...)
+        end
+    end
 
+    ----------------------------------------------
+    ------------------- Dispose ------------------
+    ----------------------------------------------
+    function Dispose(self)
+        self.OnEvent = self.OnEvent - OnEventOrHook
+        self.OnHook = self.OnHook - OnEventOrHook
+    end
+
+    ----------------------------------------------
+    ----------------- Initializer ----------------
+    ----------------------------------------------
+    function IModule(self)
+        -- Default event & hook handler
+        self.OnEvent = self.OnEvent + OnEventOrHook
+        self.OnHook = self.OnHook + OnEventOrHook
+    end
 end)

@@ -273,9 +273,9 @@ do
 
     function QueueEventTask(event, task)
         if not c_Event[event] then
-            TaskManager:RegisterEvent(event)
+            _EventManager:RegisterEvent(event)
 
-            if not TaskManager:IsEventRegistered(event) then
+            if not _EventManager:IsEventRegistered(event) then
                 tinsert(c_Task, wipe(task))
                 return false
             else
@@ -301,10 +301,10 @@ end
 --                     Task Manager                       --
 ------------------------------------------------------------
 do
-    TaskManager = CreateFrame("Frame")
+    _PhaseManager = CreateFrame("Frame")
 
     -- Delay Event Handler
-    TaskManager:SetScript("OnUpdate", function(self, elapsed)
+    _PhaseManager:SetScript("OnUpdate", function(self, elapsed)
         local now = GetTime()
 
         g_Inited = true
@@ -333,7 +333,9 @@ do
     end)
 
     -- System Event Handler
-    TaskManager:SetScript("OnEvent", function(self, event, ...)
+    _EventManager = ISystemEvent()
+
+    function _EventManager:OnEvent(event, ...)
         local header = p_Header[event]
         if not header then return end
 
@@ -371,7 +373,7 @@ end
 --                     System.Task                        --
 ------------------------------------------------------------
 __Doc__[[Task system used to improve performance for the whole system]]
-__Sealed__() __Final__() interface "Task"
+__Sealed__() __Final__() __Abstract__() class "Task" (function(_ENV)
 
     ----------------------------------------------
     ---------------- Common Task -----------------
@@ -379,9 +381,10 @@ __Sealed__() __Final__() interface "Task"
     __Doc__[[
         <desc>Call method with high priority, the method should be called as soon as possible.</desc>
         <format>callable[, ...]</format>
-        <param name="callable">Callable object, function, thread, table with __call</param>
+        <param name="callable">Callable object like function, lambda, table</param>
         <param name="...">method parameter</param>
     ]]
+    __Arguments__{ Callable, Argument{ Type = Any, Nilable = true, IsList = true } }
     __Static__() function DirectCall(callable, ...)
         local task = tremove(c_Task) or {}
 
@@ -396,9 +399,10 @@ __Sealed__() __Final__() interface "Task"
     __Doc__[[
         <desc>Call method with normal priority, the method should be called in the next phase.</desc>
         <format>callable[, ...]</format>
-        <param name="callable">Callable object, function, thread, table with __call</param>
+        <param name="callable">Callable object like function, lambda, table</param>
         <param name="...">method parameter</param>
     ]]
+    __Arguments__{ Callable, Argument{ Type = Any, Nilable = true, IsList = true } }
     __Static__() function NextCall(callable, ...)
         local task = tremove(c_Task) or {}
 
@@ -414,9 +418,10 @@ __Sealed__() __Final__() interface "Task"
         <desc>Call method after several second</desc>
         <format>delay, callable[, ...]</format>
         <param name="delay">the time to delay</param>
-        <param name="callable">Callable object, function, thread, table with __call</param>
+        <param name="callable">Callable object like function, lambda, table</param>
         <param name="...">method parameter</param>
     ]]
+    __Arguments__{ PositiveNumber, Callable, Argument{ Type = Any, Nilable = true, IsList = true } }
     __Static__() function DelayCall(delay, callable, ...)
         local task = tremove(c_Task) or {}
 
@@ -432,9 +437,10 @@ __Sealed__() __Final__() interface "Task"
         <desc>Call method after special system event</desc>
         <format>event, callable[, ...]</format>
         <param name="event">the system event name</param>
-        <param name="callable">Callable object, function, thread, table with __call</param>
+        <param name="callable">Callable object like function, lambda, table</param>
         <return>true if the event is existed and task is registered</return>
     ]]
+    __Arguments__{ String, Callable }
     __Static__() function EventCall(event, callable)
         local task = tremove(c_Task) or {}
 
@@ -449,6 +455,7 @@ __Sealed__() __Final__() interface "Task"
         <param name="func">function, the task function</param>
         <param name="...">the function's parameters</param>
     ]]
+    __Arguments__{ Callable, Argument{ Type = Any, Nilable = true, IsList = true } }
     __Static__() function NoCombatCall(callable, ...)
         if not InCombatLockdown() then return callable(...) end
 
@@ -466,9 +473,10 @@ __Sealed__() __Final__() interface "Task"
     __Doc__[[
         <desc>Call method with thread mode</desc>
         <format>callable[, ...]</format>
-        <param name="callable">Callable object, function, thread, table with __call</param>
+        <param name="callable">Callable object like function, lambda, table</param>
         <param name="...">method parameter</param>
     ]]
+    __Arguments__{ Callable, Argument{ Type = Any, Nilable = true, IsList = true } }
     __Static__() function ThreadCall(...)
         local task = tremove(c_Task) or {}
 
@@ -481,72 +489,69 @@ __Sealed__() __Final__() interface "Task"
     end
 
     __Doc__[[
-        <desc>Call method after special system events or several times</desc>
-        <format>[delay, ][event, ... ,] callable</format>
+        <desc>Call method after special system events or time delay</desc>
+        <format>callable, [delay, ][event, ...] </format>
+        <param name="callable">Callable object like function, lambda, table</param>
         <param name="delay">the time to delay</param>
         <param name="event">the system event name</param>
-        <param name="callable">Callable object, function, thread, table with __call</param>
         <return>true if the task is registered</return>
     ]]
-    __Static__() function WaitCall(...)
+    __Arguments__{ Callable, Argument{ Type = String + PositiveNumber, IsList = true } }
+    __Static__() function WaitCall(callable, ...)
         local nargs = select('#', ...)
-        local callable = select(nargs, ...)
 
-        if type(callable) == "function" or type(callable) == "table" or type(callable) == "thread" then
-            local delayed = false
-            local header = nil
-            local tail = nil
+        local delayed = false
+        local header = nil
+        local tail = nil
 
-            for i = 1, nargs - 1 do
-                local v = select(i, ...)
+        for i = 1, nargs do
+            local v = select(i, ...)
 
-                if type(v) == "number" and not delayed then
-                    delayed = true
+            if type(v) == "number" and not delayed then
+                delayed = true
 
-                    local task = tremove(c_Task) or {}
-                    task.NArgs = 0
-                    task.Method = callable
+                local task = tremove(c_Task) or {}
+                task.NArgs = 0
+                task.Method = callable
 
-                    QueueDelayTask((tonumber(delay) or 0) + GetTime(), task)
+                QueueDelayTask((tonumber(delay) or 0) + GetTime(), task)
 
+                if tail then
+                    tail.Sibling = task
+                    tail = task
+                else
+                    header, tail = task, task
+                end
+            elseif type(v) == "string" then
+                local task = tremove(c_Task) or {}
+                task.NArgs = 0
+                task.Method = callable
+
+                if QueueEventTask(v, task) then
                     if tail then
                         tail.Sibling = task
                         tail = task
                     else
                         header, tail = task, task
                     end
-                elseif type(v) == "string" then
-                    local task = tremove(c_Task) or {}
-                    task.NArgs = 0
-                    task.Method = callable
-
-                    if QueueEventTask(v, task) then
-                        if tail then
-                            tail.Sibling = task
-                            tail = task
-                        else
-                            header, tail = task, task
-                        end
-                    else
-                        tinsert(c_Task, wipe(task))
-                    end
+                else
+                    tinsert(c_Task, wipe(task))
                 end
             end
-
-            if not header then return false end
-
-            tail.Sibling = header
-
-            return true
         end
 
-        return false
+        if not header then return false end
+
+        tail.Sibling = header
+
+        return true
     end
 
     ----------------------------------------------
     ---------------- Thread Task -----------------
     ----------------------------------------------
     __Doc__[[Check if the current thread should keep running or wait for next time slice]]
+    __Arguments__{ }
     __Static__() function Continue()
         local thread = running()
         if not thread then error("Task.Continue() can only be used in a thread.", 2) end
@@ -561,6 +566,7 @@ __Sealed__() __Final__() interface "Task"
     end
 
     __Doc__[[Make the current thread wait for next phase]]
+    __Arguments__{ }
     __Static__() function Next()
         local thread = running()
         if not thread then error("Task.Next() can only be used in a thread.", 2) end
@@ -578,6 +584,7 @@ __Sealed__() __Final__() interface "Task"
         <desc>Delay the current thread for several second</desc>
         <param name="delay">the time to delay</param>
     ]]
+    __Arguments__{ PositiveNumber }
     __Static__() function Delay(delay)
         local thread = running()
         if not thread then error("Task.Delay(delay) can only be used in a thread.", 2) end
@@ -597,6 +604,7 @@ __Sealed__() __Final__() interface "Task"
         <param name="event">the system event name</param>
         <return>true if the event is existed and task is registered</return>
     ]]
+    __Arguments__{ String }
     __Static__() function Event(event)
         local thread = running()
         if not thread then error("Task.Event(event) can only be used in a thread.", 2) end
@@ -620,6 +628,7 @@ __Sealed__() __Final__() interface "Task"
         <param name="event">the system event name</param>
         <return>true if the task is registered</return>
     ]]
+    __Arguments__{ Argument{ Type = String + PositiveNumber, IsList = true } }
     __Static__() function Wait(...)
         local thread = running()
         if not thread then error("Task.Wait(delay, event, ...) can only be used in a thread.", 2) end
@@ -670,7 +679,7 @@ __Sealed__() __Final__() interface "Task"
 
         return yield()
     end
-endinterface "Task"
+end)
 
 ------------------------------------------------------------
 --                   Cancel Task Clear                    --
