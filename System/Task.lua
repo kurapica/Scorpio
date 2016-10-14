@@ -366,7 +366,7 @@ do
 
         -- Attach to Queue
         return QueueTask(HIGH_PRIORITY, header)
-    end)
+    end
 end
 
 ------------------------------------------------------------

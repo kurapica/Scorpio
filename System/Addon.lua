@@ -11,7 +11,7 @@ Module            "Scorpio.Addon"                    "0.1.0"
 
 __Doc__[[The hook & secure hook provider]]
 __Sealed__() interface "IModule" (function(_ENV)
-    extend "ISystemEvent" "IHook" "ISlashCmd"
+    extend "ISystemEvent" "IHook" "ISlashCommand"
 
     ----------------------------------------------
     ------------------- Helper -------------------
