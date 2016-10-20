@@ -15,8 +15,6 @@ __Sealed__() interface "ISystemEvent" (function(_ENV)
     ----------------------------------------------
     ------------------- Helper -------------------
     ----------------------------------------------
-    local FireObjectEvent = System.Reflector.FireObjectEvent
-
     _EventManager = CreateFrame("Frame")
     _EventManager:Hide()
 
@@ -24,7 +22,7 @@ __Sealed__() interface "ISystemEvent" (function(_ENV)
         local objs = rawget(_EventDistribution, evt)
         if objs then
             for obj in pairs(objs) do
-                FireObjectEvent(obj, "OnEvent", evt, ...)
+                OnEvent(obj, evt, ...)
             end
         end
     end

@@ -15,8 +15,6 @@ __Sealed__() interface "IHook" (function(_ENV)
     ----------------------------------------------
     ------------------- Helper -------------------
     ----------------------------------------------
-    local FireObjectEvent = System.Reflector.FireObjectEvent
-
 	_HookDistribution = setmetatable({}, META_WEAKKEY)
 
 	-- Normal Hook API
@@ -39,7 +37,7 @@ __Sealed__() interface "IHook" (function(_ENV)
 
 				target[targetFunc] = function(...)
 					for obj, func in pairs(cache) do
-						FireObjectEvent(obj, "OnHook", func, ...)
+						OnHook(obj, func, ...)
 					end
 
 					return _orig(...)
@@ -82,7 +80,7 @@ __Sealed__() interface "IHook" (function(_ENV)
 
 				hooksecurefunc(target, targetFunc, function(...)
 					for obj, func in pairs(cache) do
-						FireObjectEvent(obj, "OnHook", func, ...)
+						OnHook(obj, func, ...)
 					end
 				end)
 			end
@@ -115,6 +113,7 @@ __Sealed__() interface "IHook" (function(_ENV)
 		<param name="function" type="string">the hooked function name or registered name</param>
 		<param name="...">arguments from the hooked function</param>
 	]]
+    __Delegate__(System.Threading.ThreadCall)
 	event "OnHook"
 
     ----------------------------------------------

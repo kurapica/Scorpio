@@ -15,7 +15,6 @@ __Sealed__() interface "ISlashCommand" (function(_ENV)
     ----------------------------------------------
     ------------------- Helper -------------------
     ----------------------------------------------
-    local FireObjectEvent = System.Reflector.FireObjectEvent
     local _SlashCmdList = _G.SlashCmdList
 
     _SlashCmdCount = 0
@@ -51,6 +50,7 @@ __Sealed__() interface "ISlashCommand" (function(_ENV)
         <param name="info">remain string</param>
         <param name="input">the input editbox</param>
     ]]
+    __Delegate__(System.Threading.ThreadCall)
     event "OnSlashCommand"
 
     ----------------------------------------------
@@ -73,7 +73,7 @@ __Sealed__() interface "ISlashCommand" (function(_ENV)
             slashCmd = "Scorpio_SlashCommand_" .. _SlashCmdCount .. "_"
 
             slashFunc = function(msg, input)
-                return FireObjectEvent(self, "OnSlashCommand", GetSlashCmdArgs(msg, input))
+                return OnSlashCommand(self, GetSlashCmdArgs(msg, input))
             end
         end
 
