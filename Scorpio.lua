@@ -202,15 +202,14 @@ class (Scorpio) (function (_ENV)
         _RootAddon[self._Name] = nil
         _NotLoaded[self] = nil
         _DisabledModule[self] = nil
-
-        self.OnEvent = self.OnEvent - OnEventOrHook
-        self.OnHook = self.OnHook - OnEventOrHook
     end
 
     ----------------------------------------------
-    ----------------- Initializer ----------------
+    ----------------- Constructor ----------------
     ----------------------------------------------
-    function IModule(self)
+    function Scorpio(self, ...)
+        Super(self, ...)
+
         if not self._Parent then
             -- Means this is an addon
             _RootAddon[self._Name] = self
