@@ -15,7 +15,43 @@ Module            "Scorpio"                          "1.0.0"
 -- Wrap the namespace to the addon module class, and also --
 -- save it to the _G for quick access.                    --
 --                                                        --
--- Usage :                                                --
+-- -- Usage :                                             --
+-- Scorpio "TestAddon.ModuleA" "v1.0.1"                   --
+--                                                        --
+-- import "System"                                        --
+--                                                        --
+-- function OnLoad(self)                                  --
+--     -- System Event                                    --
+--     self:RegisterEvent("PLAYER_REGEN_ENABLED")         --
+--                                                        --
+--     -- Slash Command                                   --
+--     self:RegisterSlashCommand("/test")                 --
+--                                                        --
+--     -- Secure Hook                                     --
+--     self:SecureHook("OpenAllBags")                     --
+--                                                        --
+--     -- Saved Variables                                 --
+--     _DB = self:GetSavedVariable("TestAddonSV")         --
+-- end                                                    --
+--                                                        --
+-- function OnEnable(self)                                --
+--     print("Player is logined")                         --
+-- end                                                    --
+--                                                        --
+-- -- System Event Hanlder                                --
+-- function PLAYER_REGEN_ENABLED(self)                    --
+--     print("Out of combat")                             --
+-- end                                                    --
+--                                                        --
+-- -- Slash Command Hanlder                               --
+-- function OnSlashCommand(self, option, info)            --
+--     print(option, info)                                --
+-- end                                                    --
+--                                                        --
+-- -- Hook Handler                                        --
+-- function OpenAllBags(self, ...)                        --
+--     print("OpenAllBags is called", ...)                --
+-- end                                                    --
 ------------------------------------------------------------
 
 __Doc__[[The Scorpio Addon FrameWork]]
