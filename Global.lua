@@ -1,30 +1,28 @@
 --========================================================--
---                Global Features                         --
+--                Scorpio Addon                           --
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
--- Create Date :  2016/09/09                              --
+-- Create Date :  2016/12/14                              --
 --========================================================--
 
 --========================================================--
-Module            "Scorpio"                               ""
+Scorpio            "Scorpio"                              ""
 --========================================================--
 
-namespace "Scorpio"
+namespace          "Scorpio"
 
-import "System"
 import "System.Serialization"
-import "System.Collections"
 
-------------------------------------------------------------
---                       Constant                         --
-------------------------------------------------------------
+----------------------------------------------
+------------------- Prepare ------------------
+----------------------------------------------
+
+-------------------- META --------------------
 META_WEAKKEY   = { __mode = "k" }
 META_WEAKVAL   = { __mode = "v" }
 META_WEAKALL   = { __mode = "kv"}
 
-------------------------------------------------------------
---                        Logger                          --
-------------------------------------------------------------
+------------------- Logger ----------------T--
 Log            = System.Logger("Scorpio")
 
 Log.TimeFormat = "%X"
@@ -35,16 +33,11 @@ Warn           = Log:SetPrefix(4, "|cffffff00[Scorpio]|r", true)
 Error          = Log:SetPrefix(5, "|cffff0000[Scorpio]|r", true)
 Fatal          = Log:SetPrefix(6, "|cff8b0000[Scorpio]|r", true)
 
-Log.LogLevel   = 3
+Log.LogLevel   = 1
 
 Log:AddHandler(print)
 
-------------------------------------------------------------
---                          APIS                          --
-------------------------------------------------------------
-
 ------------------- String -------------------
-strlen         = string.len
 strformat      = string.format
 strfind        = string.find
 strsub         = string.sub
@@ -86,5 +79,6 @@ status         = coroutine.status
 wrap           = coroutine.wrap
 yield          = coroutine.yield
 
-------------------- Load ---------------------
+------------------ Common --------------------
 loadstring     = loadstring or load
+

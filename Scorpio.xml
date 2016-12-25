@@ -1,28 +1,19 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
-    <!-- Global Environment Settings -->
-    <Script file="Global.lua"/>
-
-    <!-- Simple Type Definitions -->
-    <Script file="SimpleTypes.lua"/>
-
-    <!-- System Event Provider -->
-    <Script file="ISystemEvent.lua"/>
-
-    <!-- Hook Provider -->
-    <Script file="IHook.lua"/>
-
-    <!-- Slash Command Provider -->
-    <Script file="ISlashCommand.lua"/>
-
-    <!-- Saved Variable Manager -->
-    <Script file="ISavedVariableManager.lua"/>
-
-    <!-- Core Task System -->
-    <Script file="Task.lua"/>
-
     <!-- Scorpio Core -->
+    <Script file="Core.lua"/>
+
+	<!-- Scorpio Global -->
+	<Script file="Global.lua"/>
+
+	<!-- Scorpio SVManager -->
+	<Script file="SVManager.lua"/>
+
+    <!-- Scorpio Localization -->
+    <Script file="Localization.lua"/>
+
+    <!-- Scorpio Addon -->
     <Script file="Scorpio.lua"/>
 
-    <!-- Scorpio NameSpace  -->
-    <Include file="Widget\Widget.xml"/>
+    <!-- Scorpio.UI -->
+    <Include file="UI\UI.xml"/>
 </Ui>

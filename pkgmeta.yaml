@@ -1,0 +1,7 @@
+package-as: Scorpio
+enable-nolib-creation: no
+
+required-dependencies:
+    - ploop
+
+manual-changelog: changelog.txt

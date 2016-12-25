@@ -1,6 +1,0 @@
-package-as: Scorpio
-
-required-dependencies:
-    - ploop
-
-manual-changelog: CHANGELOG.txt
