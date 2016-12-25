@@ -502,10 +502,9 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         for _, task in ipairs(cache) do
             if task then
                 if type(task) ~= "thread" then
-                    ok, msg = pcall(task, ...)
-                else
-                    ok, msg = resume(task, ...)
+                    task = ThreadCall(taskCallWithArgs, task, ...)
                 end
+                ok, msg = resume(task, ...)
                 if not ok then pcall(geterrorhandler(), msg) end
             end
 
