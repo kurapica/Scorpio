@@ -1,4 +1,4 @@
-When I make the [IGAS](https://www.curseforge.com/projects/21074/) library, I faced a problem: The whole system is based on an object-oriented program system [PLoop](https://wow.curseforge.com/projects/ploop), the more powerful I make it, the more classes and other features added, it make it too difficulty to be used by others. Since I can't roll back, I choose to go deep.
+When I make the [IGAS](https://www.curseforge.com/projects/21074/) library, I faced a problem: The whole system is based on an object-oriented program system [PLoop](https://wow.curseforge.com/projects/ploop), the more powerful I make it, the more classes and other features added, it makes it too difficult to be used by others. Since I can't roll back, I choose to go deep.
 
 In the **Scorpio** project, the main purpose is creating a complex designed but easy-using platform for addon development.
 
@@ -64,7 +64,7 @@ It means create a sub-module named **Mdl** and it's parent module is **ScorpioTe
 
 The wow will notify us about what happened in the game world by system events. Like **UNIT_SPELLCAST_START** tell us an unit is casting a spell, it'd also give us several arguments to tell who cast it and which spell it is. You can find a full list in [Events_Full_List](http://wowwiki.wikia.com/wiki/Events_A-Z_(Full_List)).
 
-The **Scorpio** module can use **RegisterEvent** API to register and handle the system events, but I'll show the common way in another page, here we'll see a simple way to do it, take the **UNIT_SPELLCAST_START** and **UNIT_SPELLCAST_CHANNEL_START** as the examples.
+The **Scorpio** module can use **RegisterEvent** API to register and handle the system events, but I'll show the common way in another page, here we'll see a simple way to do it, take the `UNIT_SPELLCAST_START` and `UNIT_SPELLCAST_CHANNEL_START` as the examples.
 
 We can handle each system events by each handlers:
 
@@ -84,7 +84,7 @@ The attributes are used to bind information or do some background operations for
 
 Here `__SystemEvent__()` is used to mark the next defined function as a system event handler, the system event's name is given by the function's name. So when an unit(like player self) casting a spell(not instant spell), the function would be called and event arguments would be passed in. You may test it by yourselves.
 
-Since the code we handle the **UNIT_SPELLCAST_START** and **UNIT_SPELLCAST_CHANNEL_START** is the same, we can combine it like
+Since the code we handle the `UNIT_SPELLCAST_START` and `UNIT_SPELLCAST_CHANNEL_START` is the same, we can combine it like
 
     __SystemEvent__ "UNIT_SPELLCAST_START" "UNIT_SPELLCAST_CHANNEL_START"
     function UNIT_SPELLCAST(unit, spell)
@@ -267,9 +267,11 @@ After the _SVDB is defined, we can use it to access or write datas like
 * Account Data :
     * _SVDB.Key = value
     * value = _SVDB.Key
+
 * Character Data :
     * _SVDB.Char.Key = value
     * value = _SVDB.Char.Key
+
 * Character-Specialization Data(The system would handle the specialization's changing) :
     * _SVDB.Char.Spec.Key = value
     * value = _SVDB.Char.Spec.Key
@@ -277,14 +279,18 @@ After the _SVDB is defined, we can use it to access or write datas like
 Besides the access, the other part for saved variable is given them default settings, since the real job is combine the saved variable with the default settings, so you can do it in multi-times and any time.
 
 * Account Default :
-    * _SVDB:SetDefault{ key1 = value1, key2 = value2 }              -- the values could be table
-    * _SVDB:SetDefault( key, value )                                -- the value  could be table
+    * _SVDB:SetDefault{ key1 = value1, key2 = value2 }
+    * _SVDB:SetDefault( key, value )
+
 * Character Default :
-    * _SVDB.Char:SetDefault{ key1 = value1, key2 = value2 }         -- the values could be table
+    * _SVDB.Char:SetDefault{ key1 = value1, key2 = value2 }
     * _SVDB.Char:SetDefault( key, value )
+
 * Character-Specialization Default :
-    * _SVDB.Char.Spec:SetDefault{ key1 = value1, key2 = value2 }    -- the values could be table
+    * _SVDB.Char.Spec:SetDefault{ key1 = value1, key2 = value2 }
     * _SVDB.Char.Spec:SetDefault( key, value )
+
+BTW. the values can also be tables, and if value if not table, only boolean, number, string will be accepted.
 
 ---------------------------------------
 
@@ -292,33 +298,31 @@ Besides the access, the other part for saved variable is given them default sett
 
 The module have several property that can be accessed like global variables:
 
-* _M            - The module itself.
-* _Name         - The name of the module.
-* _Parent       - The parent module of the module.
-* _Version      - The module's version.
-* _Enabled      - Whether the module's enabled.
-* _Disabled     - Readonly, whether the module is disabled(the sub-module would be disabled if its parent module is disabled)
-* _Addon        - The root module of the addon
+Name       |Description
+-----------|-----------
+_M         |The module itself.
+_Name      |The name of the module.
+_Parent    |The parent module of the module.
+_Version   |The module's version.
+_Enabled   |Whether the module's enabled.
+_Disabled  |Readonly, whether the module is disabled(the sub-module would be disabled if its parent module is disabled)
+_Addon     |The root module of the addon
 
 ---------------------------------------
 
 ## The module event ##
 
-Besides the OnLoad event, the addon module also provide some other event to help you manage it :
+Besides the OnLoad event, the addon module also provide some other event to help you manage it(*self* means the module itself) :
 
-* OnLoad(self)              -- Fired when the addon is loaded, the sub-module's OnLoad will be fired after it's parent.
-    * self                  -- The module itself.
-* OnSpecChanged(self, spec) -- Fired when the player changed specialization
-    * self                  -- The module itself.
-    * spec                  -- The specialization index.
-* OnEnable(self)            -- Fired when the module is enabled and the player login into the game, or the module is re-enabled.
-    * self                  -- The module itself.
-* OnDisable(self)           -- Fired when the module is disabled.
-    * self                  -- The module itself.
-* OnQuit(self)              -- Fired when the player log out.
-    * self                  -- The module itself.
+Event               |Description
+--------------------|--------------------
+OnLoad(self)        |Fired when the addon is loaded, the sub-module's OnLoad will be fired after it's parent.
+OnSpecChanged(self) |Fired when the player changed specialization
+OnEnable(self)      |Fired when the module is enabled and the player login into the game, or the module is re-enabled.
+OnDisable(self)     |Fired when the module is disabled.
+OnQuit(self)        |Fired when the player log out.
 
-Here is an example to combine all those :
+Here is an example for all those :
 
 * ScorpioTest.lua
 
@@ -393,8 +397,8 @@ The **Scorpio** Library also provide a full set APIS called **Task API**, like *
 
 Here is the list of those apis(Those examples can be test in in-game editor like [Cube](https://wow.curseforge.com/projects/igas-cube) or [WOWLua]())
 
-* Continue(func[, ...])  -- Call the func with arguments as soon as possible, you should noticed that the func would be running in a thread.
-* Continue()             -- Can only be used in a thread, it'll try to continue the thread if it still have time to execute it or send it to next phase.
+Continue(func[, ...])      |Call the func with arguments as soon as possible, you should noticed that the func would be running in a thread.
+Continue()                 |Can only be used in a thread, it'll try to continue the thread if it still have time to execute it or send it to next phase.
 
         -- You can use Continue directly if those code run in a Scorpio module
         Scorpio.Continue(
@@ -419,8 +423,8 @@ Here is the list of those apis(Those examples can be test in in-game editor like
 
     You may find no fps drops and the cycled count for one phase is about 12500 on my laptop.
 
-* Next(func[, ...])      -- Call the func with arguments in the next phase.
-* Next()                 -- Can only be used in a thread, it'll resume the thread in next phase.
+Next(func[, ...])          |Call the func with arguments in the next phase.
+Next()                     |Can only be used in a thread, it'll resume the thread in next phase.
 
         print(GetTime())
         Scorpio.Next(
@@ -434,11 +438,11 @@ Here is the list of those apis(Those examples can be test in in-game editor like
 
     You may find the *GetTime*'s result are all different, it's a better way to do animations if you don't want create any animation widgets, also can be used in some special conditions : In the [Cube](), you can double click on a word to choose it, it's handed in the editbox's *OnMouseDown* event, but from wow 7.0, the wow would modify the highlights after the event, so my action is canceled. To make sure my action is done after the orginal behavior, the **Next** API is the better choice.
 
-* Delay(delay, func[, ...])  -- Call the func with arguments after a delay(second).
-* Delay(delay)               -- Can only be used in a thread, it'll resume the thread after a delay(second). We already have an example in the slash command.
+Delay(delay, func[, ...])  | Call the func with arguments after a delay(second).
+Delay(delay)               |Can only be used in a thread, it'll resume the thread after a delay(second). We already have an example in the slash command.
 
-* Event(event, func[, ...])  -- Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
-* Event(event)               -- Can only be used in a thread, it'll resume the thread when an system event is fired, the system event's argument will be returned.
+Event(event, func[, ...])  |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
+Event(event)               |Can only be used in a thread, it'll resume the thread when an system event is fired, the system event's argument will be returned.
 
         local addon = "Blizzard_AuctionUI"
         Scorpio.Continue(
@@ -450,8 +454,8 @@ Here is the list of those apis(Those examples can be test in in-game editor like
 
     The code is used to notify us when the Blizzard_AuctionUI loaded.
 
-* Wait(func[,delay][,event[, ...]])  -- Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
-* Wait([delay,][event[,...]])        -- Can only be used in a thread, it'll resume the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
+Wait(func[,delay][,event[, ...]]) |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
+Wait([delay,][event[,...]])       |Can only be used in a thread, it'll resume the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
 
         Scorpio.Continue(
             function()
@@ -463,8 +467,8 @@ Here is the list of those apis(Those examples can be test in in-game editor like
 
     The code is used to catch all spell (not instant spell) and channel spell's casting. The event's name and other arguments would be print out.
 
-* NoCombat(func[, ...])   -- Call the func when not in combat.
-* NoCombat()              -- Can only be used in a thread, it'll resume the thread when not in combat.
+NoCombat(func[, ...]) |Call the func when not in combat.
+NoCombat()            |Can only be used in a thread, it'll resume the thread when not in combat.
 
 ---------------------------------------
 
@@ -482,7 +486,7 @@ In the previous examples, we have see attributes like `__SystemEvent__`, `__Secu
             -- Update panel like grids
         end
 
-    The **GROUP_ROSTER_UPDATE** system event means the raid|party group is changed, so we may need to update the panel, but we can't do it during the combat, so give it `__NoCombat__` attribute will make sure it'll only be real called out of combat. (It's just an example, in the real addon, we can handle it by using secure templates).
+    The `GROUP_ROSTER_UPDATE` system event means the raid|party group is changed, so we may need to update the panel, but we can't do it during the combat, so give it `__NoCombat__` attribute will make sure it'll only be real called out of combat. (It's just an example, in the real addon, we can handle it by using secure templates).
 
 * `__Thread__`  -- Mark the global function defined in a Scorpio module, so it would be called as a thread.
 
@@ -503,7 +507,7 @@ In the previous examples, we have see attributes like `__SystemEvent__`, `__Secu
             print("Out of combat.")
         end
 
-    So we'll call the function when **PLAYER_REGEN_DISABLED** fired, that means the player is in combat now. Since the function is called as thread, so we can use **Wait** directly in the code.
+    So we'll call the function when `PLAYER_REGEN_DISABLED` fired, that means the player is in combat now. Since the function is called as thread, so we can use **Wait** directly in the code.
 
 * `__Iterator__`   -- Mark the global function as an iterator that can be used in `for do - end`. The function will be run as a thread, so in it, need use coroutine.yield to yield values like :
 
