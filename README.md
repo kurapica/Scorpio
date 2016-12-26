@@ -101,88 +101,88 @@ A big part in addon development is modifying the wow's original ui. To do it, we
 
 1. When you need replace some functions you could use un-secure hook. Normally you can only replaced function defined by the 3rd addons. Suppose we have some code defined in the _G like
 
-    TestLib = {}
-    function TestLib.DoJob()
-        print("TestLib DoJob")
-    end
+        TestLib = {}
+        function TestLib.DoJob()
+            print("TestLib DoJob")
+        end
 
-    function TestFunc()
-        print("TestFunc")
-    end
+        function TestFunc()
+            print("TestFunc")
+        end
 
-So we have a global function *TestFunc* and a in table function *TestLib.DoJob*, now let's hook them
+    So we have a global function *TestFunc* and a in table function *TestLib.DoJob*, now let's hook them
 
-    __Hook__()
-    function TestFunc()
-        print("Hook TestFunc")
-    end
+        __Hook__()
+        function TestFunc()
+            print("Hook TestFunc")
+        end
 
-Since we don't provide the *target table* and the *target function's name*, the target table should be _G, and the target function would be the same name. Now if anyone call the TestFunc, it's result would be
+    Since we don't provide the *target table* and the *target function's name*, the target table should be _G, and the target function would be the same name. Now if anyone call the TestFunc, it's result would be
 
-    Hook TestFunc
-    TestFunc
+        Hook TestFunc
+        TestFunc
 
-So our hooked function would be called first, then the original function.
+    So our hooked function would be called first, then the original function.
 
-There is a problem, if you need call the TestFunc also in the module, We don't which one it should be use, so we need hook it with different name like
+    There is a problem, if you need call the TestFunc also in the module, We don't which one it should be use, so we need hook it with different name like
 
-    __Hook__ "TestFunc"
-    function HookTestFunc()
-        print("Hook TestFunc")
-    end
+        __Hook__ "TestFunc"
+        function HookTestFunc()
+            print("Hook TestFunc")
+        end
 
-Like the `__SysteEvent__`, we can provide the target function's name with the attribute.
+    Like the `__SysteEvent__`, we can provide the target function's name with the attribute.
 
-For the TestLib.DoJob, we need also provide the target table like :
+    For the TestLib.DoJob, we need also provide the target table like :
 
-    __Hook__(TestLib, "DoJob")
-    function Hook_DoJob(...)
-        print("Hook_DoJob")
-    end
+        __Hook__(TestLib, "DoJob")
+        function Hook_DoJob(...)
+            print("Hook_DoJob")
+        end
 
-Or
+    Or
 
-    __Hook__(TestLib)
-    function DoJob(...)
-        print("Hook_DoJob")
-    end
+        __Hook__(TestLib)
+        function DoJob(...)
+            print("Hook_DoJob")
+        end
 
 
 2. Since the un-secure hook can't handle the blz's code, it's normally useless, so we should focus on how to secure hook system's api.
 
-When you hook the system function, your hook function would be called after the system function.
+    When you hook the system function, your hook function would be called after the system function.
 
-Take **ChatEdit_OnEditFocusGained** as an example, it's fired when you press enter and the chat frame's input edit box is shown.
+    Take **ChatEdit_OnEditFocusGained** as an example, it's fired when you press enter and the chat frame's input edit box is shown.
 
-    __SecureHook__()
-    function ChatEdit_OnEditFocusGained(self)
-        print("Start input text")
-    end
+        __SecureHook__()
+        function ChatEdit_OnEditFocusGained(self)
+            print("Start input text")
+        end
 
-Like the `__Hook__`, also you can do it as
+    Like the `__Hook__`, also you can do it as
 
-    __SecureHook__ "ChatEdit_OnEditFocusGained"
-    function Hook_ChatEdit_OnEditFocusGained(self)
-        print("Start input text")
-    end
+        __SecureHook__ "ChatEdit_OnEditFocusGained"
+        function Hook_ChatEdit_OnEditFocusGained(self)
+            print("Start input text")
+        end
 
-If we try to hook AuctionFrameTab_OnClick, since it's defined in addon Blizzard_AuctionUI, we can't hook it before the addon is loaded, but it can be simply done with a new attribute :
+    If we try to hook AuctionFrameTab_OnClick, since it's defined in addon Blizzard_AuctionUI, we can't hook it before the addon is loaded, but it can be simply done with a new attribute :
 
-    __AddonSecureHook__ "Blizzard_AuctionUI"
-    function AuctionFrameTab_OnClick(self, button, down, index)
-        print("Click " .. self:GetName() .. " Auction tab")
-    end
+        __AddonSecureHook__ "Blizzard_AuctionUI"
+        function AuctionFrameTab_OnClick(self, button, down, index)
+            print("Click " .. self:GetName() .. " Auction tab")
+        end
 
-Or
+    Or
 
-    __AddonSecureHook__ ("Blizzard_AuctionUI", "AuctionFrameTab_OnClick")
-    function Hook_AuctionFrameTab_OnClick(self, button, down, index)
-        print("Click " .. self:GetName() .. " Auction tab")
-    end
+        __AddonSecureHook__ ("Blizzard_AuctionUI", "AuctionFrameTab_OnClick")
+        function Hook_AuctionFrameTab_OnClick(self, button, down, index)
+            print("Click " .. self:GetName() .. " Auction tab")
+        end
 
-It would make the system secure hook the target function until the **Blizzard_AuctionUI** is loaded. You can open the auction frame and toggle the tabpage to see the result.
+    It would make the system secure hook the target function until the **Blizzard_AuctionUI** is loaded. You can open the auction frame and toggle the tabpage to see the result.
 
-To modify the original code, you need be familiar with them first, you may find the sources in [wow-ui-source](https://github.com/tekkub/wow-ui-source). You can use `/fstack` command to know which frame you want modify and then search them in the source.
+    To modify the original code, you need be familiar with them first, you may find the sources in [wow-ui-source](https://github.com/tekkub/wow-ui-source). You can use `/fstack` command to know which frame you want modify and then search them in the source.
 
 ---------------------------------------
 
