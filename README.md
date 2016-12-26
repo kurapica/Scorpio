@@ -397,78 +397,102 @@ The **Scorpio** Library also provide a full set APIS called **Task API**, like *
 
 Here is the list of those apis(Those examples can be test in in-game editor like [Cube](https://wow.curseforge.com/projects/igas-cube) or [WOWLua]())
 
-Continue(func[, ...])      |Call the func with arguments as soon as possible, you should noticed that the func would be running in a thread.
-Continue()                 |Can only be used in a thread, it'll try to continue the thread if it still have time to execute it or send it to next phase.
+# Continue #
 
-        -- You can use Continue directly if those code run in a Scorpio module
-        Scorpio.Continue(
-            function ()
-                local time = GetTime()
-                local prev = 0
-                for i = 1, 10^7 do
-                    if i%10 == 0 then
-                        Scorpio.Continue()
+API                               |Description
+----------------------------------|------------------------------------
+Continue(func[, ...])             |Call the func with arguments as soon as possible, you should noticed that the func would be running in a thread.
+Continue()                        |Can only be used in a thread, it'll try to continue the thread if it still have time to execute it or send it to next phase.
 
-                        if time ~= GetTime() then
-                            time = GetTime()
+    -- You can use Continue directly if those code run in a Scorpio module
+    Scorpio.Continue(
+        function ()
+            local time = GetTime()
+            local prev = 0
+            for i = 1, 10^7 do
+                if i%10 == 0 then
+                    Scorpio.Continue()
 
-                            -- Print the new phase's time and the cycled count in previous phase
-                            print(time, i - prev)
-                            prev = i
-                        end
+                    if time ~= GetTime() then
+                        time = GetTime()
+
+                        -- Print the new phase's time and the cycled count in previous phase
+                        print(time, i - prev)
+                        prev = i
                     end
                 end
             end
-        )
+        end
+    )
 
-    You may find no fps drops and the cycled count for one phase is about 12500 on my laptop.
+You may find no fps drops and the cycled count for one phase is about 12500 on my laptop.
 
-Next(func[, ...])          |Call the func with arguments in the next phase.
-Next()                     |Can only be used in a thread, it'll resume the thread in next phase.
+# Next #
 
-        print(GetTime())
-        Scorpio.Next(
-            function()
-                for i = 1, 10 do
-                    Scorpio.Next()
-                    print(GetTime())
-                end
+API                               |Description
+----------------------------------|------------------------------------
+Next(func[, ...])                 |Call the func with arguments in the next phase.
+Next()                            |Can only be used in a thread, it'll resume the thread in next phase.
+
+    print(GetTime())
+    Scorpio.Next(
+        function()
+            for i = 1, 10 do
+                Scorpio.Next()
+                print(GetTime())
             end
-        )
+        end
+    )
 
-    You may find the *GetTime*'s result are all different, it's a better way to do animations if you don't want create any animation widgets, also can be used in some special conditions : In the [Cube](), you can double click on a word to choose it, it's handed in the editbox's *OnMouseDown* event, but from wow 7.0, the wow would modify the highlights after the event, so my action is canceled. To make sure my action is done after the orginal behavior, the **Next** API is the better choice.
+You may find the *GetTime*'s result are all different, it's a better way to do animations if you don't want create any animation widgets, also can be used in some special conditions : In the [Cube](), you can double click on a word to choose it, it's handed in the editbox's *OnMouseDown* event, but from wow 7.0, the wow would modify the highlights after the event, so my action is canceled. To make sure my action is done after the orginal behavior, the **Next** API is the better choice.
 
-Delay(delay, func[, ...])  | Call the func with arguments after a delay(second).
-Delay(delay)               |Can only be used in a thread, it'll resume the thread after a delay(second). We already have an example in the slash command.
+# Delay #
 
-Event(event, func[, ...])  |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
-Event(event)               |Can only be used in a thread, it'll resume the thread when an system event is fired, the system event's argument will be returned.
+API                               |Description
+----------------------------------|------------------------------------
+Delay(delay, func[, ...])         |Call the func with arguments after a delay(second).
+Delay(delay)                      |Can only be used in a thread, it'll resume the thread after a delay(second). We already have an example in the slash command.
 
-        local addon = "Blizzard_AuctionUI"
-        Scorpio.Continue(
-            function()
-                while Scorpio.Event("ADDON_LOADED") ~= addon do end
-                print(addon .. " is loaded.")
-            end
-        )
+# Event #
 
-    The code is used to notify us when the Blizzard_AuctionUI loaded.
+API                               |Description
+----------------------------------|------------------------------------
+Event(event, func[, ...])         |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
+Event(event)                      |Can only be used in a thread, it'll resume the thread when an system event is fired, the system event's argument will be returned.
 
+    local addon = "Blizzard_AuctionUI"
+    Scorpio.Continue(
+        function()
+            while Scorpio.Event("ADDON_LOADED") ~= addon do end
+            print(addon .. " is loaded.")
+        end
+    )
+
+The code is used to notify us when the Blizzard_AuctionUI loaded.
+
+# Wait #
+
+API                               |Description
+----------------------------------|------------------------------------
 Wait(func[,delay][,event[, ...]]) |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
 Wait([delay,][event[,...]])       |Can only be used in a thread, it'll resume the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
 
-        Scorpio.Continue(
-            function()
-                while true do
-                    print(Scorpio.Wait("UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START"))
-                end
+    Scorpio.Continue(
+        function()
+            while true do
+                print(Scorpio.Wait("UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START"))
             end
-        )
+        end
+    )
 
-    The code is used to catch all spell (not instant spell) and channel spell's casting. The event's name and other arguments would be print out.
+The code is used to catch all spell (not instant spell) and channel spell's casting. The event's name and other arguments would be print out.
 
-NoCombat(func[, ...]) |Call the func when not in combat.
-NoCombat()            |Can only be used in a thread, it'll resume the thread when not in combat.
+# NoCombat #
+
+API                               |Description
+----------------------------------|------------------------------------
+NoCombat(func[, ...])             |Call the func when not in combat.
+NoCombat()                        |Can only be used in a thread, it'll resume the thread when not in combat.
 
 ---------------------------------------
 
