@@ -6,24 +6,8 @@
 --========================================================--
 
 --========================================================--
-Scorpio            "Scorpio.Localization"            "1.0.0"
+Scorpio            "Scorpio.Localization"            "1.0.1"
 --========================================================--
-
-------------------------------------------------------------
---                        Locale                          --
-------------------------------------------------------------
-enum "Locale" {
-    "deDE",             -- German
-    enGB = "enUS",      -- British English
-    "enUS",             -- American English
-    "esES",             -- Spanish (European)
-    "esMX",             -- Spanish (Latin American)
-    "frFR",             -- French
-    "koKR",             -- Korean
-    "ruRU",             -- Russian
-    "zhCN",             -- Chinese (simplified; mainland China)
-    "zhTW",             -- Chinese (traditional; Taiwan)
-}
 
 ------------------------------------------------------------
 --                        Locale                          --
@@ -31,10 +15,24 @@ enum "Locale" {
 class "Localization" (function(_ENV)
     _Localizations = {}
 
+    enum "Locale" {
+        "deDE",             -- German
+        enGB = "enUS",      -- British English
+        "enUS",             -- American English
+        "esES",             -- Spanish (European)
+        "esMX",             -- Spanish (Latin American)
+        "frFR",             -- French
+        "koKR",             -- Korean
+        "ruRU",             -- Russian
+        "zhCN",             -- Chinese (simplified; mainland China)
+        "zhTW",             -- Chinese (traditional; Taiwan)
+    }
+
+
     ----------------------------------------------
     ----------------- Constructor ----------------
     ----------------------------------------------
-    __Arguments__( NEString )
+    __Arguments__{ NEString }
     function Localization(self, name)
         _Localizations[name] = self
     end
@@ -47,7 +45,7 @@ class "Localization" (function(_ENV)
         return _Localizations[name]
     end
 
-    __Arguments__{ String }
+    __Arguments__{ NEString }
     function __index(self, key)
         rawset(self, key, key)
         return key
@@ -63,24 +61,27 @@ class "Localization" (function(_ENV)
         rawset(self, key, key)
     end
 
-    function __call(self, key)
-        return self[key]
+    __Arguments__ {
+        Argument(Locale, false, nil, "language"),
+        Argument(Boolean, true, false, "asDefault"),
+    }
+    function __call(self, language, asDefault)
+        if not asDefault then
+            local locale = GetLocale()
+            if locale == "enGB" then locale = "enUS" end
+            if locale ~= language then return end
+        end
+        return self
     end
 end)
 
 ------------------------------------------------------------
---                   Scorpio.GetLocale                    --
+--               [Property]Scorpio._Locale                --
 ------------------------------------------------------------
-__Static__() __Arguments__ {
-    Argument(NEString, false, nil, "addonName"),
-    Argument(Locale, false, nil, "language"),
-    Argument(Boolean, true, false, "asDefault"),
+Scorpio._Locale = {
+    Set = false,
+    Default = function(self)
+    print("Get", self._Addon._Name)
+        return Localization(self._Addon._Name)
+    end,
 }
-function Scorpio.GetLocale(addonName, language, asDefault)
-    if not asDefault then
-        local locale = GetLocale()
-        if locale == "enGB" then locale = "enUS" end
-        if locale ~= language then return end
-    end
-    return Localization(addonName)
-end

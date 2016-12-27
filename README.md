@@ -62,7 +62,7 @@ It means create a sub-module named **Mdl** and it's parent module is **ScorpioTe
 
 ## System Event Handler ##
 
-The wow will notify us about what happened in the game world by system events. Like **UNIT_SPELLCAST_START** tell us an unit is casting a spell, it'd also give us several arguments to tell who cast it and which spell it is. You can find a full list in [Events_Full_List](http://wowwiki.wikia.com/wiki/Events_A-Z_(Full_List)).
+The wow will notify us about what happened in the game world by system events. Like `UNIT_SPELLCAST_START` tell us an unit is casting a spell, it'd also give us several arguments to tell who cast it and which spell it is. You can find a full list in [Events List](http://wowwiki.wikia.com/wiki/Events_A-Z_(Full_List)).
 
 The **Scorpio** module can use **RegisterEvent** API to register and handle the system events, but I'll show the common way in another page, here we'll see a simple way to do it, take the `UNIT_SPELLCAST_START` and `UNIT_SPELLCAST_CHANNEL_START` as the examples.
 
@@ -290,7 +290,21 @@ Besides the access, the other part for saved variable is given them default sett
     * _SVDB.Char.Spec:SetDefault{ key1 = value1, key2 = value2 }
     * _SVDB.Char.Spec:SetDefault( key, value )
 
-BTW. the values can also be tables, and if value if not table, only boolean, number, string will be accepted.
+BTW. the values can also be tables, and only table, boolean, number, string value will be accepted. If the value is a function, it'll be used as a value factory.
+
+If you decided reset the saved variables, you also can do it like :
+
+* Account Reset :
+    * _SVDB:Reset() -- Reset the account data with default, won't affect character data.
+
+* Character Reset :
+    * _SVDB.Char:Reset() -- Reset the character data with default, won't affect specialization data.
+
+* Character-Specialization Reset :
+    * _SVDB.Char.Spec:Reset() -- Reset current specialization data with default.
+    * _SVDB.Char.Spec:ResetAll() -- Reset all specialization data with default.
+
+You should handle the addon updating by yourselves after the data reseted.
 
 ---------------------------------------
 
@@ -307,6 +321,7 @@ _Version   |The module's version.
 _Enabled   |Whether the module's enabled.
 _Disabled  |Readonly, whether the module is disabled(the sub-module would be disabled if its parent module is disabled)
 _Addon     |The root module of the addon
+_Locale    |The localization manager
 
 ---------------------------------------
 
@@ -570,12 +585,52 @@ In the previous examples, we have see attributes like `__SystemEvent__`, `__Secu
 
 ## The Localization ##
 
+There are two localization files defined in the **ScorpioTest.toc**.
 
+    # localization files
+    Locale\enUS.lua
+    Locale\zhCN.lua
+
+Since the localization system is very simple, let's see it in examples.
+
+* Locale\enUS.lua
+
+        Scorpio "ScorpioTest.Localization.enUS" "1.0.0"
+
+        -- _Locale(language, asDefault)
+        -- language -- The language token you can get from GetLocale() API
+        -- asDefault -- Whether the language is the default, normally only true with "enUS"
+        L = _Locale("enUS", true)
+
+        -- If the language don't match the client and is not the default language, L will be nil.
+        if not L then return end
+
+        L["A test message"] = true
+        L[1] = "Another test message"
+
+* Locale\zhCN.lua
+
+        Scorpio "ScorpioTest.Localization.zhCN" "1.0.0"
+
+        L = _Locale("zhCN")
+
+        if not L then return end
+
+        L["A test message"] = "一条测试用消息"
+        L[1] = "另一条测试用消息"
+
+* **Usage** - ScorpioTest.lua
+
+        Scorpio "ScorpioTest" "1.0.0"
+
+        -- You can assign it to a new variable for easy using
+        L = _Locale
+
+        function OnLoad(self)
+            print(_Locale["A test message"])
+            print(_Locale[1])
+
+            print(L["A test message"])
+        end
 
 ---------------------------------------
-
-## Logger System ##
-
-
-
-

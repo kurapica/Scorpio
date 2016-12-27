@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Scorpio            "Scorpio.SVManager"               "1.0.0"
+Scorpio            "Scorpio.SVManager"               "1.0.1"
 --========================================================--
 
 ----------------------------------------------
@@ -14,20 +14,26 @@ Scorpio            "Scorpio.SVManager"               "1.0.0"
 ----------------------------------------------
 function copydefault(tar, default, clonefunc)
     if type(tar) ~= "table" then tar = {} end
+
     if default then
         for k, v in pairs(default) do
             local ty = type(v)
+
             if ty == "table" then
                 tar[k] = copydefault(tar[k], v)
             elseif tar[k] == nil then
-                if ty == "function" then
-                    if clonefunc then
-                        tar[k] = v
-                    else
-                        tar[k] = v()
-                    end
-                elseif ty == "string" or ty == "boolean" or ty == "number" then
+                if ty == "function" and clonefunc then
                     tar[k] = v
+                else
+                    if ty == "function" then
+                        v = v()
+                        ty = type(v)
+                    end
+                    if ty == "table" then
+                        tar[k] = copydefault(tar[k], v)
+                    elseif ty == "string" or ty == "boolean" or ty == "number" then
+                        tar[k] = v
+                    end
                 end
             end
         end
@@ -38,23 +44,44 @@ end
 ------------------------------------------------------------
 --                       SVManager                        --
 ------------------------------------------------------------
+__Doc__[[The saved variables mananger]]
 __Sealed__()
 class "SVManager" (function(_ENV)
 
-    _DBMap = {}
-    _DBCharMap = {}
+    _DBMap          = {}
+    _DBSVDefault    = {}
+
+    _DBCharMap      = {}
 
     ----------------------------------------------
     ------------------- Method -------------------
     ----------------------------------------------
-    __Arguments__{ NEString, Table }
+    __Doc__[[Set the default value for the account saved variable]]
+    __Arguments__{ NEString + Number, Table }
     function SetDefault(self, key, default)
+        _DBSVDefault[self] = _DBSVDefault[self] or {}
+        _DBSVDefault[self][key] = copydefault(_DBSVDefault[self][key], default, true)
+
         _DBMap[self][key] = copydefault(_DBMap[self][key], default)
     end
 
-    __Arguments__{ Table}
+    __Arguments__{ Table }
     function SetDefault(self, default)
+        _DBSVDefault[self] = _DBSVDefault[self] or {}
+        _DBSVDefault[self] = copydefault(_DBSVDefault[self], default, true)
+
         _DBMap[self] = copydefault(_DBMap[self], default)
+    end
+
+    __Doc__[[Reset the account saved variable with default]]
+    function Reset(self)
+        local cache = _DBMap[self]
+        local chars = cache.__ScorpioChars
+
+        wipe(cache)
+        cache = copydefault(cache, _DBSVDefault[self])
+
+        cache.__ScorpioChars = chars
     end
 
     ----------------------------------------------
@@ -75,7 +102,7 @@ class "SVManager" (function(_ENV)
                 _DBCharMap[self] = char
             end
             return char
-        end
+        end,
     }
 
     ----------------------------------------------
@@ -87,6 +114,7 @@ class "SVManager" (function(_ENV)
             _DBCharMap[self] = nil
         end
 
+        _DBSVDefault[self] = nil
         _DBMap[self] = nil
     end
 
@@ -128,7 +156,19 @@ class "SVManager" (function(_ENV)
         ----------------------------------------------
         ------------------- Method -------------------
         ----------------------------------------------
+        __Doc__[[Set the default value for the character saved variable]]
         SetDefault = SetDefault
+
+        __Doc__[[Reset the character saved variable with default]]
+        function Reset(self)
+            local cache = _DBMap[self]
+            local specs = cache.__ScorpioSpecs
+
+            wipe(cache)
+            cache = copydefault(cache, _DBSVDefault[self])
+
+            cache.__ScorpioSpecs = specs
+        end
 
         ----------------------------------------------
         ------------------ Property ------------------
@@ -156,6 +196,7 @@ class "SVManager" (function(_ENV)
                 _DBSpecMap[self] = nil
             end
 
+            _DBSVDefault[self] = nil
             _DBMap[self] = nil
         end
         ----------------------------------------------
@@ -188,16 +229,14 @@ class "SVManager" (function(_ENV)
         ----------------------------------------------
         class "SVSpecManager" (function(_ENV)
 
-            _DBSpecDefault = {}
-
             ----------------------------------------------
             ------------------- Method -------------------
             ----------------------------------------------
-            __Arguments__{ NEString, Table }
+            __Doc__[[Set the default value for the specialization saved variable]]
+            __Arguments__{ NEString + Number, Table }
             function SetDefault(self, key, default)
-                local cache = _DBSpecDefault[self] or {}
-                _DBSpecDefault[self] = cache
-                cache[key] = copydefault(cache[key], default, true)
+                _DBSVDefault[self] = _DBSVDefault[self] or {}
+                _DBSVDefault[self][key] = copydefault(_DBSVDefault[self][key], default, true)
 
                 for i, v in pairs(_DBMap[self]) do
                     if type(i) == "number" then
@@ -206,17 +245,43 @@ class "SVManager" (function(_ENV)
                 end
             end
 
-            __Arguments__{ Table}
+            __Arguments__{ Table }
             function SetDefault(self, default)
-                local cache = _DBSpecDefault[self] or {}
-                _DBSpecDefault[self] = cache
-                cache[self] = copydefault(cache[self], default, true)
+                _DBSVDefault[self] = _DBSVDefault[self] or {}
+                _DBSVDefault[self] = copydefault(_DBSVDefault[self], default, true)
 
                 for i, v in pairs(_DBMap[self]) do
                     if type(i) == "number" then
                         v = copydefault(v, default)
                     end
                 end
+            end
+
+            __Doc__[[Reset current specialization saved variable with default]]
+            function Reset(self)
+                local cache = _DBMap[self][GetSpecialization() or 1]
+                if cache then
+                    wipe(cache)
+                    cache = copydefault(cache, _DBSVDefault[self])
+                end
+            end
+
+            __Doc__[[Reset all specialization saved variables with default]]
+            function ResetAll(self)
+                for i, v in pairs(_DBMap[self]) do
+                    if type(i) == "number" then
+                        wipe(v)
+                        v = copydefault(v, _DBSVDefault[self])
+                    end
+                end
+            end
+
+            ----------------------------------------------
+            ------------------- Dispose ------------------
+            ----------------------------------------------
+            function Dispose(self)
+                _DBSVDefault[self] = nil
+                _DBMap[self] = nil
             end
 
             ----------------------------------------------
@@ -231,43 +296,21 @@ class "SVManager" (function(_ENV)
             ----------------- Meta-Method ----------------
             ----------------------------------------------
             function __index(self, key)
-                local set = _DBMap[self][GetSpecialization() or 1]
-                if not set then
-                    set = {}
-
-                    if _DBSpecDefault[self] then
-                        for k, v in pairs(_DBSpecDefault[self]) do
-                            if k == self then
-                                set = copydefault(set, v)
-                            else
-                                set[k] = copydefault(set[k], v)
-                            end
-                        end
-                    end
-
-                    _DBMap[self][GetSpecialization() or 1] = set
+                local cache = _DBMap[self][GetSpecialization() or 1]
+                if not cache then
+                    cache = copydefault({}, _DBSVDefault[self])
+                    _DBMap[self][GetSpecialization() or 1] = cache
                 end
-                return set[key]
+                return cache[key]
             end
 
             function __newindex(self, key, value)
-                local set = _DBMap[self][GetSpecialization() or 1]
-                if not set then
-                    set = {}
-
-                    if _DBSpecDefault[self] then
-                        for k, v in pairs(_DBSpecDefault[self]) do
-                            if k == self then
-                                set = copydefault(set, v)
-                            else
-                                set[k] = copydefault(set[k], v)
-                            end
-                        end
-                    end
-
-                    _DBMap[self][GetSpecialization() or 1] = set
+                local cache = _DBMap[self][GetSpecialization() or 1]
+                if not cache then
+                    cache = copydefault({}, _DBSVDefault[self])
+                    _DBMap[self][GetSpecialization() or 1] = cache
                 end
-                set[key] = value
+                cache[key] = value
             end
         end)
     end)

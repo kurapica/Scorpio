@@ -1,2 +1,5 @@
+2016/12/27
+	Re-design the localization system.
+
 2016/12/22
 	Init the alpha version, no-ui part finished.
