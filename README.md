@@ -42,21 +42,43 @@ The first line of the code file should be like :
 
     Scorpio "ScorpioTest" "1.0.0"
 
-**Scorpio** is an addon module class, `Scorpio "ScorpioTest"` means create a module named **ScorpioTest**, the module will be used to handle things like system event, slash commands and system hook. It's also designed to be an **environment** that used to execute code.
-
-The common environment is the _G, normally all addon codes are executed in the _G. Using a private environment will have a tiny memory cost, but if the addon's files all use the same environment, it's useful to share features between all those files and global features defined in the private environment won't taint anything in the _G. Also some special tricks can be used in the private environment.
-
-In `Scorpio "ScorpioTest" "1.0.0"`, the last string means version check and **change the environment to the module**. If version check failed(the module is already exstied and with a equal or big version), error will be raised. If use a empty string, the version check will be ignored and only change the environment. A version string could be anything with a serials of numbers like "alpha 1.0.1.11" "r12.01.02".
-
-All code files in a **Scorpio** addon should have their own module for each file. The main file will use a root module, and others will use sub-modules, the sub-modules share the features defined in the root module.
-
-As an example, create the file **ScorpioTestMdl.lua**, its first line should be like
+Then create the file **ScorpioTestMdl.lua**, and its first line should be like
 
     Scorpio "ScorpioTest.Mdl" "1.0.0"
 
-It means create a sub-module named **Mdl** and it's parent module is **ScorpioTest**. The sub-module will share the global features defined in it's parent module and keep it's own private features. Also you can create sub-module of the sub-module like
+So the code pattern should be
 
-    Scorpio "ScorpioTest.Mdl.SubMdl" "1.0.0"
+    Scorpio "AddonName[.ModuleName[.SubModuleName...]]" "[version]"
+
+Here are the rules of the **Scorpio File-Module System** :
+
+* All files with ".lua" suffix in an **Scorpio** addon are considered as module files.
+
+* Each module file is a standalone module to container operational codes.
+
+* A module can have and only have one parent module, a module can have many child modules.
+
+* The root module(the parent module of all others in the addon) are called the addon module.
+
+* The child module can read all global features defined in it's parent module, the addon module can read all global features that defined in the `_G`. Those modules would cache the result so it won't search them again and for quick using.
+
+* Writing a global variable will only save it in the module itself, so a child-module's global variable won't affect its parent module, so the `_G`. Normally to say, it's all the same like you write a common addon except you don't need take care the global variables that would taint the `_G`, and you can share your global features among your module files.
+
+* `Scorpio "ScorpioTest"` means creating an module named **ScorpioTest**, it has no parent module, so it's the addons's root module.
+
+* `Scorpio "ScorpioTest.Mdl"` means creating an module named **Mdl**, it's parent module is the **ScorpioTest**.
+
+* The last string `"1.0.0"` means a version token. It's combined by any string with a serials of numbers, so you also can write it like `"r 1.0.12.1"`, also empty string can be used here. Please notice, the version string is needed, you can use `Scorpio "ScorpioTest" ""`, but `Scorpio "ScorpioTest"` will cause code error.
+
+* Each lua file should have a different module, it two files use the same module, the version will be used to check, if would raise error if failed, I don't want build an embed library, so if you use it, just keep in mind, make each file a different module.
+
+* So `Scorpio "ScorpioTest.Mdl"` will create a module, `Scorpio "ScorpioTest" "1.0.0"` means create the module, then change the file's execution environment to the module itself, and after the it, we can use some special features, we'll see it later.
+
+* Also you create a long tree module like
+
+        Scorpio "ScorpioTest.Mdl.SubMdl.SSubMdl.SSSubMdl" "1.0.0"
+
+    There is no limit for it.
 
 ---------------------------------------
 
@@ -205,106 +227,29 @@ Here is some examples
     -- /sct(scptest) enable     -- enable the module
     __SlashCmd__ "scptest" "enable"
     __SlashCmd__ "sct" "enable"
-    function EnableModule()
+    function EnableModule(info)
         -- _Enabled is a property of the module, we can directly set it since the environment is the module
-        -- when the module is disabled, its system event and hook handlers won't be called.
+        -- when the module is disabled, its(and it's child-modules') system event and hook handlers won't be triggered.
         _Enabled = true
     end
 
     -- /sct(scptest) disable    -- disable the module
     __SlashCmd__ "scptest" "disable"
     __SlashCmd__ "sct" "disable"
-    function DisableModule()
+    function DisableModule(info)
         _Enabled = false
     end
 
- The two slash commands is follow the `/cmd option` pattern, the command and option are all case ignored, each hander match two commands `/sct` and `/scptest`.
-
-    -- /sct(scptest) cd 10      -- count down from 10 to 1 per sec
-    __Thread__()                -- Mark the function as a thread, explained later
-    __SlashCmd__ "scptest" "cd"
-    __SlashCmd__ "sct" "cd"
-    function CountDown(cnt)
-        cnt = tonumber(cnt)
-        if cnt then
-            for i = floor(cnt), 1, -1 do
-                print(i)
-                Delay(1)        -- Delay 1 sec, explained later
-            end
-        end
-    end
-
-The slash command match the pattern `/cmd option info`, the info are the rest string beside the command and option, here is used as the count down.
+The two slash commands is follow the `/cmd option` pattern, the command and option are all case ignored, each hander match two commands `/sct` and `/scptest`.
 
 For the pattern `/cmd`, normally used to show the command list like
 
     __SlashCmd__ "scptest"
     __SlashCmd__ "sct"
     function Help()
-        print("/sct(scptest) enable")
-        print("/sct(scptest) disable")
-        print("/sct(scptest) cd N")
+        print("/sct(scptest) enable   -- enable the addon")
+        print("/sct(scptest) disable  -- disable the addon")
     end
-
----------------------------------------
-
-## Saved Variables ##
-
-Normally, the author could handle the saved variables by themselves, but the **Scorpio** also provide a **SVManager** to easy the life.
-
-The **ScorpioTest** addon has two saved variables : *ScorpioTest_DB* for account, *ScorpioTest_DB_Char* for character.
-
-The saved variables'll be loaded when the addon is already loaded, so we can't handle it directly, the addon module provide a **OnLoad** event(not system event), we need handle the saved variables in it like
-
-    function OnLoad(self)
-        _SVDB = SVManager("ScorpioTest_DB", "ScorpioTest_DB_Char")
-    end
-
-The **SVManager** can accept two arguments, the first is the account saved variable's name, it's **required**, the next is the character saved variable's name, it's **optional**, when the addon has no saved variables for character, the **SVMananger** would use the account saved variable to handle the character's, so you don't need to care the details of it.
-
-After the _SVDB is defined, we can use it to access or write datas like
-
-* Account Data :
-    * _SVDB.Key = value
-    * value = _SVDB.Key
-
-* Character Data :
-    * _SVDB.Char.Key = value
-    * value = _SVDB.Char.Key
-
-* Character-Specialization Data(The system would handle the specialization's changing) :
-    * _SVDB.Char.Spec.Key = value
-    * value = _SVDB.Char.Spec.Key
-
-Besides the access, the other part for saved variable is given them default settings, since the real job is combine the saved variable with the default settings, so you can do it in multi-times and any time.
-
-* Account Default :
-    * _SVDB:SetDefault{ key1 = value1, key2 = value2 }
-    * _SVDB:SetDefault( key, value )
-
-* Character Default :
-    * _SVDB.Char:SetDefault{ key1 = value1, key2 = value2 }
-    * _SVDB.Char:SetDefault( key, value )
-
-* Character-Specialization Default :
-    * _SVDB.Char.Spec:SetDefault{ key1 = value1, key2 = value2 }
-    * _SVDB.Char.Spec:SetDefault( key, value )
-
-BTW. the values can also be tables, and only table, boolean, number, string value will be accepted. If the value is a function, it'll be used as a value factory.
-
-If you decided reset the saved variables, you also can do it like :
-
-* Account Reset :
-    * _SVDB:Reset() -- Reset the account data with default, won't affect character data.
-
-* Character Reset :
-    * _SVDB.Char:Reset() -- Reset the character data with default, won't affect specialization data.
-
-* Character-Specialization Reset :
-    * _SVDB.Char.Spec:Reset() -- Reset current specialization data with default.
-    * _SVDB.Char.Spec:ResetAll() -- Reset all specialization data with default.
-
-You should handle the addon updating by yourselves after the data reseted.
 
 ---------------------------------------
 
@@ -344,6 +289,7 @@ Here is an example for all those :
         Scorpio "ScorpioTest" "1.0.0"
 
         function OnLoad(self)
+            -- SavedVariables Manager, explained later
             _SVDB = SVManager("ScorpioTest_DB", "ScorpioTest_DB_Char")
 
             _SVDB:SetDefault{ Enable = true }
@@ -398,188 +344,65 @@ The sub-module can have their own system event handler, hook handler, slash comm
 
 ---------------------------------------
 
-## Task API & Thread ##
+## Saved Variables ##
 
-The **Scorpio** Library also provide a full set APIS called **Task API**, like **Delay** we used on previous example.
+**Saved Variables** are datas saved between the game sessions, normally used to save the addons' configuration.
 
-* All task api will be used in thread or start a thread. The thread will be treated as a task.
+Normally, the author could handle the saved variables by themselves, but the **Scorpio** also provide a **SVManager** to easy the life.
 
-* Normally those threads are get from a thread pool defined in [PLoop]. So you can ignore the cost of those thread's creation, also them would be reused when it finished the job, so you shouldn't keep it for other use.
+The **ScorpioTest** addon has two saved variables : *ScorpioTest_DB* for account, *ScorpioTest_DB_Char* for character.
 
-* The tasks are controlled by the system to make sure not too many tasks are resumed that cause fps drops. We'll see examples later.
+The saved variables'll be loaded when the addon is already loaded, so we can't handle it directly, the addon module provide a **OnLoad** event(not system event), we need handle the saved variables in **OnLoad** event
 
-* Those APIS can be used outside the **Scorpio**'s addon, but you need use `Scorpio.` before them to access it.
+    function OnLoad(self)
+        _SVDB = SVManager("ScorpioTest_DB", "ScorpioTest_DB_Char")
+    end
 
-Here is the list of those apis(Those examples can be test in in-game editor like [Cube](https://wow.curseforge.com/projects/igas-cube) or [WOWLua]())
+The **SVManager** can accept two arguments, the first is the account saved variable's name, it's **required**, the next is the character saved variable's name, it's **optional**, when the addon has no saved variables for character, the **SVMananger** would use the account saved variable to handle the character's, so you don't need to care the details of it.
 
-# Continue #
+After the _SVDB is defined, we can use it to access or write datas like
 
-API                               |Description
-----------------------------------|------------------------------------
-Continue(func[, ...])             |Call the func with arguments as soon as possible, you should noticed that the func would be running in a thread.
-Continue()                        |Can only be used in a thread, it'll try to continue the thread if it still have time to execute it or send it to next phase.
+* Account Data :
+    * _SVDB.Key = value
+    * value = _SVDB.Key
 
-    -- You can use Continue directly if those code run in a Scorpio module
-    Scorpio.Continue(
-        function ()
-            local time = GetTime()
-            local prev = 0
-            for i = 1, 10^7 do
-                if i%10 == 0 then
-                    Scorpio.Continue()
+* Character Data :
+    * _SVDB.Char.Key = value
+    * value = _SVDB.Char.Key
 
-                    if time ~= GetTime() then
-                        time = GetTime()
+* Character-Specialization Data(The system would handle the specialization's changing) :
+    * _SVDB.Char.Spec.Key = value
+    * value = _SVDB.Char.Spec.Key
 
-                        -- Print the new phase's time and the cycled count in previous phase
-                        print(time, i - prev)
-                        prev = i
-                    end
-                end
-            end
-        end
-    )
+Besides the access, the other part for saved variable is given them default settings, since the real job is combine the saved variable with the default settings, so you can do it in multi-times and any time.
 
-You may find no fps drops and the cycled count for one phase is about 12500 on my laptop.
+* Account Default :
+    * _SVDB:SetDefault{ key1 = value1, key2 = value2 }
+    * _SVDB:SetDefault( key, value )
 
-# Next #
+* Character Default :
+    * _SVDB.Char:SetDefault{ key1 = value1, key2 = value2 }
+    * _SVDB.Char:SetDefault( key, value )
 
-API                               |Description
-----------------------------------|------------------------------------
-Next(func[, ...])                 |Call the func with arguments in the next phase.
-Next()                            |Can only be used in a thread, it'll resume the thread in next phase.
+* Character-Specialization Default :
+    * _SVDB.Char.Spec:SetDefault{ key1 = value1, key2 = value2 }
+    * _SVDB.Char.Spec:SetDefault( key, value )
 
-    print(GetTime())
-    Scorpio.Next(
-        function()
-            for i = 1, 10 do
-                Scorpio.Next()
-                print(GetTime())
-            end
-        end
-    )
+BTW. the values can also be tables, and only table, boolean, number, string value will be accepted. If the value is a function, it'll be used as a value factory.
 
-You may find the *GetTime*'s result are all different, it's a better way to do animations if you don't want create any animation widgets, also can be used in some special conditions : In the [Cube](), you can double click on a word to choose it, it's handed in the editbox's *OnMouseDown* event, but from wow 7.0, the wow would modify the highlights after the event, so my action is canceled. To make sure my action is done after the orginal behavior, the **Next** API is the better choice.
+If you decided reset the saved variables, you also can do it like :
 
-# Delay #
+* Account Reset :
+    * _SVDB:Reset() -- Reset the account data with default, won't affect character data.
 
-API                               |Description
-----------------------------------|------------------------------------
-Delay(delay, func[, ...])         |Call the func with arguments after a delay(second).
-Delay(delay)                      |Can only be used in a thread, it'll resume the thread after a delay(second). We already have an example in the slash command.
+* Character Reset :
+    * _SVDB.Char:Reset() -- Reset the character data with default, won't affect specialization data.
 
-# Event #
+* Character-Specialization Reset :
+    * _SVDB.Char.Spec:Reset() -- Reset current specialization data with default.
+    * _SVDB.Char.Spec:ResetAll() -- Reset all specialization data with default.
 
-API                               |Description
-----------------------------------|------------------------------------
-Event(event, func[, ...])         |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
-Event(event)                      |Can only be used in a thread, it'll resume the thread when an system event is fired, the system event's argument will be returned.
-
-    local addon = "Blizzard_AuctionUI"
-    Scorpio.Continue(
-        function()
-            while Scorpio.Event("ADDON_LOADED") ~= addon do end
-            print(addon .. " is loaded.")
-        end
-    )
-
-The code is used to notify us when the Blizzard_AuctionUI loaded.
-
-# Wait #
-
-API                               |Description
-----------------------------------|------------------------------------
-Wait(func[,delay][,event[, ...]]) |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
-Wait([delay,][event[,...]])       |Can only be used in a thread, it'll resume the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
-
-    Scorpio.Continue(
-        function()
-            while true do
-                print(Scorpio.Wait("UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START"))
-            end
-        end
-    )
-
-The code is used to catch all spell (not instant spell) and channel spell's casting. The event's name and other arguments would be print out.
-
-# NoCombat #
-
-API                               |Description
-----------------------------------|------------------------------------
-NoCombat(func[, ...])             |Call the func when not in combat.
-NoCombat()                        |Can only be used in a thread, it'll resume the thread when not in combat.
-
----------------------------------------
-
-## Some Other Attribtues ##
-
-In the previous examples, we have see attributes like `__SystemEvent__`, `__SecureHook__`. The **Scorpio** & **PLoop** also provided many useful attributes, here I'll show three useful attributes that you may using.
-
-* `__NoCombat__`  -- Mark the global function(also the module event handler like OnLoad) defined in a Scorpio module, so it'll be real called when out of combat.
-
-        Scorpio "ScorpioTest" "1.0.0"
-
-        __NoCombat__()
-        __SystemEvent__ "GROUP_ROSTER_UPDATE"
-        function UpdatePanel()
-            -- Update panel like grids
-        end
-
-    The `GROUP_ROSTER_UPDATE` system event means the raid|party group is changed, so we may need to update the panel, but we can't do it during the combat, so give it `__NoCombat__` attribute will make sure it'll only be real called out of combat. (It's just an example, in the real addon, we can handle it by using secure templates).
-
-* `__Thread__`  -- Mark the global function defined in a Scorpio module, so it would be called as a thread.
-
-        Scorpio "ScorpioTest" "1.0.0"
-
-        __Thread__() __SystemEvent__()
-        function PLAYER_REGEN_DISABLED()
-            local i = 1
-
-            print("In Combat")
-
-            -- If meet the delay, nothing would be returned by Wait
-            while not Wait(1, "PLAYER_REGEN_ENABLED") do
-                print("In Combat about " .. i .. " Sec")
-                i = i + 1
-            end
-
-            print("Out of combat.")
-        end
-
-    So we'll call the function when `PLAYER_REGEN_DISABLED` fired, that means the player is in combat now. Since the function is called as thread, so we can use **Wait** directly in the code.
-
-* `__Iterator__`   -- Mark the global function as an iterator that can be used in `for do - end`. The function will be run as a thread, so in it, need use coroutine.yield to yield values like :
-
-        Scorpio "ScorpioTest" "1.0.0"
-
-        __Iterator__()
-        function Fib(i, j, max)
-            local prev, nxt = i, j
-            local cnt = 1
-
-            while cnt <= max do
-                local s = prev + nxt
-                prev, nxt = nxt, s
-
-                coroutine.yield(cnt, s)
-
-                cnt = cnt + 1
-            end
-        end
-
-        for i, f in Fib(1, 1), 10 do
-            print(i, f)
-        end
-
-    Here is a code to calc the fibnacci array, in the `for do - end`, the arguments in the brackets and outside the brackets would be combined and then send to the function. So you can also use it like :
-
-        for i, f in Fib(1, 1, 10) do
-            print(i, f)
-        end
-
-    Please notice, there can be only max to 2 arguments can be usded outside the brackets.
-
-    It's useful to create producer, I also use it in my container bag addon.
+You should handle the addon updating by yourselves after the data reseted.
 
 ---------------------------------------
 
@@ -634,3 +457,223 @@ Since the localization system is very simple, let's see it in examples.
         end
 
 ---------------------------------------
+
+## Some Other Attribtues ##
+
+In the previous examples, we have see attributes like `__SystemEvent__`, `__SecureHook__`. The **Scorpio** & **PLoop** also provided many useful attributes, here I'll show three useful attributes that you may using.
+
+* `__NoCombat__`  -- Mark the global function(also the module event handler like OnLoad) defined in a Scorpio module, so it'll be real called when out of combat.
+
+        Scorpio "ScorpioTest" "1.0.0"
+
+        __NoCombat__() __SystemEvent__()
+        function GROUP_ROSTER_UPDATE()
+            -- Update panel like grids
+        end
+
+    The `GROUP_ROSTER_UPDATE` system event means the raid|party group is changed, so we may need to update the panel, but we can't do it during the combat, so give it `__NoCombat__` attribute will make sure it'll only be real called out of combat. (It's just an example, in the real addon, we can handle it by using secure templates).
+
+    We also can do it like
+
+        Scorpio "ScorpioTest" "1.0.0"
+
+        __NoCombat__()
+        function UpdatePanel()
+            -- Update panel like grids
+        end
+
+        __SystemEvent__()
+        function GROUP_ROSTER_UPDATE()
+            UpdatePanel()
+        end
+
+    You can apply those attribute on any global functions.
+
+
+* `__Thread__`  -- Mark the global function defined in a Scorpio module, so it would be called as a thread.
+
+        Scorpio "ScorpioTest" "1.0.0"
+
+        -- /sct cd 10               -- count down from 10 to 1 per sec
+        __Thread__() __SlashCmd__ "sct" "cd"
+        function CountDown(cnt)
+            cnt = tonumber(cnt)
+            if cnt then
+                for i = floor(cnt), 1, -1 do
+                    print(i)
+                    Delay(1)        -- Delay 1 sec, explained later
+                end
+            end
+        end
+
+    In the function, **Delay(1)** API is used to make the code stop and resume it after 1 sec, it requires the function must be run as a thread. So we use `__Thread__()` mark the function as a thread, and use `__SlasCmd__"sct" "cd"` mark is as a slash command so we can test it.
+
+* `__Iterator__`   -- Mark the global function as an iterator that can be used in `for do - end`. The function will be run as a thread, so in it, need use coroutine.yield to yield values like :
+
+        Scorpio "ScorpioTest" "1.0.0"
+
+        __Iterator__()
+        function Fib(i, j, max)
+            local prev, nxt = i, j
+
+            for i = 1, max do
+                local s = prev + nxt
+                prev, nxt = nxt, s
+
+                coroutine.yield(i, s)
+            end
+        end
+
+        for i, f in Fib(1, 1, 10) do
+            print(i, f)
+        end
+
+    So the Fib is used as an iterator, it's very useful to produce many values in many times just in one call. I also use it in my container bag addon to filter bag slots to each containers by rules.
+
+---------------------------------------
+
+## Thread & Task scheduling system ##
+
+In common addon developments, we may face some problems that we need use system event and frame's OnUpdate to handle one task, we should register events, show the frame with OnUpdate, and run code in their handlers just for one task, after it finished, we need hide the frame, un-register the events. Don't forget the variables that we need use to keep those functions to work together.
+
+So here is the thread, the best thing in the thread is it can be yield, and when the requirement is meet, we can resume it and continue its jobs without any more controls.
+
+But also there are some disadvantages of it :
+
+1. Creating a thread cost more than create a function, the more we use it, the more cost for it's creation and garbage collection.
+
+2. There is no original system to help the authors to decide when yield or resume those threads, it's a hard work for authors to use them. Ann has an addon use OnUpdate to resume a thread so it won't freeze the game, Bob also have a thread do the same job, so the two authors won't know if those threads will freeze the game since they won't consider the operation time used by others.
+
+**Scorpio** have provide a full solution for those conditions :
+
+1. [PLoop]() has a well-designed thread pool, we can require a thread from it, run our function, after it done, the thread will be send back to the pool, re-use them will largely decrease the cost of thread.
+
+2. **Scorpio** has provide a full list APIs to generate thread and send them to a **Task scheduling system**. The system will calculate the max operation time that won't cause the decrease of fps, and resume those scheduled threads by priorty, when the max time reached, it will stop the process, and wait to the next time(next OnUpdate).
+
+3. Those apis can be used in non-scorpio addons, but you need add **Scorpio.** before them, like use **Scorpio.Delay(1)**.
+
+Here is the list of those apis(Those examples can be test in in-game editor like [Cube](https://wow.curseforge.com/projects/igas-cube) or [WOWLua]())
+
+# Starting a thread and call function under the conditions #
+
+API                               |Description
+----------------------------------|------------------------------------
+Continue(func[, ...])             |Call the func with arguments as soon as possible.
+Next(func[, ...])                 |Call the func with arguments in the next frame OnUpdate.
+Delay(delay, func[, ...])         |Call the func with arguments after a delay(second).
+Event(event, func[, ...])         |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
+Wait(func[,delay][,event[, ...]]) |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
+Wait(func[,event[, ...]])         |Call the func when one of the registered events fired, the event name and its arguments would be passed to the func.
+NoCombat(func[, ...])             |Call the func with arguments when not in combat.
+
+
+# Must be used in a thread, yield the current thread and resume it under the conditions #
+
+API                               |Description
+----------------------------------|------------------------------------
+Continue()                        |Continue the thread as soon as possible.
+Next()                            |Continue the thread in next frame OnUpdate.
+Delay(delay)                      |Continue the thread after a delay(second).
+Event(event)                      |Continue the thread when an system event is fired, the system event's argument will be returned.
+Wait([delay,][event[,...]])       |Continue the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
+Wait([event[,...]])               |Continue the thread when one of the registered events fired, the event name and its arguments would be returned.
+NoCombat()                        |Continue the thread when not in combat.
+
+
+Here are some examples :
+
+1. Big-recyle without fps drop
+
+        Scorpio.Continue(
+            function ()
+                local time = GetTime()
+                local prev = 0
+                for i = 1, 10^7 do
+                    if i%10 == 0 then
+                        Scorpio.Continue() -- The frame will freeze if miss this
+
+                        if time ~= GetTime() then
+                            -- Means the thread is resumed in the next frame OnUpdate
+                            time = GetTime()
+
+                            -- Here is the current time and the cycle count of the previous phase
+                            -- On my laptop, it's about 12500
+                            print(time, i - prev)
+                            prev = i
+                        end
+                    end
+                end
+            end
+        )
+
+
+2. Animation Simulation
+
+        Scorpio "AlphaTest" ""
+
+        -- create a 100*100 white frame in the center
+        local frame = CreateFrame("Frame")
+        frame:SetPoint("CENTER")
+        frame:SetSize(100, 100)
+
+        local txt = frame:CreateTexture("ARTWORK")
+        txt:SetAllPoints()
+        txt:SetColorTexture(1, 1, 1)
+
+        -- cancel the fade when move mouse in
+        function OnEnter(self)
+           self:SetAlpha(1)
+        end
+
+        __Thread__()
+        function OnLeave(self)
+            local start = GetTime()
+
+            -- We should stop the thread when mouse is move in or the frame finished the fade out
+            while not self:IsMouseOver() do
+                -- The fade duration is 3
+                local alpha = (GetTime() - start) / 3
+                if alpha < 1 then
+                    self:SetAlpha(1 - alpha)
+
+                    Next() -- Wait the next OnUpdate
+                else
+                    -- almost fade out, stop the thread
+                    self:SetAlpha(0)
+                    break
+                end
+            end
+        end
+
+        frame:SetScript("OnEnter", OnEnter)
+        frame:SetScript("OnLeave", OnLeave)
+
+    Here is an example used to fade out the frame when mouse move away. You also can do it with animation widgets.
+
+3. Wait Addon's loading
+
+        local addon = "Blizzard_AuctionUI"
+        Scorpio.Continue(
+            function()
+                while Scorpio.Event("ADDON_LOADED") ~= addon do end
+                print(addon .. " is loaded.")
+            end
+        )
+
+    So, this is how the `__AddonSecureHook__` work.
+
+
+4. System Event Scan
+
+        Scorpio "ScanEvent" ""
+
+        __Thread__()
+        function ScanEvent(...)
+            while true do
+                print( Wait(...) )
+            end
+        end
+
+        ScanEvent("UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START")
+
+    The code is used to catch all spell (not instant spell) and channel spell's casting. The event's name and other arguments would be print out.

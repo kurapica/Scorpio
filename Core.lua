@@ -951,7 +951,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ]=]
     __Arguments__{ Function, { Nilable = true, IsList = true } }
     __Static__() function NoCombat(func, ...)
-        if not InCombatLockdown() then return func(...) end
+        if not InCombatLockdown() then return ThreadCall(func, ...) end
 
         return Event("PLAYER_REGEN_ENABLED", noCombatCall, func, ...)
     end
