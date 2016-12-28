@@ -92,7 +92,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     g_MaxPhaseTime          = 0
 
     -- Wait thread token
-    w_Token                 = setmetatable({}, META_WEAKVAL)
+    w_Token                 = {}
     w_Token_INDEX           = 1
 
     -- Task List

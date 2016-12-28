@@ -124,7 +124,7 @@ A big part in addon development is modifying the wow's original ui. To do it, we
 
     So our hooked function would be called first, then the original function.
 
-    There is a problem, if you need call the TestFunc also in the module, We don't which one it should be use, so we need hook it with different name like
+    There is a problem, if you need call the TestFunc also in the module, We don't know which one should be used, so we need hook it with a different name like
 
         __Hook__ "TestFunc"
         function HookTestFunc()
@@ -600,7 +600,7 @@ Since the localization system is very simple, let's see it in examples.
         -- _Locale(language, asDefault)
         -- language -- The language token you can get from GetLocale() API
         -- asDefault -- Whether the language is the default, normally only true with "enUS"
-        L = _Locale("enUS", true)
+        local L = _Locale("enUS", true)
 
         -- If the language don't match the client and is not the default language, L will be nil.
         if not L then return end
@@ -612,7 +612,7 @@ Since the localization system is very simple, let's see it in examples.
 
         Scorpio "ScorpioTest.Localization.zhCN" "1.0.0"
 
-        L = _Locale("zhCN")
+        local L = _Locale("zhCN")
 
         if not L then return end
 
