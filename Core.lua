@@ -594,7 +594,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ScorpioManager:SetScript("OnEvent", ScorpioManager.OnEvent)
     ScorpioManager:SetScript("OnUpdate", ScorpioManager.OnUpdate)
 
-    function ScorpioManager:ADDON_LOADED(name)
+    function ScorpioManager.ADDON_LOADED(name)
         if _RootAddon[name] then
             loading(_RootAddon[name])
 
@@ -605,7 +605,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         end
     end
 
-    function ScorpioManager:PLAYER_LOGIN()
+    function ScorpioManager.PLAYER_LOGIN()
         local spec = GetSpecialization() or 1
         _Logined = true
 
@@ -615,13 +615,13 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         end
     end
 
-    function ScorpioManager:PLAYER_LOGOUT()
+    function ScorpioManager.PLAYER_LOGOUT()
         for _, addon in pairs(_RootAddon) do
             exiting(addon)
         end
     end
 
-    function ScorpioManager:PLAYER_SPECIALIZATION_CHANGED()
+    function ScorpioManager.PLAYER_SPECIALIZATION_CHANGED()
         local spec = GetSpecialization() or 1
         for _, addon in pairs(_RootAddon) do
             specChanged(addon, spec)

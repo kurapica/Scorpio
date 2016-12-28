@@ -582,7 +582,7 @@ NoCombat()                        |Continue the thread when not in combat.
 
 Here are some examples :
 
-1. Big-recyle without fps drop
+1. Big-cycle without fps drop
 
         Scorpio.Continue(
             function ()
