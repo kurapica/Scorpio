@@ -15,5 +15,5 @@
     <Script file="Scorpio.lua"/>
 
     <!-- Scorpio.UI -->
-    <!--Include file="UI\UI.xml"/ -->
+    <!--Include file="UI\UI.xml"/-->
 </Ui>

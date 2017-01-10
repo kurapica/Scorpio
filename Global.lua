@@ -67,6 +67,7 @@ pow            = math.pow
 min            = math.min
 max            = math.max
 random         = math.random
+abs            = math.abs
 
 ------------------- Date ---------------------
 date           = date or (os and os.date)

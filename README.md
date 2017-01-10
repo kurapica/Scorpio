@@ -54,7 +54,7 @@ Here are the rules of the **Scorpio File-Module System** :
 
 * All files with ".lua" suffix in an **Scorpio** addon are considered as module files.
 
-* Each module file is a standalone module to container operational codes.
+* Each module file is a standalone module of operational codes.
 
 * A module can have and only have one parent module, a module can have many child modules.
 
@@ -68,13 +68,13 @@ Here are the rules of the **Scorpio File-Module System** :
 
 * `Scorpio "ScorpioTest.Mdl"` means creating an module named **Mdl**, it's parent module is the **ScorpioTest**.
 
-* The last string `"1.0.0"` means a version token. It's combined by any string with a serials of numbers, so you also can write it like `"r 1.0.12.1"`, also empty string can be used here. Please notice, the version string is needed, you can use `Scorpio "ScorpioTest" ""`, but `Scorpio "ScorpioTest"` will cause code error.
+* The last string `"1.0.0"` means a version token. It's combined by any string with a serials of numbers, so you also can write it like `"r 1.0.12.1"`, also empty string can be used here. The version string is needed, you can use `Scorpio "ScorpioTest" ""`, but `Scorpio "ScorpioTest"` will cause code error.
 
-* Each lua file should have a different module, it two files use the same module, the version will be used to check, if would raise error if failed, I don't want build an embed library, so if you use it, just keep in mind, make each file a different module.
+* Each lua file should have a different module, if two files use the same module, the version will be used to check, error would be raised if failed, I don't want provide an embed library system, so if you use it, just keep in mind, give each file a different module.
 
-* So `Scorpio "ScorpioTest.Mdl"` will create a module, `Scorpio "ScorpioTest" "1.0.0"` means create the module, then change the file's execution environment to the module itself, and after the it, we can use some special features, we'll see it later.
+* `Scorpio "ScorpioTest.Mdl"` will create a module, `Scorpio "ScorpioTest" "1.0.0"` means creating the module, then change the file's execution environment to the module itself, and after it, we can use some special features, we'll see it later.
 
-* Also you create a long tree module like
+* Also you can create a module like
 
         Scorpio "ScorpioTest.Mdl.SubMdl.SSubMdl.SSSubMdl" "1.0.0"
 
@@ -84,11 +84,11 @@ Here are the rules of the **Scorpio File-Module System** :
 
 ## System Event Handler ##
 
-The wow will notify us about what happened in the game world by system events. Like `UNIT_SPELLCAST_START` tell us an unit is casting a spell, it'd also give us several arguments to tell who cast it and which spell it is. You can find a full list in [Events List](http://wowwiki.wikia.com/wiki/Events_A-Z_(Full_List)).
+The wow will notify us about what happened in the game world by system events. Like `UNIT_SPELLCAST_START` tell us an unit is casting a spell, it also give us several arguments to tell who cast it and which spell it is. You can find a full list in [Events List](http://wowwiki.wikia.com/wiki/Events_A-Z_(Full_List)).
 
 The **Scorpio** module can use **RegisterEvent** API to register and handle the system events, but I'll show the common way in another page, here we'll see a simple way to do it, take the `UNIT_SPELLCAST_START` and `UNIT_SPELLCAST_CHANNEL_START` as the examples.
 
-We can handle each system events by each handlers:
+We can handle each system events like:
 
     __SystemEvent__()
     function UNIT_SPELLCAST_START(unit, spell)
@@ -100,11 +100,11 @@ We can handle each system events by each handlers:
         print(unit .. " cast " .. spell)
     end
 
-The `__SystemEvent__` is an attribute class.  `__SystemEvent__()` means create an **Attribute**.
+The `__SystemEvent__` is an attribute class.  `__SystemEvent__()` means creating an **Attribute**.
 
 The attributes are used to bind information or do some background operations for features.
 
-Here `__SystemEvent__()` is used to mark the next defined function as a system event handler, the system event's name is given by the function's name. So when an unit(like player self) casting a spell(not instant spell), the function would be called and event arguments would be passed in. You may test it by yourselves.
+Here `__SystemEvent__()` is used to mark the next defined global function(in the module) as a system event handler, the system event's name is given by the function's name. So when an unit(like player self) casting a spell(not instant spell), the function would be called and event arguments would be passed in. You may test it by yourselves.
 
 Since the code we handle the `UNIT_SPELLCAST_START` and `UNIT_SPELLCAST_CHANNEL_START` is the same, we can combine it like
 
@@ -113,7 +113,7 @@ Since the code we handle the `UNIT_SPELLCAST_START` and `UNIT_SPELLCAST_CHANNEL_
         print(unit .. " cast " .. spell)
     end
 
-So, the two system events would use the same handler.
+Then, the two system events would use the same handler.
 
 ---------------------------------------
 

@@ -383,12 +383,8 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         if not map then return end
         for obj, handler in pairs(map) do
             if not _DisabledModule[obj] then
-                if type(handler) == "string" then handler = rawget(obj, handler) end
-
-                if handler then
-                    local ok, err = pcall(handler, ...)
-                    if not ok then errorhandler(err) end
-                end
+                local ok, err = pcall(handler, ...)
+                if not ok then errorhandler(err) end
             end
         end
     end
@@ -396,12 +392,8 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     local function directCallHandlers(map, ...)
         if not map then return end
         for obj, handler in pairs(map) do
-            if type(handler) == "string" then handler = rawget(obj, handler) end
-
-            if handler then
-                local ok, err = pcall(handler, ...)
-                if not ok then errorhandler(err) end
-            end
+            local ok, err = pcall(handler, ...)
+            if not ok then errorhandler(err) end
         end
     end
 
@@ -431,6 +423,17 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
                 return directCallHandlers(map[option], info, input)
             elseif map[0] then
                 return directCallHandlers(map[0], msg, input)
+            else
+                -- Default handler
+                if next(map) then
+                    print("--======================--")
+                    for opt, m in pairs(map) do
+                        if type(m) == "table" then
+                            print(("%s %s %s"):format(slashCmd:lower(), opt:lower(), map[opt .. "-desc"] or ""))
+                        end
+                    end
+                    print("--======================--")
+                end
             end
         end
     end
@@ -645,7 +648,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
             _EventDistribution[evt] = map
         end
 
-        map[self] = handler or evt
+        handler = handler or evt
+        if type(handler) == "string" then handler = self[handler] end
+        if type(handler) ~= "function" then error("Scorpio:RegisterEvent(event[, handler]) -- handler not existed.", 2) end
+
+        map[self] = handler
     end
 
     __Doc__[[
@@ -723,7 +730,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
             target[targetFunc] = function(...) callHandlers(map, ...) return _orig(...) end
         end
 
-        map[self] = handler or targetFunc
+        handler = handler or targetFunc
+        if type(handler) == "string" then handler = self[handler] end
+        if type(handler) ~= "function" then error("Scorpio:Hook([target, ]targetFunc[, handler]) -- handler not existed.", 2) end
+
+        map[self] = handler
     end
 
     __Arguments__{ NEString, Argument(NEString + Function, true) }
@@ -775,7 +786,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
             hooksecurefunc(target, targetFunc, function(...) return callHandlers(map, ...) end)
         end
 
-        map[self] = handler or targetFunc
+        handler = handler or targetFunc
+        if type(handler) == "string" then handler = self[handler] end
+        if type(handler) ~= "function" then error("Scorpio:SecureHook([target, ]targetFunc[, handler]) -- handler not existed.", 2) end
+
+        map[self] = handler
     end
 
     __Arguments__{ NEString, Argument(NEString + Function, true) }
@@ -810,7 +825,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ]]
     __Arguments__{ NEString, NEString + Function }
     function RegisterSlashCommand(self, slashCmd, handler)
-        slashCmd = slashCmd:upper():match("^/?([%w_]+)")
+        slashCmd = slashCmd:upper():match("^/?(%w+)")
         if slashCmd == "" then error("The slash command can only be letters and numbers.", 2) end
         slashCmd = "/" .. slashCmd
 
@@ -821,6 +836,9 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
             _SlashCmdHandler[slashCmd] = map
             newSlashCmd(slashCmd, map)
         end
+
+        if type(handler) == "string" then handler = self[handler] end
+        if type(handler) ~= "function" then error("Scorpio:RegisterSlashCommand(slashCmd, handler) -- handler not existed.", 2) end
 
         map[0] = { [self] = handler }
     end
@@ -831,13 +849,14 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         <param name="option" type="string">the slash command option, case ignored</param>
         <param name="handler" type="string|function">handler</param>
     ]]
-    __Arguments__{ NEString, NEString, NEString + Function }
-    function RegisterSlashCmdOption(self, slashCmd, option, handler)
-        slashCmd = slashCmd:upper():match("^/?([%w_]+)")
+    __Arguments__{ NEString, NEString, NEString + Function, Argument(NEString, true) }
+    function RegisterSlashCmdOption(self, slashCmd, option, handler, desc)
+        slashCmd = slashCmd:upper():match("^/?(%w+)")
         if slashCmd == "" then error("The slash command can only be letters and numbers.", 2) end
         slashCmd = "/" .. slashCmd
 
-        option = option:upper()
+        option = option:upper():match("^%w+")
+        if not option or option == "" then error("The slash command option can only be letters and numbers.", 2) end
 
         local map = _SlashCmdHandler[slashCmd]
 
@@ -847,7 +866,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
             newSlashCmd(slashCmd, map)
         end
 
+        if type(handler) == "string" then handler = self[handler] end
+        if type(handler) ~= "function" then error("Scorpio:RegisterSlashCmdOption(slashCmd, option, handler[, description]) -- handler not existed.", 2) end
+
         map[option] = { [self] = handler }
+        map[option .. "-desc"] = desc
     end
 
     ----------------------------------------------
@@ -1324,7 +1347,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
                 if not self.SlashOpt then
                     owner:RegisterSlashCommand(self.SlashCmd, target)
                 else
-                    owner:RegisterSlashCmdOption(self.SlashCmd, self.SlashOpt, target)
+                    owner:RegisterSlashCmdOption(self.SlashCmd, self.SlashOpt, target, self.SlashDesc)
                 end
             else
                 error("__SlashCmd__ can only be applyed to objects of Scorpio.")
@@ -1335,24 +1358,31 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         ------------------ Property ------------------
         ----------------------------------------------
         property "Priorty" { Type = AttributePriorty, Default = AttributePriorty.Lowest }
-        property "SlashCmd" { Type = String }
-        property "SlashOpt" { Type = String }
+        property "SlashCmd" { Type = NEString }
+        property "SlashOpt" { Type = NEString }
+        property "SlashDesc" { Type = NEString}
 
         ----------------------------------------------
         ----------------- Constructor ----------------
         ----------------------------------------------
-        __Arguments__{ NEString, Argument(NEString, true) }
-        function __SlashCmd__(self, slashCmd, slashOpt)
+        __Arguments__{ NEString, Argument(NEString, true), Argument(NEString, true) }
+        function __SlashCmd__(self, slashCmd, slashOpt, slashDesc)
             self.SlashCmd = slashCmd
             self.SlashOpt = slashOpt
+            self.SlashDesc = slashDesc
         end
 
         ----------------------------------------------
         ----------------- Meta-Method ----------------
         ----------------------------------------------
         __Arguments__{ NEString }
-        function __call(self, slashOpt)
-            if not self.SlashOpt then self.SlashOpt = slashOpt end
+        function __call(self, str)
+            if not self.SlashOpt then
+                self.SlashOpt = str
+                return self
+            elseif not self.SlashDesc then
+                self.SlashDesc = str
+            end
         end
     end)
 
@@ -1530,13 +1560,13 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     -- Task System Diagnose
     ThreadCall(function()
         while true do
-            Log(1, "[Task]-----------------")
+            Log(1, "--======================--")
 
             Log(1, "[Delayed] %d", g_DelayedTask)
             Log(1, "[Average] %.2f ms", g_AverageTime)
             Log(1, "[Max Phase] %.2f ms", g_MaxPhaseTime)
 
-            Log(1, "[Task]-----------------")
+            Log(1, "--======================--")
 
             g_DelayedTask = 0
             g_MaxPhaseTime = 0
