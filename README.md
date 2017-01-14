@@ -251,6 +251,25 @@ For the pattern `/cmd`, normally used to show the command list like
         print("/sct(scptest) disable  -- disable the addon")
     end
 
+From v006, you can only define the slash commands follow the `/cmd option[ info]` patterns with a decription, the system will provide a default slash commdn handler for `/cmd` used to generate the command list :
+
+    Scorpio "ScorpioTest" ""
+
+    __SlashCmd__ "sct" "enable" "- enable the module"
+    function enableModule()
+    end
+
+    __SlashCmd__ "sct" "disable" "- disable the module"
+    function disableModule()
+    end
+
+So when you enter the `/sct` command, the list will be displayed :
+
+    --======================--
+    /sct enable - enable the module
+    /sct disable - disable the module
+    --======================--
+
 ---------------------------------------
 
 ## The module property ##
