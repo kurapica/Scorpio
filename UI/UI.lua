@@ -290,12 +290,11 @@ struct "ColorType" {
     { Name = "g",   Type = ColorFloat, Require = true },
     { Name = "b",   Type = ColorFloat, Require = true },
     { Name = "a",   Type = ColorFloat, Default = 1 },
-}
 
-__Static__()
-function ColorType.GetColorCode(val)
-    return ("\124cff%.2x%.2x%.2x"):format(val.r * 255, val.g * 255, val.b * 255)
-end
+    GetColorCode = function(val)
+        return ("\124cff%.2x%.2x%.2x"):format(val.r * 255, val.g * 255, val.b * 255)
+    end,
+}
 
 __Sealed__()
 struct "Dimension" {
@@ -428,7 +427,13 @@ class (UI) (function(_ENV)
 
     __Doc__[[Set the ui object's parent]]
     function SetParent(self, parent)
+        if not parent then
+            if self.Parent and self.Parent.Children[self.Name] == self then
+                self.Parent.Children[self.Name] = nil
+            end
 
+            return
+        end
     end
 
     __Doc__[[Get the ui object's parent]]
@@ -451,7 +456,7 @@ class (UI) (function(_ENV)
     property "UIElement" { Type = Table }
 
     __Doc__[[The Children of the ui object]]
-    property "Children" { Set = false, Default = function() return {} end }
+    property "Children" { Field = "__UI_Children", Set = false, Default = function() return {} end }
 
     __Doc__[[The name of the ui object]]
     property "Name" { Type = NEString }
@@ -560,6 +565,6 @@ function InstallPrototype(baseCls, prototype)
     local frameType = prototype:GetObjectType()
 
     clsEnv.CreateUIElement = function(self, name, parent, ...)
-        return return CreateFrame(frameType, nil, parent, ...)
+        return CreateFrame(frameType, nil, parent, ...)
     end
 end

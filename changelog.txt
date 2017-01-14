@@ -1,3 +1,7 @@
+2017/01/14
+	Fix the OnLoad won't fire for the child-modules.
+	Default slash command handler added, see the introduction for more informations.
+
 2016/12/29
 	The NoCombat(func, ...) also would call the func in a thread now.
 	Fix the ScorpioManager's ADDON_LOADED

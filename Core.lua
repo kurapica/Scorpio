@@ -439,13 +439,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     end
 
     local function loading(self)
-        if _NotLoaded[self] then
-            _NotLoaded[self] = nil
+        _NotLoaded[self] = nil
 
-            OnLoad(self)
+        OnLoad(self)
 
-            for _, mdl in self:GetModules() do loading(mdl) end
-        end
+        for _, mdl in self:GetModules() do loading(mdl) end
     end
 
     local function enabling(self)
