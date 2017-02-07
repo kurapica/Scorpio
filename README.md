@@ -270,6 +270,12 @@ So when you enter the `/sct` command, the list will be displayed :
     /sct disable - disable the module
     --======================--
 
+If you need use localization for the description, you can do it like :
+
+    __SlashCmd__("sct", "enable", L["- enable the module"])
+    function enableModule()
+    end
+
 ---------------------------------------
 
 ## The module property ##

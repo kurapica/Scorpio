@@ -2,11 +2,11 @@
     <!-- Scorpio Core -->
     <Script file="Core.lua"/>
 
-	<!-- Scorpio Global -->
-	<Script file="Global.lua"/>
+    <!-- Scorpio Global -->
+    <Script file="Global.lua"/>
 
-	<!-- Scorpio SVManager -->
-	<Script file="SVManager.lua"/>
+    <!-- Scorpio SVManager -->
+    <Script file="SVManager.lua"/>
 
     <!-- Scorpio Localization -->
     <Script file="Localization.lua"/>
@@ -15,5 +15,5 @@
     <Script file="Scorpio.lua"/>
 
     <!-- Scorpio.UI -->
-    <!--Include file="UI\UI.xml"/-->
+    <Include file="UI\UI.xml"/>
 </Ui>

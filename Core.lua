@@ -72,11 +72,12 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     EVENT_CLEAR_DELAY       = 10
     DIAGNOSE_DELAY          = 60
 
-    -- API
+    -- Const
     HIGH_PRIORITY           = 1     -- For Continue
     NORMAL_PRIORITY         = 2     -- For Event, Next, Wait
     LOW_PRIORITY            = 3     -- For Delay
 
+    -- Global variables
     g_Phase                 = 0     -- The Nth phase based on GetTime()
     g_PhaseTime             = 0
     g_Threshold             = 0     -- The threshold based on GetFramerate(), in ms

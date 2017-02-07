@@ -2,6 +2,7 @@
     <!-- UI Base -->
     <Script file="UI.lua"/>
 
-    <!-- Scorpio NameSpace  -->
-    <Include file="Widget\Widget.xml"/>
+    <!-- Secure Frames -->
+    <Script file="SecureFrame.lua"/>
+    <Script file="UnitFrame.lua"/>
 </Ui>
