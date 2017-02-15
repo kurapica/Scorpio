@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Module            "ScorpioCore"                      "1.0.0"
+Module            "ScorpioCore"                      "1.1.0"
 --========================================================--
 
 namespace         "Scorpio"
@@ -439,12 +439,31 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         end
     end
 
-    local function loading(self)
-        _NotLoaded[self] = nil
+    local function loadingWithoutClear(self)
+        if _NotLoaded[self] then
+            OnLoad(self)
+        end
 
-        OnLoad(self)
+        for _, mdl in self:GetModules() do loadingWithoutClear(mdl) end
+    end
+
+    local function loading(self)
+        if _NotLoaded[self] then
+            _NotLoaded[self] = nil
+            OnLoad(self)
+        end
 
         for _, mdl in self:GetModules() do loading(mdl) end
+    end
+
+    local function enablingWithCheck(self)
+        if not _DisabledModule[self] then
+            if _NotLoaded[self] then
+                OnEnable(self)
+            end
+
+            for _, mdl in self:GetModules() do enablingWithCheck(mdl) end
+        end
     end
 
     local function enabling(self)
@@ -489,12 +508,38 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         for _, mdl in self:GetModules() do exiting(mdl) end
     end
 
+    local function specChangedWithCheck(self, spec)
+        if _NotLoaded[self] then
+            OnSpecChanged(self, spec)
+        end
+
+        for _, mdl in self:GetModules() do specChangedWithCheck(mdl, spec) end
+    end
+
     local function specChanged(self, spec)
         if not _Logined then return end
 
         OnSpecChanged(self, spec)
 
         for _, mdl in self:GetModules() do specChanged(mdl, spec) end
+    end
+
+    local function clearNotLoaded(self)
+        _NotLoaded[self] = nil
+        for _, mdl in self:GetModules() do clearNotLoaded(mdl) end
+    end
+
+    local function tryloading(self)
+        if not self then return end
+
+        if _Logined then
+            loadingWithoutClear(self)
+            enablingWithCheck(self)
+            specChangedWithCheck(self, GetSpecialization() or 1)
+            clearNotLoaded(self)
+        else
+            return loading(self)
+        end
     end
 
     local function handleEventTask(cache, ...)
@@ -597,14 +642,8 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ScorpioManager:SetScript("OnUpdate", ScorpioManager.OnUpdate)
 
     function ScorpioManager.ADDON_LOADED(name)
-        if _RootAddon[name] then
-            loading(_RootAddon[name])
-
-            if _Logined then
-                enabling(_RootAddon[name])
-                specChanged(_RootAddon[name], GetSpecialization() or 1)
-            end
-        end
+        name = name:match("^[^%.]+")
+        return name and tryloading(_RootAddon[name])
     end
 
     function ScorpioManager.PLAYER_LOGIN()
@@ -1116,10 +1155,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     function Scorpio(self, ...)
         Super(self, ...)
 
+        _NotLoaded[self] = true
+
         if not self._Parent then
             -- Means this is an addon
             _RootAddon[self._Name] = self
-            _NotLoaded[self] = true
 
             -- Common namespaces should be imported as default
             self.import "Scorpio"
@@ -1391,14 +1431,10 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     class "__NoCombat__" (function(_ENV)
         extend "IAttribute"
 
-        function ApplyAttribute(self, target, targetType, owner, name)
-            if getmetatable(owner) == Scorpio then
-                local del = __Delegate__(NoCombat)
-                del.Priorty = AttributePriorty.Lower
-                del.SubLevel = -999
-            else
-                error("__NoCombat__ can only be applyed to objects of Scorpio.")
-            end
+        function __NoCombat__(self)
+            local del = __Delegate__(NoCombat)
+            del.Priorty = AttributePriorty.Lower
+            del.SubLevel = -999
         end
     end)
 

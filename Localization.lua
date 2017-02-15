@@ -81,7 +81,6 @@ end)
 Scorpio._Locale = {
     Set = false,
     Default = function(self)
-    print("Get", self._Addon._Name)
         return Localization(self._Addon._Name)
     end,
 }

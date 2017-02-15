@@ -2,6 +2,10 @@ package-as: Scorpio
 enable-nolib-creation: no
 
 required-dependencies:
-    - ploop
+  - ploop
+
+move-folders:
+  Scorpio/Scorpio.MVC : Scorpio.MVC
+  Scorpio/Scorpio.UI  : Scorpio.UI
 
 manual-changelog: changelog.txt
