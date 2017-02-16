@@ -530,8 +530,6 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     end
 
     local function tryloading(self)
-        if not self then return end
-
         if _Logined then
             loadingWithoutClear(self)
             enablingWithCheck(self)
@@ -642,8 +640,12 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ScorpioManager:SetScript("OnUpdate", ScorpioManager.OnUpdate)
 
     function ScorpioManager.ADDON_LOADED(name)
-        name = name:match("^[^%._]+")
-        return name and tryloading(_RootAddon[name])
+        local addon = _RootAddon[name]
+        if addon then return tryloading(addon) end
+
+        name = name:match("%P+")
+        addon = name and _RootAddon[name]
+        if addon then return tryloading(addon) end
     end
 
     function ScorpioManager.PLAYER_LOGIN()
