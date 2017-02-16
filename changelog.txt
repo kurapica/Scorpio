@@ -1,3 +1,6 @@
+2017/02/16
+	Fix the OnLoad and OnEnable won't fire for sub-addons with like 'MainAddonName_SubAddon' 'MainAddonName.SubAddon'.
+
 2017/01/14
 	Fix the OnLoad won't fire for the child-modules.
 	Default slash command handler added, see the introduction for more informations.

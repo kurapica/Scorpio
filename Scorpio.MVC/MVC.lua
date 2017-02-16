@@ -19,29 +19,10 @@ do
     PLAYER_CLASS                = select(2, UnitClass("player"))
 
     ----------------- Class Power Map -----------------
-    ClassPowerMap = {
-        [ 0]                    = "MANA",
-        [ 1]                    = "RAGE",
-        [ 2]                    = "FOCUS",
-        [ 3]                    = "ENERGY",
-        [ 4]                    = "COMBO_POINTS",
-        [ 5]                    = "RUNES",
-        [ 6]                    = "RUNIC_POWER",
-        [ 7]                    = "SOUL_SHARDS",
-        [ 8]                    = "LUNAR_POWER",
-        [ 9]                    = "HOLY_POWER",
-        [10]                    = "ALTERNATE_POWER",
-        [11]                    = "MAELSTROM",
-        [12]                    = "CHI",
-        [13]                    = "INSANITY",
-        [14]                    = "OBSOLETE",
-        [15]                    = "OBSOLETE2",
-        [16]                    = "ARCANE_CHARGES",
-        [17]                    = "FURY",
-        [18]                    = "PAIN",
-    }
+    ClassPowerMap               = Dictionary(Iterator(function() for n, v in Reflector.GetEnums(ClassPower) do coroutine.yield(v, n) end end))
 
     ----------------- SPEC Class Power ----------------
+    SPEC_ALL                    = 0
     SPEC_WARLOCK_AFFLICTION     = 1
     SPEC_WARLOCK_DEMONOLOGY     = 2
     SPEC_WARLOCK_DESTRUCTION    = 3
@@ -65,13 +46,67 @@ do
     SPEC_DRUID_GUARDIAN         = 3
     SPEC_DRUID_RESTORATION      = 4
 
+    SPEC_CLASS_POWERMAP = ({
+        ROGUE = {
+            [SPEC_ALL] = {
+                PowerType = "COMBO_POINTS",
+            },
+        },
+        PALADIN = {
+            [SPEC_PALADIN_RETRIBUTION] = {
+                ShowLevel = _G.PALADINPOWERBAR_SHOW_LEVEL,
+                PowerType = "HOLY_POWER",
+            },
+        },
+        MAGE = {
+            [SPEC_MAGE_ARCANE] = {
+                PowerType = "ARCANE_CHARGES",
+            },
+        },
+        DRUID = {
+            [SPEC_ALL] = {
+                CheckShapeshift = true,
+                [_G.CAT_FORM] = {
+                    PowerType = "COMBO_POINTS",
+                },
+            },
+        },
+        PRIEST = {
+            [SPEC_PRIEST_SHADOW] = {
+                PowerType = "MANA",
+            },
+        },
+        MONK = {
+            [SPEC_MONK_WINDWALKER] = {
+                PowerType = "CHI",
+            },
+        },
+        WARLOCK = {
+            [SPEC_ALL] = {
+                PowerType = "SOUL_SHARDS",
+            },
+        },
+        SHAMAN = {
+            [SPEC_SHAMAN_ELEMENTAL] = {
+                PowerType = "MANA",
+            },
+            [SPEC_SHAMAN_ENHANCEMENT] = {
+                PowerType = "MANA",
+            },
+        },
+    })[PLAYER_CLASS] or false
+
+    SPEC_CLASS_POWER            = false
+    SPEC_CLASS_POWERTYPE        = false
+    SPEC_CLASS_POWERID          = false
+
     ---------------------- Totem ----------------------
     FIRE_TOTEM_SLOT             = 1
     EARTH_TOTEM_SLOT            = 2
     WATER_TOTEM_SLOT            = 3
     AIR_TOTEM_SLOT              = 4
 
-    STANDARD_TOTEM_PRIORITIES   = {1, 2, 3, 4}
+    STANDARD_TOTEM_PRIORITIES   = { 1, 2, 3, 4 }
 
     SHAMAN_TOTEM_PRIORITIES     = { EARTH_TOTEM_SLOT, FIRE_TOTEM_SLOT, WATER_TOTEM_SLOT, AIR_TOTEM_SLOT }
 
@@ -85,6 +120,27 @@ end
 __Thread__()
 function OnEnable(self)
 
+end
+
+__Thread__()
+function OnSpecChanged(self, spec)
+    -- Update the class power
+    SPEC_CLASS_POWERTYPE = false
+    SPEC_CLASS_POWERID   = false
+
+    if SPEC_CLASS_POWERMAP then
+        SPEC_CLASS_POWER = SPEC_CLASS_POWERMAP[spec] or SPEC_CLASS_POWERMAP[SPEC_ALL] or false
+
+        if SPEC_CLASS_POWER then
+            if SPEC_CLASS_POWER.CheckShapeshift then
+                UPDATE_SHAPESHIFT_FORM()
+            elseif SPEC_CLASS_POWER.ShowLevel > UnitLevel("player") then
+                -- Pass
+            else
+                SPEC_CLASS_POWERTYPE = SPEC_CLASS_POWER.PowerType
+            end
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -191,6 +247,16 @@ end
 __SystemEvent__()
 function PLAYER_SPECIALIZATION_CHANGED()
 end
+
+__SystemEvent__()
+function UPDATE_SHAPESHIFT_FORM()
+end
+
+__SystemEvent__()
+function PLAYER_LEVEL_UP(level)
+
+end
+
 
 ------------------------------------------------------------
 --                        Base MVC                        --

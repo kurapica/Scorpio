@@ -642,7 +642,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ScorpioManager:SetScript("OnUpdate", ScorpioManager.OnUpdate)
 
     function ScorpioManager.ADDON_LOADED(name)
-        name = name:match("^[^%.]+")
+        name = name:match("^[^%._]+")
         return name and tryloading(_RootAddon[name])
     end
 
