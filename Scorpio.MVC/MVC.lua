@@ -11,385 +11,199 @@ Scorpio           "Scorpio.MVC"                   "1.0.0"
 
 namespace "Scorpio.MVC"
 
-------------------------------------------------------------
---                      Constants                         --
-------------------------------------------------------------
-do
-    ------------------- Player Class ------------------
-    PLAYER_CLASS                = select(2, UnitClass("player"))
+interface "IModel" {}
+interface "IView"  {}
 
-    ----------------- Class Power Map -----------------
-    ClassPowerMap               = Dictionary(Iterator(function() for n, v in Reflector.GetEnums(ClassPower) do coroutine.yield(v, n) end end))
-
-    ----------------- SPEC Class Power ----------------
-    SPEC_ALL                    = 0
-    SPEC_WARLOCK_AFFLICTION     = 1
-    SPEC_WARLOCK_DEMONOLOGY     = 2
-    SPEC_WARLOCK_DESTRUCTION    = 3
-
-    SPEC_PRIEST_SHADOW          = 3
-
-    SPEC_MONK_MISTWEAVER        = 2
-    SPEC_MONK_BREWMASTER        = 1
-    SPEC_MONK_WINDWALKER        = 3
-
-    SPEC_PALADIN_RETRIBUTION    = 3
-
-    SPEC_MAGE_ARCANE            = 1
-
-    SPEC_SHAMAN_ELEMENTAL       = 1
-    SPEC_SHAMAN_ENHANCEMENT     = 2
-    SPEC_SHAMAN_RESTORATION     = 3
-
-    SPEC_DRUID_BALANCE          = 1
-    SPEC_DRUID_FERAL            = 2
-    SPEC_DRUID_GUARDIAN         = 3
-    SPEC_DRUID_RESTORATION      = 4
-
-    SPEC_CLASS_POWERMAP = ({
-        ROGUE = {
-            [SPEC_ALL] = {
-                PowerType = "COMBO_POINTS",
-            },
-        },
-        PALADIN = {
-            [SPEC_PALADIN_RETRIBUTION] = {
-                ShowLevel = _G.PALADINPOWERBAR_SHOW_LEVEL,
-                PowerType = "HOLY_POWER",
-            },
-        },
-        MAGE = {
-            [SPEC_MAGE_ARCANE] = {
-                PowerType = "ARCANE_CHARGES",
-            },
-        },
-        DRUID = {
-            [SPEC_ALL] = {
-                CheckShapeshift = true,
-                [_G.CAT_FORM] = {
-                    PowerType = "COMBO_POINTS",
-                },
-            },
-        },
-        PRIEST = {
-            [SPEC_PRIEST_SHADOW] = {
-                PowerType = "MANA",
-            },
-        },
-        MONK = {
-            [SPEC_MONK_WINDWALKER] = {
-                PowerType = "CHI",
-            },
-        },
-        WARLOCK = {
-            [SPEC_ALL] = {
-                PowerType = "SOUL_SHARDS",
-            },
-        },
-        SHAMAN = {
-            [SPEC_SHAMAN_ELEMENTAL] = {
-                PowerType = "MANA",
-            },
-            [SPEC_SHAMAN_ENHANCEMENT] = {
-                PowerType = "MANA",
-            },
-        },
-    })[PLAYER_CLASS] or false
-
-    SPEC_CLASS_POWER            = false
-    SPEC_CLASS_POWERTYPE        = false
-    SPEC_CLASS_POWERID          = false
-
-    ---------------------- Totem ----------------------
-    FIRE_TOTEM_SLOT             = 1
-    EARTH_TOTEM_SLOT            = 2
-    WATER_TOTEM_SLOT            = 3
-    AIR_TOTEM_SLOT              = 4
-
-    STANDARD_TOTEM_PRIORITIES   = { 1, 2, 3, 4 }
-
-    SHAMAN_TOTEM_PRIORITIES     = { EARTH_TOTEM_SLOT, FIRE_TOTEM_SLOT, WATER_TOTEM_SLOT, AIR_TOTEM_SLOT }
-
-    ---------------------- Other ----------------------
-    SPELL_POWER_MANA            = _G.SPELL_POWER_MANA
-end
-
-------------------------------------------------------------
---                  Module Event Handler                  --
-------------------------------------------------------------
-__Thread__()
-function OnEnable(self)
-
-end
-
-__Thread__()
-function OnSpecChanged(self, spec)
-    -- Update the class power
-    SPEC_CLASS_POWERTYPE = false
-    SPEC_CLASS_POWERID   = false
-
-    if SPEC_CLASS_POWERMAP then
-        SPEC_CLASS_POWER = SPEC_CLASS_POWERMAP[spec] or SPEC_CLASS_POWERMAP[SPEC_ALL] or false
-
-        if SPEC_CLASS_POWER then
-            if SPEC_CLASS_POWER.CheckShapeshift then
-                UPDATE_SHAPESHIFT_FORM()
-            elseif SPEC_CLASS_POWER.ShowLevel > UnitLevel("player") then
-                -- Pass
-            else
-                SPEC_CLASS_POWERTYPE = SPEC_CLASS_POWER.PowerType
-            end
-        end
-    end
-end
-
-------------------------------------------------------------
---                      MVC Helper                        --
-------------------------------------------------------------
-FireObjectEvent             = Reflector.FireObjectEvent
-
-UnitHealthModelMap          = Dictionary()
-UnitHealthFrequentModelMap  = Dictionary()
-UnitPowerModelMap           = Dictionary()
-UnitPowerFrequentModelMap   = Dictionary()
-UnitManaModelMap            = Dictionary()
-UnitManaFrequentModelMap    = Dictionary()
-UnitClassPowerModelMap      = Dictionary()
-
-__SystemEvent__()
-function UNIT_HEALTH(unit)
-    local obj = UnitHealthModelMap[unit]
-    if obj then
-        obj[1] = UnitHealth(unit)
-        obj[2] = UnitHealthMax(unit)
-
-        return FireObjectEvent(obj, "OnDataChange")
-    end
-end
-
-__SystemEvent__()
-function UNIT_HEALTH_FREQUENT(unit)
-    local obj = UnitHealthFrequentModelMap[unit]
-    if obj then
-        obj[1] = UnitHealth(unit)
-        obj[2] = UnitHealthMax(unit)
-
-        return FireObjectEvent(obj, "OnDataChange")
-    end
-end
-
-__SystemEvent__()
-function UNIT_MAXHEALTH(unit)
-    UNIT_HEALTH(unit)
-    UNIT_HEALTH_FREQUENT(unit)
-end
-
-__SystemEvent__()
-function UNIT_POWER(unit, ptype)
-    -- Mana
-    if not ptype or ptype == "MANA" then
-        local obj = UnitManaModelMap[unit]
-        if obj then
-            obj[1] = UnitPower(unit, SPELL_POWER_MANA)
-            obj[2] = UnitPowerMax(unit, SPELL_POWER_MANA)
-
-            FireObjectEvent(obj, "OnDataChange")
-        end
-    end
-
-    -- Power
-    local obj = UnitPowerModelMap[unit]
-    if obj then
-        local powerType = ClassPowerMap[UnitPowerType(unit)]
-        if not ptype or powerType == ptype then
-            obj[1] = UnitPower(unit, powerType)
-            obj[2] = UnitPowerMax(unit, powerType)
-            obj[3] = powerType
-
-            return FireObjectEvent(obj, "OnDataChange")
-        end
-    end
-end
-
-__SystemEvent__()
-function UNIT_POWER_FREQUENT(unit, ptype)
-    -- Mana
-    if not ptype or ptype == "MANA" then
-        local obj = UnitManaFrequentModelMap[unit]
-        if obj then
-            obj[1] = UnitPower(unit, SPELL_POWER_MANA)
-            obj[2] = UnitPowerMax(unit, SPELL_POWER_MANA)
-
-            FireObjectEvent(obj, "OnDataChange")
-        end
-    end
-
-    -- Power
-    local obj = UnitPowerFrequentModelMap[unit]
-    if obj then
-        local powerType = ClassPowerMap[UnitPowerType(unit)]
-        if not ptype or powerType == ptype then
-            obj[1] = UnitPower(unit, powerType)
-            obj[2] = UnitPowerMax(unit, powerType)
-            obj[3] = powerType
-
-            return FireObjectEvent(obj, "OnDataChange")
-        end
-    end
-end
-
-__SystemEvent__ "UNIT_MAXPOWER" "UNIT_POWER_BAR_SHOW" "UNIT_POWER_BAR_HIDE" "UNIT_DISPLAYPOWER"
-function UNIT_POWER_OTHER(unit)
-    UNIT_POWER(unit)
-    UNIT_POWER_FREQUENT(unit)
-end
-
-__SystemEvent__()
-function PLAYER_SPECIALIZATION_CHANGED()
-end
-
-__SystemEvent__()
-function UPDATE_SHAPESHIFT_FORM()
-end
-
-__SystemEvent__()
-function PLAYER_LEVEL_UP(level)
-
-end
-
-
-------------------------------------------------------------
---                        Base MVC                        --
-------------------------------------------------------------
-__Sealed__() __Abstract__()
-class "Model" (function(_ENV)
-    ----------------------------------------------
-    -------------------- Event -------------------
-    ----------------------------------------------
-    __Doc__[[Fired when the model's data changes]]
-    event "OnDataChange"
-
-    ----------------------------------------------
-    -------------------- Method ------------------
-    ----------------------------------------------
-    __Doc__[[Get current data, overridable]]
-    GetData = unpack
-end)
-
-__Sealed__() __Abstract__()
-class "View" (function(_ENV)
-
-    ----------------------------------------------
-    -------------------- Method ------------------
-    ----------------------------------------------
-    __Arguments__{ Model, Controller }
-    function Bind(self, model, controller)
-
-    end
-
-    __Arguments__{ Model, Callable }
-    function Bind(self, model, handler)
-
-    end
-end)
-
-__Sealed__() __Abstract__()
+__Final__() __Sealed__()
 class "Controller" (function(_ENV)
+
+    ----------------------------------------------
+    ------------------- Helper -------------------
+    ----------------------------------------------
+    -- Recycle to reduce the costs
+    RECYCLE_CACHE   = {}
+    RECYCLE_MAX_CNT = 100
+
+    ----------------------------------------------
+    ------------------ Property ------------------
+    ----------------------------------------------
+    __Doc__[[The model of the binding]]
+    property "Model"        { Type = IModel }
+
+    __Doc__[[The view of the binding]]
+    property "View"         { Type = IView }
+
+    __Doc__[[The algorithm used to translate the model datas to view datas]]
+    property "GetAlgorithm" { Type = Callable }
+
+    __Doc__[[The algorithm used to translate the view datas to model datas]]
+    property "SetAlgorithm" { Type = Callable }
+
+    ----------------------------------------------
+    -------------------- Method ------------------
+    ----------------------------------------------
+    __Doc__[[Refresh the view]]
+    function RefreshView(self)
+        local view = self.View
+        return view:ForceRefresh()
+    end
+
+    __Doc__[[Get current datas, it may be translated by the controller's get algorithm]]
+    function GetModelData(self)
+        if self.GetAlgorithm then
+            return self.GetAlgorithm(self.Model:GetData())
+        else
+            return self.Model:GetData()
+        end
+    end
+
+    __Doc__[[Set the datas, it may be translated by the controller's set algorithm]]
+    function SetModelData(self, ...)
+        if self.SetAlgorithm then
+            return self.Model:SetData(self.SetAlgorithm(...))
+        else
+            return self.Model:SetData(...)
+        end
+    end
+
+    ----------------------------------------------
+    ------------------- Dispose ------------------
+    ----------------------------------------------
+    function Dispose(self)
+        if self.Model then
+            self.Model.Controllers:Remove(self)
+        end
+        if self.View then
+            self.View.Controllers:Remove(self)
+        end
+        if #RECYCLE_CACHE < RECYCLE_MAX_CNT then
+            tinsert(RECYCLE_CACHE, self)
+        end
+    end
+
+    ----------------------------------------------
+    ----------------- Constructor ----------------
+    ----------------------------------------------
+    __Arguments__{ IModel, IView, { Type = Callable, Nilable = true }, { Type = Callable, Nilable = true } }
+    function Controller(self, model, view, getAlgorithm, setAlgorithm)
+        self.Model = model
+        self.View = view
+        self.GetAlgorithm = getAlgorithm
+        self.SetAlgorithm = setAlgorithm
+
+        model.Controllers:Insert(self)
+        view.Controllers:Insert(self)
+    end
+
+    ----------------------------------------------
+    ----------------- Meta-Method ----------------
+    ----------------------------------------------
+    __Arguments__{ IModel, IView, { Type = Callable, Nilable = true }, { Type = Callable, Nilable = true } }
+    function __exist(model, view, getAlgorithm, setAlgorithm)
+        local self = tremove(RECYCLE_CACHE)
+        if self then
+            self.Disposed = nil
+            self.Model = model
+            self.View = view
+            self.GetAlgorithm = getAlgorithm
+            self.SetAlgorithm = setAlgorithm
+
+            model.Controllers:Insert(self)
+            view.Controllers:Insert(self)
+        end
+        return self
+    end
+end)
+
+__Sealed__()
+interface "IModel" (function(_ENV)
+
+    ----------------------------------------------
+    ------------------- Property -----------------
+    ----------------------------------------------
+    __Doc__[[The Controllers of the model]]
+    property "Controllers" { Set = false, Default = function() return List() end }
+
+    ----------------------------------------------
+    -------------------- Method ------------------
+    ----------------------------------------------
+    __Doc__[[Get current datas, overridable, required]]
+    __Require__()
+    function GetData(self) end
+
+    __Doc__[[Set the datas, overridable]]
+    function SetData(self, ...) end
+
+    __Doc__[[Trigger the controllers to update the views with new datas]]
+    function RefreshViews(self)
+        for _, ct in self.Controllers:GetIterator() do
+            local view = ct.View
+            if view then view:ForceRefresh() end
+        end
+    end
+end)
+
+__Sealed__()
+interface "IView" (function(_ENV)
+    ----------------------------------------------
+    -------------------- Helper ------------------
+    ----------------------------------------------
+    local function checkReturnAndRefresh(self, ...)
+        if ... == nil then return end
+        self:Refresh(...)
+        return true
+    end
+
+    ----------------------------------------------
+    ------------------- Property -----------------
+    ----------------------------------------------
+    __Doc__[[The Controllers of the model]]
+    property "Controllers" { Set = false, Default = function() return List() end }
+
+    ----------------------------------------------
+    -------------------- Method ------------------
+    ----------------------------------------------
+    __Doc__[[Update the view with new datas, overridable, required]]
+    __Require__()
+    function Refresh(self, ...) end
+
+    __Doc__[[Force the view fetch the datas and refresh itself]]
+    function ForceRefresh(self)
+        for _, ct in self.Controllers:GetIterator() do
+            if checkReturnAndRefresh(self, ct:GetModelData()) then return end
+        end
+    end
+
+    __Doc__[[Trigger the controllers to update the models with new datas]]
+    function SetModelData(self, ...)
+        for _, ct in self.Controllers:GetIterator() do
+            ct:SetModelData(...)
+        end
+    end
+
+    function ClearBindings(self)
+        return self.Controllers:ToList():Each("x=>x:Dispose()")
+    end
+
+    __Arguments__{ IModel, { Type = Callable, Nilable = true}, { Type = Callable, Nilable = true} }
+    function Bind(self, model, getAlgorithm, setAlgorithm)
+        return Controller(model, self, getAlgorithm, setAlgorithm)
+    end
 end)
 
 ------------------------------------------------------------
---                        Unit MVC                        --
+--                     Default Model                      --
 ------------------------------------------------------------
-__Doc__[[The unit health model]]
-class "UnitHealthModel" { Model,
+__Doc__[[The model used to provide default datas]]
+__Sealed__()
+class "DefaultModel" { IModel,
+    -- Method
+    GetData = unpack,
+
     -- Constructor
-    function(self, unit)
-        UnitHealthModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitHealthModelMap[unit] end,
-}
-
-__Doc__[[The unit frequent health model]]
-class "UnitHealthFrequentModel" { Model,
-    -- Constructor
-    function(self, unit)
-        UnitHealthFrequentModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitHealthFrequentModelMap[unit] end,
-}
-
-__Doc__[[The unit power model]]
-class "UnitPowerModel" { Model,
-    -- Constructor
-    function(self, unit)
-        UnitPowerModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-        self[3] = "MANA"-- Type
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitPowerModelMap[unit] end,
-}
-
-__Doc__[[The unit frequent power model]]
-class "UnitPowerFrequentModel" { Model,
-    -- Constructor
-    function(self, unit)
-        UnitPowerFrequentModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-        self[3] = "MANA"-- Type
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitPowerFrequentModelMap[unit] end,
-}
-
-__Doc__[[The unit mana model]]
-class "UnitManaModel" { Model,
-    -- Constructor
-    function(self, unit)
-        UnitManaModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitManaModelMap[unit] end,
-}
-
-__Doc__[[The unit frequent mana model]]
-class "UnitManaFrequentModel" { Model,
-    -- Constructor
-    function(self, unit)
-        UnitManaFrequentModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitManaFrequentModelMap[unit] end,
-}
-
-__Doc__[[The unit class power model]]
-class "UnitClassPowerModel" { Model,
-    -- Constructor
-    function(self, unit)
-        UnitClassPowerModelMap[unit] = self
-        self[1] = 0     -- Value
-        self[2] = 100   -- Max
-        self[3] = nil   -- Type
-    end,
-
-    -- Meta-method
-    __exist = function(unit) return UnitClassPowerModelMap[unit] end,
+    function (self, ...)
+        for i = 1, select('#', ...) do
+            self[i] = select(i, ...)
+        end
+    end
 }

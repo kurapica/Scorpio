@@ -1,3 +1,20 @@
+2017/03/05
+	Fix __AddonSecureHook__ not works as demand. NEString is removed to PLoop.
+
+	If the slash command's handler return false, it's helper message would be printed. Like :
+
+		__SlashCmd__ "test" "lock" "on/off - Lock the action"
+		function LockAction(info)
+			if info ~= "on" and info ~= "off" then return false end
+		end
+
+		-- Use /test lock 111, helper message would be printed as
+		--======================--
+		/test lock on/off - Lock the action
+		--======================--
+
+	Also you can do it by yourselves, just don't return the false value
+
 2017/02/16
 	Fix the OnLoad and OnEnable won't fire for sub-addons with like 'MainAddonName_SubAddon' 'MainAddonName.SubAddon'.
 

@@ -845,7 +845,7 @@ class (UI) (function(_ENV)
     ----------------- Meta-Method ----------------
     ----------------------------------------------
     __Arguments__{ RawTable }
-    function __exist(self, init)
+    function __exist(init)
         local name = init.Name
         local parent = GetUIWrapper(init.Parent or UIParent)
 

@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Module            "ScorpioCore"                      "1.1.0"
+Module            "ScorpioCore"                      "1.1.1"
 --========================================================--
 
 namespace         "Scorpio"
@@ -53,13 +53,6 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     local status            = coroutine.status
     local wrap              = coroutine.wrap
     local yield             = coroutine.yield
-
-    -------------------- Types -------------------
-    __Sealed__() __Base__(String)
-    struct "NEString" {
-        __init = function(val) return strtrim(val) end,
-        function(val) assert(strtrim(val) ~= "", "%s can't be empty.") end,
-    }
 
     ----------------------------------------------
     -------------- Task System Helper ------------
@@ -390,14 +383,6 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         end
     end
 
-    local function directCallHandlers(map, ...)
-        if not map then return end
-        for obj, handler in pairs(map) do
-            local ok, err = pcall(handler, ...)
-            if not ok then errorhandler(err) end
-        end
-    end
-
     -- SlashCmd Operation
     local function newSlashCmd(slashCmd, map)
         -- New Slash Command
@@ -421,15 +406,19 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
             end
 
             if option and map[option] then
-                return directCallHandlers(map[option], info, input)
-            elseif map[0] then
-                return directCallHandlers(map[0], msg, input)
+                if map[option](info, input) == false then
+                    print("--======================--")
+                    print(("%s %s %s"):format(slashCmd:lower(), option:lower(), map[option .. "-desc"] or ""))
+                    print("--======================--")
+                end
+            elseif map[0] and map[0](msg, input) ~= false then
+                -- pass
             else
                 -- Default handler
                 if next(map) then
                     print("--======================--")
                     for opt, m in pairs(map) do
-                        if type(m) == "table" then
+                        if type(m) == "function" then
                             print(("%s %s %s"):format(slashCmd:lower(), opt:lower(), map[opt .. "-desc"] or ""))
                         end
                     end
@@ -553,8 +542,10 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
                 if not ok then pcall(geterrorhandler(), msg) end
             end
 
-            queueTask(HIGH_PRIORITY, thread, true)
-            yield()
+            if _Logined then
+                queueTask(HIGH_PRIORITY, thread, true)
+                yield()
+            end
         end
 
         wipe(cache)
@@ -570,7 +561,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         local cache = t_EventTasks[evt]
         if cache then
             t_EventTasks[evt] = nil
-            queueTask(HIGH_PRIORITY, ThreadCall(taskCallWithArgs, handleEventTask, cache, ...))
+            if _Logined then
+                queueTask(HIGH_PRIORITY, ThreadCall(taskCallWithArgs, handleEventTask, cache, ...))
+            else
+                handleEventTask(cache, ...)
+            end
         end
 
         local wcache = t_WaitEventTasks[evt]
@@ -585,7 +580,11 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
                     wcache[i] = false
                 end
             end
-            queueTask(HIGH_PRIORITY, ThreadCall(taskCallWithArgs, handleEventTask, wcache, evt, ...))
+            if _Logined then
+                queueTask(HIGH_PRIORITY, ThreadCall(taskCallWithArgs, handleEventTask, wcache, evt, ...))
+            else
+                handleEventTask(wcache, evt, ...)
+            end
         end
 
         -- The System event handler may register event task
@@ -880,7 +879,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         if type(handler) == "string" then handler = self[handler] end
         if type(handler) ~= "function" then error("Scorpio:RegisterSlashCommand(slashCmd, handler) -- handler not existed.", 2) end
 
-        map[0] = { [self] = handler }
+        map[0] = handler
     end
 
     __Doc__[[
@@ -909,7 +908,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         if type(handler) == "string" then handler = self[handler] end
         if type(handler) ~= "function" then error("Scorpio:RegisterSlashCmdOption(slashCmd, option, handler[, description]) -- handler not existed.", 2) end
 
-        map[option] = { [self] = handler }
+        map[option] = handler
         map[option .. "-desc"] = desc
     end
 
