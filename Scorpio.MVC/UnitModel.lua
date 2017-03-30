@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Scorpio           "Scorpio.MVC.Unit"                 "1.0.0"
+Scorpio           "Scorpio.MVC.UnitModel"            "1.0.0"
 --========================================================--
 
 namespace "Scorpio.MVC"
@@ -20,7 +20,7 @@ do
     PLAYER_CLASS                = select(2, UnitClass("player"))
 
     ----------------- Class Power Map -----------------
-    ClassPowerMap               = Dictionary(Iterator(function() for n, v in Reflector.GetEnums(ClassPower) do coroutine.yield(v, n) end end))
+    CLASS_POWER_MAP             = Dictionary(Iterator(function() for n, v in Reflector.GetEnums(ClassPower) do coroutine.yield(v, n) end end))
 
     ----------------- SPEC Class Power ----------------
     SPEC_ALL                    = 0
@@ -103,7 +103,7 @@ end
 
 __Thread__()
 function OnSpecChanged(self, spec)
-    print("MVC", "OnSpecChanged")
+    print("MVC", "OnSpecChanged", spec)
     -- Update the class power
     SPEC_CLASS_POWER = false
 
@@ -203,7 +203,7 @@ function UNIT_POWER(unit, ptype)
     local obj = UnitPowerModelMap[unit]
     if obj then
         local powerType = UnitPowerType(unit)
-        local powerName = ClassPowerMap[powerType]
+        local powerName = CLASS_POWER_MAP[powerType]
         if not ptype or powerName == ptype then
             obj[1] = UnitPower(unit, powerType)
             obj[2] = UnitPowerMax(unit, powerType)
@@ -233,7 +233,7 @@ function UNIT_POWER_FREQUENT(unit, ptype)
     obj = UnitPowerFrequentModelMap[unit]
     if obj then
         local powerType = UnitPowerType(unit)
-        local powerName = ClassPowerMap[powerType]
+        local powerName = CLASS_POWER_MAP[powerType]
         if not ptype or powerName == ptype then
             obj[1] = UnitPower(unit, powerType)
             obj[2] = UnitPowerMax(unit, powerType)

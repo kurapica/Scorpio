@@ -367,6 +367,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
 
     -- Whether the player is already logined
     _Logined                = false
+    _PlayerSpec             = -1
 
     -- Cache for module properties
     _RootAddon              = setmetatable({}, META_WEAKVAL)
@@ -648,12 +649,12 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     end
 
     function ScorpioManager.PLAYER_LOGIN()
-        local spec = GetSpecialization() or 1
+        _PlayerSpec = GetSpecialization() or 1
         _Logined = true
 
         for _, addon in pairs(_RootAddon) do
             enabling(addon)
-            specChanged(addon, spec)
+            specChanged(addon, _PlayerSpec)
         end
     end
 
@@ -663,10 +664,15 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         end
     end
 
-    function ScorpioManager.PLAYER_SPECIALIZATION_CHANGED()
-        local spec = GetSpecialization() or 1
-        for _, addon in pairs(_RootAddon) do
-            specChanged(addon, spec)
+    function ScorpioManager.PLAYER_SPECIALIZATION_CHANGED(unit)
+        if not unit or UnitIsUnit(unit, "player") then
+            local spec = GetSpecialization() or 1
+            if _PlayerSpec ~= spec then
+                _PlayerSpec = spec
+                for _, addon in pairs(_RootAddon) do
+                    specChanged(addon, spec)
+                end
+            end
         end
     end
 
