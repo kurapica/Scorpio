@@ -1,3 +1,6 @@
+2017/08/29
+	Fix the char saved varables can't be generated if the toc don't hav
+
 2017/03/05
 	Fix __AddonSecureHook__ not works as demand. NEString is removed to PLoop.
 

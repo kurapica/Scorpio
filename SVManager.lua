@@ -92,8 +92,7 @@ class "SVManager" (function(_ENV)
         Get = function(self)
             local char = _DBCharMap[self]
             if not char then
-                local name, realm = UnitFullName("player")
-                name = realm .. "-" .. name
+                local name = GetRealmName() .. "-" .. UnitName("player")
                 -- Char data should saved in the account data
                 _DBMap[self].__ScorpioChars = _DBMap[self].__ScorpioChars or {}
                 _DBMap[self].__ScorpioChars[name] = _DBMap[self].__ScorpioChars[name] or {}

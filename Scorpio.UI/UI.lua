@@ -2090,6 +2090,21 @@ class "Texture" (function(_ENV)
     }
 end)
 
+__Doc__[[MaskTextures are used to mask other textures]]
+__Sealed__() __AutoProperty__()
+class "MaskTexture" (function(_ENV)
+    inherit "Texture"
+
+    ----------------------------------------------
+    ------------------- Helper -------------------
+    ----------------------------------------------
+    InstallPrototype("Frame",
+        function (self, name, parent, layer, inherits, sublevel)
+            return parent:CreateMaskTexture(nil, layer or "ARTWORK", inherits, sublevel or 0)
+        end
+    )
+end)
+
 ------------------------------------------------------------
 --                      FontString                        --
 ------------------------------------------------------------
