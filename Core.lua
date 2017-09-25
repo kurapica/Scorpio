@@ -712,6 +712,17 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     end
 
     __Doc__[[
+        <desc>Get the registered handler of an event</desc>
+        <param name="event" type="string">the system|custom event name</param>
+        <return>true if the event is registered</return>
+    ]]
+    __Arguments__{ NEString }
+    function GetRegisteredEventHandler(self, evt)
+        local map = _EventDistribution[evt]
+        return map and map[self]
+    end
+
+    __Doc__[[
         <desc>Unregister system event or custom event</desc>
         <param name="event" type="string">the system|custom event name</param>
     ]]

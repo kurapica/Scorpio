@@ -1,3 +1,6 @@
+2017/09/25
+	New GetRegisteredEventHandler API for Scorpio module.
+
 2017/08/29
 	Fix the char saved varables can't be generated if the toc don't hav
 
