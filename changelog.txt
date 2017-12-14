@@ -1,7 +1,11 @@
 2017/12/14
-	New API added to support wait for next object-method call, works like "Event", "Wait" API:
+	New static method added to support wait for next object-method call, works like "Event", "Wait" API:
 		* NextCall([func, ][target, ]targetFunc[, ...])  		-- Wait next un-secure call
 		* NextSecureCall([func, ][target, ]targetFunc[, ...]) 	-- Wait next secure call
+
+	New method added to get handlers for hook :
+		* GetHookHandler(self, [target,] targetFunc)
+		* GetSecureHookHandler(self, [target,] targetFunc)
 
 2017/09/25
 	New GetRegisteredEventHandler API for Scorpio module.

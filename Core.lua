@@ -905,6 +905,19 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         for _, target in pairs(_HookDistribution) do for _, map in pairs(target) do map[self] = nil end end
     end
 
+    __Doc__[[Get the hook handler]]
+    __Arguments__{ Table, NEString }
+    function GetHookHandler(self, target, targetFunc)
+        local map = _HookDistribution[target] and _HookDistribution[target][targetFunc]
+        return map and map[self] or nil
+    end
+
+    __Arguments__{ NEString }
+    function GetHookHandler(self, targetFunc)
+        local map = _HookDistribution[_G] and _HookDistribution[_G][targetFunc]
+        return map and map[self] or nil
+    end
+
     __Doc__[[
         <desc>Secure hook a table's function</desc>
         <format>[target, ]targetFunction[, handler]</format>
@@ -948,6 +961,19 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
 
     __Doc__[[Un-hook all functions]]
     function SecureUnHookAll(self) for _, target in pairs(_SecureHookDistribution) do for _, map in pairs(target) do map[self] = nil end end end
+
+    __Doc__[[Get the secure hook handler]]
+    __Arguments__{ Table, NEString }
+    function GetSecureHookHandler(self, target, targetFunc)
+        local map = _SecureHookDistribution[target] and _SecureHookDistribution[target][targetFunc]
+        return map and map[self] or nil
+    end
+
+    __Arguments__{ NEString }
+    function GetSecureHookHandler(self, targetFunc)
+        local map = _SecureHookDistribution[_G] and _SecureHookDistribution[_G][targetFunc]
+        return map and map[self] or nil
+    end
 
     ----------------------------------------------
     ------------ Slash Command Method ------------
