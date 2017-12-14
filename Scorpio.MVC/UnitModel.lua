@@ -103,7 +103,6 @@ end
 
 __Thread__()
 function OnSpecChanged(self, spec)
-    print("MVC", "OnSpecChanged", spec)
     -- Update the class power
     SPEC_CLASS_POWER = false
 

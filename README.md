@@ -581,28 +581,32 @@ Here is the list of those apis(Those examples can be test in in-game editor like
 
 # Starting a thread and call function under the conditions #
 
-API                               |Description
-----------------------------------|------------------------------------
-Continue(func[, ...])             |Call the func with arguments as soon as possible.
-Next(func[, ...])                 |Call the func with arguments in the next frame OnUpdate.
-Delay(delay, func[, ...])         |Call the func with arguments after a delay(second).
-Event(event, func[, ...])         |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
-Wait(func[,delay][,event[, ...]]) |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
-Wait(func[,event[, ...]])         |Call the func when one of the registered events fired, the event name and its arguments would be passed to the func.
-NoCombat(func[, ...])             |Call the func with arguments when not in combat.
+API                                                 |Description
+----------------------------------------------------|----------------------------------------
+Continue(func[, ...])                               |Call the func with arguments as soon as possible.
+Next(func[, ...])                                   |Call the func with arguments in the next frame OnUpdate.
+Delay(delay, func[, ...])                           |Call the func with arguments after a delay(second).
+Event(event, func[, ...])                           |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
+Wait(func[,delay][,event[, ...]])                   |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
+Wait(func[,event[, ...]])                           |Call the func when one of the registered events fired, the event name and its arguments would be passed to the func.
+NoCombat(func[, ...])                               |Call the func with arguments when not in combat.
+NextCall([func, ][target, ]targetFunc[, ...])       |Call the func with arguments when the target's target un-secure method is called.
+NextSecureCall([func, ][target, ]targetFunc[, ...]) |Call the func with arguments when the target's target secure method is called.
 
 
 # Must be used in a thread, yield the current thread and resume it under the conditions #
 
-API                               |Description
-----------------------------------|------------------------------------
-Continue()                        |Continue the thread as soon as possible.
-Next()                            |Continue the thread in next frame OnUpdate.
-Delay(delay)                      |Continue the thread after a delay(second).
-Event(event)                      |Continue the thread when an system event is fired, the system event's argument will be returned.
-Wait([delay,][event[,...]])       |Continue the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
-Wait([event[,...]])               |Continue the thread when one of the registered events fired, the event name and its arguments would be returned.
-NoCombat()                        |Continue the thread when not in combat.
+API                                         |Description
+--------------------------------------------|--------------------------------------------
+Continue()                                  |Continue the thread as soon as possible.
+Next()                                      |Continue the thread in next frame OnUpdate.
+Delay(delay)                                |Continue the thread after a delay(second).
+Event(event)                                |Continue the thread when an system event is fired, the system event's argument will be returned.
+Wait([delay,][event[,...]])                 |Continue the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
+Wait([event[,...]])                         |Continue the thread when one of the registered events fired, the event name and its arguments would be returned.
+NoCombat()                                  |Continue the thread when not in combat.
+NextCall([target, ]targetFunc[, ...])       |Continue the thread  when the target's target un-secure method is called.
+NextSecureCall([target, ]targetFunc[, ...]) |Continue the thread  when the target's target secure method is called.
 
 
 Here are some examples :

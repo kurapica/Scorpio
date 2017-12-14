@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Module            "ScorpioCore"                      "1.1.1"
+Module            "ScorpioCore"                      "1.2.1"
 --========================================================--
 
 namespace         "Scorpio"
@@ -377,7 +377,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     local function callHandlers(map, ...)
         if not map then return end
         for obj, handler in pairs(map) do
-            if not _DisabledModule[obj] then
+            if obj ~= 0 and not _DisabledModule[obj] then
                 local ok, err = pcall(handler, ...)
                 if not ok then errorhandler(err) end
             end
@@ -551,6 +551,104 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
 
         wipe(cache)
         tinsert(t_Cache, cache)
+    end
+
+    local function getHookMap(target, targetFunc, stack)
+        local map = _HookDistribution[target]
+
+        if not map then
+            map   = setmetatable({}, META_WEAKKEY)
+            _HookDistribution[target] = map
+        end
+
+        map = map[targetFunc]
+
+        if not map then
+            if type(target[targetFunc]) ~= "function" then
+                error(("No method named '%s' can be found."):format(targetFunc), (stack or 2) + 1)
+            elseif issecurevariable(target, targetFunc) then
+                error(("'%s' is secure method, use SecureHook instead."):format(targetFunc), (stack or 2) + 1)
+            end
+
+            map   = setmetatable({}, META_WEAKKEY)
+            _HookDistribution[target][targetFunc]  = map
+
+            local _orig = target[targetFunc]
+            target[targetFunc] = function(...)
+                local cache = map[0]
+                if cache then
+                    map[0] = false
+                    if _Logined then
+                        queueTask(HIGH_PRIORITY, ThreadCall(taskCallWithArgs, handleEventTask, cache, ...))
+                    else
+                        handleEventTask(cache, ...)
+                    end
+                end
+
+                callHandlers(map, ...)
+                return _orig(...)
+            end
+        end
+
+        return map
+    end
+
+    local function getSecureHookMap(target, targetFunc, stack)
+        local map = _SecureHookDistribution[target]
+
+        if not map then
+            map   = setmetatable({}, META_WEAKKEY)
+            _SecureHookDistribution[target] = map
+        end
+
+        map = map[targetFunc]
+
+        if not map then
+            if type(target[targetFunc]) ~= "function" then
+                error(("No method named '%s' can be found."):format(targetFunc), (stack + 2) + 1)
+            end
+
+            map   = setmetatable({}, META_WEAKKEY)
+            _SecureHookDistribution[target][targetFunc] = map
+
+            hooksecurefunc(target, targetFunc, function(...)
+                local cache = map[0]
+                if cache then
+                    map[0] = false
+                    if _Logined then
+                        queueTask(HIGH_PRIORITY, ThreadCall(taskCallWithArgs, handleEventTask, cache, ...))
+                    else
+                        handleEventTask(cache, ...)
+                    end
+                end
+
+                return callHandlers(map, ...)
+            end)
+        end
+
+        return map
+    end
+
+    local function queueNextCall(target, targetFunc, task, stack)
+        local map = getHookMap(target, targetFunc, (stack or 2) + 1)
+
+        local cache = map[0]
+        if not cache then
+            cache  = tremove(t_Cache) or {}
+            map[0] = cache
+        end
+        tinsert(cache, task)
+    end
+
+    local function queueNextSecureCall(target, targetFunc, task, stack)
+        local map = getSecureHookMap(target, targetFunc, (stack or 2) + 1)
+
+        local cache = map[0]
+        if not cache then
+            cache  = tremove(t_Cache) or {}
+            map[0] = cache
+        end
+        tinsert(cache, task)
     end
 
     ----------------------------------------------
@@ -768,33 +866,21 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ]]
     __Arguments__{ Table, NEString, Argument(NEString + Function, true) }
     function Hook(self, target, targetFunc, handler)
-        if type(target[targetFunc]) ~= "function" then
-            error(("No method named '%s' can be found."):format(targetFunc), 2)
-        elseif issecurevariable(target, targetFunc) then
-            error(("'%s' is secure method, use SecureHook instead."):format(targetFunc), 2)
-        end
-
-        _HookDistribution[target] = _HookDistribution[target] or setmetatable({}, META_WEAKKEY)
-
-        local map = _HookDistribution[target][targetFunc]
-
-        if not map then
-            map = setmetatable({}, META_WEAKKEY)
-            _HookDistribution[target][targetFunc]  = map
-
-            local _orig = target[targetFunc]
-            target[targetFunc] = function(...) callHandlers(map, ...) return _orig(...) end
-        end
-
         handler = handler or targetFunc
         if type(handler) == "string" then handler = self[handler] end
         if type(handler) ~= "function" then error("Scorpio:Hook([target, ]targetFunc[, handler]) -- handler not existed.", 2) end
 
-        map[self] = handler
+        getHookMap(target, targetFunc)[self] = handler
     end
 
     __Arguments__{ NEString, Argument(NEString + Function, true) }
-    function Hook(self, targetFunc, handler) return Hook(self, _G, targetFunc, handler) end
+    function Hook(self, targetFunc, handler)
+        handler = handler or targetFunc
+        if type(handler) == "string" then handler = self[handler] end
+        if type(handler) ~= "function" then error("Scorpio:Hook([target, ]targetFunc[, handler]) -- handler not existed.", 2) end
+
+        getHookMap(target, targetFunc)[self] = handler
+    end
 
     __Doc__[[
         <desc>Un-hook a table's function</desc>
@@ -828,29 +914,21 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     ]]
     __Arguments__{ Table, NEString, Argument(NEString + Function, true) }
     function SecureHook(self, target, targetFunc, handler)
-        if type(target[targetFunc]) ~= "function" then
-            error(("No method named '%s' can be found."):format(targetFunc), 2)
-        end
-        _SecureHookDistribution[target] = _SecureHookDistribution[target] or setmetatable({}, META_WEAKKEY)
-
-        local map = _SecureHookDistribution[target][targetFunc]
-
-        if not map then
-            map = setmetatable({}, META_WEAKKEY)
-            _SecureHookDistribution[target][targetFunc] = map
-
-            hooksecurefunc(target, targetFunc, function(...) return callHandlers(map, ...) end)
-        end
 
         handler = handler or targetFunc
         if type(handler) == "string" then handler = self[handler] end
         if type(handler) ~= "function" then error("Scorpio:SecureHook([target, ]targetFunc[, handler]) -- handler not existed.", 2) end
 
-        map[self] = handler
+        getSecureHookMap(target, targetFunc)[self] = handler
     end
 
     __Arguments__{ NEString, Argument(NEString + Function, true) }
-    function SecureHook(self, targetFunc, handler) return SecureHook(self, _G, targetFunc, handler) end
+    function SecureHook(self, targetFunc, handler)
+        if type(_G[targetFunc]) ~= "function" then
+            error(("No method named '%s' can be found."):format(targetFunc), 2)
+        end
+        return SecureHook(self, _G, targetFunc, handler)
+    end
 
     __Doc__[[
         <desc>Un-hook a table's function</desc>
@@ -1110,6 +1188,98 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
         end
 
         w_Token[token] = thread
+
+        return yield()
+    end
+
+    __Doc__[[
+        <desc>Call method|yield current thread and resume it with un-secure object-method call</desc>
+        <format>[func, ][target, ]targetFunction[, ...]</format>
+        <param name="func">The function</param>
+        <param name="target" type="table">the target table, default _G</param>
+        <param name="targetFunction" type="string">the target table's method name</param>
+        <param name="...">custom params if you don't need real params of the method-call</param>
+    ]]
+    __Arguments__{ Function, Table, NEString, { Nilable = true, IsList = true }}
+    __Static__() function NextCall(func, target, targetFunc, ...)
+        if select("#", ...) > 0 then
+            queueNextCall(target, targetFunc, ThreadCall(taskCallWithArgs, func, ...))
+        else
+            queueNextCall(target, targetFunc, func)
+        end
+    end
+
+    __Arguments__{ Function, NEString, { Nilable = true, IsList = true }}
+    __Static__() function NextCall(func, targetFunc, ...)
+        if select("#", ...) > 0 then
+            queueNextCall(_G, targetFunc, ThreadCall(taskCallWithArgs, func, ...))
+        else
+            queueNextCall(_G, targetFunc, func)
+        end
+    end
+
+    __Arguments__{ Table, NEString }
+    __Static__() function NextCall(target, targetFunc)
+        local thread = running()
+        if not thread then error("Scorpio.NextCall([target, ]targetFunc) can only be used in a thread.", 2) end
+
+        queueNextCall(target, targetFunc, thread)
+
+        return yield()
+    end
+
+    __Arguments__{ NEString }
+    __Static__() function NextCall(targetFunc)
+        local thread = running()
+        if not thread then error("Scorpio.NextCall([target, ]targetFunc) can only be used in a thread.", 2) end
+
+        queueNextCall(_G, targetFunc, thread)
+
+        return yield()
+    end
+
+    __Doc__[[
+        <desc>Call method|yield current thread and resume it after secure object-method call</desc>
+        <format>[func, ][target, ]targetFunction[, ...]</format>
+        <param name="func">The function</param>
+        <param name="target" type="table">the target table, default _G</param>
+        <param name="targetFunction" type="string">the target table's method name</param>
+        <param name="...">custom params if you don't need real params of the method-call</param>
+    ]]
+    __Arguments__{ Function, Table, NEString, { Nilable = true, IsList = true }}
+    __Static__() function NextSecureCall(func, target, targetFunc, ...)
+        if select("#", ...) > 0 then
+            queueNextSecureCall(target, targetFunc, ThreadCall(taskCallWithArgs, func, ...))
+        else
+            queueNextSecureCall(target, targetFunc, func)
+        end
+    end
+
+    __Arguments__{ Function, NEString, { Nilable = true, IsList = true }}
+    __Static__() function NextSecureCall(func, targetFunc, ...)
+        if select("#", ...) > 0 then
+            queueNextSecureCall(_G, targetFunc, ThreadCall(taskCallWithArgs, func, ...))
+        else
+            queueNextSecureCall(_G, targetFunc, func)
+        end
+    end
+
+    __Arguments__{ Table, NEString }
+    __Static__() function NextSecureCall(target, targetFunc)
+        local thread = running()
+        if not thread then error("Scorpio.NextSecureCall([target, ]targetFunc) can only be used in a thread.", 2) end
+
+        queueNextSecureCall(target, targetFunc, thread)
+
+        return yield()
+    end
+
+    __Arguments__{ NEString }
+    __Static__() function NextSecureCall(targetFunc)
+        local thread = running()
+        if not thread then error("Scorpio.NextSecureCall([target, ]targetFunc) can only be used in a thread.", 2) end
+
+        queueNextSecureCall(_G, targetFunc, thread)
 
         return yield()
     end
