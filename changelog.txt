@@ -1,3 +1,6 @@
+2018/02/11
+	__NoCombat__ can be used on class methods now.
+
 2017/12/14
 	New static method added to support wait for next object-method call, works like "Event", "Wait" API:
 		* NextCall([func, ][target, ]targetFunc[, ...])  		-- Wait next un-secure call

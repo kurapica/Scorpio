@@ -164,7 +164,7 @@ function UNIT_HEALTH(unit)
         obj[1] = UnitHealth(unit)
         obj[2] = UnitHealthMax(unit)
 
-        return FireObjectEvent(obj, "OnDataChange")
+        return obj:RefreshViews()
     end
 end
 
@@ -175,7 +175,7 @@ function UNIT_HEALTH_FREQUENT(unit)
         obj[1] = UnitHealth(unit)
         obj[2] = UnitHealthMax(unit)
 
-        return FireObjectEvent(obj, "OnDataChange")
+        return obj:RefreshViews()
     end
 end
 
@@ -194,7 +194,7 @@ function UNIT_POWER(unit, ptype)
             obj[1] = UnitPower(unit, SPELL_POWER_MANA)
             obj[2] = UnitPowerMax(unit, SPELL_POWER_MANA)
 
-            FireObjectEvent(obj, "OnDataChange")
+            obj:RefreshViews()
         end
     end
 
@@ -208,7 +208,7 @@ function UNIT_POWER(unit, ptype)
             obj[2] = UnitPowerMax(unit, powerType)
             obj[3] = powerName
 
-            FireObjectEvent(obj, "OnDataChange")
+            obj:RefreshViews()
         end
     end
 end
@@ -224,7 +224,7 @@ function UNIT_POWER_FREQUENT(unit, ptype)
             obj[1] = UnitPower(unit, SPELL_POWER_MANA)
             obj[2] = UnitPowerMax(unit, SPELL_POWER_MANA)
 
-            FireObjectEvent(obj, "OnDataChange")
+            obj:RefreshViews()
         end
     end
 
@@ -238,7 +238,7 @@ function UNIT_POWER_FREQUENT(unit, ptype)
             obj[2] = UnitPowerMax(unit, powerType)
             obj[3] = powerName
 
-            FireObjectEvent(obj, "OnDataChange")
+            obj:RefreshViews()
         end
     end
 
@@ -256,7 +256,7 @@ function UNIT_POWER_FREQUENT(unit, ptype)
                 obj[3] = nil
             end
 
-            FireObjectEvent(obj, "OnDataChange")
+            obj:RefreshViews()
         end
     end
 end

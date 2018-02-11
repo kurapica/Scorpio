@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Module            "ScorpioCore"                      "1.2.1"
+Module            "ScorpioCore"                      "1.2.2"
 --========================================================--
 
 namespace         "Scorpio"
@@ -1640,7 +1640,7 @@ _G.Scorpio = class (Scorpio) (function (_ENV)
     end)
 
     __Doc__[[Mark the method so it only be called when the player is not in combat]]
-    __AttributeUsage__{AttributeTarget = AttributeTargets.ObjectMethod, RunOnce = true}
+    __AttributeUsage__{AttributeTarget = AttributeTargets.ObjectMethod + AttributeTargets.Method, RunOnce = true}
     __Sealed__()
     class "__NoCombat__" (function(_ENV)
         extend "IAttribute"

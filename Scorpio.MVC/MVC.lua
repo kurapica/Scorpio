@@ -207,7 +207,7 @@ end)
 ------------------------------------------------------------
 __Doc__[[The model used to provide default datas]]
 __Sealed__()
-class "DefaultModel" { IModel,
+class "Model" { IModel,
     -- Method
     GetData = unpack,
 
