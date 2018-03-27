@@ -10,7 +10,7 @@ Scorpio            "Scorpio"                         "1.0.0"
 --========================================================--
 
 ----------------------------------------------
------------- Addon Event Handler -------------
+--           Addon Event Handler            --
 ----------------------------------------------
 function OnLoad(self)
     _SVData = SVManager( "Scorpio_DB" ,"Scorpio_DB_Char" )
@@ -22,7 +22,7 @@ function OnLoad(self)
 end
 
 ----------------------------------------------
------------------- SlashCmd ------------------
+--                 SlashCmd                 --
 ----------------------------------------------
 __SlashCmd__ "Scorpio" "log"
 function ToggleLogLevel(info)

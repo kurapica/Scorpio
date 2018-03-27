@@ -8,9 +8,6 @@
     <!-- Scorpio SVManager -->
     <Script file="SVManager.lua"/>
 
-    <!-- Scorpio Localization -->
-    <Script file="Localization.lua"/>
-
     <!-- Scorpio Addon -->
     <Script file="Scorpio.lua"/>
 

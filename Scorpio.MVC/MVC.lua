@@ -14,7 +14,7 @@ namespace "Scorpio.MVC"
 interface "IModel" {}
 interface "IView"  {}
 
-__Final__() __Sealed__() __AutoCache__()
+__Final__() __Sealed__()
 class "Controller" (function(_ENV)
 
     ----------------------------------------------
@@ -32,16 +32,16 @@ class "Controller" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The model of the binding]]
+    --- The model of the binding
     property "Model" { Type = IModel, Handler = refreshBinding }
 
-    __Doc__[[The view of the binding]]
+    --- The view of the binding
     property "View"  { Type = IView,  Handler = refreshBinding }
 
     ----------------------------------------------
     -------------------- Method ------------------
     ----------------------------------------------
-    __Doc__[[Refresh the view]]
+    --- Refresh the view
     function RefreshView(self)
         local view = self.View
         if view then
@@ -50,7 +50,7 @@ class "Controller" (function(_ENV)
         end
     end
 
-    __Doc__[[Get current datas, it may be translated by the controller's get algorithm]]
+    --- Get current datas, it may be translated by the controller's get algorithm
     function GetModelData(self)
         local model = self.Model
 
@@ -65,7 +65,7 @@ class "Controller" (function(_ENV)
         end
     end
 
-    __Doc__[[Set the datas, it may be translated by the controller's set algorithm]]
+    --- Set the datas, it may be translated by the controller's set algorithm
     function SetModelData(self, ...)
         local model = self.Model
 
@@ -80,7 +80,7 @@ class "Controller" (function(_ENV)
         end
     end
 
-    __Doc__[[Clear the bindings to the model and view]]
+    --- Clear the bindings to the model and view
     function ClearBindings(self)
         self.Model        = nil
         self.View         = nil
@@ -95,7 +95,7 @@ class "Controller" (function(_ENV)
     ----------------------------------------------
     ----------------- Constructor ----------------
     ----------------------------------------------
-    __Arguments__{ IModel, IView, { Type = Callable, Nilable = true }, { Type = Callable, Nilable = true } }
+    __Arguments__{ IModel, IView, Variable.Optional(Callable), Variable.Optional(Callable) }
     function Controller(self, model, view, getAlgorithm, setAlgorithm)
         self.Model        = model
         self.View         = view
@@ -106,7 +106,7 @@ class "Controller" (function(_ENV)
     ----------------------------------------------
     ----------------- Meta-Method ----------------
     ----------------------------------------------
-    __Arguments__{ IModel, IView, { Type = Callable, Nilable = true }, { Type = Callable, Nilable = true } }
+    __Arguments__{ IModel, IView, Variable.Optional(Callable), Variable.Optional(Callable) }
     function __exist(model, view, getAlgorithm, setAlgorithm)
         local self = tremove(RECYCLE_CACHE)
         if self then
@@ -125,20 +125,19 @@ interface "IModel" (function(_ENV)
     ----------------------------------------------
     ------------------- Property -----------------
     ----------------------------------------------
-    __Doc__[[The Controllers of the model]]
-    property "Controllers" { Set = false, Default = function() return ObjectArray(Controller) end }
+    --- The Controllers of the model
+    property "Controllers" { Set = false, Default = function() return Array[Controller]() end }
 
     ----------------------------------------------
     -------------------- Method ------------------
     ----------------------------------------------
-    __Doc__[[Get current datas, overridable, required]]
-    __Require__()
-    function GetData(self) end
+    --- Get current datas, overridable, required
+    __Abstract__() function GetData(self) end
 
-    __Doc__[[Set the datas, overridable]]
-    function SetData(self, ...) end
+    --- Set the datas, overridable
+    __Abstract__() function SetData(self, ...) end
 
-    __Doc__[[Trigger the controllers to update the views with new datas]]
+    --- Trigger the controllers to update the views with new datas
     function RefreshViews(self)
         return self.Controllers:Each(Controller.RefreshView)
     end
@@ -158,38 +157,37 @@ interface "IView" (function(_ENV)
     ----------------------------------------------
     ------------------- Property -----------------
     ----------------------------------------------
-    __Doc__[[The Controllers of the model]]
-    property "Controllers" { Set = false, Default = function() return ObjectArray(Controller) end }
+    --- The Controllers of the model
+    property "Controllers" { Set = false, Default = function() return Array[Controller]() end }
 
     ----------------------------------------------
     -------------------- Method ------------------
     ----------------------------------------------
-    __Doc__[[Update the view with new datas, overridable, required]]
-    __Require__()
-    function Refresh(self, ...) end
+    --- Update the view with new datas, overridable, required
+    __Abstract__() function Refresh(self, ...) end
 
-    __Doc__[[Force the view fetch the datas and refresh itself]]
+    --- Force the view fetch the datas and refresh itself
     function ForceRefresh(self)
         for _, ct in ipairs(self.Controllers) do
             if checkReturnAndRefresh(self, ct:GetModelData()) then return end
         end
     end
 
-    __Doc__[[Trigger the controllers to update the models with new datas]]
+    --- Trigger the controllers to update the models with new datas
     function SetModelData(self, ...)
         for _, ct in ipairs(self.Controllers) do
             ct:SetModelData(...)
         end
     end
 
-    __Doc__[[Clear bindings to the models]]
+    --- Clear bindings to the models
     function ClearBindings(self)
         if #self.Controllers > 0 then
             return self.Controllers:ToList():Each(Controllers.ClearBindings)
         end
     end
 
-    __Arguments__{ IModel, { Type = Callable, Nilable = true}, { Type = Callable, Nilable = true} }
+    __Arguments__{ IModel, Variable.Optional(Callable), Variable.Optional(Callable) }
     function Bind(self, model, getAlgorithm, setAlgorithm)
         Controller(model, self, getAlgorithm, setAlgorithm)
     end
@@ -205,7 +203,7 @@ end)
 ------------------------------------------------------------
 --                     Default Model                      --
 ------------------------------------------------------------
-__Doc__[[The model used to provide default datas]]
+--- The model used to provide default datas
 __Sealed__()
 class "Model" { IModel,
     -- Method

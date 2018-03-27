@@ -9,6 +9,8 @@
 Scorpio           "Scorpio.UI"                       "1.0.0"
 --========================================================--
 
+class "Scorpio.UI" {}
+
 namespace "Scorpio.UI"
 
 ----------------------------------------------
@@ -317,9 +319,9 @@ end
 --                   Data Types(UI.xsd)                   --
 ------------------------------------------------------------
 do
-    __Sealed__() __Base__(PositiveInteger)
+    __Sealed__() __Base__(Integer)
     struct "AnimOrderType" {
-        function(val) assert(val <= 100, "%s must between 1 and 100.") end
+        function(val, onlyvalid) if (val < 1 or val > 100) then return onlyvalid or "the %s must between 1 and 100" end end
     }
 
     __Sealed__()
@@ -328,8 +330,8 @@ do
         { Name = "saturation",  Type = ColorFloat,  Require = true },
         { Name = "value",       Type = ColorFloat,  Require = true },
 
-        function (val)
-            assert(val.hue >= 0 and val.hue <= 360, "%s.hue must between [0-360].")
+        function (val, onlyvalid)
+            if val.hue < 0 or val.hue > 360 then return onlyvalid or "the %s.hue must between [0-360]" end
         end,
     }
 
@@ -357,8 +359,8 @@ do
         { Name = "min", Type = Number, Require = true },
         { Name = "max", Type = Number, Require = true },
 
-        function(val)
-            assert(value.min <= value.max, "%s.min can't be greater than %s.max.")
+        function(val, onlyvalid)
+            return val.min > val.max and (onlyvalid or "%s.min can't be greater than %s.max") or nil
         end,
     }
 
@@ -487,10 +489,7 @@ do
 
     UI_USERPLACED = setmetatable({}, META_WEAKKEY)
 
-    function OnEventHandlerChanged(handler)
-        local name = handler.Event
-        local self = handler.Owner
-
+    function OnEventHandlerChanged(handler, self, name)
         local _UI = self.UIElement
         if type(_UI) ~= "table" or _UI == self or type(_UI.HasScript) ~= "function" or not _UI:HasScript(name) then
             return
@@ -505,7 +504,7 @@ do
             end
         else
             if not self.__UI_WidgetEvent[name] then
-                self.__UI_WidgetEvent[name] = function(self, ...) return handler(...) end
+                self.__UI_WidgetEvent[name] = function(ui, ...) return handler(self, ...) end
             end
 
             -- Register
@@ -522,9 +521,10 @@ do
 
     function InstallPrototype(ptype, ctor, isFont)
         local clsEnv    = getfenv(2)
-        local baseCls   = Reflector.GetSuperClass(clsEnv.__PLOOP_OWNER) -- A little trick
-        local baseType  = baseCls and Reflector.GetNameSpaceName(baseCls)
-        local frameType = Reflector.GetNameSpaceName(clsEnv.__PLOOP_OWNER)
+        local tarCls    = Environment.GetNamespace(clsEnv)
+        local baseCls   = Class.GetSuperClass(tarCls)
+        local baseType  = baseCls and Namespace.GetNamespaceName(baseCls, true)
+        local frameType = Namespace.GetNamespaceName(tarCls, true)
         local prototype
 
         if ptype then
@@ -542,8 +542,8 @@ do
 
         -- Install Events
         if type(prototype.HasScript) == "function" then
-            for _, evt in Reflector.GetEnums(ScriptsType) do
-                if not UI_BLOCKED_EVENTS[evt] and prototype:HasScript(evt) and (not baseCls or not Reflector.HasEvent(baseCls, evt)) then
+            for _, evt in Enum.GetEnumValues(ScriptsType) do
+                if not UI_BLOCKED_EVENTS[evt] and prototype:HasScript(evt) and (not baseCls or not Class.GetFeature(baseCls, evt)) then
                     __EventChangeHandler__(OnEventHandlerChanged)
                     clsEnv.event(evt)
                 end
@@ -596,22 +596,22 @@ end
 ------------------------------------------------------------
 --                           UI                           --
 ------------------------------------------------------------
-__Doc__[[The abstract root UI class]]
-__Sealed__() __Abstract__() __ObjMethodAttr__{ Inheritable = true }
-class (UI) (function(_ENV)
+--- The abstract root UI class
+__Sealed__() __Abstract__()
+class "Scorpio.UI" (function(_ENV)
 
     _UIWrapperMap = setmetatable({}, META_WEAKKEY)
 
     ----------------------------------------------
     ---------------- Static-Method ---------------
     ----------------------------------------------
-    __Doc__[[Get the wrapped object of ui element]]
+    --- Get the wrapped object of ui element
     __Static__() function GetUIWrapper(element)
         if type(element) == "string" then element = _G[element] end
         if type(element) ~= "table" then return nil end
 
         -- Check if it's a wrapper
-        if IsClass(element, UI) then return element end
+        if IsSubType(element, UI) then return element end
 
         -- Check if its wrapper existed
         local wrapper = _UIWrapperMap[element]
@@ -626,7 +626,7 @@ class (UI) (function(_ENV)
         return nil
     end
 
-    __Doc__[[Get the ui object for the unique name]]
+    --- Get the ui object for the unique name
     __Static__() function GetUniqueObject(name)
         local obj
 
@@ -647,19 +647,18 @@ class (UI) (function(_ENV)
     ----------------------------------------------
     -------------- ----- Method -------------------
     ----------------------------------------------
-    __Doc__[[The method used to create the wow ui element, need to be overridden by widget-classes.]]
-    function CreateUIElement(self, ...) end
+    --- The method used to create the wow ui element, need to be overridden by widget-classes.
+    __Abstract__() function CreateUIElement(self, ...) end
 
-    __Doc__[[Whether the object is an instance of the class]]
-    IsClass = Reflector.ObjectIsClass
+    --- Whether the object is an instance of the class or interface
+    function IsSubType(self, cls)
+        return Class.IsSubType(getmetatable(self), cls)
+    end
 
-    __Doc__[[Whether the object is an instance of the interface]]
-    IsInterface = Reflector.ObjectIsInterface
+    --- Get the class of the object
+    GetClass = Class.GetObjectClass
 
-    __Doc__[[Get the class of the object]]
-    GetClass = Reflector.GetObjectClass
-
-    __Doc__[[Set the ui object's parent]]
+    --- Set the ui object's parent
     function SetParent(self, parent)
         parent = GetUIWrapper(parent)
 
@@ -690,12 +689,12 @@ class (UI) (function(_ENV)
         parent.Children[name] = self
     end
 
-    __Doc__[[Get the ui object's parent]]
+    --- Get the ui object's parent
     function GetParent(self)
         return GetUIWrapper(self.UIElement:GetParent())
     end
 
-    __Doc__[[Set the ui object's name]]
+    --- Set the ui object's name
     __Arguments__{ NEString }
     function SetName(self, name)
         local parent = self:GetParent()
@@ -715,12 +714,12 @@ class (UI) (function(_ENV)
         self.__UI_Name = name
     end
 
-    __Doc__[[Get the ui object's name]]
+    --- Get the ui object's name
     function GetName(self)
         return self.__UI_Name
     end
 
-    __Doc__[[Get the ui object's unique access name]]
+    --- Get the ui object's unique access name
     function GetUniqueName(self)
         local uname
 
@@ -751,16 +750,16 @@ class (UI) (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The ui element controlled by the ui object]]
+    --- The ui element controlled by the ui object
     property "UIElement" { Field = "__UI_Element", Set = false }
 
-    __Doc__[[The Children of the ui object]]
+    --- The Children of the ui object
     property "Children" { Field = "__UI_Children", Set = false, Default = function() return Dictionary() end }
 
-    __Doc__[[The name of the ui object]]
+    --- The name of the ui object
     property "Name" { Type = NEString, Set = "SetName", Get = "GetName" }
 
-    __Doc__[[The parent of the ui object]]
+    --- The parent of the ui object
     property "Parent" { Type = UI, Set = "SetParent", Get = "GetParent" }
 
     ----------------------------------------------
@@ -794,15 +793,15 @@ class (UI) (function(_ENV)
         local parent = GetUIWrapper(init.Parent or UIParent)
 
         if not name or not parent then
-            error("No name and parent found in the init table")
+            throw("No name and parent found in the init table")
         end
 
-        if Reflector.IsSuperClass(getmetatable(self), LayeredRegion) then
-            This(self, name, parent, init.DrawLayer or "ARTWORK", init.Template, init.SubLevel or 0)
+        if self:IsSubType(LayeredRegion) then
+            this(self, name, parent, init.DrawLayer or "ARTWORK", init.Template, init.SubLevel or 0)
             init.DrawLayer = nil
             init.SubLevel = nil
         else
-            This(self, name, parent, init.Template)
+            this(self, name, parent, init.Template)
         end
         init.Name = nil
         init.Parent = nil
@@ -820,12 +819,12 @@ class (UI) (function(_ENV)
         self.__UI_Name = element:GetName()
     end
 
-    __Arguments__{ NEString, Table, { IsList = true, Nilable = true } }
+    __Arguments__{ NEString, Table, Variable.Rest() }
     function UI(self, name, parent, ...)
         parent = GetUIWrapper(parent)
 
         if parent.Children[name] then
-            error(("Usage : %s(name, parent, ...) : parent already has a child named '%s'."):format(Reflector.GetNameSpaceName(getmetatable(self)), name))
+            throw(("Usage : %s(name, parent, ...) : parent already has a child named '%s'."):format(Namespace.GetNamespaceName(getmetatable(self)), name))
         end
 
         local element = self:CreateUIElement(name, parent.UIElement, ...)
@@ -838,14 +837,14 @@ class (UI) (function(_ENV)
         self.__UI_Name = name
     end
 
-    __Arguments__{ NEString, { IsList = true, Nilable = true } }
-    function UI(self, name, ...) return This(self, name, UIParent, ...) end
+    __Arguments__{ NEString, Variable.Rest() }
+    function UI(self, name, ...) return this(self, name, UIParent, ...) end
 
     ----------------------------------------------
     ----------------- Meta-Method ----------------
     ----------------------------------------------
     __Arguments__{ RawTable }
-    function __exist(init)
+    function __exist(cls, init)
         local name = init.Name
         local parent = GetUIWrapper(init.Parent or UIParent)
 
@@ -855,19 +854,19 @@ class (UI) (function(_ENV)
     end
 
     __Arguments__{ Table }
-    function __exist(element)
-        if IsClass(element, UI) then return element end
+    function __exist(cls, element)
+        if IsSubType(element, UI) then return element end
         return _UIWrapperMap[element]
     end
 
-    __Arguments__{ NEString, Table, { IsList = true, Nilable = true }}
-    function __exist(name, parent, ...)
+    __Arguments__{ NEString, Table, Variable.Rest() }
+    function __exist(cls, name, parent, ...)
         parent = GetUIWrapper(parent)
         if rawget(parent, "__UI_Children") then return parent.__UI_Children[name] end
     end
 
-    __Arguments__{ NEString, { IsList = true, Nilable = true } }
-    function __exist(name, ...)
+    __Arguments__{ NEString, Variable.Rest() }
+    function __exist(cls, name, ...)
         local parent = GetUIWrapper(UIParent)
         if rawget(parent, "__UI_Children") then return parent.__UI_Children[name] end
     end
@@ -876,7 +875,7 @@ class (UI) (function(_ENV)
         if rawget(self, "__UI_Children") then return self.__UI_Children[child] end
     end
 
-    __Arguments__{ RawTable }
+    __Arguments__{ RawTable }:Throwable()
     function __call(self, init)
         local children = init.Children
 
@@ -888,25 +887,25 @@ class (UI) (function(_ENV)
 
         if children then
             for _, cinit in ipairs(children) do
-                if not Reflector.IsClass(cinit.Type) then
-                    error("The children's Type is not class", 2)
+                if not Class.Validate(cinit.Type) then
+                    throw("The children's Type is not class")
                 end
 
                 if type(cinit.Name) ~= "string" then
-                    error("The children's Name must be a string", 2)
+                    throw("The children's Name must be a string")
                 end
 
                 local child = self.Children[cinit.Name]
 
                 if child then
                     if getmetatable(child) ~= cinit.Type then
-                        error(("The %q is used by another child of other type"):format(cinit.Name), 2)
+                        throw(("The %q is used by another child of other type"):format(cinit.Name))
                     end
                     cinit.Type = nil
                     cinit.Name = nil
                     cinit.Template = nil
                 else
-                    if Reflector.IsSuperClass(cinit.Type, LayeredRegion) then
+                    if Class.IsSubType(cinit.Type, LayeredRegion) then
                         child = cinit.Type(cinit.Name, self, cinit.DrawLayer or "ARTWORK", cinit.Template, cinit.SubLevel or 0)
                         cinit.DrawLayer = nil
                         cinit.SubLevel = nil
@@ -927,7 +926,7 @@ end)
 ------------------------------------------------------------
 --                         Region                         --
 ------------------------------------------------------------
-__Doc__[[Region is the basic type for anything that can occupy an area of the screen. As such, Frames, Textures and FontStrings are all various kinds of Region. Region provides most of the functions that support size, position and anchoring, including animation.]]
+--- Region is the basic type for anything that can occupy an area of the screen. As such, Frames, Textures and FontStrings are all various kinds of Region. Region provides most of the functions that support size, position and anchoring, including animation.
 __Sealed__() __Abstract__()
 class "Region" (function(_ENV)
     inherit "UI"
@@ -957,7 +956,7 @@ class "Region" (function(_ENV)
     ----------------------------------------------
     -------------------- Event -------------------
     ----------------------------------------------
-    __Doc__[[Run when the region object's location is changed]]
+    --- Run when the region object's location is changed
     event "OnLocationChanged"
 
     ----------------------------------------------
@@ -968,11 +967,9 @@ class "Region" (function(_ENV)
         return point, UI.GetUIWrapper(frame), relativePoint, x, y
     end
 
-    __Doc__[[
-        Get the region object's location(Type: Anchors), the data is serializable, can be saved directly.
-        You can also apply a data of Anchors to get a location based on the data's point, relativeTo and relativePoint settings.
-    ]]
-    __Arguments__{ }
+    --- Get the region object's location(Type: Anchors), the data is serializable, can be saved directly.
+    -- You can also apply a data of Anchors to get a location based on the data's point, relativeTo and relativePoint settings.
+    __Arguments__{ }:Throwable()
     function GetLocation(self)
         local loc = {}
         local parent = self:GetParent()
@@ -991,7 +988,7 @@ class "Region" (function(_ENV)
                 local uname = relativeTo:GetUniqueName()
 
                 if not uname then
-                    error("Usage: Region:GetLocation() - The System can't identify the relativeTo frame.", 2)
+                    throw("Usage: Region:GetLocation() - The System can't identify the relativeTo frame.")
                 end
 
                 relativeTo = uname
@@ -1010,7 +1007,7 @@ class "Region" (function(_ENV)
         return loc
     end
 
-    __Arguments__{ Anchors }
+    __Arguments__{ Anchors }:Throwable()
     function GetLocation(self, oLoc)
         local loc = {}
         local parent = self:GetParent()
@@ -1023,7 +1020,7 @@ class "Region" (function(_ENV)
                 relativeFrame = parent and parent.Children[relativeTo] or UI.GetUniqueObject(relativeTo)
 
                 if not relativeFrame then
-                    error("Usage: Region:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.", 2)
+                    throw("Usage: Region:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.")
                 end
             else
                 relativeFrame = parent
@@ -1042,7 +1039,7 @@ class "Region" (function(_ENV)
         return loc
     end
 
-    __Doc__[[Set the region object's location]]
+    --- Set the region object's location
     function SetLocation(self, loc)
         if #loc > 0 then
             local parent = self:GetParent()
@@ -1070,11 +1067,9 @@ class "Region" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Sets whether the frame's location and size is saved and load automatically</desc>
-        <param name="userplaced" type="Boolean">whether the frame's location and size is saved and load automatically</param>
-        <param name="characterOnly" type="Boolean">whether the location and size is saved character only</param>
-    ]]
+    --- Sets whether the frame's location and size is saved and load automatically
+    -- @param  userplaced       Boolean, whether the frame's location and size is saved and load automatically
+    -- @param  characterOnly    Boolean,whether the location and size is saved character only
     function SetUserPlaced(self, userplaced, characterOnly)
         if userplaced then
             UI_USERPLACED[self] = characterOnly and true or false
@@ -1086,7 +1081,7 @@ class "Region" (function(_ENV)
         end
     end
 
-    __Doc__[[Gets whether the frame's location and size is saved and load automatically]]
+    --- Gets whether the frame's location and size is saved and load automatically
     function IsUserPlaced(self)
         return UI_USERPLACED[self] ~= nil
     end
@@ -1094,50 +1089,50 @@ class "Region" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the frame's transparency value(0-1)]]
+    --- the frame's transparency value(0-1)
     property "Alpha" {
         Type = ColorFloat,
         Get = function(self) return self:GetAlpha() end,
         Set = function(self, alpha) self:SetAlpha(alpha) end,
     }
 
-    __Doc__[[The distance from the bottom of the screen to the bottom of the region]]
+    --- The distance from the bottom of the screen to the bottom of the region
     property "Bottom" { Set = false, Get = function(self) return self:GetBottom() end }
 
-    __Doc__[[The screen coordinates of the region's center]]
+    --- The screen coordinates of the region's center
     property "Center" { Set = false, Get = function(self) return Dimension(self:GetCenter()) end }
 
-    __Doc__[[the height of the region]]
+    --- the height of the region
     property "Height" {
         Type = PositiveNumber,
         Get = function(self) return self:GetHeight() end,
         Set = function(self, height) self:SetHeight(height) end,
     }
 
-    __Doc__[[The distance from the left edge of the screen to the left edge of the region]]
+    --- The distance from the left edge of the screen to the left edge of the region
     property "Left" { Set = false, Get = function(self) return self:GetLeft() end }
 
-    __Doc__[[the location of the region]]
+    --- the location of the region
     property "Location" {
         Type = Anchors,
         Get = "GetLocation",
         Set = "SetLocation",
     }
 
-    __Doc__[[The distance from the left edge of the screen to the right edge of the region]]
+    --- The distance from the left edge of the screen to the right edge of the region
     property "Right" { Set = false, Get = function(self) return self:GetRight() end }
 
-    __Doc__[[The size of the region]]
+    --- The size of the region
     property "Size" {
         Type = Size,
         Get = function(self) return Size(self:GetSize()) end,
         Set = function(self, size) self:SetSize(size.width, size.height) end,
     }
 
-    __Doc__[[The distance from the bottom of the screen to the top of the region]]
+    --- The distance from the bottom of the screen to the top of the region
     property "Top" { Set = false, Get = function(self) return self:GetTop() end }
 
-    __Doc__[[Whether the frame's size and location is saved for account]]
+    --- Whether the frame's size and location is saved for account
     property "UserPlaced" {
         Type = Boolean,
         Get = function(self) return UI_USERPLACED[self] ~= nil end,
@@ -1150,7 +1145,7 @@ class "Region" (function(_ENV)
         end,
     }
 
-    __Doc__[[Whether the frame's size and location is saved character only]]
+    --- Whether the frame's size and location is saved character only
     property "UserPlacedCharacterOnly" {
         Type = Boolean,
         Get = function(self) return UI_USERPLACED[self] end,
@@ -1163,14 +1158,14 @@ class "Region" (function(_ENV)
         end,
     }
 
-    __Doc__[[wheter the region is shown or not.]]
+    --- wheter the region is shown or not.
     property "Visible" {
         Type = Boolean,
         Get = function(self) return self:IsShown() and true or false end,
         Set = function(self, visible) self[visible and "Show" or "Hide"](self) end,
     }
 
-    __Doc__[[the width of the region]]
+    --- the width of the region
     property "Width" {
         Type = PositiveNumber,
         Get = function(self) return self:GetWidth() end,
@@ -1197,7 +1192,7 @@ class "Region" (function(_ENV)
         init.UserPlaced = nil
         init.UserPlacedCharacterOnly = nil
 
-        Super.__call(self, init)
+        super.__call(self, init)
 
         if isUserPlacedCharacter then
             self:SetUserPlaced(true, true)
@@ -1212,7 +1207,7 @@ end)
 ------------------------------------------------------------
 --                      LayeredRegion                     --
 ------------------------------------------------------------
-__Doc__[[LayeredRegion is an abstract UI type that groups together the functionality of layered graphical regions, specifically Textures and FontStrings.]]
+--- LayeredRegion is an abstract UI type that groups together the functionality of layered graphical regions, specifically Textures and FontStrings.
 __Sealed__() __Abstract__()
 class "LayeredRegion" (function(_ENV)
     inherit "Region"
@@ -1220,13 +1215,11 @@ class "LayeredRegion" (function(_ENV)
     ----------------------------------------------
     ------------------- Method -------------------
     ----------------------------------------------
-    __Doc__[[
-        <desc>Sets a color shading for the region's graphics.</desc>
-        <param name="red">number, red component of the color (0.0 - 1.0)</param>
-        <param name="green">number, green component of the color (0.0 - 1.0)</param>
-        <param name="blue">number, blue component of the color (0.0 - 1.0)</param>
-        <param name="alpha">number, alpha (opacity) for the graphic (0.0 = fully transparent, 1.0 = fully opaque)</param>
-    ]]
+    --- Sets a color shading for the region's graphics.
+    -- @param  red              number, red component of the color (0.0 - 1.0)
+    -- @param  green            number, green component of the color (0.0 - 1.0)
+    -- @param  blue             number, blue component of the color (0.0 - 1.0)
+    -- @param  alpha            number, alpha (opacity) for the graphic (0.0 = fully transparent, 1.0 = fully opaque)
     function SetVertexColor(self, r, g, b, a)
         self.__LayeredRegion_VertexColorR = r
         self.__LayeredRegion_VertexColorG = g
@@ -1236,13 +1229,11 @@ class "LayeredRegion" (function(_ENV)
         return self.UIElement:SetVertexColor(r, g, b, a)
     end
 
-    __Doc__[[
-        <desc>Gets a color shading for the region's graphics.</desc>
-        <return type="red">number, red component of the color (0.0 - 1.0)</return>
-        <return type="green">number, green component of the color (0.0 - 1.0)</return>
-        <return type="blue">number, blue component of the color (0.0 - 1.0)</return>
-        <return type="alpha">number, alpha (opacity) for the graphic (0.0 = fully transparent, 1.0 = fully opaque)</return>
-    ]]
+    --- Gets a color shading for the region's graphics.
+    -- @return red              number, red component of the color (0.0 - 1.0)
+    -- @return green            number, green component of the color (0.0 - 1.0)
+    -- @return blue             number, blue component of the color (0.0 - 1.0)
+    -- @return alpha            number, alpha (opacity) for the graphic (0.0 = fully transparent, 1.0 = fully opaque)
     function GetVertexColor(self)
         return self.__LayeredRegion_VertexColorR,
                 self.__LayeredRegion_VertexColorG,
@@ -1253,14 +1244,14 @@ class "LayeredRegion" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the layer at which the region's graphics are drawn relative to others in its frame]]
+    --- the layer at which the region's graphics are drawn relative to others in its frame
     property "DrawLayer" {
         Type = DrawLayer,
         Get = function(self) return self:GetDrawLayer() end,
         Set = function(self, layer) return self:SetDrawLayer(layer) end,
     }
 
-    __Doc__[[the color shading for the region's graphics]]
+    --- the color shading for the region's graphics
     property "VertexColor" {
         Type = Color,
         Get = function(self) return Color(self:GetVertexColor()) end,
@@ -1271,14 +1262,14 @@ end)
 ------------------------------------------------------------
 --                         IFont                          --
 ------------------------------------------------------------
-__Doc__[[The interface for the font frames like FontString, SimpleHTML and etc.]]
+--- The interface for the font frames like FontString, SimpleHTML and etc.
 __Sealed__()
 interface "IFont" (function(_ENV)
 
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the font settings]]
+    --- the font settings
     property "Font" {
         Type = FontType,
         Get = function(self)
@@ -1317,13 +1308,13 @@ interface "IFont" (function(_ENV)
         end,
     }
 
-    __Doc__[[the Font object]]
+    --- the Font object
     property "FontObject" {
         Get = function(self) return self:GetFontObject() end,
         Set = function(self, fontObject) self:SetFontObject(fontObject) end,
     }
 
-    __Doc__[[The font path]]
+    --- The font path
     property "FontPath" {
         Type = NEString,
         Get = function(self) return (self:GetFont()) end,
@@ -1333,7 +1324,7 @@ interface "IFont" (function(_ENV)
         end,
     }
 
-    __Doc__[[The font height]]
+    --- The font height
     property "FontHeight" {
         Type = PositiveNumber,
         Get = function(self)
@@ -1346,7 +1337,7 @@ interface "IFont" (function(_ENV)
         end,
     }
 
-    __Doc__[[The font's outline setting]]
+    --- The font's outline setting
     property "Outline" {
         Type = OutlineType,
         Get = function(self)
@@ -1383,7 +1374,7 @@ interface "IFont" (function(_ENV)
         end,
     }
 
-    __Doc__[[The Font's monochrome setting]]
+    --- The Font's monochrome setting
     property "Monochrome" {
         Type = Boolean,
         Get = function(self)
@@ -1412,42 +1403,42 @@ interface "IFont" (function(_ENV)
         end,
     }
 
-    __Doc__[[the fontstring's horizontal text alignment style]]
+    --- the fontstring's horizontal text alignment style
     property "JustifyH" {
         Type = JustifyHType,
         Get = function(self) return self:GetJustifyH() end,
         Set = function(self, justifyH) self:SetJustifyH(justifyH) end,
     }
 
-    __Doc__[[the fontstring's vertical text alignment style]]
+    --- the fontstring's vertical text alignment style
     property "JustifyV" {
         Type = JustifyVType,
         Get = function(self) return self:GetJustifyV() end,
         Set = function(self, justifyV) self:SetJustifyV(justifyV) end,
     }
 
-    __Doc__[[the color of the font's text shadow]]
+    --- the color of the font's text shadow
     property "ShadowColor" {
         Type = Color,
         Get = function(self) return Color(self:GetShadowColor()) end,
         Set = function(self, color) self:SetShadowColor(color.r, color.g, color.b, color.a) end,
     }
 
-    __Doc__[[the offset of the fontstring's text shadow from its text]]
+    --- the offset of the fontstring's text shadow from its text
     property "ShadowOffset" {
         Type = Dimension,
         Get = function(self) return Dimension(self:GetShadowOffset()) end,
         Set = function(self, offset) self:SetShadowOffset(offset.x, offset.y) end,
     }
 
-    __Doc__[[the fontstring's amount of spacing between lines]]
+    --- the fontstring's amount of spacing between lines
     property "Spacing" {
         Type = Number,
         Get = function(self) return self:GetSpacing() end,
         Set = function(self, spacing) self:SetSpacing(spacing) end,
     }
 
-    __Doc__[[the fontstring's default text color]]
+    --- the fontstring's default text color
     property "TextColor" {
         Type = Color,
         Get = function(self) return Color(self:GetTextColor()) end,
@@ -1458,56 +1449,39 @@ end)
 ------------------------------------------------------------
 --                         Frame                          --
 ------------------------------------------------------------
-__Doc__[[Frame is in many ways the most fundamental widget object. Other types of widget derivatives such as FontStrings, Textures and Animations can only be created attached to a Frame or other derivative of a Frame.]]
-__Sealed__() __AutoProperty__()
+--- Frame is in many ways the most fundamental widget object. Other types of widget derivatives such as FontStrings, Textures and Animations can only be created attached to a Frame or other derivative of a Frame.
+__Sealed__()
 class "Frame" (function(_ENV)
     inherit "Region"
 
     ----------------------------------------------
     ------------------- Helper -------------------
     ----------------------------------------------
-    FRAME_ATTR_TARGET = false
-    FRAME_ATTR_COLLECTOR = newproxy(true)
-
-    getmetatable(FRAME_ATTR_COLLECTOR).__index = function(self, key)
-        if FRAME_ATTR_TARGET then return FRAME_ATTR_TARGET:GetAttribute(key) end
-    end
-
-    getmetatable(FRAME_ATTR_COLLECTOR).__newindex = function(self, key, value)
-        if FRAME_ATTR_TARGET then return FRAME_ATTR_TARGET:SetAttribute(key, value) end
-    end
-
-    getmetatable(FRAME_ATTR_COLLECTOR).__metatable = true
-
     InstallPrototype()
 
     ----------------------------------------------
     -------------------- Event -------------------
     ----------------------------------------------
-    __Doc__[[Fired when a frame's min resize changed]]
+    --- Fired when a frame's min resize changed
     event "OnMinResizeChanged"
 
-    __Doc__[[Fired when a frame's max resize changed]]
+    --- Fired when a frame's max resize changed
     event "OnMaxResizeChanged"
 
     ----------------------------------------------
     ------------------- Method -------------------
     ----------------------------------------------
-    __Doc__[[
-        <desc>Sets the maximum size of the frame for user resizing. Applies when resizing the frame with the mouse via :StartSizing().</desc>
-        <param name="maxWidth">number, maximum width of the frame (in pixels), or 0 for no limit</param>
-        <param name="maxHeight">number, maximum height of the frame (in pixels), or 0 for no limit</param>
-    ]]
+    --- Sets the maximum size of the frame for user resizing. Applies when resizing the frame with the mouse via :StartSizing().
+    -- @param  maxWidth         number, maximum width of the frame (in pixels), or 0 for no limit
+    -- @param  maxHeight        number, maximum height of the frame (in pixels), or 0 for no limit
     function SetMaxResize(self, ...)
         self.UIElement:SetMaxResize(...)
         return OnMaxResizeChanged(self)
     end
 
-    __Doc__[[
-        <desc>Sets the minimum size of the frame for user resizing. Applies when resizing the frame with the mouse via :StartSizing().</desc>
-        <param name="minWidth">number, minimum width of the frame (in pixels), or 0 for no limit</param>
-        <param name="minHeight">number, minimum height of the frame (in pixels), or 0 for no limit</param>
-    ]]
+    --- Sets the minimum size of the frame for user resizing. Applies when resizing the frame with the mouse via :StartSizing().
+    -- @param  minWidth         number, minimum width of the frame (in pixels), or 0 for no limit
+    -- @param  minHeight        number, minimum height of the frame (in pixels), or 0 for no limit
     function SetMinResize(self, ...)
         self.UIElement:SetMinResize(...)
         return OnMinResizeChanged(self)
@@ -1516,147 +1490,149 @@ class "Frame" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The attribute collections of the frame]]
+    --- The attribute collections of the frame
+    __Indexer__()
     property "Attribute" {
-        Set = false,
+        Set = function(self, attr, value)
+            self:SetAttribute(attr, value)
+        end,
         Get = function(self)
-            FRAME_ATTR_TARGET = self
-            return FRAME_ATTR_COLLECTOR
+            return self:GetAttribute(attr)
         end,
     }
 
-    __Doc__[[the backdrop graphic for the frame]]
+    --- the backdrop graphic for the frame
     property "Backdrop" { Type = BackdropType }
 
-    __Doc__[[the shading color for the frame's border graphic]]
+    --- the shading color for the frame's border graphic
     property "BackdropBorderColor" {
         Type = Color,
         Get = function(self) return Color(self:GetBackdropBorderColor()) end,
         Set = function(self, color) self:SetBackdropBorderColor(color.r, color.g, color.b, color.a) end,
     }
 
-    __Doc__[[the shading color for the frame's background graphic]]
+    --- the shading color for the frame's background graphic
     property "BackdropColor" {
         Type = Color,
         Get = function(self) return Color(self:GetBackdropColor()) end,
         Set = function(self, color) self:SetBackdropColor(color.r, color.g, color.b, color.a) end,
     }
 
-    __Doc__[[whether the frame's boundaries are limited to those of the screen]]
+    --- whether the frame's boundaries are limited to those of the screen
     property "ClampedToScreen" { Type = Boolean }
 
-    __Doc__[[offsets from the frame's edges used when limiting user movement or resizing of the frame]]
+    --- offsets from the frame's edges used when limiting user movement or resizing of the frame
     property "ClampRectInsets" {
         Type = Inset,
         Get = function(self) return Inset(self:GetClampRectInsets()) end,
         Set = function(self, rInset) self:SetClampRectInsets(rInset.left, rInset.right, rInset.top, rInset.bottom) end,
     }
 
-    __Doc__[[Whether the children is limited to draw inside the frame's boundaries]]
+    --- Whether the children is limited to draw inside the frame's boundaries
     property "ClipsChildren" { Type = Boolean, Get = "DoesClipChildren", Set = "SetClipsChildren" }
 
-    __Doc__[[the 3D depth of the frame (for stereoscopic 3D setups)]]
+    --- the 3D depth of the frame (for stereoscopic 3D setups)
     property "Depth" { Type = Number }
 
-    __Doc__[[whether the frame's depth property is ignored (for stereoscopic 3D setups)]]
+    --- whether the frame's depth property is ignored (for stereoscopic 3D setups)
     property "DepthIgnored" { Type = Boolean }
 
-    __Doc__[[Whether the frame don't save its location in layout-cache]]
+    --- Whether the frame don't save its location in layout-cache
     property "DontSavePosition" { Type = Boolean }
 
-    __Doc__[[The effective alpha, readonly]]
+    --- The effective alpha, readonly
     property "EffectiveAlpha" {}
 
-    __Doc__[[The effective depth, readonly]]
+    --- The effective depth, readonly
     property "EffectiveDepth" {}
 
-    __Doc__[[The effective scale, readonly]]
+    --- The effective scale, readonly
     property "EffectiveScale" {}
 
-    __Doc__[[The effective flattens render layers]]
+    --- The effective flattens render layers
     property "EffectivelyFlattensRenderLayers" {}
 
-    __Doc__[[Whether the frame's child is render in flattens layers]]
+    --- Whether the frame's child is render in flattens layers
     property "FlattensRenderLayers" { Type = Boolean }
 
-    __Doc__[[the level at which the frame is layered relative to others in its strata]]
+    --- the level at which the frame is layered relative to others in its strata
     property "FrameLevel" { Type = Number }
 
-    __Doc__[[the general layering strata of the frame]]
+    --- the general layering strata of the frame
     property "FrameStrata" { Type = FrameStrata }
 
-    __Doc__[[the insets from the frame's edges which determine its mouse-interactable area]]
+    --- the insets from the frame's edges which determine its mouse-interactable area
     property "HitRectInsets" {
         Type = Inset,
         Get = function(self) return Inset(self:GetHitRectInsets()) end,
         Set = function(self, rInset) self:SetHitRectInsets(rInset.left, rInset.right, rInset.top, rInset.bottom) end,
     }
 
-    __Doc__[[Whether the hyper links are enabled]]
+    --- Whether the hyper links are enabled
     property "HyperlinksEnabled" { Type = Boolean }
 
-    __Doc__[[a numeric identifier for the frame]]
+    --- a numeric identifier for the frame
     property "ID" { Type = Number }
 
-    __Doc__[[Whether the frame ignore its parent's alpha settings]]
+    --- Whether the frame ignore its parent's alpha settings
     property "IgnoreParentAlpha" { Type = Boolean }
 
-    __Doc__[[Whether the frame ignore its parent's scale settings]]
+    --- Whether the frame ignore its parent's scale settings
     property "IgnoreParentScale" { Type = Boolean }
 
-    __Doc__[[Whether the joystick is enabled for the frame]]
+    --- Whether the joystick is enabled for the frame
     property "JoystickEnabled" { Type = Boolean }
 
-    __Doc__[[whether keyboard interactivity is enabled for the frame]]
+    --- whether keyboard interactivity is enabled for the frame
     property "KeyboardEnabled" { Type = Boolean }
 
-    __Doc__[[the maximum size of the frame for user resizing]]
+    --- the maximum size of the frame for user resizing
     property "MaxResize" {
         Type = Size,
         Get = function(self) return Size(self:GetMaxResize()) end,
         Set = function(self, size) self:SetMaxResize(size.width, size.height) end,
     }
 
-    __Doc__[[the minimum size of the frame for user resizing]]
+    --- the minimum size of the frame for user resizing
     property "MinResize" {
         Type = Size,
         Get = function(self) return Size(self:GetMinResize()) end,
         Set = function(self, size) self:SetMinResize(size.width, size.height) end,
     }
 
-    __Doc__[[Whether the mouse click is enabled]]
+    --- Whether the mouse click is enabled
     property "MouseClickEnabled" { Type = Boolean }
 
-    __Doc__[[whether mouse interactivity is enabled for the frame]]
+    --- whether mouse interactivity is enabled for the frame
     property "MouseEnabled" { Type = Boolean }
 
-    __Doc__[[Whether the mouse motion in enabled]]
+    --- Whether the mouse motion in enabled
     property "MouseMotionEnabled" { Type = Boolean }
 
-    __Doc__[[whether the frame can be moved by the user]]
+    --- whether the frame can be moved by the user
     property "Movable" { Type = Boolean }
 
-    __Doc__[[whether mouse wheel interactivity is enabled for the frame]]
+    --- whether mouse wheel interactivity is enabled for the frame
     property "MouseWheelEnabled" { Type = Boolean }
 
-    __Doc__[[Whether the frame get the propagate keyboard input]]
+    --- Whether the frame get the propagate keyboard input
     property "PropagateKeyboardInput" { Type = Boolean }
 
-    __Doc__[[whether the frame can be resized by the user]]
+    --- whether the frame can be resized by the user
     property "Resizable" { Type = Boolean }
 
-    __Doc__[[the frame's scale factor]]
+    --- the frame's scale factor
     property "Scale" { Type = Number }
 
-    __Doc__[[whether the frame should automatically come to the front when clicked]]
+    --- whether the frame should automatically come to the front when clicked
     property "Toplevel" { Type = Boolean }
 end)
 
 ------------------------------------------------------------
 --                        Texture                         --
 ------------------------------------------------------------
-__Doc__[[Textures are visible areas descended from LayeredRegion, that display either a color block, a gradient, or a graphic raster taken from a .tga or .blp file]]
-__Sealed__() __AutoProperty__()
+--- Textures are visible areas descended from LayeredRegion, that display either a color block, a gradient, or a graphic raster taken from a .tga or .blp file
+__Sealed__()
 class "Texture" (function(_ENV)
     inherit "LayeredRegion"
 
@@ -1674,13 +1650,11 @@ class "Texture" (function(_ENV)
     ----------------------------------------------
     ------------------- Method -------------------
     ----------------------------------------------
-    __Doc__[[
-        <desc>Sets the texture object's color</desc>
-        <param name="red">number, Red component of the color (0.0 - 1.0)</param>
-        <param name="green">number, Green component of the color (0.0 - 1.0)</param>
-        <param name="blue">number, Blue component of the color (0.0 - 1.0)</param>
-        <param name="alpha">number, Alpha (opacity) for the color (0.0 = fully transparent, 1.0 = fully opaque)</param>
-    ]]
+    --- Sets the texture object's color
+    -- @param  red              number, Red component of the color (0.0 - 1.0)
+    -- @param  green            number, Green component of the color (0.0 - 1.0)
+    -- @param  blue             number, Blue component of the color (0.0 - 1.0)
+    -- @param  alpha            number, Alpha (opacity) for the color (0.0 = fully transparent, 1.0 = fully opaque)
     function SetColorTexture(self, r, g, b, a)
         self.__TextureR = r
         self.__TextureG = g
@@ -1690,10 +1664,8 @@ class "Texture" (function(_ENV)
         return self.UIElement:SetColorTexture(r, g, b, a or 1)
     end
 
-    __Doc__[[
-        <desc>Paint a Texture object with the specified unit's portrait</desc>
-        <param name="unit">string, the unit to be painted</param>
-    ]]
+    --- Paint a Texture object with the specified unit's portrait
+    -- @param  unit             string, the unit to be painted
     function SetPortraitUnit(self, unit)
         if type(unit) == "string" and UnitExists(unit) then
             self.__TextureUnit = unit
@@ -1704,47 +1676,41 @@ class "Texture" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Sets the texture to be displayed from a file applying circular opacity mask making it look round like portraits</desc>
-        <param name="texture">string, the texture file path</param>
-    ]]
+    --- Sets the texture to be displayed from a file applying circular opacity mask making it look round like portraits
+    -- @param  texture          string, the texture file path
     function SetPortraitTexture(self, path)
         self.__TexturePortrait = nil
         return SetPortraitToTexture(self.UIElement, nil)
     end
 
-    __Doc__"SetTexCoord" [[
-        <desc>Sets corner coordinates for scaling or cropping the texture image</desc>
-        <format>left, right, top, bottom</format>
-        <format>ULx, ULy, LLx, LLy, URx, URy, LRx, LRy</format>
-        <param name="left">number, Left edge of the scaled/cropped image, as a fraction of the image's width from the left</param>
-        <param name="right">number, Right edge of the scaled/cropped image, as a fraction of the image's width from the left</param>
-        <param name="top">number, Top edge of the scaled/cropped image, as a fraction of the image's height from the top</param>
-        <param name="bottom">number, Bottom edge of the scaled/cropped image, as a fraction of the image's height from the top</param>
-        <param name="ULx">number, Upper left corner X position, as a fraction of the image's width from the left</param>
-        <param name="ULy">number, Upper left corner Y position, as a fraction of the image's height from the top</param>
-        <param name="LLx">number, Lower left corner X position, as a fraction of the image's width from the left</param>
-        <param name="LLy">number, Lower left corner Y position, as a fraction of the image's height from the top</param>
-        <param name="URx">number, Upper right corner X position, as a fraction of the image's width from the left</param>
-        <param name="URy">number, Upper right corner Y position, as a fraction of the image's height from the top</param>
-        <param name="LRx">number, Lower right corner X position, as a fraction of the image's width from the left</param>
-        <param name="LRy">number, Lower right corner Y position, as a fraction of the image's height from the top</param>
-    ]]
+    --- Sets corner coordinates for scaling or cropping the texture image
+    -- @format left, right, top, bottom
+    -- @format ULx, ULy, LLx, LLy, URx, URy, LRx, LRy
+    -- @param  left             number, Left edge of the scaled/cropped image, as a fraction of the image's width from the left
+    -- @param  right            number, Right edge of the scaled/cropped image, as a fraction of the image's width from the left
+    -- @param  top              number, Top edge of the scaled/cropped image, as a fraction of the image's height from the top
+    -- @param  bottom           number, Bottom edge of the scaled/cropped image, as a fraction of the image's height from the top
+    -- @param  ULx              number, Upper left corner X position, as a fraction of the image's width from the left
+    -- @param  ULy              number, Upper left corner Y position, as a fraction of the image's height from the top
+    -- @param  LLx              number, Lower left corner X position, as a fraction of the image's width from the left
+    -- @param  LLy              number, Lower left corner Y position, as a fraction of the image's height from the top
+    -- @param  URx              number, Upper right corner X position, as a fraction of the image's width from the left
+    -- @param  URy              number, Upper right corner Y position, as a fraction of the image's height from the top
+    -- @param  LRx              number, Lower right corner X position, as a fraction of the image's width from the left
+    -- @param  LRy              number, Lower right corner Y position, as a fraction of the image's height from the top
     function SetTexCoord(self, ...)
         self.__TextureOriginTexCoord = nil
         return self.UIElement:SetTexCoord(...)
     end
 
-    __Doc__"SetGradient" [[
-        <desc>Sets a gradient color shading for the texture. Gradient color shading does not change the underlying color of the texture image, but acts as a filter</desc>
-        <param name="orientation">System.Widget.Orientation, Token identifying the direction of the gradient</param>
-        <param name="startR">number, Red component of the start color (0.0 - 1.0)</param>
-        <param name="startG">number, Green component of the start color (0.0 - 1.0)</param>
-        <param name="startB">number, Blue component of the start color (0.0 - 1.0)</param>
-        <param name="endR">number, Red component of the end color (0.0 - 1.0)</param>
-        <param name="endG">number, Green component of the end color (0.0 - 1.0)</param>
-        <param name="endB">number, Blue component of the end color (0.0 - 1.0)</param>
-    ]]
+    ---Sets a gradient color shading for the texture. Gradient color shading does not change the underlying color of the texture image, but acts as a filter
+    -- @param  orientation      System.Widget.Orientation, Token identifying the direction of the gradient
+    -- @param  startR           number, Red component of the start color (0.0 - 1.0)
+    -- @param  startG           number, Green component of the start color (0.0 - 1.0)
+    -- @param  startB           number, Blue component of the start color (0.0 - 1.0)
+    -- @param  endR             number, Red component of the end color (0.0 - 1.0)
+    -- @param  endG             number, Green component of the end color (0.0 - 1.0)
+    -- @param  endB             number, Blue component of the end color (0.0 - 1.0)
     function SetGradient(self, orientation, startR, startG, startB, endR, endG, endB)
         self.__TextureGraOrient = orientation
         self.__TextureGraStartR = startR
@@ -1758,18 +1724,16 @@ class "Texture" (function(_ENV)
         return self.UIElement:SetGradient(orientation, startR, startG, startB, endR, endG, endB)
     end
 
-    __Doc__"SetGradientAlpha" [[
-        <desc>Sets a gradient color shading for the texture (including opacity in the gradient). Gradient color shading does not change the underlying color of the texture image, but acts as a filter</desc>
-        <param name="orientation">System.Widget.Orientation, Token identifying the direction of the gradient (string)</param>
-        <param name="startR">number, Red component of the start color (0.0 - 1.0)</param>
-        <param name="startG">number, Green component of the start color (0.0 - 1.0)</param>
-        <param name="startB">number, Blue component of the start color (0.0 - 1.0)</param>
-        <param name="startAlpha">number, Alpha (opacity) for the start side of the gradient (0.0 = fully transparent, 1.0 = fully opaque)</param>
-        <param name="endR">number, Red component of the end color (0.0 - 1.0)</param>
-        <param name="endG">number, Green component of the end color (0.0 - 1.0)</param>
-        <param name="endB">number, Blue component of the end color (0.0 - 1.0)</param>
-        <param name="endAlpha">number, Alpha (opacity) for the end side of the gradient (0.0 = fully transparent, 1.0 = fully opaque)</param>
-    ]]
+    --- Sets a gradient color shading for the texture (including opacity in the gradient). Gradient color shading does not change the underlying color of the texture image, but acts as a filter
+    -- @param  orientation      System.Widget.Orientation, Token identifying the direction of the gradient (string)
+    -- @param  startR           number, Red component of the start color (0.0 - 1.0)
+    -- @param  startG           number, Green component of the start color (0.0 - 1.0)
+    -- @param  startB           number, Blue component of the start color (0.0 - 1.0)
+    -- @param  startAlpha       number, Alpha (opacity) for the start side of the gradient (0.0 = fully transparent, 1.0 = fully opaque)
+    -- @param  endR             number, Red component of the end color (0.0 - 1.0)
+    -- @param  endG             number, Green component of the end color (0.0 - 1.0)
+    -- @param  endB             number, Blue component of the end color (0.0 - 1.0)
+    -- @param  endAlpha         number, Alpha (opacity) for the end side of the gradient (0.0 = fully transparent, 1.0 = fully opaque)
     function SetGradientAlpha(self, orientation, startR, startG, startB, startAlpha, endR, endG, endB, endAlpha)
         self.__TextureGraOrient = orientation
         self.__TextureGraStartR = startR
@@ -1783,10 +1747,8 @@ class "Texture" (function(_ENV)
         return self.UIElement:SetGradientAlpha(orientation, startR, startG, startB, startAlpha, endR, endG, endB, endAlpha)
     end
 
-    __Doc__[[
-        <desc>Rotate texture for radian with current texcoord settings</desc>
-        <param name="radian">number, the rotation raidian</param>
-    ]]
+    --- Rotate texture for radian with current texcoord settings
+    -- @param  radian           number, the rotation raidian
     function RotateRadian(self, radian)
         if type(radian) ~= "number" then
             error("Usage: Texture:RotateRadian(radian) - 'radian' must be number.", 2)
@@ -1888,10 +1850,8 @@ class "Texture" (function(_ENV)
         self.Height = newHeight
     end
 
-    __Doc__[[
-        <desc>Rotate texture for degree with current texcoord settings</desc>
-        <param name="degree">number, the rotation degree</param>
-    ]]
+    --- Rotate texture for degree with current texcoord settings
+    -- @param  degree           number, the rotation degree
     function RotateDegree(self, degree)
         if type(degree) ~= "number" then
             error("Usage: Texture:RotateDegree(degree) - 'degree' must be number.", 2)
@@ -1899,10 +1859,8 @@ class "Texture" (function(_ENV)
         return RotateRadian(self, math.rad(degree))
     end
 
-    __Doc__[[
-        <desc>Shear texture for raidian</desc>
-        <param name="radian">number, the shear radian</param>
-    ]]
+    --- Shear texture for raidian
+    -- @param  radian           number, the shear radian
     function ShearRadian(self, radian)
         if type(radian) ~= "number" then
             error("Usage: Texture:ShearRadian(radian) - 'radian' must be number.", 2)
@@ -1940,10 +1898,8 @@ class "Texture" (function(_ENV)
         return self.UIElement:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
     end
 
-    __Doc__[[
-        <desc>Shear texture with degree</desc>
-        <param name="degree">number, the shear degree</param>
-    ]]
+    --- Shear texture with degree
+    -- @param  degree           number, the shear degree
     function ShearDegree(self, degree)
         if type(degree) ~= "number" then
             error("Usage: Texture:ShearDegree(degree) - 'degree' must be number.", 2)
@@ -1955,10 +1911,10 @@ class "Texture" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the blend mode of the texture]]
+    --- the blend mode of the texture
     property "BlendMode" { Type = AlphaMode }
 
-    __Doc__[[the texture's color]]
+    --- the texture's color
     property "Color" {
         Type = Color,
         Get = function(self)
@@ -1978,19 +1934,19 @@ class "Texture" (function(_ENV)
         end,
     }
 
-    __Doc__[[whether the texture image should be displayed with zero saturation]]
+    --- whether the texture image should be displayed with zero saturation
     property "Desaturated" { Type = Boolean }
 
-    __Doc__[[The texture's desaturation]]
+    --- The texture's desaturation
     property "Desaturation" { Type = ColorFloat }
 
-    __Doc__[[Whether the texture is horizontal tile]]
+    --- Whether the texture is horizontal tile
     property "HorizTile" { Type = Boolean }
 
-    __Doc__[[whether the texture object loads its image file in the background]]
+    --- whether the texture object loads its image file in the background
     property "NonBlocking" { Type = Boolean }
 
-    __Doc__[[the texture object's image file path]]
+    --- the texture object's image file path
     property "Path" {
         Type = String + Number,
         Get = function(self)
@@ -2007,14 +1963,14 @@ class "Texture" (function(_ENV)
         Set = "SetTexture",
     }
 
-    __Doc__[[the texture to be displayed from a file applying circular opacity mask making it look round like portraits.]]
+    --- the texture to be displayed from a file applying circular opacity mask making it look round like portraits.
     property "PortraitMask" {
         Field = "__TexturePortrait",
         Set = "SetPortraitTexture",
         Type = String,
     }
 
-    __Doc__[[the unit be displayed as a portrait, such as "player", "target"]]
+    --- the unit be displayed as a portrait, such as "player", "target"
     property "PortraitUnit" {
         Type = String,
         Get = function(self)
@@ -2027,17 +1983,17 @@ class "Texture" (function(_ENV)
         Set = "SetPortraitUnit",
     }
 
-    __Doc__[[The corner coordinates for scaling or cropping the texture image]]
+    --- The corner coordinates for scaling or cropping the texture image
     property "TexCoord" {
         Type = TexCoord,
         Get = function(self) return TexCoord( self:GetTexCoord() ) end,
         Set = function(self, td) self:SetTexCoord( td.ULx, td.ULy, td.LLx, td.LLy, td.URx, td.URy, td.LRx, td.LRy ) end,
     }
 
-    __Doc__[[Whether the texture is vertical tile]]
+    --- Whether the texture is vertical tile
     property "VertTile" { Type = Boolean }
 
-    __Doc__[[The gradient color shading for the texture]]
+    --- The gradient color shading for the texture
     property "Gradient" {
         Type = GradientType,
         Set = function(self, val)
@@ -2062,7 +2018,7 @@ class "Texture" (function(_ENV)
         end,
     }
 
-    __Doc__[[The gradient color shading (including opacity in the gradient) for the texture]]
+    --- The gradient color shading (including opacity in the gradient) for the texture
     property "GradientAlpha" {
         Type = GradientType,
         Set = function(self, val)
@@ -2090,8 +2046,8 @@ class "Texture" (function(_ENV)
     }
 end)
 
-__Doc__[[MaskTextures are used to mask other textures]]
-__Sealed__() __AutoProperty__()
+--- MaskTextures are used to mask other textures
+__Sealed__()
 class "MaskTexture" (function(_ENV)
     inherit "Texture"
 
@@ -2108,8 +2064,8 @@ end)
 ------------------------------------------------------------
 --                      FontString                        --
 ------------------------------------------------------------
-__Doc__[[FontStrings are one of the two types of Region that is visible on the screen. It draws a block of text on the screen using the characteristics in an associated FontObject.]]
-__Sealed__() __AutoProperty__()
+--- FontStrings are one of the two types of Region that is visible on the screen. It draws a block of text on the screen using the characteristics in an associated FontObject.
+__Sealed__()
 class "FontString" (function(_ENV)
     inherit "LayeredRegion"
     extend "IFont"
@@ -2126,41 +2082,41 @@ class "FontString" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[whether the text wrap will be indented]]
+    --- whether the text wrap will be indented
     property "IndentedWordWrap" { Type = Boolean }
 
-    __Doc__[[the max lines of the text]]
+    --- the max lines of the text
     property "MaxLines" { Type = PositiveInteger }
 
-    __Doc__[[whether long lines of text will wrap within or between words]]
+    --- whether long lines of text will wrap within or between words
     property "NonSpaceWrap" {
         Type = Boolean,
         Get = "CanNonSpaceWrap",
         Set = "SetNonSpaceWrap",
     }
 
-    __Doc__[[whether long lines of text in the font string can wrap onto subsequent lines]]
+    --- whether long lines of text in the font string can wrap onto subsequent lines
     property "WordWrap" {
         Type = Boolean,
         Get = "CanWordWrap",
         Set = "SetWordWrap"
     }
 
-    __Doc__[[the height of the text displayed in the font string]]
+    --- the height of the text displayed in the font string
     property "StringHeight" { }
 
-    __Doc__[[the width of the text displayed in the font string]]
+    --- the width of the text displayed in the font string
     property "StringWidth" { }
 
-    __Doc__[[the text to be displayed in the font string]]
+    --- the text to be displayed in the font string
     property "Text" { Type = LocaleString }
 end)
 
 ------------------------------------------------------------
 --                         Line                           --
 ------------------------------------------------------------
-__Doc__[[Lines are used to link two anchor points.]]
-__Sealed__() __AutoProperty__()
+--- Lines are used to link two anchor points.
+__Sealed__()
 class "Line" (function(_ENV)
     inherit "Texture"
 
@@ -2176,25 +2132,23 @@ class "Line" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The start point of the line]]
+    --- The start point of the line
     property "StartPoint" { Type = Dimension }
 
-    __Doc__[[The end point of the line]]
+    --- The end point of the line
     property "EndPoint" { Type = Dimension }
 
-    __Doc__[[The thickness of the line]]
+    --- The thickness of the line
     property "Thickness" { Type = PositiveNumber }
 end)
 
 ------------------------------------------------------------
 --                      Animation                         --
 ------------------------------------------------------------
-__Doc__[[
-    An AnimationGroup is how various animations are actually applied to a region; this is how different behaviors can be run in sequence or in parallel with each other, automatically. When you pause an AnimationGroup, it tracks which of its child animations were playing and how far advanced they were, and resumes them from that point.
-    An Animation in a group has an order from 1 to 100, which determines when it plays; once all animations with order 1 have completed, including any delays, the AnimationGroup starts all animations with order 2.
-    An AnimationGroup can also be set to loop, either repeating from the beginning or playing backward back to the beginning. An AnimationGroup has an OnLoop handler that allows you to call your own code back whenever a loop completes. The :Finish() method stops the animation after the current loop has completed, rather than immediately.
-]]
-__Sealed__() __AutoProperty__()
+--- An AnimationGroup is how various animations are actually applied to a region; this is how different behaviors can be run in sequence or in parallel with each other, automatically. When you pause an AnimationGroup, it tracks which of its child animations were playing and how far advanced they were, and resumes them from that point.
+-- An Animation in a group has an order from 1 to 100, which determines when it plays; once all animations with order 1 have completed, including any delays, the AnimationGroup starts all animations with order 2.
+-- An AnimationGroup can also be set to loop, either repeating from the beginning or playing backward back to the beginning. An AnimationGroup has an OnLoop handler that allows you to call your own code back whenever a loop completes. The :Finish() method stops the animation after the current loop has completed, rather than immediately.
+__Sealed__()
 class "AnimationGroup" (function(_ENV)
     inherit "UI"
 
@@ -2210,20 +2164,18 @@ class "AnimationGroup" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[looping type for the animation group: BOUNCE , NONE  , REPEAT]]
+    --- looping type for the animation group: BOUNCE , NONE  , REPEAT
     property "Looping" { Type = AnimLoopType }
 
-    __Doc__[[Whether to final alpha is set]]
+    --- Whether to final alpha is set
     property "ToFinalAlpha" { Type = Boolean, Set = "SetToFinalAlpha", Get = "IsSetToFinalAlpha" }
 end)
 
-__Doc__[[
-    Animations are used to change presentations or other characteristics of a frame or other region over time. The Animation object will take over the work of calling code over time, or when it is done, and tracks how close the animation is to completion.
-    The Animation type doesn't create any visual effects by itself, but it does provide an OnUpdate handler that you can use to support specialized time-sensitive behaviors that aren't provided by the transformations descended from Animations. In addition to tracking the passage of time through an elapsed argument, you can query the animation's progress as a 0-1 fraction to determine how you should set your behavior.
-    You can also change how the elapsed time corresponds to the progress by changing the smoothing, which creates acceleration or deceleration, or by adding a delay to the beginning or end of the animation.
-    You can also use an Animation as a timer, by setting the Animation's OnFinished script to trigger a callback and setting the duration to the desired time.
-]]
-__Sealed__() __AutoProperty__()
+--- Animations are used to change presentations or other characteristics of a frame or other region over time. The Animation object will take over the work of calling code over time, or when it is done, and tracks how close the animation is to completion.
+-- The Animation type doesn't create any visual effects by itself, but it does provide an OnUpdate handler that you can use to support specialized time-sensitive behaviors that aren't provided by the transformations descended from Animations. In addition to tracking the passage of time through an elapsed argument, you can query the animation's progress as a 0-1 fraction to determine how you should set your behavior.
+-- You can also change how the elapsed time corresponds to the progress by changing the smoothing, which creates acceleration or deceleration, or by adding a delay to the beginning or end of the animation.
+-- You can also use an Animation as a timer, by setting the Animation's OnFinished script to trigger a callback and setting the duration to the desired time.
+__Sealed__()
 class "Animation" (function(_ENV)
     inherit "UI"
 
@@ -2239,18 +2191,14 @@ class "Animation" (function(_ENV)
     ----------------------------------------------
     ------------------- Method -------------------
     ----------------------------------------------
-    __Doc__[[
-        <desc>Returns the Region object on which the animation operates</desc>
-        <return type="System.Widget.Region">Reference to the Region object on which the animation operates</return>
-    ]]
+    --- Returns the Region object on which the animation operates
+    -- @return System.Widget.Region     Reference to the Region object on which the animation operates
     function GetRegionParent(self)
         return UI.GetUIWrapper(self.UIElement:GetRegionParent())
     end
 
-    __Doc__[[
-        <desc>Returns the target object on which the animation operates</desc>
-        <return type="System.Widget.Region">Reference to the target object on which the animation operates</return>
-    ]]
+    --- Returns the target object on which the animation operates
+    -- @return System.Widget.Region     Reference to the target object on which the animation operates
     function GetTarget(self)
         return UI.GetUIWrapper(self.UIElement:GetTarget())
     end
@@ -2258,27 +2206,27 @@ class "Animation" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Amount of time the animation delays before its progress begins (in seconds)]]
+    --- Amount of time the animation delays before its progress begins (in seconds)
     property "StartDelay" { Type = Number }
 
-    __Doc__[[Time for the animation to delay after finishing (in seconds)]]
+    --- Time for the animation to delay after finishing (in seconds)
     property "EndDelay" { Type = Number }
 
-    __Doc__[[Time for the animation to progress from start to finish (in seconds)]]
+    --- Time for the animation to progress from start to finish (in seconds)
     property "Duration" { Type = Number }
 
-    __Doc__[[Position at which the animation will play relative to others in its group (between 0 and 100)]]
+    --- Position at which the animation will play relative to others in its group (between 0 and 100)
     property "Order" { Type = Number }
 
-    __Doc__[[Type of smoothing for the animation, IN, IN_OUT, NONE, OUT]]
+    --- Type of smoothing for the animation, IN, IN_OUT, NONE, OUT
     property "Smoothing" { Type = AnimSmoothType }
 
-    __Doc__[[The smooth progress of the animation]]
+    --- The smooth progress of the animation
     property "SmoothProgress" { Type = Number }
 end)
 
-__Doc__[[Alpha is a type of animation that automatically changes the transparency level of its attached region as it progresses. You can set the degree by which it will change the alpha as a fraction; for instance, a change of -1 will fade out a region completely]]
-__Sealed__() __AutoProperty__()
+--- Alpha is a type of animation that automatically changes the transparency level of its attached region as it progresses. You can set the degree by which it will change the alpha as a fraction; for instance, a change of -1 will fade out a region completely
+__Sealed__()
 class "Alpha" (function(_ENV)
     inherit "Animation"
 
@@ -2294,15 +2242,15 @@ class "Alpha" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the animation's amount of alpha (opacity) start from]]
+    --- the animation's amount of alpha (opacity) start from
     property "FromAlpha" { Type = Number }
 
-    __Doc__[[the animation's amount of alpha (opacity) end to]]
+    --- the animation's amount of alpha (opacity) end to
     property "ToAlpha" { Type = Number }
 end)
 
-__Doc__[[Path is an Animation type that combines multiple transitions into a single control path with multiple ControlPoints.]]
-__Sealed__() __AutoProperty__()
+--- Path is an Animation type that combines multiple transitions into a single control path with multiple ControlPoints.
+__Sealed__()
 class "Path" (function(_ENV)
     inherit "Animation"
 
@@ -2318,12 +2266,12 @@ class "Path" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The curveType of the given path]]
+    --- The curveType of the given path
     property "Curve" { Type = AnimCurveType }
 end)
 
-__Doc__[[A special type that represent a point in a Path Animation.]]
-__Sealed__() __AutoProperty__()
+--- A special type that represent a point in a Path Animation.
+__Sealed__()
 class "ControlPoint" (function(_ENV)
     inherit "UI"
 
@@ -2339,7 +2287,7 @@ class "ControlPoint" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the control point offsets]]
+    --- the control point offsets
     property "Offset" {
         Type = Dimension,
         Get = function(self)
@@ -2350,12 +2298,12 @@ class "ControlPoint" (function(_ENV)
         end,
     }
 
-    __Doc__[[Position at which the animation will play relative to others in its group (between 0 and 100)]]
+    --- Position at which the animation will play relative to others in its group (between 0 and 100)
     property "Order" { Type = Number }
 end)
 
-__Doc__[[Rotation is an Animation that automatically applies an affine rotation to the region being animated. You can set the origin around which the rotation is being done, and the angle of rotation in either degrees or radians.]]
-__Sealed__() __AutoProperty__()
+--- Rotation is an Animation that automatically applies an affine rotation to the region being animated. You can set the origin around which the rotation is being done, and the angle of rotation in either degrees or radians.
+__Sealed__()
 class "Rotation" (function(_ENV)
     inherit "Animation"
 
@@ -2371,13 +2319,13 @@ class "Rotation" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the animation's rotation amount (in degrees)]]
+    --- the animation's rotation amount (in degrees)
     property "Degrees" { Type = Number }
 
-    __Doc__[[the animation's rotation amount (in radians)]]
+    --- the animation's rotation amount (in radians)
     property "Radians" { Type = Number }
 
-    __Doc__[[the rotation animation's origin point]]
+    --- the rotation animation's origin point
     property "Origin" {
         Get = function(self)
             return AnimOriginType(self:GetOrigin())
@@ -2389,8 +2337,8 @@ class "Rotation" (function(_ENV)
     }
 end)
 
-__Doc__[[Scale is an Animation type that automatically applies an affine scalar transformation to the region being animated as it progresses. You can set both the multiplier by which it scales, and the point from which it is scaled.]]
-__Sealed__() __AutoProperty__()
+--- Scale is an Animation type that automatically applies an affine scalar transformation to the region being animated as it progresses. You can set both the multiplier by which it scales, and the point from which it is scaled.
+__Sealed__()
 class "Scale" (function(_ENV)
     inherit "Animation"
 
@@ -2406,7 +2354,7 @@ class "Scale" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the animation's scaling factors]]
+    --- the animation's scaling factors
     property "Scale" {
         Get = function(self)
             return Dimension(self:GetScale())
@@ -2417,7 +2365,7 @@ class "Scale" (function(_ENV)
         Type = Dimension,
     }
 
-    __Doc__[[the scale animation's origin point]]
+    --- the scale animation's origin point
     property "Origin" {
         Get = function(self)
             return AnimOriginType(self:GetOrigin())
@@ -2428,7 +2376,7 @@ class "Scale" (function(_ENV)
         Type = AnimOriginType,
     }
 
-    __Doc__[[the animation's scale amount that start from]]
+    --- the animation's scale amount that start from
     property "FromScale" {
         Get = function(self)
             return Dimension(self:GetFromScale())
@@ -2439,7 +2387,7 @@ class "Scale" (function(_ENV)
         Type = Dimension,
     }
 
-    __Doc__[[the animation's scale amount that end to]]
+    --- the animation's scale amount that end to
     property "ToScale" {
         Get = function(self)
             return Dimension(self:GetToScale())
@@ -2451,8 +2399,8 @@ class "Scale" (function(_ENV)
     }
 end)
 
-__Doc__[[LineScale is an Animation type inherit Scale.]]
-__Sealed__() __AutoProperty__()
+--- LineScale is an Animation type inherit Scale.
+__Sealed__()
 class "LineScale" (function(_ENV)
     inherit "Animation"
 
@@ -2468,7 +2416,7 @@ class "LineScale" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the animation's scaling factors]]
+    --- the animation's scaling factors
     property "Scale" {
         Get = function(self)
             return Dimension(self:GetScale())
@@ -2479,7 +2427,7 @@ class "LineScale" (function(_ENV)
         Type = Dimension,
     }
 
-    __Doc__[[the scale animation's origin point]]
+    --- the scale animation's origin point
     property "Origin" {
         Get = function(self)
             return AnimOriginType(self:GetOrigin())
@@ -2490,7 +2438,7 @@ class "LineScale" (function(_ENV)
         Type = AnimOriginType,
     }
 
-    __Doc__[[the animation's scale amount that start from]]
+    --- the animation's scale amount that start from
     property "FromScale" {
         Get = function(self)
             return Dimension(self:GetFromScale())
@@ -2501,7 +2449,7 @@ class "LineScale" (function(_ENV)
         Type = Dimension,
     }
 
-    __Doc__[[the animation's scale amount that end to]]
+    --- the animation's scale amount that end to
     property "ToScale" {
         Get = function(self)
             return Dimension(self:GetToScale())
@@ -2513,8 +2461,8 @@ class "LineScale" (function(_ENV)
     }
 end)
 
-__Doc__[[Translation is an Animation type that applies an affine translation to its affected region automatically as it progresses.]]
-__Sealed__() __AutoProperty__()
+--- Translation is an Animation type that applies an affine translation to its affected region automatically as it progresses.
+__Sealed__()
 class "Translation" (function(_ENV)
     inherit "Animation"
 
@@ -2530,7 +2478,7 @@ class "Translation" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the animation's translation offsets]]
+    --- the animation's translation offsets
     property "Offset" {
         Type = Dimension,
         Get = function(self)
@@ -2546,12 +2494,10 @@ end)
 ------------------------------------------------------------
 --                    Frame Widgets                       --
 ------------------------------------------------------------
-__Doc__[[
-    ArchaeologyDigSiteFrame is a frame that is used to display digsites. Any one frame can be used to display any number of digsites, called blobs. Each blob is a polygon with a border and a filling texture.
-    To draw a blob onto the frame use the DrawBlob function. This will draw a polygon representing the specified digsite. It seems that it's only possible to draw digsites where you can dig and is on the current map.
-    Changes to how the blobs should render will only affect newly drawn blobs. That means that if you want to change the opacity of a blob you must first clear all blobs using the DrawNone function and then redraw the blobs.
-]]
-__Sealed__() __AutoProperty__()
+--- ArchaeologyDigSiteFrame is a frame that is used to display digsites. Any one frame can be used to display any number of digsites, called blobs. Each blob is a polygon with a border and a filling texture.
+-- To draw a blob onto the frame use the DrawBlob function. this will draw a polygon representing the specified digsite. It seems that it's only possible to draw digsites where you can dig and is on the current map.
+-- Changes to how the blobs should render will only affect newly drawn blobs. That means that if you want to change the opacity of a blob you must first clear all blobs using the DrawNone function and then redraw the blobs.
+__Sealed__()
 class "ArchaeologyDigSiteFrame" (function(_ENV)
     inherit "Frame"
 
@@ -2561,8 +2507,8 @@ class "ArchaeologyDigSiteFrame" (function(_ENV)
     InstallPrototype("Frame")
 end)
 
-__Doc__[[Button is the primary means for users to control the game and their characters.]]
-__Sealed__() __AutoProperty__()
+--- Button is the primary means for users to control the game and their characters.
+__Sealed__()
 class "Button" (function(_ENV)
     inherit "Frame"
 
@@ -2597,34 +2543,34 @@ class "Button" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Whether the button is enabled]]
+    --- Whether the button is enabled
     property "Enabled" { Type = Boolean }
 
-    __Doc__[[the font object used for the button's disabled state]]
+    --- the font object used for the button's disabled state
     property "DisabledFontObject" { }
 
-    __Doc__[[the font object used when the button is highlighted]]
+    --- the font object used when the button is highlighted
     property "HighlightFontObject" { }
 
-    __Doc__[[the font object used for the button's normal state]]
+    --- the font object used for the button's normal state
     property "NormalFontObject" { }
 
-    __Doc__[[the texture object used when the button is disabled]]
+    --- the texture object used when the button is disabled
     property "DisabledTexture" { }
 
-    __Doc__[[the texture object used when the button is highlighted]]
+    --- the texture object used when the button is highlighted
     property "HighlightTexture" { }
 
-    __Doc__[[the texture object used for the button's normal state]]
+    --- the texture object used for the button's normal state
     property "NormalTexture" { }
 
-    __Doc__[[the texture object used when the button is pushed]]
+    --- the texture object used when the button is pushed
     property "PushedTexture" { }
 
-    __Doc__[[the FontString object used for the button's label text]]
+    --- the FontString object used for the button's label text
     property "FontString" { Type = FontString }
 
-    __Doc__[[the offset for moving the button's label text when pushed]]
+    --- the offset for moving the button's label text when pushed
     property "PushedTextOffset" {
         Get = function(self)
             return Dimension(self:GetPushedTextOffset())
@@ -2635,25 +2581,18 @@ class "Button" (function(_ENV)
         Type = Dimension,
     }
 
-    __Doc__[[the text displayed as the button's label]]
+    --- the text displayed as the button's label
     property "Text" { Type = LocaleString }
 
-    __Doc__[[true if the button's highlight state is locked]]
-    __Handler__( function (self, value)
-        if value then
-            self:LockHighlight()
-        else
-            self:UnlockHighlight()
-        end
-    end )
-    property "HighlightLocked" { Field = true, Type = Boolean }
+    --- true if the button's highlight state is locked
+    property "HighlightLocked" { Field = true, Type = Boolean, Handler = function (self, value) if value then self:LockHighlight() else self:UnlockHighlight() end end }
 
-    __Doc__[[Whether enable the motion script while disabled]]
+    --- Whether enable the motion script while disabled
     property "MotionScriptsWhileDisabled" { Type = Boolean }
 end)
 
-__Doc__[[Browser is used to provide help helpful pages in the game]]
-__Sealed__() __AutoProperty__()
+--- Browser is used to provide help helpful pages in the game
+__Sealed__()
 class "Browser" (function(_ENV)
     inherit "Frame"
 
@@ -2663,8 +2602,8 @@ class "Browser" (function(_ENV)
     InstallPrototype("Frame")
 end)
 
-__Doc__[[EditBoxes are used to allow the player to type text into a UI component.]]
-__Sealed__() __AutoProperty__()
+--- EditBoxes are used to allow the player to type text into a UI component.
+__Sealed__()
 class "EditBox" (function(_ENV)
     inherit "Frame"
     extend "IFont"
@@ -2677,28 +2616,28 @@ class "EditBox" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[whether the text wrap will be indented]]
+    --- whether the text wrap will be indented
     property "IndentedWordWrap" { Type = Boolean }
 
-    __Doc__[[Whether count the invisible letters for max letters]]
+    --- Whether count the invisible letters for max letters
     property "CountInvisibleLetters" { Type = Boolean }
 
-    __Doc__[[true if the edit box shows more than one line of text]]
+    --- true if the edit box shows more than one line of text
     property "MultiLine" { Type = Boolean }
 
-    __Doc__[[true if the edit box only accepts numeric input]]
+    --- true if the edit box only accepts numeric input
     property "Numeric" { Type = Boolean }
 
-    __Doc__[[true if the text entered in the edit box is masked]]
+    --- true if the text entered in the edit box is masked
     property "Password" { Type = Boolean }
 
-    __Doc__[[true if the edit box automatically acquires keyboard input focus]]
+    --- true if the edit box automatically acquires keyboard input focus
     property "AutoFocus" { Type = Boolean }
 
-    __Doc__[[the maximum number of history lines stored by the edit box]]
+    --- the maximum number of history lines stored by the edit box
     property "HistoryLines" { Type = Number }
 
-    __Doc__[[true if the edit box is currently focused]]
+    --- true if the edit box is currently focused
     property "Focused" {
         Get = "HasFocus",
         Set = function(self, focus)
@@ -2711,28 +2650,28 @@ class "EditBox" (function(_ENV)
         Type = Boolean,
     }
 
-    __Doc__[[true if the arrow keys are ignored by the edit box unless the Alt key is held]]
+    --- true if the arrow keys are ignored by the edit box unless the Alt key is held
     property "AltArrowKeyMode" { Type = Boolean }
 
-    __Doc__[[the rate at which the text insertion blinks when the edit box is focused]]
+    --- the rate at which the text insertion blinks when the edit box is focused
     property "BlinkSpeed" { Type = Number }
 
-    __Doc__[[the current cursor position inside edit box]]
+    --- the current cursor position inside edit box
     property "CursorPosition" { Type = Number }
 
-    __Doc__[[the maximum number of bytes of text allowed in the edit box, default is 0(Infinite)]]
+    --- the maximum number of bytes of text allowed in the edit box, default is 0(Infinite)
     property "MaxBytes" { Type = Number }
 
-    __Doc__[[the maximum number of text characters allowed in the edit box]]
+    --- the maximum number of text characters allowed in the edit box
     property "MaxLetters" { Type = Number }
 
-    __Doc__[[the contents of the edit box as a number]]
+    --- the contents of the edit box as a number
     property "Number" { Type = Number }
 
-    __Doc__[[the edit box's text contents]]
+    --- the edit box's text contents
     property "Text" { Type = String }
 
-    __Doc__[[the insets from the edit box's edges which determine its interactive text area]]
+    --- the insets from the edit box's edges which determine its interactive text area
     property "TextInsets" {
         Get = function(self)
             return Inset(self:GetTextInsets())
@@ -2743,12 +2682,12 @@ class "EditBox" (function(_ENV)
         Type = Inset,
     }
 
-    __Doc__[[Whether the edit box is enabled]]
+    --- Whether the edit box is enabled
     property "Enabled" { Type = Boolean }
 end)
 
-__Doc__[[CheckButtons are a specialized form of Button; they maintain an on/off state, which toggles automatically when they are clicked, and additional textures for when they are checked, or checked while disabled.]]
-__Sealed__() __AutoProperty__()
+--- CheckButtons are a specialized form of Button; they maintain an on/off state, which toggles automatically when they are clicked, and additional textures for when they are checked, or checked while disabled.
+__Sealed__()
 class "CheckButton" (function(_ENV)
     inherit "Button"
 
@@ -2771,17 +2710,17 @@ class "CheckButton" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[true if the checkbutton is checked]]
+    --- true if the checkbutton is checked
     property "Checked" { Type = Boolean }
 
-    __Doc__[[the texture object used when the button is checked]]
+    --- the texture object used when the button is checked
     property "CheckedTexture" { }
 
-    __Doc__[[the texture object used when the button is disabled and checked]]
+    --- the texture object used when the button is disabled and checked
     property "DisabledCheckedTexture" { }
 end)
 
-__Sealed__() __AutoProperty__()
+__Sealed__()
 class "ColorSelect" (function(_ENV)
     inherit "Frame"
 
@@ -2812,26 +2751,26 @@ class "ColorSelect" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the texture for the color picker's value slider background]]
+    --- the texture for the color picker's value slider background
     property "ColorValueTexture" { }
 
-    __Doc__[[the texture for the color picker's value slider thumb]]
+    --- the texture for the color picker's value slider thumb
     property "ColorValueThumbTexture" { }
 
-    __Doc__[[the texture for the color picker's hue/saturation wheel]]
+    --- the texture for the color picker's hue/saturation wheel
     property "ColorWheelTexture" { }
 
-    __Doc__[[the texture for the selection indicator on the color picker's hue/saturation wheel]]
+    --- the texture for the selection indicator on the color picker's hue/saturation wheel
     property "ColorWheelThumbTexture" { }
 
-    __Doc__[[the HSV color value]]
+    --- the HSV color value
     property "ColorHSV" {
         Type = HSV,
         Get = function(self) return HSV(self:GetColorHSV()) end,
         Set = function(self, v) self:SetColorHSV(v.hue, v.saturation, v.value) end,
     }
 
-    __Doc__[[the RGB color value]]
+    --- the RGB color value
     property "Color" {
         Type = Color,
         Get = function(self) return Color(self:GetColorRGB()) end,
@@ -2839,8 +2778,8 @@ class "ColorSelect" (function(_ENV)
     }
 end)
 
-__Doc__[[Cooldown is a specialized variety of Frame that displays the little "clock" effect over abilities and buffs. It can be set with its running time, whether it should appear to "fill up" or "empty out", and whether or not there should be a bright edge where it's changing between dim and bright.]]
-__Sealed__() __AutoProperty__()
+--- Cooldown is a specialized variety of Frame that displays the little "clock" effect over abilities and buffs. It can be set with its running time, whether it should appear to "fill up" or "empty out", and whether or not there should be a bright edge where it's changing between dim and bright.
+__Sealed__()
 class "Cooldown" (function(_ENV)
     inherit "Frame"
 
@@ -2852,28 +2791,28 @@ class "Cooldown" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Whether the cooldown animation "sweeps" an area of darkness over the underlying image; false if the animation darkens the underlying image and "sweeps" the darkened area away]]
+    --- Whether the cooldown animation "sweeps" an area of darkness over the underlying image; false if the animation darkens the underlying image and "sweeps" the darkened area away
     property "Reverse" { Type = Boolean }
 
-    __Doc__[[the duration currently shown by the cooldown frame in milliseconds]]
+    --- the duration currently shown by the cooldown frame in milliseconds
     property "CooldownDuration" { Type = Number }
 
-    __Doc__[[Whether the cooldown 'bling' when finsihed]]
+    --- Whether the cooldown 'bling' when finsihed
     property "DrawBling" { Type = Boolean }
 
-    __Doc__[[Whether a bright line should be drawn on the moving edge of the cooldown animation]]
+    --- Whether a bright line should be drawn on the moving edge of the cooldown animation
     property "DrawEdge" { Type = Boolean }
 
-    __Doc__[[Whether a shadow swipe should be drawn]]
+    --- Whether a shadow swipe should be drawn
     property "DrawSwipe" { Type = Boolean }
 
-    __Doc__[[Sets the bling texture]]
+    --- Sets the bling texture
     property "BlingTexture" { }
 
-    __Doc__[[Sets the edge texture]]
+    --- Sets the edge texture
     property "EdgeTexture" { }
 
-    __Doc__[[Sets the swipe color]]
+    --- Sets the swipe color
     property "SwipeColor" {
         Type = Color,
         Set = function(self, color)
@@ -2881,15 +2820,15 @@ class "Cooldown" (function(_ENV)
         end,
     }
 
-    __Doc__[[Sets the swipe texture]]
+    --- Sets the swipe texture
     property "SwipeTexture" { }
 
-    __Doc__[[Whether hide count down numbers]]
+    --- Whether hide count down numbers
     property "HideCountdownNumbers" { Type = Boolean }
 end)
 
-__Doc__[[GameTooltips are used to display explanatory information relevant to a particular element of the game world.]]
-__Sealed__() __AutoProperty__()
+--- GameTooltips are used to display explanatory information relevant to a particular element of the game world.
+__Sealed__()
 class "GameTooltip" (function(_ENV)
     inherit "Frame"
 
@@ -2914,11 +2853,9 @@ class "GameTooltip" (function(_ENV)
         return UI.GetUIWrapper(self.UIElement:GetOwner())
     end
 
-    __Doc__[[
-        <desc>Get the left text of the given index line</desc>
-        <param name="index">number, between 1 and self:NumLines()</param>
-        <return type="string"></return>
-    ]]
+    --- Get the left text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return string
     function GetLeftText(self, index)
         local name = self:GetName()
         if not name or not index or type(index) ~= "number" then return end
@@ -2930,11 +2867,9 @@ class "GameTooltip" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Get the right text of the given index line</desc>
-        <param name="index">number, between 1 and self:NumLines()</param>
-        <return type="string"></return>
-    ]]
+    --- Get the right text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return string
     function GetRightText(self, index)
         local name = self:GetName()
         if not name or not index or type(index) ~= "number" then return end
@@ -2946,12 +2881,10 @@ class "GameTooltip" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Set the left text of the given index line</desc>
-        <param name="index">number, between 1 and self:NumLines()</param>
-        <param name="text">string</param>
-        <return type="string"></return>
-    ]]
+    --- Set the left text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @param  text             string
+    -- @return string
     function SetLeftText(self, index, text)
         local name = self:GetName()
         if not name or not index or type(index) ~= "number" then return end
@@ -2963,12 +2896,10 @@ class "GameTooltip" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Set the right text of the given index line</desc>
-        <param name="index">number, between 1 and self:NumLines()</param>
-        <param name="text">string</param>
-        <return type="string"></return>
-    ]]
+    --- Set the right text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @param  text             string
+    -- @return string
     function SetRightText(self, index, text)
         local name = self:GetName()
         if not name or not index or type(index) ~= "number" then return end
@@ -2980,11 +2911,9 @@ class "GameTooltip" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Get the texutre of the given index line</desc>
-        <param name="index">number, between 1 and self:NumLines()</param>
-        <return type="string"></return>
-    ]]
+    --- Get the texutre of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return string
     function GetTexture(self, index)
         local name = self:GetName()
         if not name or not index or type(index) ~= "number" then return end
@@ -2996,11 +2925,9 @@ class "GameTooltip" (function(_ENV)
         end
     end
 
-    __Doc__[[
-        <desc>Get the money of the given index, default 1</desc>
-        <param name="index">number, between 1 and self:NumLines()</param>
-        <return type="number"></return>
-    ]]
+    --- Get the money of the given index, default 1
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return number
     function GetMoney(self, index)
         local name = self:GetName()
 
@@ -3021,10 +2948,10 @@ class "GameTooltip" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The owner of this gametooltip]]
+    --- The owner of this gametooltip
     property "Owner" { Type = UI }
 
-    __Doc__[[The padding of the GameTooltip]]
+    --- The padding of the GameTooltip
     property "Padding" {
         Type = Size,
         Get = function(self) return Size(self:GetPadding()) end,
@@ -3071,8 +2998,8 @@ class "GameTooltip" (function(_ENV)
     end
 end)
 
-__Doc__[[MessageFrames are used to present series of messages or other lines of text, usually stacked on top of each other.]]
-__Sealed__() __AutoProperty__()
+--- MessageFrames are used to present series of messages or other lines of text, usually stacked on top of each other.
+__Sealed__()
 class "MessageFrame" (function(_ENV)
     inherit "Frame"
     extend "IFont"
@@ -3085,27 +3012,27 @@ class "MessageFrame" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[whether messages added to the frame automatically fade out after a period of time]]
+    --- whether messages added to the frame automatically fade out after a period of time
     property "Fading" { Type = Boolean }
 
-    __Doc__[[whether long lines of text are indented when wrapping]]
+    --- whether long lines of text are indented when wrapping
     property "IndentedWordWrap" { Type = Boolean }
 
-    __Doc__[[the amount of time for which a message remains visible before beginning to fade out]]
+    --- the amount of time for which a message remains visible before beginning to fade out
     property "TimeVisible" { Type = Number }
 
-    __Doc__[[the duration of the fade-out animation for disappearing messages]]
+    --- the duration of the fade-out animation for disappearing messages
     property "FadeDuration" { Type = Number }
 
-    __Doc__[[the position at which new messages are added to the frame]]
+    --- the position at which new messages are added to the frame
     property "InsertMode" { Type = InsertMode }
 
-    __Doc__[[The power of the fade-out animation for disappearing messages]]
+    --- The power of the fade-out animation for disappearing messages
     property "FadePower" { Type = Number }
 end)
 
-__Doc__[[MovieFrames are used to play video files of some formats.]]
-__Sealed__() __AutoProperty__()
+--- MovieFrames are used to play video files of some formats.
+__Sealed__()
 class "MovieFrame" (function(_ENV)
     inherit "Frame"
 
@@ -3117,12 +3044,12 @@ class "MovieFrame" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Whether the subtitles should be shown for the movie]]
+    --- Whether the subtitles should be shown for the movie
     property "SubtitlesEnabled" { Type = Boolean, Set = "EnableSubtitles" }
 end)
 
-__Doc__[[QuestPOIFrames are used to draw blobs of interest points for quest on the world map]]
-__Sealed__() __AutoProperty__()
+--- QuestPOIFrames are used to draw blobs of interest points for quest on the world map
+__Sealed__()
 class "QuestPOIFrame" (function(_ENV)
     inherit "Frame"
 
@@ -3132,7 +3059,7 @@ class "QuestPOIFrame" (function(_ENV)
     InstallPrototype("Frame")
 end)
 
-__Sealed__() __AutoProperty__()
+__Sealed__()
 class "ScenarioPOIFrame" (function(_ENV)
     inherit "Frame"
 
@@ -3142,8 +3069,8 @@ class "ScenarioPOIFrame" (function(_ENV)
     InstallPrototype("Frame")
 end)
 
-__Doc__[[ScrollFrame is used to show a large body of content through a small window. The ScrollFrame is the size of the "window" through which you want to see the larger content, and it has another frame set as a "ScrollChild" containing the full content.]]
-__Sealed__() __AutoProperty__()
+--- ScrollFrame is used to show a large body of content through a small window. The ScrollFrame is the size of the "window" through which you want to see the larger content, and it has another frame set as a "ScrollChild" containing the full content.
+__Sealed__()
 class "ScrollFrame" (function(_ENV)
     inherit "Frame"
 
@@ -3155,7 +3082,7 @@ class "ScrollFrame" (function(_ENV)
     ----------------------------------------------
     ------------------- Method -------------------
     ----------------------------------------------
-    __Doc__[[Gets the frame scrolled by the scroll frame]]
+    --- Gets the frame scrolled by the scroll frame
     function GetScrollChild(self)
         return UI.GetUIWrapper(self.UIElement:GetScrollChild())
     end
@@ -3163,18 +3090,18 @@ class "ScrollFrame" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the scroll frame's current horizontal scroll position]]
+    --- the scroll frame's current horizontal scroll position
     property "HorizontalScroll" { Type = Number }
 
-    __Doc__[[the scroll frame's vertical scroll position]]
+    --- the scroll frame's vertical scroll position
     property "VerticalScroll" { Type = Number }
 
-    __Doc__[[The frame scrolled by the scroll frame]]
+    --- The frame scrolled by the scroll frame
     property "ScrollChild" { Type = Region }
 end)
 
-__Doc__[[The most sophisticated control over text display is offered by SimpleHTML widgets. When its text is set to a string containing valid HTML markup, a SimpleHTML widget will parse the content into its various blocks and sections, and lay the text out. While it supports most common text commands, a SimpleHTML widget accepts an additional argument to most of these; if provided, the element argument will specify the HTML elements to which the new style information should apply, such as formattedText:SetTextColor("h2", 1, 0.3, 0.1) which will cause all level 2 headers to display in red. If no element name is specified, the settings apply to the SimpleHTML widget's default font.]]
-__Sealed__() __AutoProperty__()
+--- The most sophisticated control over text display is offered by SimpleHTML widgets. When its text is set to a string containing valid HTML markup, a SimpleHTML widget will parse the content into its various blocks and sections, and lay the text out. While it supports most common text commands, a SimpleHTML widget accepts an additional argument to most of these; if provided, the element argument will specify the HTML elements to which the new style information should apply, such as formattedText:SetTextColor("h2", 1, 0.3, 0.1) which will cause all level 2 headers to display in red. If no element name is specified, the settings apply to the SimpleHTML widget's default font.
+__Sealed__()
 class "SimpleHTML" (function(_ENV)
     inherit "Frame"
     extend "IFont"
@@ -3188,13 +3115,13 @@ class "SimpleHTML" (function(_ENV)
         ----------------------------------------------
         ------------------ Property ------------------
         ----------------------------------------------
-        __Doc__[[The owner of the element]]
+        --- The owner of the element
         property "Owner" { Type = SimpleHTML }
 
-        __Doc__[[The target element in the html like 'h2']]
+        --- The target element in the html like 'h2'
         property "Element" { Type = String }
 
-        __Doc__[[whether long lines of text are indented when wrapping]]
+        --- whether long lines of text are indented when wrapping
         property "IndentedWordWrap" {
             Get = function (self)
                 return self.Owner:GetIndentedWordWrap(self.Element)
@@ -3205,7 +3132,7 @@ class "SimpleHTML" (function(_ENV)
             Type = Boolean,
         }
 
-        __Doc__[[the Font object]]
+        --- the Font object
         property "FontObject" {
             Get = function (self)
                 return self.Owner:GetFontObject(self.Element)
@@ -3215,7 +3142,7 @@ class "SimpleHTML" (function(_ENV)
             end,
         }
 
-        __Doc__[[the font settings]]
+        --- the font settings
         property "Font" {
             Type = FontType,
             Get = function(self)
@@ -3254,7 +3181,7 @@ class "SimpleHTML" (function(_ENV)
             end,
         }
 
-        __Doc__[[The font path]]
+        --- The font path
         property "FontPath" {
             Type = NEString,
             Get = function(self) return (self.Owner:GetFont(self.Element)) end,
@@ -3264,7 +3191,7 @@ class "SimpleHTML" (function(_ENV)
             end,
         }
 
-        __Doc__[[The font height]]
+        --- The font height
         property "FontHeight" {
             Type = PositiveNumber,
             Get = function(self)
@@ -3277,7 +3204,7 @@ class "SimpleHTML" (function(_ENV)
             end,
         }
 
-        __Doc__[[The font's outline setting]]
+        --- The font's outline setting
         property "Outline" {
             Type = OutlineType,
             Get = function(self)
@@ -3314,7 +3241,7 @@ class "SimpleHTML" (function(_ENV)
             end,
         }
 
-        __Doc__[[The Font's monochrome setting]]
+        --- The Font's monochrome setting
         property "Monochrome" {
             Type = Boolean,
             Get = function(self)
@@ -3342,7 +3269,7 @@ class "SimpleHTML" (function(_ENV)
                 return self.Owner:SetFont(self.Element, filename, fontHeight, flags)
             end,
         }
-        __Doc__[[the fontstring's horizontal text alignment style]]
+        --- the fontstring's horizontal text alignment style
         property "JustifyH" {
             Get = function (self)
                 return self.Owner:GetJustifyH(self.Element)
@@ -3353,7 +3280,7 @@ class "SimpleHTML" (function(_ENV)
             Type = JustifyHType,
         }
 
-        __Doc__[[the fontstring's vertical text alignment style]]
+        --- the fontstring's vertical text alignment style
         property "JustifyV" {
             Get = function (self)
                 return self.Owner:GetJustifyV(self.Element)
@@ -3364,7 +3291,7 @@ class "SimpleHTML" (function(_ENV)
             Type = JustifyVType,
         }
 
-        __Doc__[[the color of the font's text shadow]]
+        --- the color of the font's text shadow
         property "ShadowColor" {
             Get = function(self)
                 return Color(self.Owner:GetShadowColor(self.Element))
@@ -3375,7 +3302,7 @@ class "SimpleHTML" (function(_ENV)
             Type = Color,
         }
 
-        __Doc__[[the offset of the fontstring's text shadow from its text]]
+        --- the offset of the fontstring's text shadow from its text
         property "ShadowOffset" {
             Get = function(self)
                 return Dimension(self.Owner:GetShadowOffset(self.Element))
@@ -3386,7 +3313,7 @@ class "SimpleHTML" (function(_ENV)
             Type = Dimension,
         }
 
-        __Doc__[[the fontstring's amount of spacing between lines]]
+        --- the fontstring's amount of spacing between lines
         property "Spacing" {
             Get = function (self)
                 return self.Owner:GetSpacing(self.Element)
@@ -3397,7 +3324,7 @@ class "SimpleHTML" (function(_ENV)
             Type = Number,
         }
 
-        __Doc__[[the fontstring's default text color]]
+        --- the fontstring's default text color
         property "TextColor" {
             Get = function(self)
                 return Color(self.Owner:GetTextColor(self.Element))
@@ -3422,31 +3349,29 @@ class "SimpleHTML" (function(_ENV)
             self.Element = key
             return self
         end
-
-        __call = __index
     end)
 
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the format string used for displaying hyperlinks in the frame]]
+    --- the format string used for displaying hyperlinks in the frame
     property "HyperlinkFormat" { Type = String }
 
-    __Doc__[[Whether hyperlinks in the frame's text are interactive]]
+    --- Whether hyperlinks in the frame's text are interactive
     property "HyperlinksEnabled" { Type = Boolean }
 
-    __Doc__[[whether long lines of text are indented when wrapping]]
+    --- whether long lines of text are indented when wrapping
     property "IndentedWordWrap" { Type = Boolean }
 
-    __Doc__[[The content of the html viewer]]
+    --- The content of the html viewer
     property "Text" { Type = String }
 
-    __Doc__[[The element accessor]]
+    --- The element accessor
     property "Element" { Set = false, Default = function(self) return Element(self) end }
 end)
 
-__Doc__[[Sliders are elements intended to display or allow the user to choose a value in a range.]]
-__Sealed__() __AutoProperty__()
+--- Sliders are elements intended to display or allow the user to choose a value in a range.
+__Sealed__()
 class "Slider" (function(_ENV)
     inherit "Frame"
 
@@ -3470,28 +3395,29 @@ class "Slider" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Graphics layer in which the texture should be drawn]]
-    __Handler__(function(self, layer)
-        self.UIElement:SetThumbTexture(self.UIElement:GetThumbTexture(), layer)
-    end)
-    property "DrawLayer" { Field = "__Slider_DrawLayer", Type = DrawLayer, Default = "ARTWORK" }
+    --- Graphics layer in which the texture should be drawn
+    property "DrawLayer" {
+        Field = "__Slider_DrawLayer",
+        Type = DrawLayer, Default = "ARTWORK",
+        Handler = function(self, layer) self.UIElement:SetThumbTexture(self.UIElement:GetThumbTexture(), layer) end,
+    }
 
-    __Doc__[[the orientation of the slider]]
+    --- the orientation of the slider
     property "Orientation" { Type = Orientation }
 
-    __Doc__[[the texture object for the slider thumb]]
+    --- the texture object for the slider thumb
     property "ThumbTexture" { }
 
-    __Doc__[[the value representing the current position of the slider thumb]]
+    --- the value representing the current position of the slider thumb
     property "Value" { Type = Number }
 
-    __Doc__[[the minimum increment between allowed slider values]]
+    --- the minimum increment between allowed slider values
     property "ValueStep" { Type = Number }
 
-    __Doc__[[whether user interaction with the slider is allowed]]
+    --- whether user interaction with the slider is allowed
     property "Enabled" { Type = Boolean }
 
-    __Doc__[[the minimum and maximum values of the slider bar]]
+    --- the minimum and maximum values of the slider bar
     property "MinMaxValue" {
         Get = function(self)
             return MinMax(self:GetMinMaxValues())
@@ -3502,15 +3428,15 @@ class "Slider" (function(_ENV)
         Type = MinMax,
     }
 
-    __Doc__[[the steps per page of the slider bar]]
+    --- the steps per page of the slider bar
     property "StepsPerPage" { Type = Number }
 
-    __Doc__[[Whether obey the step setting when drag the slider bar]]
+    --- Whether obey the step setting when drag the slider bar
     property "ObeyStepOnDrag" { Type = Boolean }
 end)
 
-__Doc__[[StatusBars are similar to Sliders, but they are generally used for display as they don't offer any tools to receive user input.]]
-__Sealed__() __AutoProperty__()
+--- StatusBars are similar to Sliders, but they are generally used for display as they don't offer any tools to receive user input.
+__Sealed__()
 class "StatusBar" (function(_ENV)
     inherit "Frame"
 
@@ -3534,13 +3460,14 @@ class "StatusBar" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Graphics layer in which the texture should be drawn]]
-    __Handler__(function(self, layer)
-        self.UIElement:SetStatusBarTexture(self.UIElement:GetStatusBarTexture(), layer)
-    end)
-    property "DrawLayer" { Field = "__StatusBar_DrawLayer", Type = DrawLayer, Default = "ARTWORK" }
+    --- Graphics layer in which the texture should be drawn
+    property "DrawLayer" {
+        Field = "__StatusBar_DrawLayer",
+        Type = DrawLayer, Default = "ARTWORK",
+        Handler = function(self, layer) self.UIElement:SetStatusBarTexture(self.UIElement:GetStatusBarTexture(), layer) end,
+    }
 
-    __Doc__[[the minimum and maximum values of the status bar]]
+    --- the minimum and maximum values of the status bar
     property "MinMaxValue" {
         Get = function(self)
             return MinMax(self:GetMinMaxValues())
@@ -3551,10 +3478,10 @@ class "StatusBar" (function(_ENV)
         Type = MinMax,
     }
 
-    __Doc__[[the orientation of the status bar]]
+    --- the orientation of the status bar
     property "Orientation" { Type = Orientation }
 
-    __Doc__[[the color shading for the status bar's texture]]
+    --- the color shading for the status bar's texture
     property "StatusBarColor" {
         Get = function(self)
             return Color(self:GetStatusBarColor())
@@ -3565,30 +3492,30 @@ class "StatusBar" (function(_ENV)
         Type = Color,
     }
 
-    __Doc__[[the texture used for drawing the filled-in portion of the status bar]]
+    --- the texture used for drawing the filled-in portion of the status bar
     property "StatusBarTexture" { }
 
-    __Doc__[[The texture atlas]]
+    --- The texture atlas
     property "StatusBarAtlas" { Type = String }
 
-    __Doc__[[ the value of the status bar]]
+    ---  the value of the status bar
     property "Value" { Type = Number }
 
-    __Doc__[[whether the status bar's texture is rotated to match its orientation]]
+    --- whether the status bar's texture is rotated to match its orientation
     property "RotatesTexture" { Type = Boolean }
 
-    __Doc__[[Whether the status bar's texture is reverse filled]]
+    --- Whether the status bar's texture is reverse filled
     property "ReverseFill" { Type = Boolean }
 
-    __Doc__[[The fill style of the status bar]]
+    --- The fill style of the status bar
     property "FillStyle" { }
 end)
 
 ------------------------------------------------------------
 --                        Model                           --
 ------------------------------------------------------------
-__Doc__[[Model provide a rendering environment which is drawn into the backdrop of their frame, allowing you to display the contents of an .m2 file and set facing, scale, light and fog information, or run motions associated]]
-__Sealed__() __AutoProperty__()
+--- Model provide a rendering environment which is drawn into the backdrop of their frame, allowing you to display the contents of an .m2 file and set facing, scale, light and fog information, or run motions associated
+__Sealed__()
 class "Model" (function(_ENV)
     inherit "Frame"
 
@@ -3600,7 +3527,7 @@ class "Model" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[the model's current fog color]]
+    --- the model's current fog color
     property "FogColor" {
         Get = function(self)
             return Color(self:GetFogColor())
@@ -3611,16 +3538,16 @@ class "Model" (function(_ENV)
         Type = Color,
     }
 
-    __Doc__[[the far clipping distance for the model's fog]]
+    --- the far clipping distance for the model's fog
     property "FogFar" { Type = Number }
 
-    __Doc__[[the near clipping distance for the model's fog]]
+    --- the near clipping distance for the model's fog
     property "FogNear" { Type = Number }
 
-    __Doc__[[the scale factor determining the size at which the 3D model appears]]
+    --- the scale factor determining the size at which the 3D model appears
     property "ModelScale" { Type = Number }
 
-    __Doc__[[the model file to be displayed]]
+    --- the model file to be displayed
     property "Model" {
         Set = function(self, file)
             if file then
@@ -3632,14 +3559,14 @@ class "Model" (function(_ENV)
         Type = NEString,
     }
 
-    __Doc__[[the position of the 3D model within the frame]]
+    --- the position of the 3D model within the frame
     property "Position" {
         Type = Position,
         Get = function(self) return Position(self:GetPosition()) end,
         Set = function(self, value) self:SetPosition(value.x, value.y, value.z) end,
     }
 
-    __Doc__[[the light sources used when rendering the model]]
+    --- the light sources used when rendering the model
     property "Light" {
         Get = function(self)
             local enabled, omni, dirX, dirY, dirZ, ambIntensity, ambR, ambG, ambB, dirIntensity, dirR, dirG, dirB = self:GetLight()
@@ -3678,53 +3605,53 @@ class "Model" (function(_ENV)
         Type = LightType,
     }
 
-    __Doc__[[The model's desaturation]]
+    --- The model's desaturation
     property "Desaturation" { Type = ColorFloat }
 
-    __Doc__[[The model's camera distance]]
+    --- The model's camera distance
     property "CameraDistance" { Type = NUmber }
 
-    __Doc__[[The model's camera facing]]
+    --- The model's camera facing
     property "CameraFacing" { Type = NUmber }
 
-    __Doc__[[The model's camera position]]
+    --- The model's camera position
     property "CameraPosition" {
         Type = Position,
         Get = function(self) return Position(self:GetCameraPosition()) end,
         Set = function(self, value) self:SetCameraPosition(value.x, value.y, value.z) end,
     }
 
-    __Doc__[[The model's camera roll]]
+    --- The model's camera roll
     property "CameraRoll" { Type = Number }
 
-    __Doc__[[The model's camera target position]]
+    --- The model's camera target position
     property "CameraTarget" {
         Type = Position,
         Get = function(self) return Position(self:GetCameraTarget()) end,
         Set = function(self, value) self:SetCameraTarget(value.x, value.y, value.z) end,
     }
 
-    __Doc__[[The model's alpha]]
+    --- The model's alpha
     property "ModelAlpha" { Type = ColorFloat }
 
-    __Doc__[[The model's draw layer]]
+    --- The model's draw layer
     property "ModelDrawLayer" { Type = DrawLayer }
 
-    __Doc__[[The model's scale]]
+    --- The model's scale
     property "ModelScale" { Type = Number }
 
-    __Doc__[[The model's facing]]
+    --- The model's facing
     property "Facing" { Type = Number }
 
-    __Doc__[[The model's pitch]]
+    --- The model's pitch
     property "Pitch" { Type = Number }
 
-    __Doc__[[The model's roll]]
+    --- The model's roll
     property "Roll" { Type = Number }
 end)
 
-__Doc__[[PlayerModels are the most commonly used subtype of Model frame. They expand on the Model type by adding functions to quickly set the model to represent a particular player or creature, by unitID or creature ID.]]
-__Sealed__() __AutoProperty__()
+--- PlayerModels are the most commonly used subtype of Model frame. They expand on the Model type by adding functions to quickly set the model to represent a particular player or creature, by unitID or creature ID.
+__Sealed__()
 class "PlayerModel" (function(_ENV)
     inherit "Model"
 
@@ -3736,17 +3663,17 @@ class "PlayerModel" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[The displayed model id]]
+    --- The displayed model id
     property "DisplayInfo" { Type = Number }
 
-    __Doc__[[Whether blend]]
+    --- Whether blend
     property "DoBlend" { Type = Boolean }
 
-    __Doc__[[Whether keep model when hidden]]
+    --- Whether keep model when hidden
     property "KeepModelOnHide" { Type = Boolean }
 end)
 
-__Sealed__() __AutoProperty__()
+__Sealed__()
 class "CinematicModel" (function(_ENV)
     inherit "PlayerModel"
 
@@ -3756,7 +3683,7 @@ class "CinematicModel" (function(_ENV)
     InstallPrototype("Frame")
 end)
 
-__Sealed__() __AutoProperty__()
+__Sealed__()
 class "DressUpModel" (function(_ENV)
     inherit "PlayerModel"
 
@@ -3768,17 +3695,17 @@ class "DressUpModel" (function(_ENV)
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
-    __Doc__[[Whether auto dress]]
+    --- Whether auto dress
     property "AutoDress" { Type = Boolean }
 
-    __Doc__[[Whether sheathed the weapon]]
+    --- Whether sheathed the weapon
     property "Sheathed" { Type = Boolean }
 
-    __Doc__[[Whether use transmog skin]]
+    --- Whether use transmog skin
     property "UseTransmogSkin" { Type = Boolean }
 end)
 
-__Sealed__() __AutoProperty__()
+__Sealed__()
 class "TabardModel" (function(_ENV)
     inherit "PlayerModel"
 

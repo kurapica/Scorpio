@@ -10,7 +10,7 @@ Scorpio            "Scorpio.SVManager"               "1.0.1"
 --========================================================--
 
 ----------------------------------------------
-------------------- Prepare ------------------
+--                  Prepare                 --
 ----------------------------------------------
 function copydefault(tar, default, clonefunc)
     if type(tar) ~= "table" then tar = {} end
@@ -44,7 +44,7 @@ end
 ------------------------------------------------------------
 --                       SVManager                        --
 ------------------------------------------------------------
-__Doc__[[The saved variables mananger]]
+--- The saved variables mananger
 __Sealed__()
 class "SVManager" (function(_ENV)
 
@@ -54,9 +54,9 @@ class "SVManager" (function(_ENV)
     _DBCharMap      = {}
 
     ----------------------------------------------
-    ------------------- Method -------------------
+    --                  Method                  --
     ----------------------------------------------
-    __Doc__[[Set the default value for the account saved variable]]
+    --- Set the default value for the account saved variable
     __Arguments__{ NEString + Number, Table }
     function SetDefault(self, key, default)
         _DBSVDefault[self] = _DBSVDefault[self] or {}
@@ -73,7 +73,7 @@ class "SVManager" (function(_ENV)
         _DBMap[self] = copydefault(_DBMap[self], default)
     end
 
-    __Doc__[[Reset the account saved variable with default]]
+    --- Reset the account saved variable with default
     function Reset(self)
         local cache = _DBMap[self]
         local chars = cache.__ScorpioChars
@@ -85,9 +85,9 @@ class "SVManager" (function(_ENV)
     end
 
     ----------------------------------------------
-    ------------------ Property ------------------
+    --                 Property                 --
     ----------------------------------------------
-    __Doc__[[The char's saved variable]]
+    --- The char's saved variable
     property "Char" {
         Get = function(self)
             local char = _DBCharMap[self]
@@ -105,7 +105,7 @@ class "SVManager" (function(_ENV)
     }
 
     ----------------------------------------------
-    ------------------- Dispose ------------------
+    --                  Dispose                 --
     ----------------------------------------------
     function Dispose(self)
         if _DBCharMap[self] then
@@ -118,7 +118,7 @@ class "SVManager" (function(_ENV)
     end
 
     ----------------------------------------------
-    ----------------- Constructor ----------------
+    --                Constructor               --
     ----------------------------------------------
     __Arguments__{ NEString }
     function SVManager(self, sv)
@@ -135,7 +135,7 @@ class "SVManager" (function(_ENV)
     end
 
     ----------------------------------------------
-    ----------------- Meta-Method ----------------
+    --                Meta-Method               --
     ----------------------------------------------
     function __index(self, key)
         return _DBMap[self][key]
@@ -146,19 +146,19 @@ class "SVManager" (function(_ENV)
     end
 
     ----------------------------------------------
-    ---------------- SVCharManager ---------------
+    --               SVCharManager              --
     ----------------------------------------------
     class "SVCharManager" (function(_ENV)
 
         _DBSpecMap = {}
 
         ----------------------------------------------
-        ------------------- Method -------------------
+        --                  Method                  --
         ----------------------------------------------
-        __Doc__[[Set the default value for the character saved variable]]
+        --- Set the default value for the character saved variable
         SetDefault = SetDefault
 
-        __Doc__[[Reset the character saved variable with default]]
+        --- Reset the character saved variable with default
         function Reset(self)
             local cache = _DBMap[self]
             local specs = cache.__ScorpioSpecs
@@ -170,9 +170,9 @@ class "SVManager" (function(_ENV)
         end
 
         ----------------------------------------------
-        ------------------ Property ------------------
+        --                 Property                 --
         ----------------------------------------------
-        __Doc__[[The char's specialization saved variable]]
+        --- The char's specialization saved variable
         property "Spec" {
             Get = function(self)
                 local spec = _DBSpecMap[self]
@@ -187,7 +187,7 @@ class "SVManager" (function(_ENV)
         }
 
         ----------------------------------------------
-        ------------------- Dispose ------------------
+        --                  Dispose                 --
         ----------------------------------------------
         function Dispose(self)
             if _DBSpecMap[self] then
@@ -198,8 +198,9 @@ class "SVManager" (function(_ENV)
             _DBSVDefault[self] = nil
             _DBMap[self] = nil
         end
+
         ----------------------------------------------
-        ----------------- Constructor ----------------
+        --                Constructor               --
         ----------------------------------------------
         __Arguments__{ Table }
         function SVCharManager(self, sv)
@@ -213,7 +214,7 @@ class "SVManager" (function(_ENV)
         end
 
         ----------------------------------------------
-        ----------------- Meta-Method ----------------
+        --                Meta-Method               --
         ----------------------------------------------
         function __index(self, key)
             return _DBMap[self][key]
@@ -224,14 +225,14 @@ class "SVManager" (function(_ENV)
         end
 
         ----------------------------------------------
-        ---------------- SVSpecManager ---------------
+        --               SVSpecManager              --
         ----------------------------------------------
         class "SVSpecManager" (function(_ENV)
 
             ----------------------------------------------
-            ------------------- Method -------------------
+            --                   Method                 --
             ----------------------------------------------
-            __Doc__[[Set the default value for the specialization saved variable]]
+            --- Set the default value for the specialization saved variable
             __Arguments__{ NEString + Number, Table }
             function SetDefault(self, key, default)
                 _DBSVDefault[self] = _DBSVDefault[self] or {}
@@ -256,7 +257,7 @@ class "SVManager" (function(_ENV)
                 end
             end
 
-            __Doc__[[Reset current specialization saved variable with default]]
+            --- Reset current specialization saved variable with default
             function Reset(self)
                 local cache = _DBMap[self][GetSpecialization() or 1]
                 if cache then
@@ -265,7 +266,7 @@ class "SVManager" (function(_ENV)
                 end
             end
 
-            __Doc__[[Reset all specialization saved variables with default]]
+            --- Reset all specialization saved variables with default
             function ResetAll(self)
                 for i, v in pairs(_DBMap[self]) do
                     if type(i) == "number" then
@@ -276,7 +277,7 @@ class "SVManager" (function(_ENV)
             end
 
             ----------------------------------------------
-            ------------------- Dispose ------------------
+            --                  Dispose                 --
             ----------------------------------------------
             function Dispose(self)
                 _DBSVDefault[self] = nil
@@ -284,7 +285,7 @@ class "SVManager" (function(_ENV)
             end
 
             ----------------------------------------------
-            ----------------- Constructor ----------------
+            --                Constructor               --
             ----------------------------------------------
             __Arguments__{ Table }
             function SVSpecManager(self, sv)
@@ -292,7 +293,7 @@ class "SVManager" (function(_ENV)
             end
 
             ----------------------------------------------
-            ----------------- Meta-Method ----------------
+            --                Meta-Method               --
             ----------------------------------------------
             function __index(self, key)
                 local cache = _DBMap[self][GetSpecialization() or 1]

@@ -586,7 +586,7 @@ API                                                 |Description
 Continue(func[, ...])                               |Call the func with arguments as soon as possible.
 Next(func[, ...])                                   |Call the func with arguments in the next frame OnUpdate.
 Delay(delay, func[, ...])                           |Call the func with arguments after a delay(second).
-Event(event, func[, ...])                           |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
+NextEvent(event, func[, ...])                       |Call the func when an system event is fired. If there is no arguments, the system event's argument should be used.
 Wait(func[,delay][,event[, ...]])                   |Call the func when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be passed to the func.
 Wait(func[,event[, ...]])                           |Call the func when one of the registered events fired, the event name and its arguments would be passed to the func.
 NoCombat(func[, ...])                               |Call the func with arguments when not in combat.
@@ -601,7 +601,7 @@ API                                         |Description
 Continue()                                  |Continue the thread as soon as possible.
 Next()                                      |Continue the thread in next frame OnUpdate.
 Delay(delay)                                |Continue the thread after a delay(second).
-Event(event)                                |Continue the thread when an system event is fired, the system event's argument will be returned.
+NextEvent(event)                            |Continue the thread when an system event is fired, the system event's argument will be returned.
 Wait([delay,][event[,...]])                 |Continue the thread when one of the registered events fired or meet the delay time, if it's resumed by a system event, the name and its arguments would be returned.
 Wait([event[,...]])                         |Continue the thread when one of the registered events fired, the event name and its arguments would be returned.
 NoCombat()                                  |Continue the thread when not in combat.
@@ -684,7 +684,7 @@ Here are some examples :
         local addon = "Blizzard_AuctionUI"
         Scorpio.Continue(
             function()
-                while Scorpio.Event("ADDON_LOADED") ~= addon do end
+                while Scorpio.NextEvent("ADDON_LOADED") ~= addon do end
                 print(addon .. " is loaded.")
             end
         )

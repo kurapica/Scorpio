@@ -20,7 +20,7 @@ do
     PLAYER_CLASS                = select(2, UnitClass("player"))
 
     ----------------- Class Power Map -----------------
-    CLASS_POWER_MAP             = Dictionary(Iterator(function() for n, v in Reflector.GetEnums(ClassPower) do coroutine.yield(v, n) end end))
+    CLASS_POWER_MAP             = Dictionary(Enum.GetEnumValues(ClassPower))
 
     ----------------- SPEC Class Power ----------------
     SPEC_ALL                    = 0
@@ -96,12 +96,12 @@ end
 ------------------------------------------------------------
 --                  Module Event Handler                  --
 ------------------------------------------------------------
-__Thread__()
+__Async__()
 function OnEnable(self)
 
 end
 
-__Thread__()
+__Async__()
 function OnSpecChanged(self, spec)
     -- Update the class power
     SPEC_CLASS_POWER = false
@@ -118,7 +118,7 @@ function OnSpecChanged(self, spec)
                     if SPEC_CLASS_POWER then SPEC_CLASS_POWERID = ClassPower[SPEC_CLASS_POWER] end
                     UNIT_POWER_FREQUENT("player", SPEC_CLASS_POWER)
 
-                    Event("UPDATE_SHAPESHIFT_FORM")
+                    NextEvent("UPDATE_SHAPESHIFT_FORM")
                 end
             elseif info.ShowLevel and info.ShowLevel > UnitLevel("player") then
                 UNIT_POWER_FREQUENT("player", SPEC_CLASS_POWER)
@@ -147,8 +147,6 @@ end
 ------------------------------------------------------------
 --                      MVC Helper                        --
 ------------------------------------------------------------
-FireObjectEvent             = Reflector.FireObjectEvent
-
 UnitHealthModelMap          = Dictionary()
 UnitHealthFrequentModelMap  = Dictionary()
 UnitPowerModelMap           = Dictionary()
@@ -271,7 +269,7 @@ end
 ------------------------------------------------------------
 --                        Unit MVC                        --
 ------------------------------------------------------------
-__Doc__[[The unit health model]]
+--- The unit health model
 class "UnitHealthModel" { Model,
     -- Constructor
     function(self, unit)
@@ -284,7 +282,7 @@ class "UnitHealthModel" { Model,
     __exist = function(unit) return UnitHealthModelMap[unit] end,
 }
 
-__Doc__[[The unit frequent health model]]
+--- The unit frequent health model
 class "UnitHealthFrequentModel" { Model,
     -- Constructor
     function(self, unit)
@@ -297,7 +295,7 @@ class "UnitHealthFrequentModel" { Model,
     __exist = function(unit) return UnitHealthFrequentModelMap[unit] end,
 }
 
-__Doc__[[The unit power model]]
+--- The unit power model
 class "UnitPowerModel" { Model,
     -- Constructor
     function(self, unit)
@@ -311,7 +309,7 @@ class "UnitPowerModel" { Model,
     __exist = function(unit) return UnitPowerModelMap[unit] end,
 }
 
-__Doc__[[The unit frequent power model]]
+--- The unit frequent power model
 class "UnitPowerFrequentModel" { Model,
     -- Constructor
     function(self, unit)
@@ -325,7 +323,7 @@ class "UnitPowerFrequentModel" { Model,
     __exist = function(unit) return UnitPowerFrequentModelMap[unit] end,
 }
 
-__Doc__[[The unit mana model]]
+--- The unit mana model
 class "UnitManaModel" { Model,
     -- Constructor
     function(self, unit)
@@ -338,7 +336,7 @@ class "UnitManaModel" { Model,
     __exist = function(unit) return UnitManaModelMap[unit] end,
 }
 
-__Doc__[[The unit frequent mana model]]
+--- The unit frequent mana model
 class "UnitManaFrequentModel" { Model,
     -- Constructor
     function(self, unit)
@@ -351,7 +349,7 @@ class "UnitManaFrequentModel" { Model,
     __exist = function(unit) return UnitManaFrequentModelMap[unit] end,
 }
 
-__Doc__[[The unit class power model]]
+--- The unit class power model
 class "UnitClassPowerModel" { Model,
     -- Constructor
     function(self, unit)
