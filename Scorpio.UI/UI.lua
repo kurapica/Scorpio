@@ -1502,7 +1502,7 @@ class "Frame" (function(_ENV)
     }
 
     --- the backdrop graphic for the frame
-    property "Backdrop" { Type = BackdropType }
+    property "Backdrop" { Type = BackdropType, Auto = true }
 
     --- the shading color for the frame's border graphic
     property "BackdropBorderColor" {
@@ -1519,7 +1519,7 @@ class "Frame" (function(_ENV)
     }
 
     --- whether the frame's boundaries are limited to those of the screen
-    property "ClampedToScreen" { Type = Boolean }
+    property "ClampedToScreen" { Type = Boolean, Auto = true }
 
     --- offsets from the frame's edges used when limiting user movement or resizing of the frame
     property "ClampRectInsets" {
@@ -1529,37 +1529,37 @@ class "Frame" (function(_ENV)
     }
 
     --- Whether the children is limited to draw inside the frame's boundaries
-    property "ClipsChildren" { Type = Boolean, Get = "DoesClipChildren", Set = "SetClipsChildren" }
+    property "ClipsChildren" { Type = Boolean, Get = DoesClipChildren, Set = SetClipsChildren }
 
     --- the 3D depth of the frame (for stereoscopic 3D setups)
-    property "Depth" { Type = Number }
+    property "Depth" { Type = Number, Auto = true }
 
     --- whether the frame's depth property is ignored (for stereoscopic 3D setups)
-    property "DepthIgnored" { Type = Boolean }
+    property "DepthIgnored" { Type = Boolean, Get = IsIgnoringDepth, Set = IgnoreDepth }
 
     --- Whether the frame don't save its location in layout-cache
-    property "DontSavePosition" { Type = Boolean }
+    property "DontSavePosition" { Type = Boolean, Auto = true  }
 
     --- The effective alpha, readonly
-    property "EffectiveAlpha" {}
+    property "EffectiveAlpha" { Get = GetEffectiveAlpha }
 
     --- The effective depth, readonly
-    property "EffectiveDepth" {}
+    property "EffectiveDepth" { Get = GetEffectiveDepth }
 
     --- The effective scale, readonly
-    property "EffectiveScale" {}
+    property "EffectiveScale" { Get = GetEffectiveScale }
 
     --- The effective flattens render layers
-    property "EffectivelyFlattensRenderLayers" {}
+    property "EffectivelyFlattensRenderLayers" { Get = GetEffectivelyFlattensRenderLayers }
 
     --- Whether the frame's child is render in flattens layers
-    property "FlattensRenderLayers" { Type = Boolean }
+    property "FlattensRenderLayers" { Type = Boolean, Auto = true }
 
     --- the level at which the frame is layered relative to others in its strata
-    property "FrameLevel" { Type = Number }
+    property "FrameLevel" { Type = Number, Auto = true }
 
     --- the general layering strata of the frame
-    property "FrameStrata" { Type = FrameStrata }
+    property "FrameStrata" { Type = FrameStrata, Auto = true }
 
     --- the insets from the frame's edges which determine its mouse-interactable area
     property "HitRectInsets" {
@@ -1569,22 +1569,22 @@ class "Frame" (function(_ENV)
     }
 
     --- Whether the hyper links are enabled
-    property "HyperlinksEnabled" { Type = Boolean }
+    property "HyperlinksEnabled" { Type = Boolean, Auto = true }
 
     --- a numeric identifier for the frame
-    property "ID" { Type = Number }
+    property "ID" { Type = Number, Auto = true }
 
     --- Whether the frame ignore its parent's alpha settings
-    property "IgnoreParentAlpha" { Type = Boolean }
+    property "IgnoreParentAlpha" { Type = Boolean, Get = IsIgnoringParentAlpha, Set = SetIgnoreParentAlpha }
 
     --- Whether the frame ignore its parent's scale settings
-    property "IgnoreParentScale" { Type = Boolean }
+    property "IgnoreParentScale" { Type = Boolean, Get = IsIgnoringParentScale, Set = SetIgnoreParentScale }
 
     --- Whether the joystick is enabled for the frame
-    property "JoystickEnabled" { Type = Boolean }
+    property "JoystickEnabled" { Type = Boolean, Get = IsJoystickEnabled, Set = EnableJoystick }
 
     --- whether keyboard interactivity is enabled for the frame
-    property "KeyboardEnabled" { Type = Boolean }
+    property "KeyboardEnabled" { Type = Boolean, Get = IsKeyboardEnabled, Set = EnableKeyboard }
 
     --- the maximum size of the frame for user resizing
     property "MaxResize" {
@@ -1601,31 +1601,31 @@ class "Frame" (function(_ENV)
     }
 
     --- Whether the mouse click is enabled
-    property "MouseClickEnabled" { Type = Boolean }
+    property "MouseClickEnabled" { Type = Boolean, Auto = true }
 
     --- whether mouse interactivity is enabled for the frame
-    property "MouseEnabled" { Type = Boolean }
+    property "MouseEnabled" { Type = Boolean, Get = IsMouseEnabled, Set = EnableMouse }
 
     --- Whether the mouse motion in enabled
-    property "MouseMotionEnabled" { Type = Boolean }
+    property "MouseMotionEnabled" { Type = Boolean, Auto = true }
 
     --- whether the frame can be moved by the user
-    property "Movable" { Type = Boolean }
+    property "Movable" { Type = Boolean, Auto = true }
 
     --- whether mouse wheel interactivity is enabled for the frame
-    property "MouseWheelEnabled" { Type = Boolean }
+    property "MouseWheelEnabled" { Type = Boolean, Get = IsMouseWheelEnabled, Set = EnableMouseWheel }
 
     --- Whether the frame get the propagate keyboard input
-    property "PropagateKeyboardInput" { Type = Boolean }
+    property "PropagateKeyboardInput" { Type = Boolean, Auto = true }
 
     --- whether the frame can be resized by the user
-    property "Resizable" { Type = Boolean }
+    property "Resizable" { Type = Boolean, Auto = true }
 
     --- the frame's scale factor
-    property "Scale" { Type = Number }
+    property "Scale" { Type = Number, Auto = true }
 
     --- whether the frame should automatically come to the front when clicked
-    property "Toplevel" { Type = Boolean }
+    property "Toplevel" { Type = Boolean, Auto = true }
 end)
 
 ------------------------------------------------------------
@@ -1912,7 +1912,7 @@ class "Texture" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- the blend mode of the texture
-    property "BlendMode" { Type = AlphaMode }
+    property "BlendMode" { Type = AlphaMode, Auto = true }
 
     --- the texture's color
     property "Color" {
@@ -1935,16 +1935,16 @@ class "Texture" (function(_ENV)
     }
 
     --- whether the texture image should be displayed with zero saturation
-    property "Desaturated" { Type = Boolean }
+    property "Desaturated" { Type = Boolean, Auto = true }
 
     --- The texture's desaturation
-    property "Desaturation" { Type = ColorFloat }
+    property "Desaturation" { Type = ColorFloat, Auto = true }
 
     --- Whether the texture is horizontal tile
-    property "HorizTile" { Type = Boolean }
+    property "HorizTile" { Type = Boolean, Auto = true }
 
     --- whether the texture object loads its image file in the background
-    property "NonBlocking" { Type = Boolean }
+    property "NonBlocking" { Type = Boolean, Auto = true }
 
     --- the texture object's image file path
     property "Path" {
@@ -1991,7 +1991,7 @@ class "Texture" (function(_ENV)
     }
 
     --- Whether the texture is vertical tile
-    property "VertTile" { Type = Boolean }
+    property "VertTile" { Type = Boolean, Auto = true }
 
     --- The gradient color shading for the texture
     property "Gradient" {
@@ -2083,33 +2083,25 @@ class "FontString" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- whether the text wrap will be indented
-    property "IndentedWordWrap" { Type = Boolean }
+    property "IndentedWordWrap" { Type = Boolean, Auto = true }
 
     --- the max lines of the text
-    property "MaxLines" { Type = PositiveInteger }
+    property "MaxLines" { Type = NaturalNumber, Auto = true }
 
     --- whether long lines of text will wrap within or between words
-    property "NonSpaceWrap" {
-        Type = Boolean,
-        Get = "CanNonSpaceWrap",
-        Set = "SetNonSpaceWrap",
-    }
+    property "NonSpaceWrap" { Type = Boolean, Get = CanNonSpaceWrap, Set = SetNonSpaceWrap }
 
     --- whether long lines of text in the font string can wrap onto subsequent lines
-    property "WordWrap" {
-        Type = Boolean,
-        Get = "CanWordWrap",
-        Set = "SetWordWrap"
-    }
+    property "WordWrap" { Type = Boolean, Get = CanWordWrap, Set = SetWordWrap }
 
     --- the height of the text displayed in the font string
-    property "StringHeight" { }
+    property "StringHeight" { Get = GetStringHeight }
 
     --- the width of the text displayed in the font string
-    property "StringWidth" { }
+    property "StringWidth" { Get = GetStringWidth }
 
     --- the text to be displayed in the font string
-    property "Text" { Type = LocaleString }
+    property "Text" { Type = LocaleString, Auto = true }
 end)
 
 ------------------------------------------------------------
@@ -2133,13 +2125,13 @@ class "Line" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- The start point of the line
-    property "StartPoint" { Type = Dimension }
+    property "StartPoint" { Type = Dimension, Auto = true }
 
     --- The end point of the line
-    property "EndPoint" { Type = Dimension }
+    property "EndPoint" { Type = Dimension, Auto = true }
 
     --- The thickness of the line
-    property "Thickness" { Type = PositiveNumber }
+    property "Thickness" { Type = PositiveNumber, Auto = true }
 end)
 
 ------------------------------------------------------------
@@ -2165,10 +2157,10 @@ class "AnimationGroup" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- looping type for the animation group: BOUNCE , NONE  , REPEAT
-    property "Looping" { Type = AnimLoopType }
+    property "Looping" { Type = AnimLoopType, Auto = true }
 
     --- Whether to final alpha is set
-    property "ToFinalAlpha" { Type = Boolean, Set = "SetToFinalAlpha", Get = "IsSetToFinalAlpha" }
+    property "ToFinalAlpha" { Type = Boolean, Set = SetToFinalAlpha, Get = IsSetToFinalAlpha }
 end)
 
 --- Animations are used to change presentations or other characteristics of a frame or other region over time. The Animation object will take over the work of calling code over time, or when it is done, and tracks how close the animation is to completion.
@@ -2207,22 +2199,22 @@ class "Animation" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- Amount of time the animation delays before its progress begins (in seconds)
-    property "StartDelay" { Type = Number }
+    property "StartDelay" { Type = Number, Auto = true }
 
     --- Time for the animation to delay after finishing (in seconds)
-    property "EndDelay" { Type = Number }
+    property "EndDelay" { Type = Number, Auto = true }
 
     --- Time for the animation to progress from start to finish (in seconds)
-    property "Duration" { Type = Number }
+    property "Duration" { Type = Number, Auto = true }
 
     --- Position at which the animation will play relative to others in its group (between 0 and 100)
-    property "Order" { Type = Number }
+    property "Order" { Type = Number, Auto = true }
 
     --- Type of smoothing for the animation, IN, IN_OUT, NONE, OUT
-    property "Smoothing" { Type = AnimSmoothType }
+    property "Smoothing" { Type = AnimSmoothType, Auto = true }
 
     --- The smooth progress of the animation
-    property "SmoothProgress" { Type = Number }
+    property "SmoothProgress" { Type = Number, Auto = true }
 end)
 
 --- Alpha is a type of animation that automatically changes the transparency level of its attached region as it progresses. You can set the degree by which it will change the alpha as a fraction; for instance, a change of -1 will fade out a region completely
@@ -2243,10 +2235,10 @@ class "Alpha" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- the animation's amount of alpha (opacity) start from
-    property "FromAlpha" { Type = Number }
+    property "FromAlpha" { Type = Number, Auto = true }
 
     --- the animation's amount of alpha (opacity) end to
-    property "ToAlpha" { Type = Number }
+    property "ToAlpha" { Type = Number, Auto = true }
 end)
 
 --- Path is an Animation type that combines multiple transitions into a single control path with multiple ControlPoints.
@@ -2267,7 +2259,7 @@ class "Path" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- The curveType of the given path
-    property "Curve" { Type = AnimCurveType }
+    property "Curve" { Type = AnimCurveType, Auto = true }
 end)
 
 --- A special type that represent a point in a Path Animation.
@@ -2291,7 +2283,7 @@ class "ControlPoint" (function(_ENV)
     property "Offset" {
         Type = Dimension,
         Get = function(self)
-            return Dimension(elf:GetOffset())
+            return Dimension(self:GetOffset())
         end,
         Set = function(self, offset)
             return self:SetOffset(offset.x, offset.y)
@@ -2299,7 +2291,7 @@ class "ControlPoint" (function(_ENV)
     }
 
     --- Position at which the animation will play relative to others in its group (between 0 and 100)
-    property "Order" { Type = Number }
+    property "Order" { Type = Number, Auto = true }
 end)
 
 --- Rotation is an Animation that automatically applies an affine rotation to the region being animated. You can set the origin around which the rotation is being done, and the angle of rotation in either degrees or radians.
@@ -2320,10 +2312,10 @@ class "Rotation" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- the animation's rotation amount (in degrees)
-    property "Degrees" { Type = Number }
+    property "Degrees" { Type = Number, Auto = true }
 
     --- the animation's rotation amount (in radians)
-    property "Radians" { Type = Number }
+    property "Radians" { Type = Number, Auto = true }
 
     --- the rotation animation's origin point
     property "Origin" {
@@ -2544,31 +2536,31 @@ class "Button" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- Whether the button is enabled
-    property "Enabled" { Type = Boolean }
+    property "Enabled" { Type = Boolean, Get = IsEnabled, Set = function(self, flag) if true then self:Enable() else self:Disable() end end }
 
     --- the font object used for the button's disabled state
-    property "DisabledFontObject" { }
+    property "DisabledFontObject" { Auto = true }
 
     --- the font object used when the button is highlighted
-    property "HighlightFontObject" { }
+    property "HighlightFontObject" { Auto = true }
 
     --- the font object used for the button's normal state
-    property "NormalFontObject" { }
+    property "NormalFontObject" { Auto = true }
 
     --- the texture object used when the button is disabled
-    property "DisabledTexture" { }
+    property "DisabledTexture" { Auto = true }
 
     --- the texture object used when the button is highlighted
-    property "HighlightTexture" { }
+    property "HighlightTexture" { Auto = true }
 
     --- the texture object used for the button's normal state
-    property "NormalTexture" { }
+    property "NormalTexture" { Auto = true }
 
     --- the texture object used when the button is pushed
-    property "PushedTexture" { }
+    property "PushedTexture" { Auto = true }
 
     --- the FontString object used for the button's label text
-    property "FontString" { Type = FontString }
+    property "FontString" { Type = FontString, Auto = true }
 
     --- the offset for moving the button's label text when pushed
     property "PushedTextOffset" {
@@ -2582,13 +2574,13 @@ class "Button" (function(_ENV)
     }
 
     --- the text displayed as the button's label
-    property "Text" { Type = LocaleString }
+    property "Text" { Type = LocaleString, Auto = true }
 
     --- true if the button's highlight state is locked
     property "HighlightLocked" { Field = true, Type = Boolean, Handler = function (self, value) if value then self:LockHighlight() else self:UnlockHighlight() end end }
 
     --- Whether enable the motion script while disabled
-    property "MotionScriptsWhileDisabled" { Type = Boolean }
+    property "MotionScriptsWhileDisabled" { Type = Boolean, Auto = true }
 end)
 
 --- Browser is used to provide help helpful pages in the game
@@ -2617,25 +2609,25 @@ class "EditBox" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- whether the text wrap will be indented
-    property "IndentedWordWrap" { Type = Boolean }
+    property "IndentedWordWrap" { Type = Boolean, Auto = true }
 
     --- Whether count the invisible letters for max letters
-    property "CountInvisibleLetters" { Type = Boolean }
+    property "CountInvisibleLetters" { Type = Boolean, Auto = true }
 
     --- true if the edit box shows more than one line of text
-    property "MultiLine" { Type = Boolean }
+    property "MultiLine" { Type = Boolean, Auto = true }
 
     --- true if the edit box only accepts numeric input
-    property "Numeric" { Type = Boolean }
+    property "Numeric" { Type = Boolean, Auto = true }
 
     --- true if the text entered in the edit box is masked
-    property "Password" { Type = Boolean }
+    property "Password" { Type = Boolean, Auto = true }
 
     --- true if the edit box automatically acquires keyboard input focus
-    property "AutoFocus" { Type = Boolean }
+    property "AutoFocus" { Type = Boolean, Auto = true }
 
     --- the maximum number of history lines stored by the edit box
-    property "HistoryLines" { Type = Number }
+    property "HistoryLines" { Type = Number, Auto = true }
 
     --- true if the edit box is currently focused
     property "Focused" {
@@ -2651,25 +2643,25 @@ class "EditBox" (function(_ENV)
     }
 
     --- true if the arrow keys are ignored by the edit box unless the Alt key is held
-    property "AltArrowKeyMode" { Type = Boolean }
+    property "AltArrowKeyMode" { Type = Boolean, Auto = true }
 
     --- the rate at which the text insertion blinks when the edit box is focused
-    property "BlinkSpeed" { Type = Number }
+    property "BlinkSpeed" { Type = Number, Auto = true }
 
     --- the current cursor position inside edit box
-    property "CursorPosition" { Type = Number }
+    property "CursorPosition" { Type = Number, Auto = true }
 
     --- the maximum number of bytes of text allowed in the edit box, default is 0(Infinite)
-    property "MaxBytes" { Type = Number }
+    property "MaxBytes" { Type = Number, Auto = true }
 
     --- the maximum number of text characters allowed in the edit box
-    property "MaxLetters" { Type = Number }
+    property "MaxLetters" { Type = Number, Auto = true }
 
     --- the contents of the edit box as a number
-    property "Number" { Type = Number }
+    property "Number" { Type = Number, Auto = true }
 
     --- the edit box's text contents
-    property "Text" { Type = String }
+    property "Text" { Type = String, Auto = true }
 
     --- the insets from the edit box's edges which determine its interactive text area
     property "TextInsets" {
@@ -2683,7 +2675,7 @@ class "EditBox" (function(_ENV)
     }
 
     --- Whether the edit box is enabled
-    property "Enabled" { Type = Boolean }
+    property "Enabled" { Type = Boolean, Get = IsEnabled, Set = function(self, flag) if flag then self:Enable() else self:Disable() end end }
 end)
 
 --- CheckButtons are a specialized form of Button; they maintain an on/off state, which toggles automatically when they are clicked, and additional textures for when they are checked, or checked while disabled.
@@ -2711,13 +2703,13 @@ class "CheckButton" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- true if the checkbutton is checked
-    property "Checked" { Type = Boolean }
+    property "Checked" { Type = Boolean, Auto = true }
 
     --- the texture object used when the button is checked
-    property "CheckedTexture" { }
+    property "CheckedTexture" { Auto = true }
 
     --- the texture object used when the button is disabled and checked
-    property "DisabledCheckedTexture" { }
+    property "DisabledCheckedTexture" { Auto = true }
 end)
 
 __Sealed__()
@@ -2752,16 +2744,16 @@ class "ColorSelect" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- the texture for the color picker's value slider background
-    property "ColorValueTexture" { }
+    property "ColorValueTexture" { Auto = true }
 
     --- the texture for the color picker's value slider thumb
-    property "ColorValueThumbTexture" { }
+    property "ColorValueThumbTexture" { Auto = true }
 
     --- the texture for the color picker's hue/saturation wheel
-    property "ColorWheelTexture" { }
+    property "ColorWheelTexture" { Auto = true }
 
     --- the texture for the selection indicator on the color picker's hue/saturation wheel
-    property "ColorWheelThumbTexture" { }
+    property "ColorWheelThumbTexture" { Auto = true }
 
     --- the HSV color value
     property "ColorHSV" {
@@ -2792,25 +2784,25 @@ class "Cooldown" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- Whether the cooldown animation "sweeps" an area of darkness over the underlying image; false if the animation darkens the underlying image and "sweeps" the darkened area away
-    property "Reverse" { Type = Boolean }
+    property "Reverse" { Type = Boolean, Auto = true }
 
     --- the duration currently shown by the cooldown frame in milliseconds
-    property "CooldownDuration" { Type = Number }
+    property "CooldownDuration" { Type = Number, Auto = true }
 
     --- Whether the cooldown 'bling' when finsihed
-    property "DrawBling" { Type = Boolean }
+    property "DrawBling" { Type = Boolean, Auto = true }
 
     --- Whether a bright line should be drawn on the moving edge of the cooldown animation
-    property "DrawEdge" { Type = Boolean }
+    property "DrawEdge" { Type = Boolean, Auto = true }
 
     --- Whether a shadow swipe should be drawn
-    property "DrawSwipe" { Type = Boolean }
+    property "DrawSwipe" { Type = Boolean, Auto = true }
 
     --- Sets the bling texture
-    property "BlingTexture" { }
+    property "BlingTexture" { Set = SetBlingTexture }
 
     --- Sets the edge texture
-    property "EdgeTexture" { }
+    property "EdgeTexture" { Set = SetEdgeTexture }
 
     --- Sets the swipe color
     property "SwipeColor" {
@@ -2821,10 +2813,10 @@ class "Cooldown" (function(_ENV)
     }
 
     --- Sets the swipe texture
-    property "SwipeTexture" { }
+    property "SwipeTexture" { Set = SetSwipeTexture }
 
     --- Whether hide count down numbers
-    property "HideCountdownNumbers" { Type = Boolean }
+    property "HideCountdownNumbers" { Type = Boolean, Set = SetHideCountdownNumbers }
 end)
 
 --- GameTooltips are used to display explanatory information relevant to a particular element of the game world.
@@ -2949,7 +2941,7 @@ class "GameTooltip" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- The owner of this gametooltip
-    property "Owner" { Type = UI }
+    property "Owner" { Type = UI, Auto = true }
 
     --- The padding of the GameTooltip
     property "Padding" {
@@ -3013,22 +3005,22 @@ class "MessageFrame" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- whether messages added to the frame automatically fade out after a period of time
-    property "Fading" { Type = Boolean }
+    property "Fading" { Type = Boolean, Auto = true }
 
     --- whether long lines of text are indented when wrapping
-    property "IndentedWordWrap" { Type = Boolean }
+    property "IndentedWordWrap" { Type = Boolean, Auto = true }
 
     --- the amount of time for which a message remains visible before beginning to fade out
-    property "TimeVisible" { Type = Number }
+    property "TimeVisible" { Type = Number, Auto = true }
 
     --- the duration of the fade-out animation for disappearing messages
-    property "FadeDuration" { Type = Number }
+    property "FadeDuration" { Type = Number, Auto = true }
 
     --- the position at which new messages are added to the frame
-    property "InsertMode" { Type = InsertMode }
+    property "InsertMode" { Type = InsertMode, Auto = true }
 
     --- The power of the fade-out animation for disappearing messages
-    property "FadePower" { Type = Number }
+    property "FadePower" { Type = Number, Auto = true }
 end)
 
 --- MovieFrames are used to play video files of some formats.
@@ -3045,7 +3037,7 @@ class "MovieFrame" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- Whether the subtitles should be shown for the movie
-    property "SubtitlesEnabled" { Type = Boolean, Set = "EnableSubtitles" }
+    property "SubtitlesEnabled" { Type = Boolean, Set = EnableSubtitles }
 end)
 
 --- QuestPOIFrames are used to draw blobs of interest points for quest on the world map
@@ -3091,13 +3083,13 @@ class "ScrollFrame" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- the scroll frame's current horizontal scroll position
-    property "HorizontalScroll" { Type = Number }
+    property "HorizontalScroll" { Type = Number, Auto = true }
 
     --- the scroll frame's vertical scroll position
-    property "VerticalScroll" { Type = Number }
+    property "VerticalScroll" { Type = Number, Auto = true }
 
     --- The frame scrolled by the scroll frame
-    property "ScrollChild" { Type = Region }
+    property "ScrollChild" { Type = Region, Auto = true }
 end)
 
 --- The most sophisticated control over text display is offered by SimpleHTML widgets. When its text is set to a string containing valid HTML markup, a SimpleHTML widget will parse the content into its various blocks and sections, and lay the text out. While it supports most common text commands, a SimpleHTML widget accepts an additional argument to most of these; if provided, the element argument will specify the HTML elements to which the new style information should apply, such as formattedText:SetTextColor("h2", 1, 0.3, 0.1) which will cause all level 2 headers to display in red. If no element name is specified, the settings apply to the SimpleHTML widget's default font.
@@ -3355,16 +3347,16 @@ class "SimpleHTML" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- the format string used for displaying hyperlinks in the frame
-    property "HyperlinkFormat" { Type = String }
+    property "HyperlinkFormat" { Type = String, Auto = true }
 
     --- Whether hyperlinks in the frame's text are interactive
-    property "HyperlinksEnabled" { Type = Boolean }
+    property "HyperlinksEnabled" { Type = Boolean, Auto = true }
 
     --- whether long lines of text are indented when wrapping
-    property "IndentedWordWrap" { Type = Boolean }
+    property "IndentedWordWrap" { Type = Boolean, Auto = true }
 
     --- The content of the html viewer
-    property "Text" { Type = String }
+    property "Text" { Type = String, Set = SetText }
 
     --- The element accessor
     property "Element" { Set = false, Default = function(self) return Element(self) end }
@@ -3403,19 +3395,19 @@ class "Slider" (function(_ENV)
     }
 
     --- the orientation of the slider
-    property "Orientation" { Type = Orientation }
+    property "Orientation" { Type = Orientation, Auto = true }
 
     --- the texture object for the slider thumb
-    property "ThumbTexture" { }
+    property "ThumbTexture" { Auto = true }
 
     --- the value representing the current position of the slider thumb
-    property "Value" { Type = Number }
+    property "Value" { Type = Number, Auto = true }
 
     --- the minimum increment between allowed slider values
-    property "ValueStep" { Type = Number }
+    property "ValueStep" { Type = Number, Auto = true }
 
     --- whether user interaction with the slider is allowed
-    property "Enabled" { Type = Boolean }
+    property "Enabled" { Type = Boolean, Get = IsEnabled, Set = function(self, flag) if flag then self:Enable() else self:Disable() end end }
 
     --- the minimum and maximum values of the slider bar
     property "MinMaxValue" {
@@ -3429,10 +3421,10 @@ class "Slider" (function(_ENV)
     }
 
     --- the steps per page of the slider bar
-    property "StepsPerPage" { Type = Number }
+    property "StepsPerPage" { Type = Number, Auto = true }
 
     --- Whether obey the step setting when drag the slider bar
-    property "ObeyStepOnDrag" { Type = Boolean }
+    property "ObeyStepOnDrag" { Type = Boolean, Auto = true }
 end)
 
 --- StatusBars are similar to Sliders, but they are generally used for display as they don't offer any tools to receive user input.
@@ -3479,7 +3471,7 @@ class "StatusBar" (function(_ENV)
     }
 
     --- the orientation of the status bar
-    property "Orientation" { Type = Orientation }
+    property "Orientation" { Type = Orientation, Auto = true }
 
     --- the color shading for the status bar's texture
     property "StatusBarColor" {
@@ -3493,22 +3485,22 @@ class "StatusBar" (function(_ENV)
     }
 
     --- the texture used for drawing the filled-in portion of the status bar
-    property "StatusBarTexture" { }
+    property "StatusBarTexture" { Auto = true }
 
     --- The texture atlas
-    property "StatusBarAtlas" { Type = String }
+    property "StatusBarAtlas" { Type = String, Auto = true }
 
     ---  the value of the status bar
-    property "Value" { Type = Number }
+    property "Value" { Type = Number, Auto = true }
 
     --- whether the status bar's texture is rotated to match its orientation
-    property "RotatesTexture" { Type = Boolean }
+    property "RotatesTexture" { Type = Boolean, Auto = true }
 
     --- Whether the status bar's texture is reverse filled
-    property "ReverseFill" { Type = Boolean }
+    property "ReverseFill" { Type = Boolean, Auto = true }
 
     --- The fill style of the status bar
-    property "FillStyle" { }
+    property "FillStyle" { Auto = true }
 end)
 
 ------------------------------------------------------------
@@ -3539,13 +3531,13 @@ class "Model" (function(_ENV)
     }
 
     --- the far clipping distance for the model's fog
-    property "FogFar" { Type = Number }
+    property "FogFar" { Type = Number, Auto = true }
 
     --- the near clipping distance for the model's fog
-    property "FogNear" { Type = Number }
+    property "FogNear" { Type = Number, Auto = true }
 
     --- the scale factor determining the size at which the 3D model appears
-    property "ModelScale" { Type = Number }
+    property "ModelScale" { Type = Number, Auto = true }
 
     --- the model file to be displayed
     property "Model" {
@@ -3606,13 +3598,13 @@ class "Model" (function(_ENV)
     }
 
     --- The model's desaturation
-    property "Desaturation" { Type = ColorFloat }
+    property "Desaturation" { Type = ColorFloat, Auto = true }
 
     --- The model's camera distance
-    property "CameraDistance" { Type = NUmber }
+    property "CameraDistance" { Type = NUmber, Auto = true }
 
     --- The model's camera facing
-    property "CameraFacing" { Type = NUmber }
+    property "CameraFacing" { Type = NUmber, Auto = true }
 
     --- The model's camera position
     property "CameraPosition" {
@@ -3622,7 +3614,7 @@ class "Model" (function(_ENV)
     }
 
     --- The model's camera roll
-    property "CameraRoll" { Type = Number }
+    property "CameraRoll" { Type = Number, Auto = true }
 
     --- The model's camera target position
     property "CameraTarget" {
@@ -3632,22 +3624,22 @@ class "Model" (function(_ENV)
     }
 
     --- The model's alpha
-    property "ModelAlpha" { Type = ColorFloat }
+    property "ModelAlpha" { Type = ColorFloat, Auto = true }
 
     --- The model's draw layer
-    property "ModelDrawLayer" { Type = DrawLayer }
+    property "ModelDrawLayer" { Type = DrawLayer, Auto = true }
 
     --- The model's scale
-    property "ModelScale" { Type = Number }
+    property "ModelScale" { Type = Number, Auto = true }
 
     --- The model's facing
-    property "Facing" { Type = Number }
+    property "Facing" { Type = Number, Auto = true }
 
     --- The model's pitch
-    property "Pitch" { Type = Number }
+    property "Pitch" { Type = Number, Auto = true }
 
     --- The model's roll
-    property "Roll" { Type = Number }
+    property "Roll" { Type = Number, Auto = true }
 end)
 
 --- PlayerModels are the most commonly used subtype of Model frame. They expand on the Model type by adding functions to quickly set the model to represent a particular player or creature, by unitID or creature ID.
@@ -3664,13 +3656,13 @@ class "PlayerModel" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- The displayed model id
-    property "DisplayInfo" { Type = Number }
+    property "DisplayInfo" { Type = Number, Auto = true }
 
     --- Whether blend
-    property "DoBlend" { Type = Boolean }
+    property "DoBlend" { Type = Boolean, Auto = true }
 
     --- Whether keep model when hidden
-    property "KeepModelOnHide" { Type = Boolean }
+    property "KeepModelOnHide" { Type = Boolean, Auto = true }
 end)
 
 __Sealed__()
@@ -3696,13 +3688,13 @@ class "DressUpModel" (function(_ENV)
     ------------------ Property ------------------
     ----------------------------------------------
     --- Whether auto dress
-    property "AutoDress" { Type = Boolean }
+    property "AutoDress" { Type = Boolean, Auto = true }
 
     --- Whether sheathed the weapon
-    property "Sheathed" { Type = Boolean }
+    property "Sheathed" { Type = Boolean, Auto = true }
 
     --- Whether use transmog skin
-    property "UseTransmogSkin" { Type = Boolean }
+    property "UseTransmogSkin" { Type = Boolean, Auto = true }
 end)
 
 __Sealed__()
