@@ -1,7 +1,7 @@
 ## Interface: 70300
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
-## Version: v017
+## Version: v018
 ## Notes: Scorpio Addon FrameWork
 ## URL: http://github.com/kurapica/Scorpio
 ## Dependencies: PLoop
