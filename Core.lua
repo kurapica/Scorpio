@@ -1137,7 +1137,7 @@ PLoop(function(_ENV)
             w_Token[token] = func
         end
 
-        __Arguments__{ Function, Variable.Rest(NEString, true) }
+        __Arguments__{ Function, NEString * 1 }
         __Static__() function Wait(func, ...)
             local token = w_Token_INDEX
             w_Token_INDEX = w_Token_INDEX + 1
@@ -1168,7 +1168,7 @@ PLoop(function(_ENV)
             return yield()
         end
 
-        __Arguments__{ Variable.Rest(NEString, true) }
+        __Arguments__{ NEString * 1 }
         __Static__() function Wait(...)
             local thread = running()
             if not thread then error("Scorpio.Wait([waitTime, ][event, ...]) can only be used in a thread.", 2) end
@@ -1759,7 +1759,7 @@ PLoop(function(_ENV)
 
             enum "Locale" {
                 "deDE",             -- German
-                "enUS",             -- British English
+                --"enGB",             -- British English
                 "enUS",             -- American English
                 "esES",             -- Spanish (European)
                 "esMX",             -- Spanish (Latin American)
@@ -1769,7 +1769,6 @@ PLoop(function(_ENV)
                 "zhCN",             -- Chinese (simplified; mainland China)
                 "zhTW",             -- Chinese (traditional; Taiwan)
             }
-
 
             ----------------------------------------------
             ----------------- Constructor ----------------

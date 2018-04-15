@@ -1,3 +1,6 @@
+2018/04/16
+	1. Update for PLoop v210
+
 2018/03/26
 	1. Update for PLoop v201
 	2. Rename the Scorpio.Event -> Scorpio.NextEvent to avoid the conflict with System.Event
