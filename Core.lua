@@ -1782,7 +1782,7 @@ PLoop(function(_ENV)
             ----------------- Meta-Method ----------------
             ----------------------------------------------
             __Arguments__{ NEString }
-            function __exist(name)
+            function __exist(_, name)
                 return _Localizations[name]
             end
 

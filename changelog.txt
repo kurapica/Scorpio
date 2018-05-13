@@ -1,3 +1,6 @@
+2018/05/13
+	1. Fix the Localization not works well.
+
 2018/04/16
 	1. Update for PLoop v210
 

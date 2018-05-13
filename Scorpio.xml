@@ -10,10 +10,4 @@
 
     <!-- Scorpio Addon -->
     <Script file="Scorpio.lua"/>
-
-    <!-- Scorpio UI FrameWork -->
-    <Include file="Scorpio.UI\UI.xml"/>
-
-    <!-- Scorpio MVC FrameWork -->
-    <Include file="Scorpio.MVC\MVC.xml"/>
 </Ui>
