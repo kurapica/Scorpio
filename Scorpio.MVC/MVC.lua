@@ -107,7 +107,7 @@ class "Controller" (function(_ENV)
     ----------------- Meta-Method ----------------
     ----------------------------------------------
     __Arguments__{ IModel, IView, Variable.Optional(Callable), Variable.Optional(Callable) }
-    function __exist(model, view, getAlgorithm, setAlgorithm)
+    function __exist(_, model, view, getAlgorithm, setAlgorithm)
         local self = tremove(RECYCLE_CACHE)
         if self then
             self.Model = model

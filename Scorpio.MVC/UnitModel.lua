@@ -279,7 +279,7 @@ class "UnitHealthModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitHealthModelMap[unit] end,
+    __exist = function(_, unit) return UnitHealthModelMap[unit] end,
 }
 
 --- The unit frequent health model
@@ -292,7 +292,7 @@ class "UnitHealthFrequentModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitHealthFrequentModelMap[unit] end,
+    __exist = function(_, unit) return UnitHealthFrequentModelMap[unit] end,
 }
 
 --- The unit power model
@@ -306,7 +306,7 @@ class "UnitPowerModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitPowerModelMap[unit] end,
+    __exist = function(_, unit) return UnitPowerModelMap[unit] end,
 }
 
 --- The unit frequent power model
@@ -320,7 +320,7 @@ class "UnitPowerFrequentModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitPowerFrequentModelMap[unit] end,
+    __exist = function(_, unit) return UnitPowerFrequentModelMap[unit] end,
 }
 
 --- The unit mana model
@@ -333,7 +333,7 @@ class "UnitManaModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitManaModelMap[unit] end,
+    __exist = function(_, unit) return UnitManaModelMap[unit] end,
 }
 
 --- The unit frequent mana model
@@ -346,7 +346,7 @@ class "UnitManaFrequentModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitManaFrequentModelMap[unit] end,
+    __exist = function(_, unit) return UnitManaFrequentModelMap[unit] end,
 }
 
 --- The unit class power model
@@ -360,5 +360,5 @@ class "UnitClassPowerModel" { Model,
     end,
 
     -- Meta-method
-    __exist = function(unit) return UnitClassPowerModelMap[unit] end,
+    __exist = function(_, unit) return UnitClassPowerModelMap[unit] end,
 }
