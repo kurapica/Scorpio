@@ -22,24 +22,27 @@ function OnLoad(self)
 end
 
 function OnQuit(self)
+    local layoutCache           = _SVData.LayoutCache
+    local charLayoutCache       = _SVData.Char.LayoutCache
+
     -- Save the layout datas
-    wipe(_SVData.LayoutCache)
-    wipe(_SVData.Char.LayoutCache)
+    wipe(layoutCache)
+    wipe(charLayoutCache)
 
     for frm, characterOnly in pairs(UI_USERPLACED) do
         if not frm.Disposed then
-            local uname = frm:GetUniqueName()
+            local uname         = frm:GetUniqueName()
 
             if uname then
                 if characterOnly then
-                    _SVData.Char.LayoutCache[uname] = {
-                        Size = frm.Size,
-                        Location = frm.Location,
+                    charLayoutCache[uname] = {
+                        Size    = frm.Size,
+                        Location= frm.Location,
                     }
                 else
-                    _SVData.LayoutCache[uname] = {
-                        Size = frm.Size,
-                        Location = frm.Location,
+                    layoutCache[uname] = {
+                        Size    = frm.Size,
+                        Location= frm.Location,
                     }
                 end
             end
@@ -168,6 +171,16 @@ do
         "russian",
     }
 
+    __Sealed__()
+    enum "WrapMode" {
+        "CLAMP",
+        "REPEAT",
+        "CLAMPTOBLACK",
+        "CLAMPTOBLACKADDITIVE",
+        "CLAMPTOWHITE",
+        "MIRROR",
+    }
+
     __Sealed__() __Default__"NONE"
     enum "AnimLoopType" {
         "NONE",
@@ -175,12 +188,6 @@ do
         "BOUNCE",
     }
 
-    __Sealed__() __Default__"NONE"
-    enum "AnimLoopStateType" {
-        "NONE",
-        "FORWARD",
-        "REVERSE",
-    }
     __Sealed__() __Default__"NONE"
     enum "AnimSmoothType" {
         "NONE",
@@ -306,6 +313,9 @@ do
         "OnDressModel",
         "OnCooldownDone",
         "OnPanFinished",
+        "OnUiMapChanged",
+        "OnRequestNewSize",
+
         -- Animation
         "OnPlay",
         "OnPause",
@@ -326,9 +336,9 @@ do
 
     __Sealed__()
     struct "HSV" {
-        { Name = "hue",         Type = Number,      Require = true },
-        { Name = "saturation",  Type = ColorFloat,  Require = true },
-        { Name = "value",       Type = ColorFloat,  Require = true },
+        { name = "hue",         type = Number,      require = true },
+        { name = "saturation",  type = ColorFloat,  require = true },
+        { name = "value",       type = ColorFloat,  require = true },
 
         function (val, onlyvalid)
             if val.hue < 0 or val.hue > 360 then return onlyvalid or "the %s.hue must between [0-360]" end
@@ -337,27 +347,27 @@ do
 
     __Sealed__()
     struct "Dimension" {
-        { Name = "x", Type = Number },
-        { Name = "y", Type = Number },
+        { name = "x",           type = Number },
+        { name = "y",           type = Number },
     }
 
     __Sealed__()
     struct "Position" {
-        { Name = "x", Type = Number },
-        { Name = "y", Type = Number },
-        { Name = "z", Type = Number },
+        { name = "x",           type = Number },
+        { name = "y",           type = Number },
+        { name = "z",           type = Number },
     }
 
     __Sealed__()
     struct "Size" {
-        { Name = "width",   Type = Number },
-        { Name = "height",  Type = Number },
+        { name = "width",       type = Number },
+        { name = "height",      type = Number },
     }
 
     __Sealed__()
     struct "MinMax" {
-        { Name = "min", Type = Number, Require = true },
-        { Name = "max", Type = Number, Require = true },
+        { name = "min",         type = Number, require = true },
+        { name = "max",         type = Number, require = true },
 
         function(val, onlyvalid)
             return val.min > val.max and (onlyvalid or "%s.min can't be greater than %s.max") or nil
@@ -366,86 +376,86 @@ do
 
     __Sealed__()
     struct "Inset" {
-        { Name = "left",    Type = Number },
-        { Name = "right",   Type = Number },
-        { Name = "top",     Type = Number },
-        { Name = "bottom",  Type = Number },
+        { name = "left",        type = Number },
+        { name = "right",       type = Number },
+        { name = "top",         type = Number },
+        { name = "bottom",      type = Number },
     }
 
     __Sealed__()
     struct "ShadowType" {
-        { Name = "Color",   Type = Color },
-        { Name = "Offset",  Type = Dimension },
+        { name = "Color",       type = Color },
+        { name = "Offset",      type = Dimension },
     }
 
     __Sealed__()
     struct "GradientType" {
-        { Name = "orientation", Type = Orientation },
-        { Name = "MinColor",    Type = Color },
-        { Name = "MaxColor",    Type = Color },
+        { name = "orientation", type = Orientation },
+        { name = "MinColor",    type = Color },
+        { name = "MaxColor",    type = Color },
     }
 
     __Sealed__()
     struct "FontType" {
-        { Name = "font",        Type = String },
-        { Name = "height",      Type = Number },
-        { Name = "outline",     Type = OutlineType },
-        { Name = "monochrome",  Type = Boolean },
+        { name = "font",        type = String },
+        { name = "height",      type = Number },
+        { name = "outline",     type = OutlineType },
+        { name = "monochrome",  type = Boolean },
     }
 
     __Sealed__()
     struct "BackdropType" {
-        { Name = "bgFile",          Type = String },
-        { Name = "edgeFile",        Type = String },
-        { Name = "tile",            Type = Boolean },
-        { Name = "tileSize",        Type = Number },
-        { Name = "edgeSize",        Type = Number },
-        { Name = "insets",          Type = Inset },
+        { name = "bgFile",      type = String },
+        { name = "edgeFile",    type = String },
+        { name = "tile",        type = Boolean },
+        { name = "tileSize",    type = Number },
+        { name = "edgeSize",    type = Number },
+        { name = "insets",      type = Inset },
     }
 
     __Sealed__()
     struct "Anchor" {
-        { Name = "point",           Type = FramePoint, Require = true },
-        { Name = "x",               Type = NumberNil },
-        { Name = "y",               Type = NumberNil },
-        { Name = "relativeTo",      Type = String },
-        { Name = "relativePoint",   Type = FramePoint },
+        { name = "point",       type = FramePoint, require = true },
+        { name = "x",           type = Number },
+        { name = "y",           type = Number },
+        { name = "relativeTo",  type = String },
+        { name ="relativePoint",type = FramePoint },
     }
 
     __Sealed__()
     struct "Anchors" { Anchor }
 
     __Sealed__()
-    struct "TexCoord" {
-        { Name = "ULx",     Type = NumberNil },
-        { Name = "ULy",     Type = NumberNil },
-        { Name = "LLx",     Type = NumberNil },
-        { Name = "LLy",     Type = NumberNil },
-        { Name = "URx",     Type = NumberNil },
-        { Name = "URy",     Type = NumberNil },
-        { Name = "LRx",     Type = NumberNil },
-        { Name = "LRy",     Type = NumberNil },
+    struct "RectType" {
+        { name = "ULx",         type = Number },
+        { name = "ULy",         type = Number },
+        { name = "LLx",         type = Number },
+        { name = "LLy",         type = Number },
+        { name = "URx",         type = Number },
+        { name = "URy",         type = Number },
+        { name = "LRx",         type = Number },
+        { name = "LRy",         type = Number },
     }
 
     __Sealed__()
-    struct "TexCoords" { TexCoord }
+    struct "TexCoords" { RectType }
 
     __Sealed__()
     struct "AnimOriginType" {
-        { Name = "point",   Type = FramePoint, Default = "CENTER" },
-        { Name = "x",       Type = NumberNil },
-        { Name = "y",       Type = NumberNil },
+        { name = "point",       type = FramePoint, Default = "CENTER" },
+        { name = "x",           type = Number },
+        { name = "y",           type = Number },
     }
 
     __Sealed__()
     struct "LightType" {
-        { Name = "enabled",     Type = Boolean },
-        { Name = "omni",        Type = Boolean },
-        { Name = "dir",         Type = Position },
-        { Name = "ambIntensity",Type = ColorFloat },
-        { Name = "ambColor",    Type = Color },
-        { Name = "dirIntensity",Type = ColorFloat },
-        { Name = "dirColor",    Type = Color },
+        { name = "enabled",     type = Boolean },
+        { name = "omni",        type = Boolean },
+        { name = "dir",         type = Position },
+        { name = "ambIntensity",type = ColorFloat },
+        { name = "ambColor",    type = Color },
+        { name = "dirIntensity",type = ColorFloat },
+        { name = "dirColor",    type = Color },
     }
 end
 
@@ -453,7 +463,7 @@ end
 --                       UI Helper                        --
 ------------------------------------------------------------
 do
-    UI_BLOCKED_METHODS = {
+    UI_BLOCKED_METHODS          = {
         GetScript               = true,
         SetScript               = true,
         HookScript              = true,
@@ -480,14 +490,14 @@ do
         RegisterAllEvents       = true,
     }
 
-    UI_BLOCKED_EVENTS = {
+    UI_BLOCKED_EVENTS           = {
         OnEvent                 = true,
         OnUpdate                = true,
     }
 
-    UI_PROTOTYPE = {}
+    UI_PROTOTYPE                = {}
 
-    UI_USERPLACED = setmetatable({}, META_WEAKKEY)
+    UI_USERPLACED               = setmetatable({}, META_WEAKKEY)
 
     function OnEventHandlerChanged(handler, self, name)
         local _UI = self.UIElement
@@ -1747,167 +1757,6 @@ class "Texture" (function(_ENV)
         return self.UIElement:SetGradientAlpha(orientation, startR, startG, startB, startAlpha, endR, endG, endB, endAlpha)
     end
 
-    --- Rotate texture for radian with current texcoord settings
-    -- @param  radian           number, the rotation raidian
-    function RotateRadian(self, radian)
-        if type(radian) ~= "number" then
-            error("Usage: Texture:RotateRadian(radian) - 'radian' must be number.", 2)
-        end
-
-        if not self.__TextureOriginTexCoord then
-            self.__TextureOriginTexCoord = { self:GetTexCoord() }
-            self.__TextureOriginWidth = self:GetWidth()
-            self.__TextureOriginHeight = self:GetHeight()
-        end
-
-        while radian < 0 do radian = radian + 2 * math.pi end
-        radian = radian % (2 * math.pi)
-
-        local angle = radian % (math.pi /2)
-
-        local left = self.__TextureOriginTexCoord[1]
-        local top = self.__TextureOriginTexCoord[2]
-        local right = self.__TextureOriginTexCoord[7]
-        local bottom = self.__TextureOriginTexCoord[8]
-
-        local dy = self.__TextureOriginWidth * math.cos(angle) * math.sin(angle) * (bottom-top) / self.__TextureOriginHeight
-        local dx = self.__TextureOriginHeight * math.cos(angle) * math.sin(angle) * (right - left) / self.__TextureOriginWidth
-        local ox = math.cos(angle) * math.cos(angle) * (right-left)
-        local oy = math.cos(angle) * math.cos(angle) * (bottom-top)
-
-        local newWidth = self.__TextureOriginWidth*math.cos(angle) + self.__TextureOriginHeight*math.sin(angle)
-        local newHeight = self.__TextureOriginWidth*math.sin(angle) + self.__TextureOriginHeight*math.cos(angle)
-
-        local ULx   -- Upper left corner X position, as a fraction of the image's width from the left (number)
-        local ULy   -- Upper left corner Y position, as a fraction of the image's height from the top (number)
-        local LLx   -- Lower left corner X position, as a fraction of the image's width from the left (number)
-        local LLy   -- Lower left corner Y position, as a fraction of the image's height from the top (number)
-        local URx   -- Upper right corner X position, as a fraction of the image's width from the left (number)
-        local URy   -- Upper right corner Y position, as a fraction of the image's height from the top (number)
-        local LRx   -- Lower right corner X position, as a fraction of the image's width from the left (number)
-        local LRy   -- Lower right corner Y position, as a fraction of the image's height from the top (number)
-
-        if radian < math.pi / 2 then
-            -- 0 ~ 90
-            ULx = left - dx
-            ULy = bottom - oy
-
-            LLx = right - ox
-            LLy = bottom + dy
-
-            URx = left + ox
-            URy = top - dy
-
-            LRx = right + dx
-            LRy = top + oy
-        elseif radian < math.pi then
-            -- 90 ~ 180
-            URx = left - dx
-            URy = bottom - oy
-
-            ULx = right - ox
-            ULy = bottom + dy
-
-            LRx = left + ox
-            LRy = top - dy
-
-            LLx = right + dx
-            LLy = top + oy
-
-            newHeight, newWidth = newWidth, newHeight
-        elseif radian < 3 * math.pi / 2 then
-            -- 180 ~ 270
-            LRx = left - dx
-            LRy = bottom - oy
-
-            URx = right - ox
-            URy = bottom + dy
-
-            LLx = left + ox
-            LLy = top - dy
-
-            ULx = right + dx
-            ULy = top + oy
-        else
-            -- 270 ~ 360
-            LLx = left - dx
-            LLy = bottom - oy
-
-            LRx = right - ox
-            LRy = bottom + dy
-
-            ULx = left + ox
-            ULy = top - dy
-
-            URx = right + dx
-            URy = top + oy
-
-            newHeight, newWidth = newWidth, newHeight
-        end
-
-        self.UIElement:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
-        self.Width = newWidth
-        self.Height = newHeight
-    end
-
-    --- Rotate texture for degree with current texcoord settings
-    -- @param  degree           number, the rotation degree
-    function RotateDegree(self, degree)
-        if type(degree) ~= "number" then
-            error("Usage: Texture:RotateDegree(degree) - 'degree' must be number.", 2)
-        end
-        return RotateRadian(self, math.rad(degree))
-    end
-
-    --- Shear texture for raidian
-    -- @param  radian           number, the shear radian
-    function ShearRadian(self, radian)
-        if type(radian) ~= "number" then
-            error("Usage: Texture:ShearRadian(radian) - 'radian' must be number.", 2)
-        end
-
-        if not self.__TextureOriginTexCoord then
-            self.__TextureOriginTexCoord = { self:GetTexCoord() }
-            self.__TextureOriginWidth = self.Width
-            self.__TextureOriginHeight = self.Height
-        end
-
-        while radian < - math.pi/2 do radian = radian + 2 * math.pi end
-        radian = radian % (2 * math.pi)
-
-        if radian > math.pi /2 then
-            error("Usage: Texture:ShearRadian(radian) - 'radian' must be between -pi/2 and pi/2.", 2)
-        end
-
-        local left = self.__TextureOriginTexCoord[1]
-        local top = self.__TextureOriginTexCoord[2]
-        local right = self.__TextureOriginTexCoord[7]
-        local bottom = self.__TextureOriginTexCoord[8]
-
-        local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = unpack(self.__TextureOriginTexCoord)
-
-        if radian > 0 then
-            ULx = left - (bottom-top) * math.sin(radian)
-            LRx = right + (bottom-top) * math.sin(radian)
-        elseif radian < 0 then
-            radian = math.abs(radian)
-            LLx = left - (bottom-top) * math.sin(radian)
-            URx = right + (bottom-top) * math.sin(radian)
-        end
-
-        return self.UIElement:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
-    end
-
-    --- Shear texture with degree
-    -- @param  degree           number, the shear degree
-    function ShearDegree(self, degree)
-        if type(degree) ~= "number" then
-            error("Usage: Texture:ShearDegree(degree) - 'degree' must be number.", 2)
-        end
-
-        return ShearRadian(self, math.rad(degree))
-    end
-
     ----------------------------------------------
     ------------------ Property ------------------
     ----------------------------------------------
@@ -1985,8 +1834,8 @@ class "Texture" (function(_ENV)
 
     --- The corner coordinates for scaling or cropping the texture image
     property "TexCoord" {
-        Type = TexCoord,
-        Get = function(self) return TexCoord( self:GetTexCoord() ) end,
+        Type = RectType,
+        Get = function(self) return RectType( self:GetTexCoord() ) end,
         Set = function(self, td) self:SetTexCoord( td.ULx, td.ULy, td.LLx, td.LLy, td.URx, td.URy, td.LRx, td.LRy ) end,
     }
 

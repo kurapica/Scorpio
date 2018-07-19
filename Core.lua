@@ -1363,7 +1363,7 @@ PLoop(function(_ENV)
             extend "IAttachAttribute"
 
             function AttachAttribute(self, target, targettype, owner, name, stack)
-                if getmetatable(owner) == Scorpio then
+                if Class.IsObjectType(owner, Scorpio) then
                     if #self > 0 then
                         for _, evt in ipairs(self) do
                             owner:RegisterEvent(evt, target)
@@ -1429,7 +1429,7 @@ PLoop(function(_ENV)
             extend "IAttachAttribute"
 
             function AttachAttribute(self, target, targettype, owner, name, stack)
-                if getmetatable(owner) == Scorpio then
+                if Class.IsObjectType(owner, Scorpio) then
                     owner:Hook(self.Target, self.TargetFunc or name, target)
                 else
                     error("__Hook__ can only be applyed to objects of Scorpio.", stack + 1)
@@ -1481,7 +1481,7 @@ PLoop(function(_ENV)
             extend "IAttachAttribute"
 
             function AttachAttribute(self, target, targettype, owner, name, stack)
-                if getmetatable(owner) == Scorpio then
+                if Class.IsObjectType(owner, Scorpio) then
                     owner:SecureHook(self.Target, self.TargetFunc or name, target)
                 else
                     error("__SecureHook__ can only be applyed to objects of Scorpio.", stack + 1)
@@ -1531,7 +1531,7 @@ PLoop(function(_ENV)
             extend "IAttachAttribute"
 
             function AttachAttribute(self, target, targettype, owner, name, stack)
-                if getmetatable(owner) == Scorpio then
+                if Class.IsObjectType(owner, Scorpio) then
                     if not self.SlashOpt then
                         owner:RegisterSlashCommand(self.SlashCmd, target)
                     else
@@ -1597,7 +1597,7 @@ PLoop(function(_ENV)
             extend "IAttachAttribute"
 
             function AttachAttribute(self, target, targettype, owner, name, stack)
-                if getmetatable(owner) == Scorpio then
+                if Class.IsObjectType(owner, Scorpio) then
                     local addon = self.Addon
                     if IsAddOnLoaded(addon) then
                         owner:Hook(self.Target, self.TargetFunc or name, target)
@@ -1648,7 +1648,7 @@ PLoop(function(_ENV)
             extend "IAttachAttribute"
 
             function AttachAttribute(self, target, targettype, owner, name, stack)
-                if getmetatable(owner) == Scorpio then
+                if Class.IsObjectType(owner, Scorpio) then
                     local addon = self.Addon
                     if IsAddOnLoaded(addon) then
                         owner:SecureHook(self.Target, self.TargetFunc or name, target)

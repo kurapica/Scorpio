@@ -515,12 +515,12 @@ In the previous examples, we have see attributes like `__SystemEvent__`, `__Secu
     You can apply those attribute on any global functions.
 
 
-* `__Thread__`  -- Mark the global function defined in a Scorpio module, so it would be called as a thread.
+* `__Async__`  -- Mark the global function defined in a Scorpio module, so it would be called as a thread.
 
         Scorpio "ScorpioTest" "1.0.0"
 
         -- /sct cd 10               -- count down from 10 to 1 per sec
-        __Thread__() __SlashCmd__ "sct" "cd"
+        __Async__() __SlashCmd__ "sct" "cd"
         function CountDown(cnt)
             cnt = tonumber(cnt)
             if cnt then
@@ -531,7 +531,7 @@ In the previous examples, we have see attributes like `__SystemEvent__`, `__Secu
             end
         end
 
-    In the function, **Delay(1)** API is used to make the code stop and resume it after 1 sec, it requires the function must be run as a thread. So we use `__Thread__()` mark the function as a thread, and use `__SlasCmd__"sct" "cd"` mark is as a slash command so we can test it.
+    In the function, **Delay(1)** API is used to make the code stop and resume it after 1 sec, it requires the function must be run as a thread. So we use `__Async__()` mark the function as a thread, and use `__SlasCmd__"sct" "cd"` mark is as a slash command so we can test it.
 
 * `__Iterator__`   -- Mark the global function as an iterator that can be used in `for do - end`. The function will be run as a thread, so in it, need use coroutine.yield to yield values like :
 
@@ -654,7 +654,7 @@ Here are some examples :
            self:SetAlpha(1)
         end
 
-        __Thread__()
+        __Async__()
         function OnLeave(self)
             local start = GetTime()
 
@@ -696,7 +696,7 @@ Here are some examples :
 
         Scorpio "ScanEvent" ""
 
-        __Thread__()
+        __Async__()
         function ScanEvent(...)
             while true do
                 print( Wait(...) )

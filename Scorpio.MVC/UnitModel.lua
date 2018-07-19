@@ -184,7 +184,7 @@ function UNIT_MAXHEALTH(unit)
 end
 
 __SystemEvent__()
-function UNIT_POWER(unit, ptype)
+function UNIT_POWER_UPDATE(unit, ptype)
     -- Mana
     if not ptype or ptype == "MANA" then
         local obj = UnitManaModelMap[unit]

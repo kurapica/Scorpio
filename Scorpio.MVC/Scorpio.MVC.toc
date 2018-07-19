@@ -1,4 +1,4 @@
-## Interface: 70100
+## Interface: 80000
 ## Title: [Lib] Scorpio.MVC
 ## Author: kurapica125@outlook.com
 ## Version: v001
