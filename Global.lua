@@ -68,6 +68,7 @@ min            = math.min
 max            = math.max
 random         = math.random
 abs            = math.abs
+clamp          = function(value, min, max) return value > max and max or value < min and min or value end
 
 ------------------- Date ---------------------
 date           = date or (os and os.date)
@@ -134,7 +135,12 @@ struct "LocaleString" { }
 
 __Sealed__() __Base__(Number)
 struct "ColorFloat" {
-    function (val, onlyvalid) if (val < 0 or val > 1) then return onlyvalid or "%s must between [0.0 - 1.0]" end end
+    __init = function(val) return clamp(val, 0, 1) end
+}
+
+__Sealed__() __Base__(Number)
+struct "HueValue" {
+    __init = function(val) return clamp(val, 0, 360) end
 }
 
 __Sealed__()
@@ -145,12 +151,213 @@ struct "ColorType" {
     { name = "a",   type = ColorFloat, default = 1 },
 }
 
+__Sealed__()
+struct "HSVType" {
+    { name = "h",   type = HueValue,    require = true },
+    { name = "s",   type = ColorFloat,  require = true },
+    { name = "v",   type = ColorFloat,  require = true },
+}
+
+__Sealed__()
+struct "HSLType" {
+    { name = "h",   type = HueValue,    require = true },
+    { name = "s",   type = ColorFloat,  require = true },
+    { name = "l",   type = ColorFloat,  require = true },
+}
+
 --- The color data, 'Color(r, g, b[, a])' - used to create a color data,
 -- use obj.r, obj.g, obj.b, obj.a to access the color's part,
 -- also 'obj .. "text"' can be used to concat values.
 --
 -- Some special color can be accessed like 'Color.Red', 'Color.Player', 'Color.Mage'
 class "Color" (function(_ENV)
+    export { maxv = math.max, minv = math.min, floor = math.floor }
+
+    local function clamp(v) return minv(1, maxv(0, v)) end
+
+    local function fromHSV(h, s, v)
+        local r, g, b
+
+        if s == 0 then
+            r           = v
+            g           = v
+            b           = v
+        else
+            h           = h / 60.0
+            local i     = floor(h)
+            local f     = h - i
+            local p     = v * (1 - s)
+            local q     = v * (1 - s * f)
+            local t     = v * (1 - s * (1 - f))
+
+            if i == 0 then
+                r       = v
+                g       = t
+                b       = p
+            elseif i == 1 then
+                r       = q
+                g       = v
+                b       = p
+            elseif i == 2 then
+                r       = p
+                g       = v
+                b       = t
+            elseif i == 3 then
+                r       = p
+                g       = q
+                b       = v
+            elseif i == 4 then
+                r       = t
+                g       = p
+                b       = v
+            elseif i == 5 then
+                r       = v
+                g       = p
+                b       = q
+            end
+        end
+
+        return r, g, b
+    end
+
+    local function toHSV(r, g, b)
+        local h, s, v
+
+        local min       = minv(r, g, b)
+        local max       = maxv(r, g, b)
+        local delta     = max - min
+
+        v               = max
+        if max == 0 then
+            s           = 0
+            h           = 0
+        else
+            s           = delta / max
+
+            if delta == 0 then
+                h       = 0
+            elseif max == r then
+                h       = 60 * (g - b) / delta
+                if h < 0 then h = h + 360 end
+            elseif max == g then
+                h       = 60 * (b - r) / delta + 120
+            elseif max == b then
+                h       = 60 * (r - g) / delta + 240
+            end
+        end
+
+        return h, s, v
+    end
+
+    local function fromHSL(h, s, l)
+        local r, g, b
+
+        if s == 0 then
+            r           = l
+            g           = l
+            b           = l
+        else
+            local q     = l < 1/2 and (l * (1 + s)) or (l + s - (l * s))
+            local p     = 2 * l - q
+            local hk    = h / 360.0
+            local tr    = hk + 1/3
+            local tg    = hk
+            local tb    = hk - 1/3
+            tr          = tr < 0 and tr + 1 or tr > 1 and tr - 1 or tr
+            tg          = tg < 0 and tg + 1 or tg > 1 and tg - 1 or tg
+            tb          = tb < 0 and tb + 1 or tb > 1 and tb - 1 or tb
+
+            r           = tr < 1/6 and (p + ((q - p) * 6 * tr)) or tr < 1/2 and q or tr < 2/3 and (p + ((q - p) * 6 * (2/3 - tr))) or p
+            g           = tg < 1/6 and (p + ((q - p) * 6 * tg)) or tg < 1/2 and q or tg < 2/3 and (p + ((q - p) * 6 * (2/3 - tg))) or p
+            b           = tb < 1/6 and (p + ((q - p) * 6 * tb)) or tb < 1/2 and q or tb < 2/3 and (p + ((q - p) * 6 * (2/3 - tb))) or p
+        end
+
+        return r, g, b
+    end
+
+    local function toHSL(r, g, b)
+        local h, s, l
+
+        local min       = minv(r, g, b)
+        local max       = maxv(r, g, b)
+        local delta     = max - min
+
+        l               = (max + min) / 2
+        if l == 0 then
+            s           = 0
+            h           = 0
+        else
+            if l <= 1/2 then
+                s       = delta / (2 * l)
+            else
+                s       = delta / (2 - 2 * l)
+            end
+
+            if delta == 0 then
+                h       = 0
+            elseif max == r then
+                h       = 60 * (g - b) / delta
+                if h < 0 then h = h + 360 end
+            elseif max == g then
+                h       = 60 * (b - r) / delta + 120
+            elseif max == b then
+                h       = 60 * (r - g) / delta + 240
+            end
+        end
+
+        return h, s, l
+    end
+
+    ----------------------------------------------
+    --              static method               --
+    ----------------------------------------------
+    --- Generate a color object from hsv
+    __Arguments__{ HueValue, ColorFloat, ColorFloat }
+    __Static__() function FromHSV(h, s, v)
+        return Color(fromHSV(h, s, v))
+    end
+
+    __Arguments__{ HSVType }
+    __Static__() function FromHSV(hsv)
+        return Color(fromHSV(hsv.h, hsv.s, hsv.v))
+    end
+
+    --- generate a color object from hsl
+    __Arguments__{ HueValue, ColorFloat, ColorFloat }
+    __Static__() function FromHSL(h, s, l)
+        return Color(fromHSL(h, s, l))
+    end
+
+    __Arguments__{ HSLType }
+    __Static__() function FromHSL(hsl)
+        return Color(fromHSL(hsl.h, hsl.s, hsl.l))
+    end
+
+    ----------------------------------------------
+    --                  method                  --
+    ----------------------------------------------
+    --- Set the hsv value to the color
+    __Arguments__{ HueValue, ColorFloat, ColorFloat }
+    function SetHSV(self, h, s, v)
+        self.r, self.g, self.b = fromHSV(h, s, v)
+    end
+
+    --- return the hsv value from the color
+    function ToHSV(self)
+        return toHSV(self.r, self.g, self.b)
+    end
+
+    --- Set the hsl value to the color
+    __Arguments__{ HueValue, ColorFloat, ColorFloat }
+    function SetHSL(self, h, s, l)
+        self.r, self.g, self.b = fromHSL(h, s, l)
+    end
+
+    --- return the hsl value from the color
+    function ToHSL(self)
+        return toHSL(self.r, self.g, self.b)
+    end
+
     ----------------------------------------------
     --               Constructor                --
     ----------------------------------------------

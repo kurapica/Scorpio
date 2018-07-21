@@ -335,16 +335,6 @@ do
     }
 
     __Sealed__()
-    struct "HSV" {
-        { name = "hue",         type = Number,      require = true },
-        { name = "saturation",  type = ColorFloat,  require = true },
-        { name = "value",       type = ColorFloat,  require = true },
-
-        function (val, onlyvalid)
-            if val.hue < 0 or val.hue > 360 then return onlyvalid or "the %s.hue must between [0-360]" end
-        end,
-    }
-
     __Sealed__()
     struct "Dimension" {
         { name = "x",           type = Number },
@@ -2606,9 +2596,9 @@ class "ColorSelect" (function(_ENV)
 
     --- the HSV color value
     property "ColorHSV" {
-        Type = HSV,
-        Get = function(self) return HSV(self:GetColorHSV()) end,
-        Set = function(self, v) self:SetColorHSV(v.hue, v.saturation, v.value) end,
+        Type = HSVType,
+        Get = function(self) return HSVType(self:GetColorHSV()) end,
+        Set = function(self, v) self:SetColorHSV(v.h, v.s, v.v) end,
     }
 
     --- the RGB color value
