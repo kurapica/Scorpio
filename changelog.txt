@@ -1,3 +1,6 @@
+2018/07/25
+	1. Fix the OnSpecChanged event don't fire when player's spec is changed by the battlefield.
+
 2018/07/21
 	1. You can use Color.FromHSV(h, s, v) to generate color from HSV, or use color:ToHSV() to generate the hsv value.
 	2. You can use Color.FromHSL(h, s, l) to generate color from HSL, or use color:ToHSL() to generate the hsl value.

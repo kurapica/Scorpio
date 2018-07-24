@@ -772,6 +772,10 @@ PLoop(function(_ENV)
             end
         end
 
+        function ScorpioManager.PLAYER_ENTERING_WORLD()
+            return ScorpioManager.PLAYER_SPECIALIZATION_CHANGED()
+        end
+
         ----------------------------------------------
         --            System Event Method           --
         ----------------------------------------------
@@ -1691,6 +1695,7 @@ PLoop(function(_ENV)
         RegisterEvent(ScorpioManager, "PLAYER_LOGIN")
         RegisterEvent(ScorpioManager, "PLAYER_LOGOUT")
         RegisterEvent(ScorpioManager, "PLAYER_SPECIALIZATION_CHANGED")
+        RegisterEvent(ScorpioManager, "PLAYER_ENTERING_WORLD")
 
         -- Clear canceld event tasks
         ThreadCall(function()
