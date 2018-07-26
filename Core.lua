@@ -35,8 +35,8 @@ PLoop(function(_ENV)
 
             ------------------- Table --------------------
             tblconcat           = table.concat,
-            tinsert             = tinsert or table.insert,
-            tremove             = tremove or table.remove,
+            tinsert             = table.insert,
+            tremove             = table.remove,
             wipe                = wipe or function(t) for k in pairs(t) do t[k] = nil end return t end,
 
             ------------------- Coroutine ----------------
@@ -82,13 +82,15 @@ PLoop(function(_ENV)
         -- For diagnosis
         g_DelayedTask           = 0
         g_MaxPhaseTime          = 0
+        g_CacheGenerated        = 0
+        g_CacheRamain           = 1
 
         -- Wait thread token
         w_Token                 = {}
         w_Token_INDEX           = 1
 
         -- Task List
-        t_Cache                 = {}    -- Cache Manager
+        local t_Cache           = {}    -- Cache Manager
         t_Tasks                 = {}    -- Core task list
         local t_DelayTasks      = nil   -- Delayed task
         t_EventTasks            = {}    -- Event Task
@@ -97,6 +99,28 @@ PLoop(function(_ENV)
         -- Runtime task
         r_Tasks                 = {}
         r_Count                 = 0
+
+        local function recycleCache(cache)
+            if cache then
+                wipe(cache)
+                if t_Cache then
+                    cache[0]    = t_Cache
+                end
+                t_Cache         = cache
+                g_CacheRamain   = g_CacheRamain + 1
+            else
+                if t_Cache then
+                    cache       = t_Cache
+                    t_Cache     = cache[0]
+                    cache[0]    = nil
+                    g_CacheRamain       = g_CacheRamain - 1
+                    return cache
+                else
+                    g_CacheGenerated    = g_CacheGenerated + 1
+                    return {}
+                end
+            end
+        end
 
         -- Phase API
         local function startPhase()
@@ -229,8 +253,7 @@ PLoop(function(_ENV)
                 end
 
                 local nxt = r_Header[0]
-                wipe(r_Header)
-                tinsert(t_Cache, r_Header)
+                recycleCache(r_Header)
                 r_Header = nxt
             end
 
@@ -256,6 +279,7 @@ PLoop(function(_ENV)
                 if runoutIdx then
                     r_Header[-1] = runoutIdx
                 else
+                    recycleCache(r_Header)
                     r_Tasks[LOW_PRIORITY] = nil
                 end
             end
@@ -272,7 +296,7 @@ PLoop(function(_ENV)
         local function queueTask(priority, task, noStart)
             local cache = t_Tasks[priority]
             if not cache then
-                cache = tremove(t_Cache) or {}
+                cache = recycleCache()
                 t_Tasks[priority] = cache
             end
             tinsert(cache, task)
@@ -284,7 +308,7 @@ PLoop(function(_ENV)
             time = floor((GetTime() + time) * 10) / 10
 
             if not t_DelayTasks then
-                t_DelayTasks = tremove(t_Cache) or {}
+                t_DelayTasks = recycleCache()
                 t_DelayTasks[0] = time
                 t_DelayTasks[1] = task
             else
@@ -297,7 +321,7 @@ PLoop(function(_ENV)
                 if header and header[0] == time then
                     tinsert(header, task)
                 else
-                    local dcache = tremove(t_Cache) or {}
+                    local dcache = recycleCache()
                     dcache[0] = time
                     dcache[1] = task
                     dcache[-1] = header
@@ -319,7 +343,7 @@ PLoop(function(_ENV)
 
             local cache = t_EventTasks[event]
             if not cache then
-                cache = tremove(t_Cache) or {}
+                cache = recycleCache()
                 t_EventTasks[event] = cache
             end
 
@@ -334,7 +358,7 @@ PLoop(function(_ENV)
 
             local cache = t_WaitEventTasks[event]
             if not cache then
-                cache = tremove(t_Cache) or {}
+                cache = recycleCache()
                 cache[0] = GetTime() + EVENT_CLEAR_INTERVAL
                 t_WaitEventTasks[event] = cache
             end
@@ -547,8 +571,7 @@ PLoop(function(_ENV)
                 end
             end
 
-            wipe(cache)
-            tinsert(t_Cache, cache)
+            recycleCache(cache)
         end
 
         local function getHookMap(target, targetFunc)
@@ -632,7 +655,7 @@ PLoop(function(_ENV)
 
             local cache = map[0]
             if not cache then
-                cache  = tremove(t_Cache) or {}
+                cache  = recycleCache()
                 map[0] = cache
             end
             tinsert(cache, task)
@@ -643,7 +666,7 @@ PLoop(function(_ENV)
 
             local cache = map[0]
             if not cache then
-                cache  = tremove(t_Cache) or {}
+                cache  = recycleCache()
                 map[0] = cache
             end
             tinsert(cache, task)
@@ -721,8 +744,7 @@ PLoop(function(_ENV)
                 end
 
                 local ncache = cache[-1]
-                wipe(cache)
-                tinsert(t_Cache, cache)
+                recycleCache(cache)
 
                 cache = ncache
             end
@@ -1718,8 +1740,7 @@ PLoop(function(_ENV)
                         if #cache == 0 then
                             -- Only clear one cache at one time to avoid un-valid key error
                             t_WaitEventTasks[evt] = nil
-                            wipe(cache)
-                            tinsert(t_Cache, cache)
+                            recycleCache(cache)
 
                             Log(1, "Recycle %s task cache", evt)
                             break
@@ -1745,11 +1766,14 @@ PLoop(function(_ENV)
                 Log(1, "[Delayed] %d", g_DelayedTask)
                 Log(1, "[Average] %.2f ms", g_AverageTime)
                 Log(1, "[Max Phase] %.2f ms", g_MaxPhaseTime)
+                Log(1, "[Cache][Generated] %d", g_CacheGenerated)
+                Log(1, "[Cache][Remain] %d", g_CacheRamain)
 
                 Log(1, "--======================--")
 
-                g_DelayedTask = 0
-                g_MaxPhaseTime = 0
+                g_DelayedTask       = 0
+                g_MaxPhaseTime      = 0
+                g_CacheGenerated    = 0
 
                 Delay(DIAGNOSE_DELAY)
             end
