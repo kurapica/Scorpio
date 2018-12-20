@@ -1,11 +1,11 @@
 ## Interface: 80100
-## Title: [Lib] Scorpio.MVC
+## Title: [Lib] Scorpio.Widget
 ## Author: kurapica125@outlook.com
 ## Version: v001
-## Notes: Scorpio MVC FrameWork
+## Notes: Scorpio Widget FrameWork
 ## URL: http://github.com/kurapica/Scorpio
 ## Dependencies: Scorpio
 ## DefaultState: Enabled
 ## LoadOnDemand: 1
 
-MVC.xml
+Widget.xml

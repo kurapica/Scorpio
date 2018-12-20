@@ -89,7 +89,7 @@ loadstring     = loadstring or load
 --                         Enums                          --
 ------------------------------------------------------------
 __Sealed__()
-enum "Classes" {
+enum "Classes"      {
     "WARRIOR",
     "MAGE",
     "ROGUE",
@@ -105,7 +105,7 @@ enum "Classes" {
 }
 
 __Sealed__()
-enum "ClassPower" {
+enum "ClassPower"   {
     MANA            =  0,
     RAGE            =  1,
     FOCUS           =  2,
@@ -127,19 +127,27 @@ enum "ClassPower" {
     PAIN            = 18,
 }
 
+__Sealed__()
+enum "WarMode"      {
+    PVE             = 1,
+    PVP             = 2,
+}
+
 ------------------------------------------------------------
 --                       Data Types                       --
 ------------------------------------------------------------
-__Sealed__() __Base__(String)
-struct "LocaleString" { }
+__Sealed__()
+struct "LocaleString" { __base = String }
 
-__Sealed__() __Base__(Number)
+__Sealed__()
 struct "ColorFloat" {
+    __base = Number,
     __init = function(val) return clamp(val, 0, 1) end
 }
 
-__Sealed__() __Base__(Number)
+__Sealed__()
 struct "HueValue" {
+    __base = Number,
     __init = function(val) return clamp(val, 0, 360) end
 }
 
