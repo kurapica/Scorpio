@@ -325,8 +325,9 @@ __Sealed__() class "SVManager" (function(_ENV)
         --- The char's specialization saved variable
         property "Spec"         {
             get                 = function(self)
-                if _CurrentSpec ~= GetSpecialization() then
-                    _CurrentSpec= GetSpecialization()
+                local nowSpec   = GetSpecialization() or 1
+                if _CurrentSpec ~= nowSpec then
+                    _CurrentSpec= nowSpec
                     wipe(_DBSpecMap)
                 end
 
