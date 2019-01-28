@@ -1,4 +1,13 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
     <!-- UI Base -->
     <Script file="UI.lua"/>
+
+    <!-- UI Widgets -->
+    <Script file="Widget.lua"/>
+
+	<!-- UI Style -->
+	<Script file="Style.lua"/>
+
+    <!-- UI Widget Properties -->
+    <Script file="Property.lua"/>
 </Ui>

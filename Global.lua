@@ -18,78 +18,79 @@ import "System.Serialization"
 ------------------------------------------------------------
 
 -------------------- META --------------------
-META_WEAKKEY   = { __mode = "k" }
-META_WEAKVAL   = { __mode = "v" }
-META_WEAKALL   = { __mode = "kv"}
+META_WEAKKEY                    = { __mode = "k" }
+META_WEAKVAL                    = { __mode = "v" }
+META_WEAKALL                    = { __mode = "kv"}
 
 ------------------- Logger ----------------T--
-Log            = System.Logger("Scorpio")
+Log                             = System.Logger("Scorpio")
 
-Log.TimeFormat = "%X"
-Trace          = Log:SetPrefix(1, "|cffa9a9a9[Scorpio]|r", true)
-Debug          = Log:SetPrefix(2, "|cff808080[Scorpio]|r", true)
-Info           = Log:SetPrefix(3, "|cffffffff[Scorpio]|r", true)
-Warn           = Log:SetPrefix(4, "|cffffff00[Scorpio]|r", true)
-Error          = Log:SetPrefix(5, "|cffff0000[Scorpio]|r", true)
-Fatal          = Log:SetPrefix(6, "|cff8b0000[Scorpio]|r", true)
+Log.TimeFormat                  = "%X"
+Trace                           = Log:SetPrefix(1, "|cffa9a9a9[Scorpio]|r", true)
+Debug                           = Log:SetPrefix(2, "|cff808080[Scorpio]|r", true)
+Info                            = Log:SetPrefix(3, "|cffffffff[Scorpio]|r", true)
+Warn                            = Log:SetPrefix(4, "|cffffff00[Scorpio]|r", true)
+Error                           = Log:SetPrefix(5, "|cffff0000[Scorpio]|r", true)
+Fatal                           = Log:SetPrefix(6, "|cff8b0000[Scorpio]|r", true)
 
-Log.LogLevel   = 1
+Log.LogLevel                    = 1
 
 Log:AddHandler(print)
 
 ------------------- String -------------------
-strformat      = string.format
-strfind        = string.find
-strsub         = string.sub
-strbyte        = string.byte
-strchar        = string.char
-strrep         = string.rep
-strsub         = string.gsub
-strupper       = string.upper
-strtrim        = strtrim or function(s) return (s:gsub("^%s*(.-)%s*$", "%1")) or "" end
-strmatch       = string.match
+strformat                       = string.format
+strfind                         = string.find
+strsub                          = string.sub
+strbyte                         = string.byte
+strchar                         = string.char
+strrep                          = string.rep
+strsub                          = string.gsub
+strupper                        = string.upper
+strlower                        = string.lower
+strtrim                         = strtrim or function(s) return (s:gsub("^%s*(.-)%s*$", "%1")) or "" end
+strmatch                        = string.match
 
 ------------------- Error --------------------
-geterrorhandler= geterrorhandler or function() return print end
-errorhandler   = errorhandler or function(err) return geterrorhandler()(err) end
+geterrorhandler                 = geterrorhandler or function() return print end
+errorhandler                    = errorhandler or function(err) return geterrorhandler()(err) end
 
 ------------------- Table --------------------
-tblconcat      = table.concat
-tinsert        = tinsert or table.insert
-tremove        = tremove or table.remove
-wipe           = wipe or function(t) for k in pairs(t) do t[k] = nil end return t end
+tblconcat                       = table.concat
+tinsert                         = tinsert or table.insert
+tremove                         = tremove or table.remove
+wipe                            = wipe or function(t) for k in pairs(t) do t[k] = nil end return t end
 
 ------------------- Math ---------------------
-floor          = math.floor
-ceil           = math.ceil
-log            = math.log
-pow            = math.pow
-min            = math.min
-max            = math.max
-random         = math.random
-abs            = math.abs
-clamp          = function(value, min, max) return value > max and max or value < min and min or value end
+floor                           = math.floor
+ceil                            = math.ceil
+log                             = math.log
+pow                             = math.pow
+min                             = math.min
+max                             = math.max
+random                          = math.random
+abs                             = math.abs
+clamp                           = function(value, min, max) return value > max and max or value < min and min or value end
 
 ------------------- Date ---------------------
-date           = date or (os and os.date)
+date                            = date or (os and os.date)
 
 ------------------- Coroutine ----------------
-create         = coroutine.create
-resume         = coroutine.resume
-running        = coroutine.running
-status         = coroutine.status
-wrap           = coroutine.wrap
-yield          = coroutine.yield
+create                          = coroutine.create
+resume                          = coroutine.resume
+running                         = coroutine.running
+status                          = coroutine.status
+wrap                            = coroutine.wrap
+yield                           = coroutine.yield
 
 ------------------ Common --------------------
-loadstring     = loadstring or load
+loadstring                      = loadstring or load
 
 
 ------------------------------------------------------------
 --                         Enums                          --
 ------------------------------------------------------------
 __Sealed__()
-enum "Classes"      {
+enum "Classes"                  {
     "WARRIOR",
     "MAGE",
     "ROGUE",
@@ -106,31 +107,31 @@ enum "Classes"      {
 
 __Sealed__()
 enum "ClassPower"   {
-    MANA            =  0,
-    RAGE            =  1,
-    FOCUS           =  2,
-    ENERGY          =  3,
-    COMBO_POINTS    =  4,
-    RUNES           =  5,
-    RUNIC_POWER     =  6,
-    SOUL_SHARDS     =  7,
-    LUNAR_POWER     =  8,
-    HOLY_POWER      =  9,
-    ALTERNATE       = 10,
-    MAELSTROM       = 11,
-    CHI             = 12,
-    INSANITY        = 13,
-    -- OBSOLETE     = 14,
-    -- OBSOLETE2    = 15,
-    ARCANE_CHARGES  = 16,
-    FURY            = 17,
-    PAIN            = 18,
+    MANA                        =  0,
+    RAGE                        =  1,
+    FOCUS                       =  2,
+    ENERGY                      =  3,
+    COMBO_POINTS                =  4,
+    RUNES                       =  5,
+    RUNIC_POWER                 =  6,
+    SOUL_SHARDS                 =  7,
+    LUNAR_POWER                 =  8,
+    HOLY_POWER                  =  9,
+    ALTERNATE                   = 10,
+    MAELSTROM                   = 11,
+    CHI                         = 12,
+    INSANITY                    = 13,
+    -- OBSOLETE                 = 14,
+    -- OBSOLETE2                = 15,
+    ARCANE_CHARGES              = 16,
+    FURY                        = 17,
+    PAIN                        = 18,
 }
 
 __Sealed__()
-enum "WarMode"      {
-    PVE             = 1,
-    PVP             = 2,
+enum "WarMode"  {
+    PVE                         = 1,
+    PVP                         = 2,
 }
 
 ------------------------------------------------------------
@@ -393,6 +394,10 @@ class "Color" (function(_ENV)
 
     function __concat(self, val)
         return tostring(self) .. tostring(val)
+    end
+
+    function __eq(self, val)
+        return self.r == val.r and self.g == val.g and self.b == val.b
     end
 end)
 

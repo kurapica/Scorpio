@@ -1341,13 +1341,16 @@ PLoop(function(_ENV)
         --                 Property                 --
         ----------------------------------------------
         --- Whether the module is enabled
-        property "_Enabled" { type = Boolean, default = true, handler = function(self, val) if val then return tryEnable(self) else return disabling(self) end end }
+        property "_Enabled"     { type = Boolean, default = true, handler = function(self, val) if val then return tryEnable(self) else return disabling(self) end end }
 
         --- Whether the module is disabled by itself or it's parent
-        property "_Disabled" { get = function (self) return _DisabledModule[self] or false end }
+        property "_Disabled"    { get = function (self) return _DisabledModule[self] or false end }
+
+        --- Whether the module is already loaded with saved variables
+        property "_Loaded"      { get = function(self) return not _NotLoaded[self] end }
 
         --- The addon of the module
-        property "_Addon" { get = function(self) while self._Parent do self = self._Parent end return self end }
+        property "_Addon"       { get = function(self) while self._Parent do self = self._Parent end return self end }
 
         ----------------------------------------------
         --                  Dispose                 --
