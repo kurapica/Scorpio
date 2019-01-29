@@ -327,12 +327,10 @@ PLoop(function(_ENV)
         ScorpioManager          = CreateFrame("Frame")
 
         _EventDistribution      = {}                                -- System Event
-        _HookDistribution       = setmetatable({}, META_WEAKKEY)    -- Hook
         _SecureHookDistribution = setmetatable({}, META_WEAKKEY)    -- Secure Hook
 
         t_EventTasks            = {}                                -- Event Task
         t_WaitEventTasks        = {}                                -- Wait Event Task
-        t_HookTasks             = setmetatable({}, META_WEAKKEY)    -- Hook Task
         t_SecureHookTasks       = setmetatable({}, META_WEAKKEY)    -- Secure Hook Task
 
         -- Wait thread token
@@ -443,44 +441,6 @@ PLoop(function(_ENV)
             queueTaskList(priority, queue, true)
         end
 
-        local function getHookMap(target, targetFunc)
-            local map           = _HookDistribution[target]
-
-            if not map then
-                map             = setmetatable({}, META_WEAKKEY)
-                _HookDistribution[target] = map
-            end
-
-            map                 = map[targetFunc]
-
-            if not map then
-                if type(target[targetFunc]) ~= "function" then
-                    error(("No method named '%s' can be found."):format(targetFunc))
-                elseif issecurevariable(target, targetFunc) then
-                    error(("'%s' is secure method, use SecureHook instead."):format(targetFunc))
-                end
-
-                map             = setmetatable({}, META_WEAKKEY)
-                _HookDistribution[target][targetFunc]  = map
-
-                local _orig     = target[targetFunc]
-                target[targetFunc] = function(...)
-                    local cache = t_HookTasks[target]
-                    local queue = cache and cache[targetFunc]
-
-                    if queue then
-                        cache[targetFunc] = nil
-                        queueTask(HIGH_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, queue, ...))
-                    end
-
-                    callAddonHandlers(map, ...)
-                    return _orig(...)
-                end
-            end
-
-            return map
-        end
-
         local function getSecureHookMap(target, targetFunc)
             local map           = _SecureHookDistribution[target]
 
@@ -513,24 +473,6 @@ PLoop(function(_ENV)
             end
 
             return map
-        end
-
-        local function queueNextCall(task, target, targetFunc)
-            if not getHookMap(target, targetFunc) then return end
-
-            local cache         = t_HookTasks[target]
-            if not cache then
-                cache           = setmetatable({}, META_WEAKKEY)
-                t_HookTasks[target] = cache
-            end
-
-            local queue         = cache[targetFunc]
-            if not queue then
-                queue           = recycleCache()
-                cache[targetFunc] = queue
-            end
-
-            tinsert(queue, task)
         end
 
         local function queueNextSecureCall(task, target, targetFunc)
@@ -926,65 +868,8 @@ PLoop(function(_ENV)
         end
 
         ----------------------------------------------
-        --            Hook System Method            --
+        --        Secure Hook System Method         --
         ----------------------------------------------
-        --- Hook a table's function
-        --@format [target, ]targetFunction[, handler]
-        --@param target         table, the target table, default _G
-        --@param targetFunction string, the hook function name
-        --@param handler        string, the hook handler, default the targetFunction
-        __Arguments__{ Table, NEString, (NEString + Function)/nil }:Throwable()
-        function Hook(self, target, targetFunc, handler)
-            handler             = handler or targetFunc
-            if type(handler) == "string" then handler = self[handler] end
-            if type(handler) ~= "function" then throw("Scorpio:Hook([target, ]targetFunc[, handler]) -- handler not existed.") end
-
-            getHookMap(target, targetFunc)[self] = handler
-        end
-
-        __Arguments__{ NEString, (NEString + Function)/nil }:Throwable()
-        function Hook(self, targetFunc, handler)
-            handler             = handler or targetFunc
-            if type(handler) == "string" then handler = self[handler] end
-            if type(handler) ~= "function" then throw("Scorpio:Hook([target, ]targetFunc[, handler]) -- handler not existed.") end
-
-            getHookMap(target, targetFunc)[self] = handler
-        end
-
-        --- Un-hook a table's function
-        --@format [target, ]targetFunction
-        --@param target         table, the target table, default _G
-        --@param targetFunction string, the hook function name
-        __Arguments__{ Table, NEString }
-        function UnHook(self, target, targetFunc)
-            if _HookDistribution[target] and _HookDistribution[target][targetFunc] then
-                _HookDistribution[target][targetFunc][self] = nil
-            end
-        end
-
-        __Arguments__{ NEString }
-        function UnHook(self, targetFunc)
-            return UnHook(self, _G, targetFunc)
-        end
-
-        --- Un-hook all functions
-        function UnHookAll(self)
-            for _, target in pairs(_HookDistribution) do for _, map in pairs(target) do map[self] = nil end end
-        end
-
-        --- Get the hook handler
-        __Arguments__{ Table, NEString }
-        function GetHookHandler(self, target, targetFunc)
-            local map           = _HookDistribution[target] and _HookDistribution[target][targetFunc]
-            return map and map[self] or nil
-        end
-
-        __Arguments__{ NEString }
-        function GetHookHandler(self, targetFunc)
-            local map           = _HookDistribution[_G] and _HookDistribution[_G][targetFunc]
-            return map and map[self] or nil
-        end
-
         --- Secure hook a table's function
         --@format [target, ]targetFunction[, handler]
         --@param target         table, the target table, default _G
@@ -1232,42 +1117,6 @@ PLoop(function(_ENV)
             return yieldReturn(yield())
         end
 
-        --- Call method|yield current thread and resume it with un-secure object-method call
-        --@format [func, ][target, ]targetFunction[, ...]
-        --@param func           The function
-        --@param target         table, the target table, default _G
-        --@param targetFunction string, the target table's method name
-        --@param ...            custom params if you don't need real params of the method-call
-        __Arguments__{ Function, Table, NEString, Any * 0}
-        __Static__() function NextCall(func, target, targetFunc, ...)
-            return queueNextCall(wrapAsSystemTask(func, ...), target, targetFunc)
-        end
-
-        __Arguments__{ Function, NEString, Any * 0}
-        __Static__() function NextCall(func, targetFunc, ...)
-            return queueNextCall(wrapAsSystemTask(func, ...), _G, targetFunc)
-        end
-
-        __Arguments__{ Table, NEString }
-        __Static__() function NextCall(target, targetFunc)
-            local thread = running()
-            if not thread then error("Scorpio.NextCall([target, ]targetFunc) can only be used in a thread.", 2) end
-
-            queueNextCall(thread, target, targetFunc)
-
-            return yieldReturn(yield())
-        end
-
-        __Arguments__{ NEString }
-        __Static__() function NextCall(targetFunc)
-            local thread = running()
-            if not thread then error("Scorpio.NextCall([target, ]targetFunc) can only be used in a thread.", 2) end
-
-            queueNextCall(thread, _G, targetFunc)
-
-            return yieldReturn(yield())
-        end
-
         --- Call method|yield current thread and resume it after secure object-method call
         --@format [func, ][target, ]targetFunction[, ...]
         --@param func           The function
@@ -1358,7 +1207,6 @@ PLoop(function(_ENV)
         function Dispose(self)
             self:UnregisterAllEvents()
 
-            self:UnHookAll()
             self:SecureUnHookAll()
 
             for _, map in pairs(_SlashCmdHandler) do
@@ -1445,64 +1293,6 @@ PLoop(function(_ENV)
             function __call(self, other)
                 tinsert(self, other)
                 return self
-            end
-        end)
-
-        --- Mark the method as a hook
-        -- @usage
-        --      Scorpio "MyAddon" "v1.0.1"
-        --
-        --      -- Calc how many times the print is called, hook the "print" function
-        --      __Hook__ "print"
-        --      function hook_print(...)
-        --          _printCnt = (_printCnt or 0) + 1
-        --      end
-        --
-        --      -- also can be simple like if you don't use the print function in your addon.
-        --      __Hook__()
-        --      function print(...)
-        --          _printCnt = (_printCnt or 0) + 1
-        --      end
-        --
-        --      -- If you want specific the table, do it like :
-        --      __Hook__(math)
-        --      function random(...)
-        --      end
-        --
-        --      -- or
-        --      __Hook__(math, "random")
-        --      function math_random(...)
-        --      end
-        __Sealed__()
-        class "__Hook__" (function(_ENV)
-            extend "IAttachAttribute"
-
-            function AttachAttribute(self, target, targettype, owner, name, stack)
-                if Class.IsObjectType(owner, Scorpio) then
-                    owner:Hook(self.Target, self.TargetFunc or name, target)
-                else
-                    error("__Hook__ can only be applyed to objects of Scorpio.", stack + 1)
-                end
-            end
-
-            ----------------------------------------------
-            --                 Property                 --
-            ----------------------------------------------
-            property "AttributeTarget"  { default = AttributeTargets.Function }
-
-            ----------------------------------------------
-            --                Constructor               --
-            ----------------------------------------------
-            __Arguments__{ Table, NEString/nil }
-            function __Hook__(self, target, targetFunc)
-                self.Target = target
-                self.TargetFunc = targetFunc
-            end
-
-            __Arguments__{ NEString/nil }
-            function __Hook__(self, targetFunc)
-                self.Target = _G
-                self.TargetFunc = targetFunc
             end
         end)
 
@@ -1630,53 +1420,6 @@ PLoop(function(_ENV)
                 local del = __Delegate__(NoCombat)
                 del.Priorty = AttributePriority.Lower
                 del.SubLevel = -999
-            end
-        end)
-
-        --- Mark the method as a hook when the target's addon is loaded
-        -- @usage
-        --      Scorpio "MyAddon" "v1.0.1"
-        --
-        --      __AddonHook__ "AnotherAddon"
-        --      function dosomeJob(...)
-        --          -- Wait "AnotherAddon" loaded and hook the "dosomeJob" function
-        --      end
-        __Sealed__()
-        class "__AddonHook__" (function(_ENV)
-            extend "IAttachAttribute"
-
-            function AttachAttribute(self, target, targettype, owner, name, stack)
-                if Class.IsObjectType(owner, Scorpio) then
-                    local addon = self.Addon
-                    if IsAddOnLoaded(addon) then
-                        owner:Hook(self.Target, self.TargetFunc or name, target)
-                    else
-                        local targetTbl = self.Target
-                        local targetFunc = self.TargetFunc or name
-
-                        ThreadCall(function()
-                            while NextEvent("ADDON_LOADED") ~= addon do end
-                            owner:Hook(targetTbl, targetFunc, target)
-                        end)
-                    end
-                else
-                    error("__AddonHook__ can only be applyed to objects of Scorpio.", stack + 1)
-                end
-            end
-
-            ----------------------------------------------
-            --                 Property                 --
-            ----------------------------------------------
-            property "AttributeTarget"  { default = AttributeTargets.Function }
-
-            ----------------------------------------------
-            --                Constructor               --
-            ----------------------------------------------
-            __Arguments__{ NEString, NEString/nil }
-            function __AddonHook__(self, addon, targetFunc)
-                self.Addon = addon
-                self.Target = _G
-                self.TargetFunc = targetFunc
             end
         end)
 
