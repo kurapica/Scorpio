@@ -741,7 +741,7 @@ PLoop(function(_ENV)
             if cache then
                 t_EventTasks[evt] = nil
 
-                queueTask(HIGH_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, cache, ...), wcache and true)
+                queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, cache, ...), wcache and true)
             end
 
             if wcache then
@@ -758,7 +758,7 @@ PLoop(function(_ENV)
                     end
                 end
 
-                queueTask(HIGH_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, wcache, evt, ...))
+                queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, wcache, evt, ...))
             end
 
             -- The System event handler may register event task
