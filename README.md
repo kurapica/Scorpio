@@ -117,94 +117,43 @@ Then, the two system events would use the same handler.
 
 ---------------------------------------
 
-## Hook & SecureHook ##
+## SecureHook ##
 
-A big part in addon development is modifying the wow's original ui. To do it, we need use **Hook**. There was two ways for it : un-secure and secure hook.
+A big part in addon development is modifying the wow's original ui. To do it, we need use **Hook** or **SecureHook**. Since the normal hook is very simple, the system only care the secure hook part:
 
-1. When you need replace some functions you could use un-secure hook. Normally you can only replaced function defined by the 3rd addons. Suppose we have some code defined in the _G like
+When you hook the system function, your hook function would be called after the system function.
 
-        TestLib = {}
-        function TestLib.DoJob()
-            print("TestLib DoJob")
-        end
+Take **ChatEdit_OnEditFocusGained** as an example, it's fired when you press enter and the chat frame's input edit box is shown.
 
-        function TestFunc()
-            print("TestFunc")
-        end
+    __SecureHook__()
+    function ChatEdit_OnEditFocusGained(self)
+        print("Start input text")
+    end
 
-    So we have a global function *TestFunc* and a in table function *TestLib.DoJob*, now let's hook them
+Like the `__Hook__`, also you can do it as
 
-        __Hook__()
-        function TestFunc()
-            print("Hook TestFunc")
-        end
+    __SecureHook__ "ChatEdit_OnEditFocusGained"
+    function Hook_ChatEdit_OnEditFocusGained(self)
+        print("Start input text")
+    end
 
-    Since we don't provide the *target table* and the *target function's name*, the target table should be _G, and the target function would be the same name. Now if anyone call the TestFunc, it's result would be
+If we try to hook AuctionFrameTab_OnClick, since it's defined in addon Blizzard_AuctionUI, we can't hook it before the addon is loaded, but it can be simply done with a new attribute :
 
-        Hook TestFunc
-        TestFunc
+    __AddonSecureHook__ "Blizzard_AuctionUI"
+    function AuctionFrameTab_OnClick(self, button, down, index)
+        print("Click " .. self:GetName() .. " Auction tab")
+    end
 
-    So our hooked function would be called first, then the original function.
+Or
 
-    There is a problem, if you need call the TestFunc also in the module, We don't know which one should be used, so we need hook it with a different name like
+    __AddonSecureHook__ ("Blizzard_AuctionUI", "AuctionFrameTab_OnClick")
+    function Hook_AuctionFrameTab_OnClick(self, button, down, index)
+        print("Click " .. self:GetName() .. " Auction tab")
+    end
 
-        __Hook__ "TestFunc"
-        function HookTestFunc()
-            print("Hook TestFunc")
-        end
+It would make the system secure hook the target function until the **Blizzard_AuctionUI** is loaded. You can open the auction frame and toggle the tabpage to see the result.
 
-    Like the `__SysteEvent__`, we can provide the target function's name with the attribute.
-
-    For the TestLib.DoJob, we need also provide the target table like :
-
-        __Hook__(TestLib, "DoJob")
-        function Hook_DoJob(...)
-            print("Hook_DoJob")
-        end
-
-    Or
-
-        __Hook__(TestLib)
-        function DoJob(...)
-            print("Hook_DoJob")
-        end
-
-
-2. Since the un-secure hook can't handle the blz's code, it's normally useless, so we should focus on how to secure hook system's api.
-
-    When you hook the system function, your hook function would be called after the system function.
-
-    Take **ChatEdit_OnEditFocusGained** as an example, it's fired when you press enter and the chat frame's input edit box is shown.
-
-        __SecureHook__()
-        function ChatEdit_OnEditFocusGained(self)
-            print("Start input text")
-        end
-
-    Like the `__Hook__`, also you can do it as
-
-        __SecureHook__ "ChatEdit_OnEditFocusGained"
-        function Hook_ChatEdit_OnEditFocusGained(self)
-            print("Start input text")
-        end
-
-    If we try to hook AuctionFrameTab_OnClick, since it's defined in addon Blizzard_AuctionUI, we can't hook it before the addon is loaded, but it can be simply done with a new attribute :
-
-        __AddonSecureHook__ "Blizzard_AuctionUI"
-        function AuctionFrameTab_OnClick(self, button, down, index)
-            print("Click " .. self:GetName() .. " Auction tab")
-        end
-
-    Or
-
-        __AddonSecureHook__ ("Blizzard_AuctionUI", "AuctionFrameTab_OnClick")
-        function Hook_AuctionFrameTab_OnClick(self, button, down, index)
-            print("Click " .. self:GetName() .. " Auction tab")
-        end
-
-    It would make the system secure hook the target function until the **Blizzard_AuctionUI** is loaded. You can open the auction frame and toggle the tabpage to see the result.
-
-    To modify the original code, you need be familiar with them first, you may find the sources in [wow-ui-source](https://github.com/tekkub/wow-ui-source). You can use `/fstack` command to know which frame you want modify and then search them in the source.
+To modify the original code, you need be familiar with them first, you may find the sources in [wow-ui-source](https://github.com/tekkub/wow-ui-source). You can use `/fstack` command to know which frame you want modify and then search them in the source.
 
 ---------------------------------------
 

@@ -465,7 +465,7 @@ PLoop(function(_ENV)
 
                     if queue then
                         cache[targetFunc] = nil
-                        queueTask(HIGH_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, queue, ...))
+                        queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, queue, ...))
                     end
 
                     return callAddonHandlers(map, ...)
@@ -683,7 +683,7 @@ PLoop(function(_ENV)
             if cache then
                 t_EventTasks[evt] = nil
 
-                queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, cache, ...), wcache and true)
+                queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, cache, ...))
             end
 
             if wcache then
@@ -1016,7 +1016,7 @@ PLoop(function(_ENV)
             local thread = running()
             if not thread then error("Scorpio.Next() can only be used in a thread.", 2) end
 
-            queueTask(NORMAL_PRIORITY, thread, true)
+            queueTask(NORMAL_PRIORITY, thread)
 
             return yield()
         end
