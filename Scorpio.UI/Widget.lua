@@ -311,7 +311,7 @@ class "Region" (function(_ENV)
             local relativeFrame
 
             if relativeTo then
-                relativeFrame   = parent and parent.Children[relativeTo] or UI.GetUniqueObject(relativeTo)
+                relativeFrame   = parent and parent:GetChild(relativeTo) or UIObject.FromName(relativeTo)
 
                 if not relativeFrame then
                     throw("Usage: Region:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.")
@@ -342,7 +342,7 @@ class "Region" (function(_ENV)
                 local relativeTo = anchor.relativeTo
 
                 if relativeTo then
-                    relativeTo = parent and parent.Children[relativeTo] or UI.GetUniqueObject(relativeTo)
+                    relativeTo = parent and parent:GetChild(relativeTo) or UIObject.FromName(relativeTo)
 
                     if not relativeTo then
                         error("Usage: Region:SetLocation(loc) - The System can't identify the relativeTo frame.", 2)
@@ -362,8 +362,490 @@ class "Region" (function(_ENV)
     --                 Dispose                  --
     ----------------------------------------------
     function Dispose(self)
-        self:SetUserPlaced(false)
         self:ClearAllPoints()
         self:Hide()
     end
 end)
+
+--- LayeredRegion is an abstract UI type that groups together the functionality of layered graphical regions, specifically Textures and FontStrings.
+__Sealed__() __Abstract__()
+class "LayeredRegion" { Region }
+
+--- Declare the class as basic widget class based on the Blz UI system
+__Sealed__() class "__Widget__" (function(_ENV)
+    extend "IApplyAttribute"
+
+    local UI_PROTOTYPE          = {}
+
+    local function onEventHandlerChanged(handler, self, name)
+        if not handler.Hooked and self:HasScript(name) then
+            handler.Hooked      = true
+
+            self:HookScript(name, function(_, ...) return handler(self, ...) end)
+        end
+    end
+
+    ----------------------------------------------
+    --             Static Methods               --
+    ----------------------------------------------
+    __Static__() function Release()
+        for name, ele in pairs(UI_PROTOTYPE) do
+            pcall(ele.SetParent, ele, nil)
+        end
+
+        wipe(UI_PROTOTYPE)
+        UI_PROTOTYPE = nil
+
+        collectgarbage()
+    end
+
+    ----------------------------------------------
+    --                 Methods                  --
+    ----------------------------------------------
+    --- apply changes on the target
+    -- @param   target                      the target
+    -- @param   targettype                  the target type
+    -- @param   manager                     the definition manager of the target
+    -- @param   owner                       the target's owner
+    -- @param   name                        the target's name in the owner
+    -- @param   stack                       the stack level
+    function ApplyAttribute(self, target, targettype, manager, owner, name, stack)
+        if not Class.IsSubType(target, UIObject) then return end
+
+        local super             = Class.GetSuperClass(target)
+        local frmtype           = Namespace.GetNamespaceName(target, true)
+
+        self.Constructor        = self.Constructor or function(name, parent, ...)
+            return CreateFrame(frmtype, nil, parent, ...)
+        end
+
+        local prototype         = self.Constructor(nil, UI_PROTOTYPE[self.Parent])
+        UI_PROTOTYPE[target]    = prototype
+        if Class.IsSubType(target, Region) then prototype:Hide() end
+
+        -- Install Events
+        if type(prototype.HasScript) == "function" then
+            for _, evt in Enum.GetEnumValues(ScriptsType) do
+                if prototype:HasScript(evt) and not Class.GetFeature(super, evt, true) then
+                    __EventChangeHandler__(onEventHandlerChanged)
+                    manager.event(evt)
+                end
+            end
+        end
+
+        -- Install Methods
+        for name, func in pairs(getmetatable(prototype).__index) do
+            manager.name        = func
+        end
+
+        -- Install Constructor
+        manager.__new           = self.Constructor
+    end
+
+    ----------------------------------------------
+    --                Property                  --
+    ----------------------------------------------
+    --- the attribute target
+    property "AttributeTarget"  { set = false, default = AttributeTargets.Class }
+
+    ----------------------------------------------
+    --               Constructor                --
+    ----------------------------------------------
+    __Arguments__{ Function/nil, (-UIObject)/nil }
+    function __ctor(self, ctor, parent)
+        self.Constructor        = ctor
+        self.Parent             = parent
+    end
+end)
+
+--- Frame is in many ways the most fundamental widget object. Other types of widget derivatives such as FontStrings, Textures and Animations can only be created attached to a Frame or other derivative of a Frame.
+__Sealed__() __Widget__()
+class "Frame" { Region }
+
+--- Textures are visible areas descended from LayeredRegion, that display either a color block, a gradient, or a graphic raster taken from a .tga or .blp file
+__Sealed__() __Widget__(
+    function (name, parent, layer, inherits, sublevel)
+        return parent:CreateTexture(nil, layer or "ARTWORK", inherits, sublevel or 0)
+    end, Frame
+)
+class "Texture" { LayeredRegion }
+
+--- MaskTextures are used to mask other textures
+__Sealed__() __Widget__(
+    function (name, parent, layer, inherits, sublevel)
+        return parent:CreateMaskTexture(nil, layer or "ARTWORK", inherits, sublevel or 0)
+    end, Frame
+)
+class "MaskTexture" { Texture }
+
+--- FontStrings are one of the two types of Region that is visible on the screen. It draws a block of text on the screen using the characteristics in an associated FontObject.
+__Sealed__() __Widget__(
+    function (name, parent, layer, inherits, ...)
+        return parent:CreateFontString(nil, layer or "OVERLAY", inherits or "GameFontNormal", ...)
+    end, Frame
+)
+class "FontString" { LayeredRegion }
+
+--- Lines are used to link two anchor points.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateLine(nil, ...)
+    end, Frame
+)
+class "Line" { Texture }
+
+------------------------------------------------------------
+--                      Animation                         --
+------------------------------------------------------------
+--- An AnimationGroup is how various animations are actually applied to a region; this is how different behaviors can be run in sequence or in parallel with each other, automatically. When you pause an AnimationGroup, it tracks which of its child animations were playing and how far advanced they were, and resumes them from that point.
+-- An Animation in a group has an order from 1 to 100, which determines when it plays; once all animations with order 1 have completed, including any delays, the AnimationGroup starts all animations with order 2.
+-- An AnimationGroup can also be set to loop, either repeating from the beginning or playing backward back to the beginning. An AnimationGroup has an OnLoop handler that allows you to call your own code back whenever a loop completes. The :Finish() method stops the animation after the current loop has completed, rather than immediately.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimationGroup(nil, ...)
+    end, Frame
+)
+class "AnimationGroup" { UIObject }
+
+--- The animation interface used to provide final methods for animations
+__Sealed__() interface "IAnimation" (function(_ENV)
+
+    _GetRegionParent            = getRealMethodCache("GetRegionParent")
+    _GetTarget                  = getRealMethodCache("GetTarget")
+
+    ----------------------------------------------
+    --                 Methods                  --
+    ----------------------------------------------
+    --- Returns the Region object on which the animation operates
+    -- @return System.Widget.Region     Reference to the Region object on which the animation operates
+    __Final__() function GetRegionParent(self)
+        return GetProxyUI(_GetRegionParent[getmetatable(self)](self))
+    end
+
+    --- Returns the target object on which the animation operates
+    -- @return System.Widget.Region     Reference to the target object on which the animation operates
+    __Final__() function GetTarget(self)
+       return GetProxyUI(_GetTarget[getmetatable(self)](self))
+    end
+end)
+
+--- Animations are used to change presentations or other characteristics of a frame or other region over time. The Animation object will take over the work of calling code over time, or when it is done, and tracks how close the animation is to completion.
+-- The Animation type doesn't create any visual effects by itself, but it does provide an OnUpdate handler that you can use to support specialized time-sensitive behaviors that aren't provided by the transformations descended from Animations. In addition to tracking the passage of time through an elapsed argument, you can query the animation's progress as a 0-1 fraction to determine how you should set your behavior.
+-- You can also change how the elapsed time corresponds to the progress by changing the smoothing, which creates acceleration or deceleration, or by adding a delay to the beginning or end of the animation.
+-- You can also use an Animation as a timer, by setting the Animation's OnFinished script to trigger a callback and setting the duration to the desired time.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("Animation", nil, ...)
+    end, AnimationGroup
+)
+class "Animation" { UIObject }
+
+--- Alpha is a type of animation that automatically changes the transparency level of its attached region as it progresses. You can set the degree by which it will change the alpha as a fraction; for instance, a change of -1 will fade out a region completely
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("Alpha", nil, ...)
+    end, AnimationGroup
+)
+class "Alpha" { Animation }
+
+--- Path is an Animation type that combines multiple transitions into a single control path with multiple ControlPoints.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("Path", nil, ...)
+    end, AnimationGroup
+)
+class "Path" { Animation }
+
+--- A special type that represent a point in a Path Animation.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateControlPoint(nil, ...)
+    end, AnimationGroup
+)
+class "ControlPoint" { UIObject}
+
+--- Rotation is an Animation that automatically applies an affine rotation to the region being animated. You can set the origin around which the rotation is being done, and the angle of rotation in either degrees or radians.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("Rotation", nil, ...)
+    end, AnimationGroup
+)
+class "Rotation" { Animation }
+
+--- Scale is an Animation type that automatically applies an affine scalar transformation to the region being animated as it progresses. You can set both the multiplier by which it scales, and the point from which it is scaled.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("Scale", nil, ...)
+    end, AnimationGroup
+)
+class "Scale" { Animation }
+
+--- LineScale is an Animation type inherit Scale.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("LineScale", nil, ...)
+    end, AnimationGroup
+)
+class "LineScale" { Animation }
+
+--- Translation is an Animation type that applies an affine translation to its affected region automatically as it progresses.
+__Sealed__() __Widget__(
+    function (name, parent, ...)
+        return parent:CreateAnimation("Translation", nil, ...)
+    end, AnimationGroup
+)
+class "Translation" { Animation }
+
+------------------------------------------------------------
+--                    Frame Widgets                       --
+------------------------------------------------------------
+--- ArchaeologyDigSiteFrame is a frame that is used to display digsites. Any one frame can be used to display any number of digsites, called blobs. Each blob is a polygon with a border and a filling texture.
+-- To draw a blob onto the frame use the DrawBlob function. this will draw a polygon representing the specified digsite. It seems that it's only possible to draw digsites where you can dig and is on the current map.
+-- Changes to how the blobs should render will only affect newly drawn blobs. That means that if you want to change the opacity of a blob you must first clear all blobs using the DrawNone function and then redraw the blobs.
+__Sealed__() __Widget__(nil, Frame)
+class "ArchaeologyDigSiteFrame" { Frame }
+
+--- Button is the primary means for users to control the game and their characters.
+__Sealed__() __Widget__(nil, Frame)
+class "Button" { Frame }
+
+--- Browser is used to provide help helpful pages in the game
+__Sealed__() __Widget__(nil, Frame)
+class "Browser" { Frame }
+
+--- EditBoxes are used to allow the player to type text into a UI component.
+__Sealed__() __Widget__(nil, Frame)
+class "EditBox" { Frame }
+
+--- CheckButtons are a specialized form of Button; they maintain an on/off state, which toggles automatically when they are clicked, and additional textures for when they are checked, or checked while disabled.
+__Sealed__() __Widget__(nil, Frame)
+class "CheckButton" { Button }
+
+__Sealed__() __Widget__(nil, Frame)
+class "ColorSelect" { Frame }
+
+--- Cooldown is a specialized variety of Frame that displays the little "clock" effect over abilities and buffs. It can be set with its running time, whether it should appear to "fill up" or "empty out", and whether or not there should be a bright edge where it's changing between dim and bright.
+__Sealed__() __Widget__(nil, Frame)
+class "Cooldown" { Frame }
+
+--- GameTooltips are used to display explanatory information relevant to a particular element of the game world.
+__Sealed__() __Widget__(function(name, parent, ...)
+        if select("#", ...) > 0 then
+            return CreateFrame("GameTooltip", name, parent, ...)
+        else
+            return CreateFrame("GameTooltip", name, parent, "GameTooltipTemplate")
+        end
+    end, Frame)
+class "GameTooltip" (function(_ENV)
+    inherit "Frame"
+
+    local _GetOwner             = _G.GameTooltip.GetOwner
+
+    ----------------------------------------------
+    ------------------- Helper -------------------
+    ----------------------------------------------
+    COPPER_PER_SILVER           = _G.COPPER_PER_SILVER
+    SILVER_PER_GOLD             = _G.SILVER_PER_GOLD
+
+    ----------------------------------------------
+    --                 Methods                  --
+    ----------------------------------------------
+    function GetOwner(self)
+        return GetProxyUI(_GetOwner(self))
+    end
+
+    --- Get the left text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return string
+    function GetLeftText(self, index)
+        local name              = self:GetName()
+        if not name or not index or type(index) ~= "number" then return end
+
+        name                    = name.."TextLeft"..index
+
+        if type(_G[name]) == "table" and _G[name].GetText then
+            return _G[name]:GetText()
+        end
+    end
+
+    --- Get the right text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return string
+    function GetRightText(self, index)
+        local name              = self:GetName()
+        if not name or not index or type(index) ~= "number" then return end
+
+        name                    = name.."TextRight"..index
+
+        if type(_G[name]) == "table" and _G[name].GetText then
+            return _G[name]:GetText()
+        end
+    end
+
+    --- Set the left text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @param  text             string
+    -- @return string
+    function SetLeftText(self, index, text)
+        local name              = self:GetName()
+        if not name or not index or type(index) ~= "number" then return end
+
+        name                    = name.."TextLeft"..index
+
+        if type(_G[name]) == "table" and _G[name].GetText then
+            return _G[name]:SetText(text)
+        end
+    end
+
+    --- Set the right text of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @param  text             string
+    -- @return string
+    function SetRightText(self, index, text)
+        local name              = self:GetName()
+        if not name or not index or type(index) ~= "number" then return end
+
+        name                    = name.."TextRight"..index
+
+        if type(_G[name]) == "table" and _G[name].GetText then
+            return _G[name]:SetText(text)
+        end
+    end
+
+    --- Get the texutre of the given index line
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return string
+    function GetTexture(self, index)
+        local name          = self:GetName()
+        if not name or not index or type(index) ~= "number" then return end
+
+        name                = name.."Texture"..index
+
+        if type(_G[name]) == "table" and _G[name].GetTexture then
+            return _G[name]:GetTexture()
+        end
+    end
+
+    --- Get the money of the given index, default 1
+    -- @param  index            number, between 1 and self:NumLines()
+    -- @return number
+    function GetMoney(self, index)
+        local name              = self:GetName()
+
+        index                   = index or 1
+        if not name or not index or type(index) ~= "number" then return end
+
+        name                    = name.."MoneyFrame"..index
+
+        if type(_G[name]) == "table" then
+            local gold          = strmatch((_G[name.."GoldButton"] and _G[name.."GoldButton"]:GetText()) or "0", "%d*") or 0
+            local silver        = strmatch((_G[name.."SilverButton"] and _G[name.."SilverButton"]:GetText()) or "0", "%d*") or 0
+            local copper        = strmatch((_G[name.."CopperButton"] and _G[name.."CopperButton"]:GetText()) or "0", "%d*") or 0
+
+            return gold * COPPER_PER_SILVER * SILVER_PER_GOLD + silver * COPPER_PER_SILVER + copper
+        end
+    end
+
+    ----------------------------------------------
+    --                 Methods                  --
+    ----------------------------------------------
+    function Dispose(self)
+        local name              = self:GetName()
+        local index, chkName
+
+        self:ClearLines()
+
+        if name and _G[name] == self.UIElement then
+            -- remove lefttext
+            index               = 1
+
+            while _G[name.."TextLeft"..index] do
+                _G[name.."TextLeft"..index] = nil
+                index           = index + 1
+            end
+
+            -- remove righttext
+            index               = 1
+
+            while _G[name.."TextRight"..index] do
+                _G[name.."TextRight"..index] = nil
+                index           = index + 1
+            end
+
+            -- remove texture
+            index               = 1
+
+            while _G[name.."Texture"..index] do
+                _G[name.."Texture"..index] = nil
+                index           = index + 1
+            end
+
+            -- remove self
+            _G[name] = nil
+        end
+    end
+end)
+
+--- MessageFrames are used to present series of messages or other lines of text, usually stacked on top of each other.
+__Sealed__() __Widget__(nil, Frame)
+class "MessageFrame" { Frame }
+
+--- MovieFrames are used to play video files of some formats.
+__Sealed__() __Widget__(nil, Frame)
+class "MovieFrame" { Frame }
+
+--- QuestPOIFrames are used to draw blobs of interest points for quest on the world map
+__Sealed__() __Widget__(nil, Frame)
+class "QuestPOIFrame" { Frame }
+
+__Sealed__() __Widget__(nil, Frame)
+class "ScenarioPOIFrame" { Frame }
+
+--- The interface used to provide the final methods for the Scroll Frame
+__Sealed__() interface "IScrollFrame" (function(_ENV)
+    _GetScrollChild             = getRealMethodCache("GetScrollChild")
+
+    ----------------------------------------------
+    --                 Methods                  --
+    ----------------------------------------------
+    --- Gets the frame scrolled by the scroll frame
+    __Final__() function GetScrollChild(self)
+        return GetProxyUI(_GetScrollChild[getmetatable(self)](self))
+    end
+end)
+
+--- ScrollFrame is used to show a large body of content through a small window. The ScrollFrame is the size of the "window" through which you want to see the larger content, and it has another frame set as a "ScrollChild" containing the full content.
+__Sealed__() __Widget__(nil, Frame)
+class "ScrollFrame" { Frame, IScrollFrame }
+
+--- The most sophisticated control over text display is offered by SimpleHTML widgets. When its text is set to a string containing valid HTML markup, a SimpleHTML widget will parse the content into its various blocks and sections, and lay the text out. While it supports most common text commands, a SimpleHTML widget accepts an additional argument to most of these; if provided, the element argument will specify the HTML elements to which the new style information should apply, such as formattedText:SetTextColor("h2", 1, 0.3, 0.1) which will cause all level 2 headers to display in red. If no element name is specified, the settings apply to the SimpleHTML widget's default font.
+__Sealed__() __Widget__(nil, Frame)
+class "SimpleHTML" { Frame }
+
+--- Sliders are elements intended to display or allow the user to choose a value in a range.
+__Sealed__() __Widget__(nil, Frame)
+class "Slider" { Frame }
+
+--- StatusBars are similar to Sliders, but they are generally used for display as they don't offer any tools to receive user input.
+__Sealed__() __Widget__(nil, Frame)
+class "StatusBar" { Frame }
+
+------------------------------------------------------------
+--                        Model                           --
+------------------------------------------------------------
+--- Model provide a rendering environment which is drawn into the backdrop of their frame, allowing you to display the contents of an .m2 file and set facing, scale, light and fog information, or run motions associated
+__Sealed__() __Widget__(nil, Frame)
+class "Model" { Frame }
+
+--- PlayerModels are the most commonly used subtype of Model frame. They expand on the Model type by adding functions to quickly set the model to represent a particular player or creature, by unitID or creature ID.
+__Sealed__() __Widget__(nil, Frame)
+class "PlayerModel" { Model }
+
+__Sealed__() __Widget__(nil, Frame)
+class "CinematicModel" { PlayerModel }
+
+__Sealed__() __Widget__(nil, Frame)
+class "DressUpModel" { PlayerModel}
+
+__Sealed__() __Widget__(nil, Frame)
+class "TabardModel" { PlayerModel}
