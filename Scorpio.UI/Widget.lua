@@ -9,21 +9,6 @@
 Scorpio           "Scorpio.UI.Widget"                "1.0.0"
 --========================================================--
 
-----------------------------------------------
---                UI Helpers                --
-----------------------------------------------
-do
-    function getRealMethodCache(name)
-        return setmetatable({}, {
-            __index             = function(self, cls)
-                local real      = Class.GetNormalMethod(cls, name)
-                rawset(self, cls, real)
-                return real
-            end,
-        })
-    end
-end
-
 --- The basic type for all ui ojbect provide the name and parent-children support
 __Sealed__() __Abstract__()
 class "UIObject" (function(_ENV)
@@ -390,7 +375,7 @@ __Sealed__() class "__Widget__" (function(_ENV)
     ----------------------------------------------
     __Static__() function Release()
         for name, ele in pairs(UI_PROTOTYPE) do
-            pcall(ele.SetParent, ele, nil)
+            pcall(ele.SetParent, ele, nil)ascx
         end
 
         wipe(UI_PROTOTYPE)
@@ -419,7 +404,7 @@ __Sealed__() class "__Widget__" (function(_ENV)
             return CreateFrame(frmtype, nil, parent, ...)
         end
 
-        local prototype         = self.Constructor(nil, UI_PROTOTYPE[self.Parent])
+        local prototype         = self.Constructor(nil, frmtype ~= "Frame" and UI_PROTOTYPE[self.Parent or UI.Frame] or nil)
         UI_PROTOTYPE[target]    = prototype
         if Class.IsSubType(target, Region) then prototype:Hide() end
 
@@ -466,7 +451,7 @@ class "Frame" { Region }
 __Sealed__() __Widget__(
     function (name, parent, layer, inherits, sublevel)
         return parent:CreateTexture(nil, layer or "ARTWORK", inherits, sublevel or 0)
-    end, Frame
+    end
 )
 class "Texture" { LayeredRegion }
 
@@ -474,7 +459,7 @@ class "Texture" { LayeredRegion }
 __Sealed__() __Widget__(
     function (name, parent, layer, inherits, sublevel)
         return parent:CreateMaskTexture(nil, layer or "ARTWORK", inherits, sublevel or 0)
-    end, Frame
+    end
 )
 class "MaskTexture" { Texture }
 
@@ -482,7 +467,7 @@ class "MaskTexture" { Texture }
 __Sealed__() __Widget__(
     function (name, parent, layer, inherits, ...)
         return parent:CreateFontString(nil, layer or "OVERLAY", inherits or "GameFontNormal", ...)
-    end, Frame
+    end
 )
 class "FontString" { LayeredRegion }
 
@@ -490,7 +475,7 @@ class "FontString" { LayeredRegion }
 __Sealed__() __Widget__(
     function (name, parent, ...)
         return parent:CreateLine(nil, ...)
-    end, Frame
+    end
 )
 class "Line" { Texture }
 
@@ -503,7 +488,7 @@ class "Line" { Texture }
 __Sealed__() __Widget__(
     function (name, parent, ...)
         return parent:CreateAnimationGroup(nil, ...)
-    end, Frame
+    end
 )
 class "AnimationGroup" { UIObject }
 
@@ -602,30 +587,30 @@ class "Translation" { Animation }
 --- ArchaeologyDigSiteFrame is a frame that is used to display digsites. Any one frame can be used to display any number of digsites, called blobs. Each blob is a polygon with a border and a filling texture.
 -- To draw a blob onto the frame use the DrawBlob function. this will draw a polygon representing the specified digsite. It seems that it's only possible to draw digsites where you can dig and is on the current map.
 -- Changes to how the blobs should render will only affect newly drawn blobs. That means that if you want to change the opacity of a blob you must first clear all blobs using the DrawNone function and then redraw the blobs.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "ArchaeologyDigSiteFrame" { Frame }
 
 --- Button is the primary means for users to control the game and their characters.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "Button" { Frame }
 
 --- Browser is used to provide help helpful pages in the game
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "Browser" { Frame }
 
 --- EditBoxes are used to allow the player to type text into a UI component.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "EditBox" { Frame }
 
 --- CheckButtons are a specialized form of Button; they maintain an on/off state, which toggles automatically when they are clicked, and additional textures for when they are checked, or checked while disabled.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "CheckButton" { Button }
 
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "ColorSelect" { Frame }
 
 --- Cooldown is a specialized variety of Frame that displays the little "clock" effect over abilities and buffs. It can be set with its running time, whether it should appear to "fill up" or "empty out", and whether or not there should be a bright edge where it's changing between dim and bright.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "Cooldown" { Frame }
 
 --- GameTooltips are used to display explanatory information relevant to a particular element of the game world.
@@ -635,7 +620,7 @@ __Sealed__() __Widget__(function(name, parent, ...)
         else
             return CreateFrame("GameTooltip", name, parent, "GameTooltipTemplate")
         end
-    end, Frame)
+    end)
 class "GameTooltip" (function(_ENV)
     inherit "Frame"
 
@@ -787,18 +772,18 @@ class "GameTooltip" (function(_ENV)
 end)
 
 --- MessageFrames are used to present series of messages or other lines of text, usually stacked on top of each other.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "MessageFrame" { Frame }
 
 --- MovieFrames are used to play video files of some formats.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "MovieFrame" { Frame }
 
 --- QuestPOIFrames are used to draw blobs of interest points for quest on the world map
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "QuestPOIFrame" { Frame }
 
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "ScenarioPOIFrame" { Frame }
 
 --- The interface used to provide the final methods for the Scroll Frame
@@ -815,37 +800,42 @@ __Sealed__() interface "IScrollFrame" (function(_ENV)
 end)
 
 --- ScrollFrame is used to show a large body of content through a small window. The ScrollFrame is the size of the "window" through which you want to see the larger content, and it has another frame set as a "ScrollChild" containing the full content.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "ScrollFrame" { Frame, IScrollFrame }
 
 --- The most sophisticated control over text display is offered by SimpleHTML widgets. When its text is set to a string containing valid HTML markup, a SimpleHTML widget will parse the content into its various blocks and sections, and lay the text out. While it supports most common text commands, a SimpleHTML widget accepts an additional argument to most of these; if provided, the element argument will specify the HTML elements to which the new style information should apply, such as formattedText:SetTextColor("h2", 1, 0.3, 0.1) which will cause all level 2 headers to display in red. If no element name is specified, the settings apply to the SimpleHTML widget's default font.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "SimpleHTML" { Frame }
 
 --- Sliders are elements intended to display or allow the user to choose a value in a range.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "Slider" { Frame }
 
 --- StatusBars are similar to Sliders, but they are generally used for display as they don't offer any tools to receive user input.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "StatusBar" { Frame }
 
 ------------------------------------------------------------
 --                        Model                           --
 ------------------------------------------------------------
 --- Model provide a rendering environment which is drawn into the backdrop of their frame, allowing you to display the contents of an .m2 file and set facing, scale, light and fog information, or run motions associated
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "Model" { Frame }
 
 --- PlayerModels are the most commonly used subtype of Model frame. They expand on the Model type by adding functions to quickly set the model to represent a particular player or creature, by unitID or creature ID.
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "PlayerModel" { Model }
 
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "CinematicModel" { PlayerModel }
 
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "DressUpModel" { PlayerModel}
 
-__Sealed__() __Widget__(nil, Frame)
+__Sealed__() __Widget__()
 class "TabardModel" { PlayerModel}
+
+------------------------------------------------------------
+--                       Release                          --
+------------------------------------------------------------
+__Widget__.Release()

@@ -84,7 +84,7 @@ yield                           = coroutine.yield
 
 ------------------ Common --------------------
 loadstring                      = loadstring or load
-
+getRealMethodCache              = function (name) return setmetatable({}, { __index = function(self, cls) local real = Class.GetNormalMethod(cls, name) rawset(self, cls, real) return real end }) end
 
 ------------------------------------------------------------
 --                         Enums                          --
