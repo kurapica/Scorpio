@@ -257,6 +257,22 @@ do
     }
 
     __Sealed__()
+    enum "VertexIndexType" {
+        UpperLeft   = _G.UPPER_LEFT_VERTEX  or 1,
+        LowerLeft   = _G.LOWER_LEFT_VERTEX  or 2,
+        UpperRight  = _G.UPPER_RIGHT_VERTEX or 3,
+        LowerRight  = _G.LOWER_RIGHT_VERTEX or 4,
+    }
+
+    __Sealed__() __Default__("STANDARD")
+    enum "FillStyle" {
+        "STANDARD",
+        "STANDARD_NO_RANGE_FILL",
+        "CENTER",
+        "REVERSE",
+    }
+
+    __Sealed__()
     enum "ScriptsType" {
         "OnLoad",
         "OnAttributeChanged",
@@ -340,6 +356,11 @@ do
         "OnStop",
         "OnFinished",
         "OnLoop",
+
+        -- Actor
+        "OnModelLoading",
+        "OnModelLoaded",
+        "OnAnimFinished",
     }
 end
 
@@ -347,9 +368,16 @@ end
 --            Data Types(UI.xsd)            --
 ----------------------------------------------
 do
-    __Sealed__() __Base__(Integer)
+    __Sealed__()
+    struct "AtlasType" {
+        { name = "atlas",       type = String },
+        { name = "useAtlasSize",type = Boolean },
+    }
+
+    __Sealed__()
     struct "AnimOrderType" {
-        function(val, onlyvalid) if (val < 1 or val > 100) then return onlyvalid or "the %s must between 1 and 100" end end
+        __base = Integer,
+        function(val, onlyvalid) if (val < 1 or val > 100) then return onlyvalid or "the %s must between [1, 100]" end end
     }
 
     __Sealed__()
@@ -367,8 +395,8 @@ do
 
     __Sealed__()
     struct "Size" {
-        { name = "width",       type = Number },
-        { name = "height",      type = Number },
+        { name = "width",       type = Number, require = true },
+        { name = "height",      type = Number, require = true },
     }
 
     __Sealed__()
@@ -390,16 +418,16 @@ do
     }
 
     __Sealed__()
-    struct "ShadowType" {
-        { name = "Color",       type = Color },
-        { name = "Offset",      type = Dimension },
+    struct "GradientType" {
+        { name = "orientation", type = Orientation },
+        { name = "mincolor",    type = Color + ColorType },
+        { name = "maxcolor",    type = Color + ColorType },
     }
 
     __Sealed__()
-    struct "GradientType" {
-        { name = "orientation", type = Orientation },
-        { name = "MinColor",    type = Color },
-        { name = "MaxColor",    type = Color },
+    struct "AlphaGradientType" {
+        { name = "start",       type = Number },
+        { name = "length",      type = Number }
     }
 
     __Sealed__()
@@ -415,8 +443,10 @@ do
         { name = "bgFile",      type = String },
         { name = "edgeFile",    type = String },
         { name = "tile",        type = Boolean },
+        { name = "tileEdge",    type = Boolean },
         { name = "tileSize",    type = Number },
         { name = "edgeSize",    type = Number },
+        { name = "alphaMode",   type = AlphaMode },
         { name = "insets",      type = Inset },
     }
 
@@ -460,8 +490,39 @@ do
         { name = "omni",        type = Boolean },
         { name = "dir",         type = Position },
         { name = "ambIntensity",type = ColorFloat },
-        { name = "ambColor",    type = Color },
+        { name = "ambColor",    type = Color + ColorType },
         { name = "dirIntensity",type = ColorFloat },
-        { name = "dirColor",    type = Color },
+        { name = "dirColor",    type = Color + ColorType },
+    }
+
+    __Sealed__()
+    struct "TextureType" {
+        { name = "file",        type = String,  require = true },
+        { name = "color",       type = ColorType },
     }
 end
+
+----------------------------------------------
+--                   Font                   --
+----------------------------------------------
+__Sealed__()
+struct "FontObject" {  function(val, onlyvalid) if not (type(val) == "table" and val.GetObjectType and val:GetObjectType() == "Font") then return onlyvalid or "the %s must a font object" end end }
+
+--- The Font object is to be shared between other objects that share font characteristics
+__Sealed__() __Final__()
+class "Font" (function(_ENV)
+    ----------------------------------------------
+    --                 Methods                  --
+    ----------------------------------------------
+    for name, method in pairs(getmetatable(_G.GameFontNormal).__index) do
+        _ENV[name]              = method
+    end
+
+    ----------------------------------------------
+    --               Constructor                --
+    ----------------------------------------------
+    __Arguments__{ NEString }
+    function __new(_, name)
+        return CreateFont(name), true
+    end
+end)

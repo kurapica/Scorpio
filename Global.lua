@@ -84,7 +84,8 @@ yield                           = coroutine.yield
 
 ------------------ Common --------------------
 loadstring                      = loadstring or load
-getRealMethodCache              = function (name) return setmetatable({}, { __index = function(self, cls) local real = Class.GetNormalMethod(cls, name) rawset(self, cls, real) return real end }) end
+getRealMethodCache              = function (name) return setmetatable({}, { __index = function(self, cls) local real = Class.GetNormalMethod(cls, name)     rawset(self, cls, real) return real end }) end
+getRealMetaMethodCache          = function (name) return setmetatable({}, { __index = function(self, cls) local real = Class.GetNormalMetaMethod(cls, name) rawset(self, cls, real) return real end }) end
 
 ------------------------------------------------------------
 --                         Enums                          --
@@ -143,13 +144,13 @@ struct "LocaleString" { __base = String }
 __Sealed__()
 struct "ColorFloat" {
     __base = Number,
-    __init = function(val) return clamp(val, 0, 1) end
+    function(val, onlyvalid) if (val < 0 or val > 1) then return onlyvalid or "the %s must between [0, 1]" end end
 }
 
 __Sealed__()
 struct "HueValue" {
     __base = Number,
-    __init = function(val) return clamp(val, 0, 360) end
+    function(val, onlyvalid) if (val < 0 or val > 360) then return onlyvalid or "the %s must between [0, 360]" end end
 }
 
 __Sealed__()
@@ -180,6 +181,8 @@ struct "HSLType" {
 --
 -- Some special color can be accessed like 'Color.Red', 'Color.Player', 'Color.Mage'
 class "Color" (function(_ENV)
+    extend "ICloneable"
+
     export { maxv = math.max, minv = math.min, floor = math.floor }
 
     local function clamp(v) return minv(1, maxv(0, v)) end
@@ -345,6 +348,9 @@ class "Color" (function(_ENV)
     ----------------------------------------------
     --                  method                  --
     ----------------------------------------------
+    --- return the clone of the object
+    function Clone(self) return Color(self.r, self.g, self.b, self.a) end
+
     --- Set the hsv value to the color
     __Arguments__{ HueValue, ColorFloat, ColorFloat }
     function SetHSV(self, h, s, v)
@@ -382,7 +388,7 @@ class "Color" (function(_ENV)
         Variable("a", ColorFloat, true, 1),
     }
     function __new(_, r, g, b, a)
-        return { r = r, g = g, b = b, a = a}, true
+        return { r = r, g = g, b = b, a = a }, true
     end
 
     ----------------------------------------------
@@ -570,6 +576,15 @@ class "Color" (function(_ENV)
 
     --- The orange color
     __Static__() property "ORANGE"          { set = false, default = Color(1.00, 0.50, 0.25) }
+
+    --- The white color
+    __Static__() property "WHITE"           { set = false, default = Color(1.00, 1.00, 1.00) }
+
+    --- The black color
+    __Static__() property "BLACK"           { set = false, default = Color(0.00, 0.00, 0.00) }
+
+    --- The transparent color
+    __Static__() property "TRANSPARENT"     { set = false, default = Color(0.00, 0.00, 0.00, 0.00) }
 
     --- The player's default color
     __Static__() property "PLAYER"          { type = Color }
