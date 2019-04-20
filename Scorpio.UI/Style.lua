@@ -134,7 +134,7 @@ else
     }
 end
 
-struct "Scorpio.UI.Style.Property" (function(_ENV)
+__Sealed__() struct "Scorpio.UI.Style.Property" (function(_ENV)
     __Static__() __Iterator__()
     function GetProperties(cls)
         if cls then
@@ -161,6 +161,31 @@ struct "Scorpio.UI.Style.Property" (function(_ENV)
         else
             for _, prop in pairs(_Property) do
                 yield(prop.name, prop.type, prop.set, prop.get, prop.clear, clone(prop.default, true), prop.nilable)
+            end
+        end
+    end
+
+    __Static__()
+    function GetProperty(name, cls)
+        local prop              = _Property[strlower(name)]
+        if prop then
+            local match         = false
+            if not (cls and prop.require) then
+                match           = true
+            elseif getmetatable(prop.require) then
+                if Class.IsSubType(cls, prop.require) then
+                    match       = true
+                end
+            else
+                for _, req in ipairs(prop.require) do
+                    if Class.IsSubType(cls, req) then
+                        match   = true
+                        break
+                    end
+                end
+            end
+            if match then
+                return prop.name, prop.type, prop.set, prop.get, prop.clear, clone(prop.default, true), prop.nilable
             end
         end
     end

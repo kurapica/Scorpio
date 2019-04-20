@@ -26,14 +26,12 @@ META_WEAKALL                    = { __mode = "kv"}
 Log                             = System.Logger("Scorpio")
 
 Log.TimeFormat                  = "%X"
-Trace                           = Log:SetPrefix(1, "|cffa9a9a9[Scorpio]|r", true)
-Debug                           = Log:SetPrefix(2, "|cff808080[Scorpio]|r", true)
-Info                            = Log:SetPrefix(3, "|cffffffff[Scorpio]|r", true)
-Warn                            = Log:SetPrefix(4, "|cffffff00[Scorpio]|r", true)
-Error                           = Log:SetPrefix(5, "|cffff0000[Scorpio]|r", true)
-Fatal                           = Log:SetPrefix(6, "|cff8b0000[Scorpio]|r", true)
-
-Log.LogLevel                    = 1
+Trace                           = Log:SetPrefix(Logger.LogLevel.Trace, "|cffa9a9a9[Scorpio]|r", true)
+Debug                           = Log:SetPrefix(Logger.LogLevel.Debug, "|cff808080[Scorpio]|r", true)
+Info                            = Log:SetPrefix(Logger.LogLevel.Info,  "|cffffffff[Scorpio]|r", true)
+Warn                            = Log:SetPrefix(Logger.LogLevel.Warn,  "|cffffff00[Scorpio]|r", true)
+Error                           = Log:SetPrefix(Logger.LogLevel.Error, "|cffff0000[Scorpio]|r", true)
+Fatal                           = Log:SetPrefix(Logger.LogLevel.Fatal, "|cff8b0000[Scorpio]|r", true)
 
 Log:AddHandler(print)
 
@@ -153,7 +151,7 @@ struct "HueValue" {
     function(val, onlyvalid) if (val < 0 or val > 360) then return onlyvalid or "the %s must between [0, 360]" end end
 }
 
-__Sealed__()
+__Sealed__() __ObjectAllowed__()
 struct "ColorType" {
     { name = "r",   type = ColorFloat, require = true },
     { name = "g",   type = ColorFloat, require = true },

@@ -246,21 +246,6 @@ __Sealed__() __Abstract__() class "UIObject"(function(_ENV)
     ----------------------------------------------
     --               Constructor                --
     ----------------------------------------------
-    __Arguments__{ NEString, UI/UIParent, Any * 0 }
-    function __ctor(self, name, parent, ...)
-        parent                  = parent[0]
-
-        local children          = _ChildMap[parent]
-
-        if not children then
-            children            = {}
-            _ChildMap[parent]   = children
-        end
-
-        children[name]          = self
-        _NameMap[self[0]]       = name
-    end
-
     __Final__() __Arguments__{ NEString, UI/UIParent, Any * 0 }
     function __exist(cls, name, parent, ...)
         local children          = _ChildMap[parent[0]]
@@ -277,7 +262,20 @@ __Sealed__() __Abstract__() class "UIObject"(function(_ENV)
 
     __Final__() __Arguments__{ NEString, UI/UIParent, Any * 0 }
     function __new(cls, name, parent, ...)
-        return _GetNew[cls](cls, name, parent, ...)
+        local self              = _GetNew[cls](cls, name, parent, ...)
+        parent                  = parent[0]
+
+        local children          = _ChildMap[parent]
+
+        if not children then
+            children            = {}
+            _ChildMap[parent]   = children
+        end
+
+        children[name]          = self
+        _NameMap[self[0]]       = name
+
+        return self
     end
 
     ----------------------------------------------
