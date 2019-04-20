@@ -3,6 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/12/12                              --
+-- Update Date :  2019/04/20                              --
 --========================================================--
 
 PLoop(function(_ENV)
@@ -410,7 +411,7 @@ PLoop(function(_ENV)
         end
 
         local function newSystemTask(func, ...)
-            if select("#", ...) > 1 then
+            if select("#", ...) > 0 then
                 yieldReturn(yield( running() ))
                 return func(...)
             else

@@ -1,3 +1,9 @@
+2019/04/20
+	1. Basic UI system finished.
+	2. Basic UI style system finished.
+	3. Fix a check in the task system, function with one argument may be treated as non-argument.
+	4. Hook system is removed, since it's useless, we only need use secure hook system.
+
 2018/07/27
 	1. Add the missing code for cache recycle
 
