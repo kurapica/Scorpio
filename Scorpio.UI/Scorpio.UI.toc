@@ -1,4 +1,4 @@
-## Interface: 80100
+## Interface: 80200
 ## Title: [Lib] Scorpio.UI
 ## Author: kurapica125@outlook.com
 ## Version: v001
