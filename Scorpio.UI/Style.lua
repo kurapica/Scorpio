@@ -9,18 +9,85 @@
 Scorpio           "Scorpio.UI.Style"                 "1.0.0"
 --========================================================--
 
-----------------------------------------------
---          Scorpio UI Style Core           --
-----------------------------------------------
+local clone                     = Toolset.clone
+local ACTION_ADD_CLASS          = 1
+local ACTION_DEL_CLASS          = 2
+
 local _PropertyOwner
 local _PropertyAccessor
 
-local clone                     = Toolset.clone
+local _Property                 = {}
+local _StyleClass                = {}
+local _FrameStyleClasses        = setmetatable({}, META_WEAKKEY)
 
+local _ApplyStyleTask           = setmetatable({}, META_WEAKALL)
+local _ApplyStyleTaskStart      = 0
+local _ApplyStyleTaskEnd        = 0
 
+function OnEnable(self)
+    OnEnable                    = nil
+    RunAsService(ProcessApplyStyleTask, true)
+end
+
+function ProcessApplyStyleTask()
+    while true do
+        while _ApplyStyleTaskEnd > _ApplyStyleTaskStart and GetTime() > _ApplyStyleTask[_ApplyStyleTaskStart + 1] do
+            local frame             = _ApplyStyleTask[_ApplyStyleTaskStart + 2]
+            local action            = _ApplyStyleTask[_ApplyStyleTaskStart + 3]
+            local scls              = _ApplyStyleTask[_ApplyStyleTaskStart + 4]
+            local settings          = _StyleClass[scls]
+
+            _ApplyStyleTask[_ApplyStyleTaskStart + 1] = nil
+            _ApplyStyleTask[_ApplyStyleTaskStart + 2] = nil
+            _ApplyStyleTask[_ApplyStyleTaskStart + 3] = nil
+            _ApplyStyleTask[_ApplyStyleTaskStart + 4] = nil
+            _ApplyStyleTaskStart    = _ApplyStyleTaskStart + 4
+
+            if settings and frame and not rawget(frame, "Disposed") then
+                -- Apply style on the frame
+                if ACTION_ADD_CLASS == action then
+                    ApplyClassStyle(frame, settings)
+                elseif ACTION_DEL_CLASS == action then
+                    RemoveClassStyle(frame, settings)
+                end
+
+                Continue()
+            end
+        end
+
+        Next()
+    end
+end
+
+function QueueApplyStyleTask(self, action, cls)
+    _ApplyStyleTask[_ApplyStyleTaskEnd + 1] = GetTime()
+    _ApplyStyleTask[_ApplyStyleTaskEnd + 2] = self
+    _ApplyStyleTask[_ApplyStyleTaskEnd + 3] = action
+    _ApplyStyleTask[_ApplyStyleTaskEnd + 4] = cls
+    _ApplyStyleTaskEnd                      = _ApplyStyleTaskEnd + 4
+end
+
+function ApplyClassStyle(self, settings)
+    for prop, v in pairs(settings) do
+        prop.set(self, clone(v, true), 2)
+    end
+end
+
+function RemoveClassStyle(self, settings)
+    for prop in pairs(settings) do
+        if prop.clear   then prop.clear(self, 2) end
+        if prop.default then prop.set(self, clone(prop.default, true), 2) end
+        if prop.nilable then prop.set(self, nil, 2) end
+    end
+end
+
+----------------------------------------------
+--          Scorpio UI Style Core           --
+----------------------------------------------
 Namespace.SaveNamespace("Scorpio.UI.Style", prototype {
     __tostring                  = Namespace.GetNamespaceName,
-    __index                     = function(self, key, stack)
+    __index                     = function(self, key)
+        -- Style[frm].Alpha = 1
         local tkey              = type(key)
         if tkey == "string" then
             return Namespace.GetNamespace(self, key)
@@ -29,13 +96,48 @@ Namespace.SaveNamespace("Scorpio.UI.Style", prototype {
             return _PropertyAccessor
         end
     end,
+    __newindex                  = function(self, key, value)
+        if type(value) ~= "table" then error("Usage: Style[class] = { ... } - the style settings must be a table", 2) end
+
+        local settings          = {}
+
+        for n, v in pairs(value) do
+            if type(n) == "string" then
+                local prop      = _Property[strlower(n)]
+                if not prop then error(strformat("Usage: Style[class] = { ... } - the %q isn't a valid property", n), 2) end
+
+                if prop.validate then
+                    local ret, msg  = prop.validate(prop.type, v)
+                    if msg then error(Struct.GetErrorMessage(msg, n), 2) end
+                    v           = ret
+                end
+
+                settings[prop]  = v
+            end
+        end
+
+        local tkey              = type(key)
+
+        if (tkey == "string" and key:match("^[%w_-]+$")) or Class.IsSubType(key, IStyle) then
+            -- Style["My_Style"]= { Alpha = 1 }
+            key                 = tkey == "string" and strlower(key) or key
+            if _StyleClass[key] then
+                local tprops    = _StyleClass[key]
+                for k, v in pairs(settings) do
+                    tprops[k]   = v
+                end
+            else
+                _StyleClass[key]= settings
+            end
+        else
+            error("Usage: Style[class] = { ... } - the style target should be widget class or style class(string)", 2)
+        end
+    end,
 })
 
 ----------------------------------------------
 --         Scorpio UI Property Core         --
 ----------------------------------------------
-local _Property                 = {}
-
 if System.Platform.TYPE_VALIDATION_DISABLED then
     _PropertyAccessor           = prototype {
         __metatable             = Scorpio.UI.Style,
@@ -45,7 +147,11 @@ if System.Platform.TYPE_VALIDATION_DISABLED then
         end,
         __newindex              = function(self, key, value)
             local prop          = _Property[strlower(key)]
-            if prop.validate then
+            if value == nil then
+                if prop.clear   then prop.clear(_PropertyOwner, 2) return end
+                if prop.default then prop.set(_PropertyOwner, clone(prop.default, true), 2) return end
+                if prop.nilable then prop.set(_PropertyOwner, nil, 2) return end
+            elseif prop.validate then
                 prop.set(_PropertyOwner, prop.validate(prop.type, value))
             else
                 prop.set(_PropertyOwner, value)
@@ -101,7 +207,8 @@ else
             local prop          = ptype[strlower(key)]
             if not prop then error(strformat("the object has no widget property named %q", key), 2) end
 
-            return prop.get(_PropertyOwner, 2)
+            prop                = prop.get(_PropertyOwner, 2)
+            return prop
         end,
         __newindex              = function(self, key, value)
             if type(key) ~= "string" then error("the widget property name must be string", 2) end
@@ -119,9 +226,9 @@ else
             if not prop then error(strformat("the object has no widget property named %q", key), 2) end
 
             if value == nil then
-                if prop.clear       then return prop.clear(_PropertyOwner, 2) end
-                if prop.default     then return prop.set(_PropertyOwner, clone(prop.default, true), 2) end
-                if prop.nilable     then return prop.set(_PropertyOwner, nil, 2) end
+                if prop.clear   then prop.clear(_PropertyOwner, 2) return end
+                if prop.default then prop.set(_PropertyOwner, clone(prop.default, true), 2) return end
+                if prop.nilable then prop.set(_PropertyOwner, nil, 2) return end
                 error(strformat("the %q widget property require non-nil value", key), 2)
             elseif prop.validate then
                 local ret, msg  = prop.validate(prop.type, value)
@@ -248,3 +355,51 @@ __Sealed__() struct "Scorpio.UI.Style.Property" (function(_ENV)
         _Property[strlower(self.name)] = self
     end
 end)
+
+----------------------------------------------
+--               Style Class                --
+----------------------------------------------
+Style.Property  {
+    name    = "Class",
+    type    = NEString,
+    nilable = true,
+    get     = function(self) return _FrameStyleClasses[self] end,
+    set     = function(self, scls)
+        if _FrameStyleClasses[self] == scls then return end
+
+        local isStyleCls        = Class.IsObjectType(self, IStyle)
+
+        if _FrameStyleClasses[self] then
+            QueueApplyStyleTask(self, ACTION_DEL_CLASS, _FrameStyleClasses[self])
+
+            if isStyleCls then
+                QueueApplyStyleTask(self, ACTION_ADD_CLASS, getmetatable(self))
+            end
+        end
+
+        if scls then
+            scls                = strlower(scls)
+
+            if isStyleCls and _FrameStyleClasses[self] == nil then
+                Next(QueueApplyStyleTask, self, ACTION_ADD_CLASS, scls)
+            else
+                QueueApplyStyleTask(self, ACTION_ADD_CLASS, scls)
+            end
+
+            _FrameStyleClasses[self] = scls
+        elseif isStyleCls then
+            _FrameStyleClasses[self] = false
+        end
+    end,
+}
+
+----------------------------------------------
+--             Style Interface              --
+----------------------------------------------
+__Sealed__()
+IStyle                          = interface "Scorpio.UI.Style.IStyle" {
+    function (self)
+        _FrameStyleClasses[self]= _FrameStyleClasses[self] or false
+        QueueApplyStyleTask(self, ACTION_ADD_CLASS, getmetatable(self))
+    end
+}

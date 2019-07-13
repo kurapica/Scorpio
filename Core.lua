@@ -3,7 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/12/12                              --
--- Update Date :  2019/04/20                              --
+-- Update Date :  2019/07/07                              --
 --========================================================--
 
 PLoop(function(_ENV)
@@ -78,6 +78,9 @@ PLoop(function(_ENV)
         --               Cache System               --
         ----------------------------------------------
         local t_Cache           = {}    -- Cache Manager
+
+        local _RegisterService  = {}
+        local _ResidentService  = setmetatable({}, META_WEAKKEY)
 
         -- For diagnosis
         g_CacheGenerated        = 0
@@ -246,7 +249,13 @@ PLoop(function(_ENV)
                     if task then
                         -- Process the task
                         local ok, msg   = resume(task)
-                        if not ok then pcall(geterrorhandler(), msg) end
+                        if not ok then
+                            pcall(geterrorhandler(), msg)
+                            if _ResidentService[task] then
+                                ThreadCall(_ResidentService[task])
+                                _ResidentService[task] = nil
+                            end
+                        end
                         g_FinishedTask  = g_FinishedTask + 1
                     end
                     r_Count     = r_Count - 1
@@ -280,7 +289,13 @@ PLoop(function(_ENV)
                     if task then
                         -- Process the task
                         local ok, msg   = resume(task)
-                        if not ok then pcall(geterrorhandler(), msg) end
+                        if not ok then
+                            pcall(geterrorhandler(), msg)
+                            if _ResidentService[task] then
+                                ThreadCall(_ResidentService[task])
+                                _ResidentService[task] = nil
+                            end
+                        end
                         g_FinishedTask  = g_FinishedTask + 1
                     end
                 end
@@ -499,6 +514,25 @@ PLoop(function(_ENV)
             return callable(...)
         end
 
+        local function registerService(func, resident)
+            local wrap
+            wrap                = resident and function()
+                _ResidentService[running()] = wrap
+                Next() func()
+            end or function()
+                Next() func()
+            end
+            tinsert(_RegisterService, wrap)
+        end
+
+        local function processService()
+            if _RegisterService[1] then
+                local task      = _RegisterService
+                _RegisterService= {}
+                for i = 1, #task do ThreadCall(task[i]) end
+            end
+        end
+
         ----------------------------------------------
         --               Addon Helper               --
         ----------------------------------------------
@@ -681,12 +715,14 @@ PLoop(function(_ENV)
             local cache         = t_EventTasks[evt]
             local wcache        = t_WaitEventTasks[evt]
 
+            -- event tasks
             if cache then
                 t_EventTasks[evt] = nil
 
                 queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, cache, ...))
             end
 
+            -- wait event tasks
             if wcache then
                 t_WaitEventTasks[evt] = nil
                 wcache[0]       = nil
@@ -704,9 +740,7 @@ PLoop(function(_ENV)
                 queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, wcache, evt, ...))
             end
 
-            -- The System event handler may register event task
-            -- So I should keep it won't bother the previous tasks
-            -- Just call it at the last
+            -- Call direct handlers
             return callAddonHandlers(_EventDistribution[evt], ...)
         end
 
@@ -747,11 +781,15 @@ PLoop(function(_ENV)
 
         function ScorpioManager.ADDON_LOADED(name)
             local addon         = _RootAddon[name]
-            if addon then return tryloading(addon) end
+            if addon then
+                tryloading(addon)
+            else
+                name            = name:match("%P+")
+                addon           = name and _RootAddon[name]
+                if addon then tryloading(addon) end
+            end
 
-            name                = name:match("%P+")
-            addon               = name and _RootAddon[name]
-            if addon then return tryloading(addon) end
+            processService()
         end
 
         function ScorpioManager.PLAYER_LOGIN()
@@ -764,6 +802,8 @@ PLoop(function(_ENV)
                 specChanged(addon, _PlayerSpec)
                 warmodeChanged(addon, _PlayerWarMode)
             end
+
+            processService()
         end
 
         function ScorpioManager.PLAYER_LOGOUT()
@@ -1154,6 +1194,13 @@ PLoop(function(_ENV)
             return yieldReturn(yield())
         end
 
+        --- Run a method as service
+        __Arguments__{ Function, Boolean/nil }
+        __Static__() function RunAsService(func, resident)
+            registerService(func, resident)
+            processService()
+        end
+
         ----------------------------------------------
         --                  Event                   --
         ----------------------------------------------
@@ -1472,6 +1519,44 @@ PLoop(function(_ENV)
                 self.Addon = addon
                 self.Target = _G
                 self.TargetFunc = targetFunc
+            end
+        end)
+
+        --- Mark the method as an async service so it'd be automatically processed
+        -- when the addon is loaded, and the system will try to re-process it if the
+        -- process is dead as required
+        -- @usage
+        --      Scorpio "MyAddon" "v1.0.1"
+        --
+        --      __Service__(true) -- auto restarted
+        --      function MyService()
+        --          while Wait("PLAYER_FLAGS_CHANGED") do
+        --              print("The pvp mode is " .. (C_PvP.IsWarModeDesired() and "active" or "deactive"))
+        --          end
+        --      end
+        __Sealed__()
+        class "__Service__" (function(_ENV)
+            extend "IAttachAttribute"
+
+            -----------------------------------------------------------
+            --                        method                         --
+            -----------------------------------------------------------
+            function AttachAttribute(self, target, targettype, owner, name, stack)
+                registerService(target, self[1])
+            end
+
+            -----------------------------------------------------------
+            --                       property                        --
+            -----------------------------------------------------------
+            --- the attribute target
+            property "AttributeTarget"  { type = AttributeTargets,  default = AttributeTargets.Method + AttributeTargets.Function }
+
+            -----------------------------------------------------------
+            --                      constructor                      --
+            -----------------------------------------------------------
+            __Arguments__{ Boolean/nil }
+            function __Service__(self, flag)
+                self[1]         = flag
             end
         end)
 

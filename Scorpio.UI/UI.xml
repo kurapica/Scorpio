@@ -2,11 +2,11 @@
     <!-- UI Base -->
     <Script file="UI.lua"/>
 
-    <!-- UI Widgets -->
-    <Script file="Widget.lua"/>
-
 	<!-- UI Style -->
 	<Script file="Style.lua"/>
+
+    <!-- UI Widgets -->
+    <Script file="Widget.lua"/>
 
     <!-- UI Widget Properties -->
     <Script file="Property.lua"/>
