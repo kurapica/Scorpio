@@ -10,7 +10,7 @@ PLoop(function(_ENV)
     ------------------------------------------------------------
     --                Scorpio - Addon Class                   --
     ------------------------------------------------------------
-    __Final__() __Sealed__()
+    __Sealed__()
     _G.Scorpio = class "Scorpio" (function (_ENV)
         inherit "Module"
 
