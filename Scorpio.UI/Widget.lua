@@ -214,7 +214,7 @@ __Sealed__() __Abstract__() class "UIObject"(function(_ENV)
     --- Gets the child with the given name
     function GetChild(self, name)
         local children          = _ChildMap[self[0]]
-        return children and children[child]
+        return children and children[name]
     end
 
     ----------------------------------------------
