@@ -316,17 +316,16 @@ PLoop(function(_ENV)
         end
 
         -- Queue API
-        local function queueTask(priority, task, noStart)
+        local function queueTask(priority, task)
             local cache         = t_Tasks[priority]
             if not cache then
                 cache           = recycleCache()
                 t_Tasks[priority] = cache
             end
             tinsert(cache, task)
-            return not noStart and priority == HIGH_PRIORITY and processPhase()
         end
 
-        local function queueTaskList(priority, tasklist, noStart)
+        local function queueTaskList(priority, tasklist)
             local cache         = t_Tasks[priority]
             if not cache then
                 t_Tasks[priority] = tasklist
@@ -334,7 +333,6 @@ PLoop(function(_ENV)
                 while cache[0] do cache = cache[0] end
                 cache[0] = tasklist
             end
-            return not noStart and priority == HIGH_PRIORITY and processPhase()
         end
 
         ----------------------------------------------
@@ -356,26 +354,29 @@ PLoop(function(_ENV)
         local t_DelayTasks      = nil   -- Delayed task
 
         local function queueDelayTask(task, time)
-            -- Fix the time
-            time                = floor((GetTime() + time) * 10) / 10
+            time                = floor((GetTime() + time) * 10)
 
             local node, header  = t_DelayTasks
 
-            while node and node[1] <= time do
+            while node and node[1] < time do
                 header          = node
                 node            = header[0]
             end
 
-            node                = recycleCache()
-            node[1]             = time
-            node[2]             = task
-
-            if header then
-                node[0]         = header[0]
-                header[0]       = node
+            if node and node[1] == time then
+                tinsert(node, task)
             else
-                node[0]         = t_DelayTasks
-                t_DelayTasks    = node
+                node            = recycleCache()
+                node[1]         = time
+                node[2]         = task
+
+                if header then
+                    node[0]     = header[0]
+                    header[0]   = node
+                else
+                    node[0]     = t_DelayTasks
+                    t_DelayTasks= node
+                end
             end
         end
 
@@ -454,7 +455,7 @@ PLoop(function(_ENV)
                 if task then resume(task, ...) end
             end
 
-            queueTaskList(priority, queue, true)
+            queueTaskList(priority, queue)
         end
 
         local function getSecureHookMap(target, targetFunc)
@@ -751,22 +752,28 @@ PLoop(function(_ENV)
             if now > g_Phase then g_InPhase = false end
 
             local cache         = t_DelayTasks
+            now                 = floor(now * 10)
 
             while cache and cache[1] <= now do
-                local task      = cache[2]
-
-                if type(task) == "number" then
-                    local rtask = w_Token[task]
-                    if rtask then
-                        w_Token[task] = nil
+                local i         = 2
+                local task      = cache[i]
+                repeat
+                    if type(task) == "number" then
+                        local rtask = w_Token[task]
+                        if rtask then
+                            w_Token[task] = nil
+                        end
+                        task    = rtask
                     end
-                    task        = rtask
-                end
 
-                if task then
-                    resume(task, now)
-                    queueTask(LOW_PRIORITY, task)
-                end
+                    if task then
+                        resume(task, now)
+                        queueTask(LOW_PRIORITY, task)
+                    end
+
+                    i           = i + 1
+                    task        = cache[i]
+                until not task
 
                 local ncache    = cache[0]
                 recycleCache(cache)
@@ -1038,7 +1045,7 @@ PLoop(function(_ENV)
             local thread = running()
             if not thread then error("Scorpio.Continue() can only be used in a thread.", 2) end
 
-            queueTask(HIGH_PRIORITY, thread, true)
+            queueTask(HIGH_PRIORITY, thread)
 
             return yield()
         end
