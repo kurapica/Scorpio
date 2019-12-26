@@ -75,11 +75,23 @@ function SetOvertimeFactor(info)
     Info("Scorpio's overtime factor is set to %.2f", _SVData.OvertimeFactor)
 end
 
+__SlashCmd__ "Scorpio" "suspend" " - suspend the task schedule system temporarily"
+function SuspendSystem()
+    Scorpio.SystemSuspended = true
+end
+
+__SlashCmd__ "Scorpio" "resume" " - resume the task schedule system"
+function ResumeSystem()
+    Scorpio.SystemSuspended = false
+end
+
 __SlashCmd__ "Scorpio" "info" "show the current system settings"
 function GetInfo()
     Info("--====================--")
+    Info("[log level] - %d", _SVData.LogLevel)
     Info("[task threshold] - %d", _SVData.TaskThreshold)
     Info("[task factor] - %.2f", _SVData.TaskFactor)
     Info("[overtime factor] - %.2f", _SVData.OvertimeFactor)
+    Info("[system suspended] - %s", tostring(Scorpio.SystemSuspended))
     Info("--====================--")
 end

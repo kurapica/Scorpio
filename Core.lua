@@ -53,6 +53,9 @@ PLoop(function(_ENV)
             yield               = coroutine.yield,
 
             DefaultPool         = Threading.ThreadPool.Default,
+
+            GetSpecialization   = GetSpecialization or function() return 1 end,
+            IsWarModeDesired    = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
         }
 
         ThreadCall              = function(...) return DefaultPool:ThreadCall(...) end
@@ -148,9 +151,12 @@ PLoop(function(_ENV)
         r_Tasks                 = {}
         r_Count                 = 0
 
+        -- In Loading Screen
+        r_InLoadingScreen       = true
+
         -- Phase API
         local function processPhase()
-            if g_InPhase then return end
+            if g_InPhase or r_InLoadingScreen then return end
             g_InPhase           = true
 
             -- Prepare the task list
@@ -252,7 +258,7 @@ PLoop(function(_ENV)
                         if not ok then
                             pcall(geterrorhandler(), msg)
                             if _ResidentService[task] then
-                                ThreadCall(_ResidentService[task])
+                                ThreadCall(_ResidentService[task], msg)
                                 _ResidentService[task] = nil
                             end
                         end
@@ -800,8 +806,12 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_LOGIN()
+            Log(2, "[START TASK MANAGER]")
+
+            r_InLoadingScreen   = false
+
             _PlayerSpec         = GetSpecialization() or 1
-            _PlayerWarMode      = C_PvP.IsWarModeDesired() and WarMode.PVP or WarMode.PVE
+            _PlayerWarMode      = IsWarModeDesired() and WarMode.PVP or WarMode.PVE
             _Logined            = true
 
             for _, addon in pairs(_RootAddon) do
@@ -814,6 +824,10 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_LOGOUT()
+            Log(2, "[STOP TASK MANAGER]")
+
+            r_InLoadingScreen   = true
+
             for _, addon in pairs(_RootAddon) do
                 exiting(addon)
             end
@@ -832,11 +846,14 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_ENTERING_WORLD()
-            return ScorpioManager.PLAYER_SPECIALIZATION_CHANGED()
+            Log(2, "[RESUME TASK MANAGER]")
+
+            r_InLoadingScreen   = false
+            ScorpioManager.PLAYER_SPECIALIZATION_CHANGED()
         end
 
         function ScorpioManager.PLAYER_FLAGS_CHANGED()
-            local mode          = C_PvP.IsWarModeDesired() and WarMode.PVP or WarMode.PVE
+            local mode          = IsWarModeDesired() and WarMode.PVP or WarMode.PVE
             if _PlayerWarMode  ~= mode then
                 _PlayerWarMode  = mode
                 for _, addon in pairs(_RootAddon) do
@@ -844,6 +861,27 @@ PLoop(function(_ENV)
                 end
             end
         end
+
+        -- Stop the task system when loading screen
+        function ScorpioManager.LOADING_SCREEN_ENABLED()
+            Log(2, "[SUSPEND TASK MANAGER]")
+
+            r_InLoadingScreen   = true
+        end
+
+        function ScorpioManager.LOADING_SCREEN_DISABLED()
+            Log(2, "[RESUME TASK MANAGER]")
+
+            r_InLoadingScreen   = false
+        end
+
+        hooksecurefunc(_G, "AcceptBattlefieldPort", function(data, accepted)
+            if accepted then
+                Log(2, "[SUSPEND TASK MANAGER]")
+
+                r_InLoadingScreen = true
+            end
+        end)
 
         ----------------------------------------------
         --            System Event Method           --
@@ -1241,6 +1279,9 @@ PLoop(function(_ENV)
         --- The factor used to calculate the task operation time for remain tasks from the previous phase
         __Static__() property "OvertimeFactor"  { type = Number, get = function() return PHASE_OVERTIME_FACTOR end, set = function(self, val) PHASE_OVERTIME_FACTOR = Clamp(val or 0, 0.1, 1) end }
 
+        --- Whether the task schedule system is suspended
+        __Static__() property "SystemSuspended" { type = Boolean, get = function() return r_InLoadingScreen end, set = function(self, val) r_InLoadingScreen = val end }
+
         ----------------------------------------------
         --                 Property                 --
         ----------------------------------------------
@@ -1581,6 +1622,8 @@ PLoop(function(_ENV)
         RegisterEvent(ScorpioManager, "PLAYER_SPECIALIZATION_CHANGED")
         RegisterEvent(ScorpioManager, "PLAYER_ENTERING_WORLD")
         RegisterEvent(ScorpioManager, "PLAYER_FLAGS_CHANGED")
+        RegisterEvent(ScorpioManager, "LOADING_SCREEN_DISABLED")
+        RegisterEvent(ScorpioManager, "LOADING_SCREEN_ENABLED")
 
         -- Clear canceld event tasks
         ThreadCall(function()

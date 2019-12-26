@@ -167,6 +167,8 @@ __Sealed__() class "SVManager" (function(_ENV)
         __Sealed__() class "SVSpecManager" (function(_ENV)
             inherit (SVProxy)
 
+            if not _G.GetSpecialization then return end
+
             ----------------------------------------------
             --             SVWarModeManager             --
             ----------------------------------------------
@@ -322,35 +324,37 @@ __Sealed__() class "SVManager" (function(_ENV)
         ----------------------------------------------
         --                 Property                 --
         ----------------------------------------------
-        --- The char's specialization saved variable
-        property "Spec"         {
-            get                 = function(self)
-                local nowSpec   = GetSpecialization() or 1
-                if _CurrentSpec ~= nowSpec then
-                    _CurrentSpec= nowSpec
-                    wipe(_DBSpecMap)
-                end
+        if _G.GetSpecialization then
+            --- The char's specialization saved variable
+            property "Spec"         {
+                get                 = function(self)
+                    local nowSpec   = GetSpecialization() or 1
+                    if _CurrentSpec ~= nowSpec then
+                        _CurrentSpec= nowSpec
+                        wipe(_DBSpecMap)
+                    end
 
-                local spec      = _DBSpecMap[self]
-                if not spec then
-                    self.__ScorpioSpecs               = self.__ScorpioSpecs or {}
-                    self.__ScorpioSpecs[_CurrentSpec] = self.__ScorpioSpecs[_CurrentSpec] or {}
-                    spec        = SVSpecManager(self.__ScorpioSpecs[_CurrentSpec], self)
-                    _DBSpecMap[self]= spec
+                    local spec      = _DBSpecMap[self]
+                    if not spec then
+                        self.__ScorpioSpecs               = self.__ScorpioSpecs or {}
+                        self.__ScorpioSpecs[_CurrentSpec] = self.__ScorpioSpecs[_CurrentSpec] or {}
+                        spec        = SVSpecManager(self.__ScorpioSpecs[_CurrentSpec], self)
+                        _DBSpecMap[self]= spec
+                    end
+                    return spec
                 end
-                return spec
-            end
-        }
+            }
 
-        --- The specialization sv mananger
-        __Indexer__(Number)
-        property "Specs"        {
-            get                 = function(self, index)
-                local specs     = self.__ScorpioSpecs
-                local spec      = specs and specs[index]
-                return spec and SVSpecManager(spec, self)
-            end,
-        }
+            --- The specialization sv mananger
+            __Indexer__(Number)
+            property "Specs"        {
+                get                 = function(self, index)
+                    local specs     = self.__ScorpioSpecs
+                    local spec      = specs and specs[index]
+                    return spec and SVSpecManager(spec, self)
+                end,
+            }
+        end
 
         ----------------------------------------------
         --                Constructor               --
