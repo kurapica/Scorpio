@@ -2,6 +2,9 @@
     <!-- UI Base -->
     <Script file="UI.lua"/>
 
+    <!-- UI Template -->
+    <Script file="Template.lua"/>
+
 	<!-- UI Style -->
 	<Script file="Style.lua"/>
 

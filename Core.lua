@@ -153,6 +153,8 @@ PLoop(function(_ENV)
 
         -- In Loading Screen
         r_InLoadingScreen       = true
+        r_InBattleField         = false
+        r_DelayResumeForBF      = 1
 
         -- Phase API
         local function processPhase()
@@ -848,7 +850,11 @@ PLoop(function(_ENV)
         function ScorpioManager.PLAYER_ENTERING_WORLD()
             Log(2, "[RESUME TASK MANAGER]")
 
-            r_InLoadingScreen   = false
+            if r_InBattleField then
+                C_Timer.After(r_DelayResumeForBF, function() r_InLoadingScreen = false r_InBattleField = false end)
+            else
+                r_InLoadingScreen   = false
+            end
             ScorpioManager.PLAYER_SPECIALIZATION_CHANGED()
         end
 
@@ -872,14 +878,19 @@ PLoop(function(_ENV)
         function ScorpioManager.LOADING_SCREEN_DISABLED()
             Log(2, "[RESUME TASK MANAGER]")
 
-            r_InLoadingScreen   = false
+            if r_InBattleField then
+                C_Timer.After(r_DelayResumeForBF, function() r_InLoadingScreen = false r_InBattleField = false end)
+            else
+                r_InLoadingScreen   = false
+            end
         end
 
         hooksecurefunc(_G, "AcceptBattlefieldPort", function(data, accepted)
             if accepted then
                 Log(2, "[SUSPEND TASK MANAGER]")
 
-                r_InLoadingScreen = true
+                r_InBattleField     = true
+                r_InLoadingScreen   = true
             end
         end)
 
