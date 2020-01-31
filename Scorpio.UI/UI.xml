@@ -2,11 +2,8 @@
     <!-- UI Base -->
     <Script file="UI.lua"/>
 
-    <!-- UI Template -->
-    <Script file="Template.lua"/>
-
-	<!-- UI Style -->
-	<Script file="Style.lua"/>
+    <!-- UI Core System:UIObject&Style&Property -->
+    <Script file="Core.lua"/>
 
     <!-- UI Widgets -->
     <Script file="Widget.lua"/>

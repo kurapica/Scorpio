@@ -14,7 +14,7 @@ Scorpio           "Scorpio.UI.Property"              "1.0.0"
 ------------------------------------------------------------
 do
     --- the frame's transparency value(0-1)
-    Style.Property  {
+    Property    {
         name    = "Alpha",
         type    = ColorFloat,
         require = { LayoutFrame, Line },
@@ -24,7 +24,7 @@ do
     }
 
     --- the height of the LayoutFrame
-    Style.Property  {
+    Property    {
         name    = "Height",
         type    = Number,
         require = { LayoutFrame, Line },
@@ -33,7 +33,7 @@ do
     }
 
     --- Whether ignore parent's alpha settings
-    Style.Property  {
+    Property    {
         name    = "ParentAlphaIgnored",
         type    = Boolean,
         require = { LayoutFrame, Line },
@@ -43,7 +43,7 @@ do
     }
 
     --- Whether ignore prent's scal settings
-    Style.Property  {
+    Property    {
         name    = "ParentScaleIgnored",
         type    = Boolean,
         require = { LayoutFrame, Line },
@@ -53,7 +53,7 @@ do
     }
 
     --- the location of the LayoutFrame
-    Style.Property  {
+    Property    {
         name    = "Location",
         type    = Anchors,
         require = LayoutFrame,
@@ -63,7 +63,7 @@ do
     }
 
     --- the frame's scale factor or the scale animation's setting
-    Style.Property  {
+    Property    {
         name    = "Scale",
         type    = PositiveNumber,
         require = { LayoutFrame, Scale },
@@ -73,7 +73,7 @@ do
     }
 
     --- The size of the LayoutFrame
-    Style.Property  {
+    Property    {
         name    = "Size",
         type    = Size,
         require = { LayoutFrame, Line },
@@ -82,7 +82,7 @@ do
     }
 
     --- wheter the LayoutFrame is shown or not.
-    Style.Property  {
+    Property    {
         name    = "Visible",
         type    = Boolean,
         require = { LayoutFrame, Line },
@@ -92,7 +92,7 @@ do
     }
 
     --- the width of the LayoutFrame
-    Style.Property  {
+    Property    {
         name    = "Width",
         type    = Number,
         require = { LayoutFrame, Line },
@@ -106,7 +106,7 @@ end
 ------------------------------------------------------------
 do
     --- the layer at which the LayeredFrame's graphics are drawn relative to others in its frame
-    Style.Property  {
+    Property    {
         name    = "DrawLayer",
         type    = DrawLayer,
         require = { Texture, FontString, ModelScene, Line },
@@ -116,7 +116,7 @@ do
     }
 
     --- the color shading for the LayeredFrame's graphics
-    Style.Property  {
+    Property    {
         name    = "VertexColor",
         type    = ColorType,
         require = { Texture, FontString, Line },
@@ -133,7 +133,7 @@ do
     FONT_TYPES  = { EditBox, FontString, MessageFrame, SimpleHTML }
 
     --- the font settings
-    Style.Property  {
+    Property    {
         name    = "Font",
         type    = FontType,
         require = FONT_TYPES,
@@ -174,7 +174,7 @@ do
     }
 
     --- the Font object
-    Style.Property  {
+    Property    {
         name    = "FontObject",
         type    = FontObject,
         require = FONT_TYPES,
@@ -183,7 +183,7 @@ do
     }
 
     --- the fontstring's horizontal text alignment style
-    Style.Property  {
+    Property    {
         name    = "JustifyH",
         type    = JustifyHType,
         require = FONT_TYPES,
@@ -193,7 +193,7 @@ do
     }
 
     --- the fontstring's vertical text alignment style
-    Style.Property  {
+    Property    {
         name    = "JustifyV",
         type    = JustifyVType,
         require = FONT_TYPES,
@@ -203,7 +203,7 @@ do
     }
 
     --- the color of the font's text shadow
-    Style.Property  {
+    Property    {
         name    = "ShadowColor",
         type    = Color,
         require = FONT_TYPES,
@@ -213,7 +213,7 @@ do
     }
 
     --- the offset of the fontstring's text shadow from its text
-    Style.Property  {
+    Property    {
         name    = "ShadowOffset",
         type    = Dimension,
         require = FONT_TYPES,
@@ -223,7 +223,7 @@ do
     }
 
     --- the fontstring's amount of spacing between lines
-    Style.Property  {
+    Property    {
         name    = "Spacing",
         type    = Number,
         require = FONT_TYPES,
@@ -233,7 +233,7 @@ do
     }
 
     --- the fontstring's default text color
-    Style.Property  {
+    Property    {
         name    = "TextColor",
         type    = Color,
         require = FONT_TYPES,
@@ -243,7 +243,7 @@ do
     }
 
     --- whether the text wrap will be indented
-    Style.Property  {
+    Property    {
         name    = "IndentedWordWrap",
         type    = Boolean,
         require = FONT_TYPES,
@@ -258,7 +258,7 @@ end
 ------------------------------------------------------------
 do
     --- the atlas setting of the texture
-    Style.Property  {
+    Property    {
         name    = "Atlas",
         type    = AtlasType,
         require = { Texture, Line },
@@ -268,7 +268,7 @@ do
     }
 
     --- the blend mode of the texture
-    Style.Property  {
+    Property    {
         name    = "BlendMode",
         type    = AlphaMode,
         require = { Texture, Line },
@@ -278,26 +278,16 @@ do
     }
 
     --- the texture's color
-    Style.Property  {
+    Property    {
         name    = "Color",
         type    = ColorType,
         require = { Texture, Line },
-        get     = function(self)
-            local val               = self:GetTexture()
-            if type(val) == string then
-                local r, g, b, a    = val:match("^Color%-(%x%x)(%x%x)(%x%x)(%x%x)")
-                if r then
-                    r, g, b, a      = tonumber(r, 16)/255, tonumber(g, 16)/255, tonumber(b, 16)/255, tonumber(a, 16)/255
-                    return Color(r, g, b, a)
-                end
-            end
-        end,
         set     = function(self, color) self:SetColorTexture(color.r, color.g, color.b, color.a) end,
         clear   = function(self) self:SetTexture(nil) end,
     }
 
     --- whether the texture image should be displayed with zero saturation
-    Style.Property  {
+    Property    {
         name    = "Desaturated",
         type    = Boolean,
         require = { Texture, Line },
@@ -307,7 +297,7 @@ do
     }
 
     --- The texture's desaturation
-    Style.Property  {
+    Property    {
         name    = "Desaturation",
         type    = ColorFloat,
         require = { Texture, Line, Model },
@@ -317,7 +307,7 @@ do
     }
 
     --- Whether the texture is horizontal tile
-    Style.Property  {
+    Property    {
         name    = "HorizTile",
         type    = Boolean,
         require = { Texture, Line },
@@ -327,7 +317,7 @@ do
     }
 
     --- The gradient color shading for the texture
-    Style.Property  {
+    Property    {
         name    = "Gradient",
         type    = GradientType,
         require = { Texture, Line },
@@ -336,7 +326,7 @@ do
     }
 
     --- The gradient color shading (including opacity in the gradient) for the texture
-    Style.Property  {
+    Property    {
         name    = "GradientAlpha",
         type    = GradientType,
         require = { Texture, Line },
@@ -345,7 +335,7 @@ do
     }
 
     --- whether the texture object loads its image file in the background
-    Style.Property  {
+    Property    {
         name    = "NonBlocking",
         type    = Boolean,
         require = { Texture, Line },
@@ -355,7 +345,7 @@ do
     }
 
     --- The rotation of the texture
-    Style.Property  {
+    Property    {
         name    = "Rotation",
         type    = Number,
         require = { Texture, Line, Cooldown },
@@ -364,7 +354,7 @@ do
     }
 
     --- whether snap to pixel grid
-    Style.Property  {
+    Property    {
         name    = "SnapToPixelGrid",
         type    = Boolean,
         require = { Texture, Line },
@@ -374,7 +364,7 @@ do
     }
 
     --- the texel snapping bias
-    Style.Property  {
+    Property    {
         name    = "TexelSnappingBias",
         type    = Number,
         require = { Texture, Line },
@@ -384,7 +374,7 @@ do
     }
 
     --- The corner coordinates for scaling or cropping the texture image
-    Style.Property  {
+    Property    {
         name    = "TexCoord",
         type    = RectType,
         require = { Texture, Line },
@@ -394,7 +384,7 @@ do
     }
 
     --- The texture file id
-    Style.Property  {
+    Property    {
         name    = "TextureFileID",
         type    = Number,
         require = { Texture, Line },
@@ -404,7 +394,7 @@ do
     }
 
     --- The texture file path
-    Style.Property  {
+    Property    {
         name    = "TextureFilePath",
         type    = String,
         require = { Texture, Line },
@@ -414,7 +404,7 @@ do
     }
 
     --- The vertex offset of upperleft corner
-    Style.Property  {
+    Property    {
         name    = "VertexOffsetUpperLeft",
         type    = Dimension,
         require = { Texture, Line },
@@ -424,7 +414,7 @@ do
     }
 
     --- The vertex offset of lowerleft corner
-    Style.Property  {
+    Property    {
         name    = "VertexOffsetLowerLeft",
         type    = Dimension,
         require = { Texture, Line },
@@ -434,7 +424,7 @@ do
     }
 
     --- The vertex offset of upperright corner
-    Style.Property  {
+    Property    {
         name    = "VertexOffsetUpperRight",
         type    = Dimension,
         require = { Texture, Line },
@@ -444,7 +434,7 @@ do
     }
 
     --- The vertex offset of lowerright corner
-    Style.Property  {
+    Property    {
         name    = "VertexOffsetLowerRight",
         type    = Dimension,
         require = { Texture, Line },
@@ -454,7 +444,7 @@ do
     }
 
     --- Whether the texture is vertical tile
-    Style.Property  {
+    Property    {
         name    = "VertTile",
         require = { Texture, Line },
         default = false,
@@ -493,7 +483,7 @@ do
     end
 
     --- the start point of the line
-    Style.Property  {
+    Property    {
         name    = "StartPoint",
         type    = Anchor,
         require = Line,
@@ -502,7 +492,7 @@ do
     }
 
     --- the end point of the line
-    Style.Property  {
+    Property    {
         name    = "EndPoint",
         type    = Anchor,
         require = Line,
@@ -511,7 +501,7 @@ do
     }
 
     --- the thickness of the line
-    Style.Property  {
+    Property    {
         name    = "Thickness",
         type    = Number,
         require = Line,
@@ -526,7 +516,7 @@ end
 ------------------------------------------------------------
 do
     --- The alpha gradient
-    Style.Property  {
+    Property    {
         name    = "AlphaGradient",
         type    = AlphaGradientType,
         require = FontString,
@@ -535,7 +525,7 @@ do
     }
 
     --- the max lines of the text
-    Style.Property  {
+    Property    {
         name    = "MaxLines",
         type    = Number,
         require = FontString,
@@ -545,7 +535,7 @@ do
     }
 
     --- whether long lines of text will wrap within or between words
-    Style.Property  {
+    Property    {
         name    = "NonSpaceWrap",
         type    = Boolean,
         require = FontString,
@@ -555,7 +545,7 @@ do
     }
 
     --- the text to be displayed in the font string
-    Style.Property  {
+    Property    {
         name    = "Text",
         type    = String,
         require = { FontString, Button, EditBox },
@@ -565,7 +555,7 @@ do
     }
 
     --- the height of the text displayed in the font string
-    Style.Property  {
+    Property    {
         name    = "TextHeight",
         type    = Boolean,
         require = FontString,
@@ -574,7 +564,7 @@ do
     }
 
     --- whether long lines of text in the font string can wrap onto subsequent lines
-    Style.Property  {
+    Property    {
         name    = "WordWrap",
         type    = Boolean,
         require = FontString,
@@ -589,7 +579,7 @@ end
 ------------------------------------------------------------
 do
     --- looping type for the animation group: BOUNCE , NONE  , REPEAT
-    Style.Property  {
+    Property    {
         name    = "Looping",
         type    = AnimLoopType,
         require = AnimationGroup,
@@ -599,7 +589,7 @@ do
     }
 
     --- Whether to final alpha is set
-    Style.Property  {
+    Property    {
         name    = "ToFinalAlpha",
         type    = Boolean,
         require = AnimationGroup,
@@ -609,7 +599,7 @@ do
     }
 
     --- Time for the animation to progress from start to finish (in seconds)
-    Style.Property  {
+    Property    {
         name    = "Duration",
         type    = Number,
         require = Animation,
@@ -619,7 +609,7 @@ do
     }
 
     --- Time for the animation to delay after finishing (in seconds)
-    Style.Property  {
+    Property    {
         name    = "EndDelay",
         type    = Number,
         require = Animation,
@@ -628,7 +618,7 @@ do
     }
 
     --- Position at which the animation will play relative to others in its group (between 0 and 100)
-    Style.Property  {
+    Property    {
         name    = "Order",
         type    = Integer,
         require = { Animation, ControlPoint },
@@ -637,7 +627,7 @@ do
     }
 
     --- The smooth progress of the animation
-    Style.Property  {
+    Property    {
         name    = "SmoothProgress",
         type    = Number,
         require = Animation,
@@ -646,7 +636,7 @@ do
     }
 
     --- Type of smoothing for the animation, IN, IN_OUT, NONE, OUT
-    Style.Property  {
+    Property    {
         name    = "Smoothing",
         type    = AnimSmoothType,
         require = Animation,
@@ -656,7 +646,7 @@ do
     }
 
     --- Amount of time the animation delays before its progress begins (in seconds)
-    Style.Property  {
+    Property    {
         name    = "StartDelay",
         type    = Number,
         require = Animation,
@@ -666,7 +656,7 @@ do
     }
 
     --- the animation's amount of alpha (opacity) start from
-    Style.Property  {
+    Property    {
         name    = "FromAlpha",
         type    = ColorFloat,
         require = Alpha,
@@ -676,7 +666,7 @@ do
     }
 
     --- the animation's amount of alpha (opacity) end to
-    Style.Property  {
+    Property    {
         name    = "ToAlpha",
         type    = ColorFloat,
         require = Alpha,
@@ -686,7 +676,7 @@ do
     }
 
     --- The curve type of the path
-    Style.Property  {
+    Property    {
         name    = "Curve",
         type    = AnimCurveType,
         require = Path,
@@ -696,7 +686,7 @@ do
     }
 
     --- the offsets settings
-    Style.Property  {
+    Property    {
         name    = "Offset",
         type    = Dimension,
         require = { ControlPoint, Translation },
@@ -705,7 +695,7 @@ do
     }
 
     --- the animation's rotation amount (in degrees)
-    Style.Property  {
+    Property    {
         name    = "Degrees",
         type    = Number,
         require = Rotation,
@@ -714,7 +704,7 @@ do
     }
 
     --- the rotation animation's origin point
-    Style.Property  {
+    Property    {
         name    = "Origin",
         type    = AnimOriginType,
         require = { Rotation, Scale },
@@ -723,7 +713,7 @@ do
     }
 
     --- the animation's rotation amount (in radians)
-    Style.Property  {
+    Property    {
         name    = "Radians",
         type    = Number,
         require = Rotation,
@@ -732,7 +722,7 @@ do
     }
 
     --- the animation's scaling factors
-    Style.Property  {
+    Property    {
         name    = "KeepScale",
         type    = Dimension,
         require = Scale,
@@ -742,7 +732,7 @@ do
     }
 
     --- the animation's scale amount that start from
-    Style.Property  {
+    Property    {
         name    = "FromScale",
         type    = Dimension,
         require = Scale,
@@ -752,7 +742,7 @@ do
     }
 
     --- the animation's scale amount that end to
-    Style.Property  {
+    Property    {
         name    = "ToScale",
         type    = Dimension,
         require = Scale,
@@ -767,7 +757,7 @@ end
 ------------------------------------------------------------
 do
     --- the backdrop graphic for the frame
-    Style.Property  {
+    Property    {
         name    = "Backdrop",
         type    = BackdropType,
         require = Frame,
@@ -777,7 +767,7 @@ do
     }
 
     --- the shading color for the frame's border graphic
-    Style.Property  {
+    Property    {
         name    = "BackdropBorderColor",
         type    = ColorType,
         require = Frame,
@@ -787,7 +777,7 @@ do
     }
 
     --- the shading color for the frame's background graphic
-    Style.Property  {
+    Property    {
         name    = "BackdropColor",
         type    = ColorType,
         require = Frame,
@@ -797,7 +787,7 @@ do
     }
 
     --- whether the frame's boundaries are limited to those of the screen
-    Style.Property  {
+    Property    {
         name    = "ClampedToScreen",
         type    = Boolean,
         require = Frame,
@@ -807,7 +797,7 @@ do
     }
 
     --- offsets from the frame's edges used when limiting user movement or resizing of the frame
-    Style.Property  {
+    Property    {
         name    = "ClampRectInsets",
         type    = Inset,
         require = Frame,
@@ -817,7 +807,7 @@ do
     }
 
     --- Whether the children is limited to draw inside the frame's boundaries
-    Style.Property  {
+    Property    {
         name    = "ClipChildren",
         type    = Boolean,
         require = Frame,
@@ -827,7 +817,7 @@ do
     }
 
     --- the 3D depth of the frame (for stereoscopic 3D setups)
-    Style.Property  {
+    Property    {
         name    = "Depth",
         type    = Number,
         require = Frame,
@@ -837,7 +827,7 @@ do
     }
 
     --- Whether the frame don't save its location in layout-cache
-    Style.Property  {
+    Property    {
         name    = "DontSavePosition",
         type    = Boolean,
         require = Frame,
@@ -847,7 +837,7 @@ do
     }
 
     --- Whether the frame's child is render in flattens layers
-    Style.Property  {
+    Property    {
         name    = "FlattensRenderLayers",
         type    = Boolean,
         require = Frame,
@@ -857,7 +847,7 @@ do
     }
 
     --- the level at which the frame is layered relative to others in its strata
-    Style.Property  {
+    Property    {
         name    = "FrameLevel",
         type    = Number,
         require = Frame,
@@ -867,7 +857,7 @@ do
     }
 
     --- the general layering strata of the frame
-    Style.Property  {
+    Property    {
         name    = "FrameStrata",
         type    = FrameStrata,
         require = Frame,
@@ -877,7 +867,7 @@ do
     }
 
     --- the insets from the frame's edges which determine its mouse-interactable area
-    Style.Property  {
+    Property    {
         name    = "HitRectInsets",
         type    = Inset,
         require = Frame,
@@ -887,7 +877,7 @@ do
     }
 
     --- Whether the hyper links are enabled
-    Style.Property  {
+    Property    {
         name    = "HyperlinksEnabled",
         type    = Boolean,
         require = Frame,
@@ -897,7 +887,7 @@ do
     }
 
     --- a numeric identifier for the frame
-    Style.Property  {
+    Property    {
         name    = "ID",
         type    = Number,
         require = Frame,
@@ -907,7 +897,7 @@ do
     }
 
     --- whether the frame's depth property is ignored (for stereoscopic 3D setups)
-    Style.Property  {
+    Property    {
         name    = "IgnoringDepth",
         type    = Boolean,
         require = Frame,
@@ -917,7 +907,7 @@ do
     }
 
     --- Whether the joystick is enabled for the frame
-    Style.Property  {
+    Property    {
         name    = "JoystickEnabled",
         type    = Boolean,
         require = Frame,
@@ -927,7 +917,7 @@ do
     }
 
     --- whether keyboard interactivity is enabled for the frame
-    Style.Property  {
+    Property    {
         name    = "KeyboardEnabled",
         type    = Boolean,
         require = Frame,
@@ -937,7 +927,7 @@ do
     }
 
     --- the maximum size of the frame for user resizing
-    Style.Property  {
+    Property    {
         name    = "MaxResize",
         type    = Size,
         require = Frame,
@@ -947,7 +937,7 @@ do
     }
 
     --- Whether the mouse click is enabled
-    Style.Property  {
+    Property    {
         name    = "MouseClickEnabled",
         type    = Boolean,
         require = Frame,
@@ -957,7 +947,7 @@ do
     }
 
     --- whether mouse interactivity is enabled for the frame
-    Style.Property  {
+    Property    {
         name    = "MouseEnabled",
         type    = Boolean,
         require = Frame,
@@ -967,7 +957,7 @@ do
     }
 
     --- Whether the mouse motion in enabled
-    Style.Property  {
+    Property    {
         name    = "MouseMotionEnabled",
         type    = Boolean,
         require = Frame,
@@ -977,7 +967,7 @@ do
     }
 
     --- whether mouse wheel interactivity is enabled for the frame
-    Style.Property  {
+    Property    {
         name    = "MouseWheelEnabled",
         type    = Boolean,
         require = Frame,
@@ -987,7 +977,7 @@ do
     }
 
     --- the minimum size of the frame for user resizing
-    Style.Property  {
+    Property    {
         name    = "MinResize",
         type    = Size,
         require = Frame,
@@ -997,7 +987,7 @@ do
     }
 
     --- whether the frame can be moved by the user
-    Style.Property  {
+    Property    {
         name    = "Movable",
         type    = Boolean,
         require = Frame,
@@ -1007,7 +997,7 @@ do
     }
 
     --- Whether the frame get the propagate keyboard input
-    Style.Property  {
+    Property    {
         name    = "PropagateKeyboardInput",
         type    = Boolean,
         require = Frame,
@@ -1017,7 +1007,7 @@ do
     }
 
     --- whether the frame can be resized by the user
-    Style.Property  {
+    Property    {
         name    = "Resizable",
         type    = Boolean,
         require = Frame,
@@ -1027,7 +1017,7 @@ do
     }
 
     --- whether the frame should automatically come to the front when clicked
-    Style.Property  {
+    Property    {
         name    = "Toplevel",
         type    = Boolean,
         require = Frame,
@@ -1037,7 +1027,7 @@ do
     }
 
     --- whether the frame should save/load custom position by the system
-    Style.Property  {
+    Property    {
         name    = "UserPlaced",
         type    = Boolean,
         require = Frame,
@@ -1052,7 +1042,7 @@ end
 ------------------------------------------------------------
 do
     --- Whether the button is enabled
-    Style.Property  {
+    Property    {
         name    = "Enabled",
         type    = Boolean,
         require = { Button, EditBox, Slider },
@@ -1062,7 +1052,7 @@ do
     }
 
     --- the FontString object used for the button's label text
-    Style.Property  {
+    Property    {
         name    = "FontString",
         type    = FontString,
         require = Button,
@@ -1072,7 +1062,7 @@ do
     }
 
     --- The button state
-    Style.Property  {
+    Property    {
         name    = "ButtonState",
         type    = ButtonStateType,
         require = Button,
@@ -1082,7 +1072,7 @@ do
     }
 
     --- Whether enable the motion script while disabled
-    Style.Property  {
+    Property    {
         name    = "MotionScriptsWhileDisabled",
         type    = Boolean,
         require = Button,
@@ -1092,7 +1082,7 @@ do
     }
 
     --- the offset for moving the button's label text when pushed
-    Style.Property  {
+    Property    {
         name    = "PushedTextOffset",
         type    = Dimension,
         require = Button,
@@ -1102,7 +1092,7 @@ do
     }
 
     --- the texture object used when the button is pushed
-    Style.Property  {
+    Property    {
         name    = "PushedTexture",
         type    = Texture,
         require = Button,
@@ -1112,7 +1102,7 @@ do
     }
 
     --- the texture object used when the button is highlighted
-    Style.Property  {
+    Property    {
         name    = "HighlightTexture",
         type    = Texture,
         require = Button,
@@ -1122,7 +1112,7 @@ do
     }
 
     --- the texture object used for the button's normal state
-    Style.Property  {
+    Property    {
         name    = "NormalTexture",
         type    = Texture,
         require = Button,
@@ -1132,7 +1122,7 @@ do
     }
 
     --- the texture object used when the button is disabled
-    Style.Property  {
+    Property    {
         name    = "DisabledTexture",
         type    = Texture,
         require = Button,
@@ -1142,7 +1132,7 @@ do
     }
 
     --- the font object used when the button is highlighted
-    Style.Property  {
+    Property    {
         name    = "HighlightFontObject",
         type    = FontObject,
         require = Button,
@@ -1152,7 +1142,7 @@ do
     }
 
     --- the font object used for the button's normal state
-    Style.Property  {
+    Property    {
         name    = "NormalFontObject",
         type    = FontObject,
         require = Button,
@@ -1162,7 +1152,7 @@ do
     }
 
     --- the font object used for the button's disabled state
-    Style.Property  {
+    Property    {
         name    = "DisabledFontObject",
         type    = FontObject,
         require = Button,
@@ -1177,7 +1167,7 @@ end
 ------------------------------------------------------------
 do
     --- Whether the checkbutton is checked
-    Style.Property  {
+    Property    {
         name    = "Checked",
         type    = Boolean,
         require = CheckButton,
@@ -1187,7 +1177,7 @@ do
     }
 
     --- the texture object used when the button is checked
-    Style.Property  {
+    Property    {
         name    = "CheckedTexture",
         type    = Texture,
         require = CheckButton,
@@ -1197,7 +1187,7 @@ do
     }
 
     --- the texture object used when the button is disabled and checked
-    Style.Property  {
+    Property    {
         name    = "DisabledCheckedTexture",
         type    = Texture,
         require = CheckButton,
@@ -1212,7 +1202,7 @@ end
 ------------------------------------------------------------
 do
     --- the HSV color value
-    Style.Property  {
+    Property    {
         name    = "ColorHSV",
         type    = HSVType,
         require = ColorSelect,
@@ -1222,7 +1212,7 @@ do
     }
 
     --- the RGB color value
-    Style.Property  {
+    Property    {
         name    = "ColorRGB",
         type    = ColorType,
         require = ColorSelect,
@@ -1232,7 +1222,7 @@ do
     }
 
     --- the texture for the color picker's value slider background
-    Style.Property  {
+    Property    {
         name    = "ColorValueTexture",
         type    = Texture,
         require = ColorSelect,
@@ -1242,7 +1232,7 @@ do
     }
 
     --- the texture for the selection indicator on the color picker's hue/saturation wheel
-    Style.Property  {
+    Property    {
         name    = "ColorWheelThumbTexture",
         type    = Texture,
         require = ColorSelect,
@@ -1252,7 +1242,7 @@ do
     }
 
     --- the texture for the color picker's hue/saturation wheel
-    Style.Property  {
+    Property    {
         name    = "ColorWheelTexture",
         type    = Texture,
         require = ColorSelect,
@@ -1262,7 +1252,7 @@ do
     }
 
     --- the texture for the color picker's value slider thumb
-    Style.Property  {
+    Property    {
         name    = "ColorValueThumbTexture",
         type    = Texture,
         require = ColorSelect,
@@ -1277,7 +1267,7 @@ end
 ------------------------------------------------------------
 do
     --- Sets the bling texture
-    Style.Property  {
+    Property    {
         name    = "BlingTexture",
         type    = TextureType,
         require = Cooldown,
@@ -1285,7 +1275,7 @@ do
     }
 
     --- the duration currently shown by the cooldown frame in milliseconds
-    Style.Property  {
+    Property    {
         name    = "CooldownDuration",
         type    = Number,
         require = Cooldown,
@@ -1295,7 +1285,7 @@ do
     }
 
     --- Whether the cooldown 'bling' when finsihed
-    Style.Property  {
+    Property    {
         name    = "DrawBling",
         type    = Boolean,
         require = Cooldown,
@@ -1305,7 +1295,7 @@ do
     }
 
     --- Whether a bright line should be drawn on the moving edge of the cooldown animation
-    Style.Property  {
+    Property    {
         name    = "DrawEdge",
         type    = Boolean,
         require = Cooldown,
@@ -1315,7 +1305,7 @@ do
     }
 
     --- Whether a shadow swipe should be drawn
-    Style.Property  {
+    Property    {
         name    = "DrawSwipe",
         type    = Boolean,
         require = Cooldown,
@@ -1325,7 +1315,7 @@ do
     }
 
     -- The edge scale
-    Style.Property  {
+    Property    {
         name    = "EdgeScale",
         type    = Number,
         require = Cooldown,
@@ -1335,7 +1325,7 @@ do
     }
 
     --- Sets the edge texture
-    Style.Property  {
+    Property    {
         name    = "EdgeTexture",
         type    = TextureType,
         require = Cooldown,
@@ -1343,7 +1333,7 @@ do
     }
 
     --- Whether hide count down numbers
-    Style.Property  {
+    Property    {
         name    = "HideCountdownNumbers",
         type    = Boolean,
         require = Cooldown,
@@ -1352,7 +1342,7 @@ do
     }
 
     --- Whether the cooldown animation "sweeps" an area of darkness over the underlying image; false if the animation darkens the underlying image and "sweeps" the darkened area away
-    Style.Property  {
+    Property    {
         name    = "Reverse",
         type    = Boolean,
         require = Cooldown,
@@ -1362,7 +1352,7 @@ do
     }
 
     --- the swipe color
-    Style.Property  {
+    Property    {
         name    = "SwipeColor",
         type    = ColorType,
         require = Cooldown,
@@ -1370,7 +1360,7 @@ do
     }
 
     --- the swipe texture
-    Style.Property  {
+    Property    {
         name    = "SwipeTexture",
         type    = TextureType,
         require = Cooldown,
@@ -1378,7 +1368,7 @@ do
     }
 
     --- Whether use circular edge
-    Style.Property  {
+    Property    {
         name    = "UseCircularEdge",
         type    = Boolean,
         require = Cooldown,
@@ -1392,7 +1382,7 @@ end
 ------------------------------------------------------------
 do
     --- true if the arrow keys are ignored by the edit box unless the Alt key is held
-    Style.Property  {
+    Property    {
         name    = "AltArrowKeyMode",
         type    = Boolean,
         require = EditBox,
@@ -1402,7 +1392,7 @@ do
     }
 
     --- true if the edit box automatically acquires keyboard input focus
-    Style.Property  {
+    Property    {
         name    = "AutoFocus",
         type    = Boolean,
         require = EditBox,
@@ -1412,7 +1402,7 @@ do
     }
 
     --- the rate at which the text insertion blinks when the edit box is focused
-    Style.Property  {
+    Property    {
         name    = "BlinkSpeed",
         type    = Number,
         require = EditBox,
@@ -1422,7 +1412,7 @@ do
     }
 
     --- Whether count the invisible letters for max letters
-    Style.Property  {
+    Property    {
         name    = "CountInvisibleLetters",
         type    = Boolean,
         require = EditBox,
@@ -1431,7 +1421,7 @@ do
         get     = function(self) return self:IsCountInvisibleLetters() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "HighlightColor",
         type    = ColorType,
         require = EditBox,
@@ -1440,7 +1430,7 @@ do
     }
 
     --- the maximum number of history lines stored by the edit box
-    Style.Property  {
+    Property    {
         name    = "HistoryLines",
         type    = Number,
         require = EditBox,
@@ -1450,7 +1440,7 @@ do
     }
 
     --- the maximum number of bytes of text allowed in the edit box, default is 0(Infinite)
-    Style.Property  {
+    Property    {
         name    = "MaxBytes",
         type    = Integer,
         require = EditBox,
@@ -1460,7 +1450,7 @@ do
     }
 
     --- the maximum number of text characters allowed in the edit box
-    Style.Property  {
+    Property    {
         name    = "MaxLetters",
         type    = Integer,
         require = EditBox,
@@ -1470,7 +1460,7 @@ do
     }
 
     --- true if the edit box shows more than one line of text
-    Style.Property  {
+    Property    {
         name    = "MultiLine",
         type    = Boolean,
         require = EditBox,
@@ -1480,7 +1470,7 @@ do
     }
 
     --- true if the edit box only accepts numeric input
-    Style.Property  {
+    Property    {
         name    = "Numeric",
         type    = Boolean,
         require = EditBox,
@@ -1490,7 +1480,7 @@ do
     }
 
     --- the contents of the edit box as a number
-    Style.Property  {
+    Property    {
         name    = "Number",
         type    = Number,
         require = EditBox,
@@ -1500,7 +1490,7 @@ do
     }
 
     --- true if the text entered in the edit box is masked
-    Style.Property  {
+    Property    {
         name    = "Password",
         type    = Boolean,
         require = EditBox,
@@ -1510,7 +1500,7 @@ do
     }
 
     --- the insets from the edit box's edges which determine its interactive text area
-    Style.Property  {
+    Property    {
         name    = "TextInsets",
         type    = Inset,
         require = EditBox,
@@ -1518,7 +1508,7 @@ do
         get     = function(self) return Inset(self:GetTextInsets()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "VisibleTextByteLimit",
         type    = Boolean,
         require = EditBox,
@@ -1533,7 +1523,7 @@ end
 ------------------------------------------------------------
 do
     --- the duration of the fade-out animation for disappearing messages
-    Style.Property  {
+    Property    {
         name    = "FadeDuration",
         type    = Number,
         require = MessageFrame,
@@ -1543,7 +1533,7 @@ do
     }
 
     --- whether messages added to the frame automatically fade out after a period of time
-    Style.Property  {
+    Property    {
         name    = "Fading",
         type    = Boolean,
         require = MessageFrame,
@@ -1553,7 +1543,7 @@ do
     }
 
     --- The power of the fade-out animation for disappearing messages
-    Style.Property  {
+    Property    {
         name    = "FadePower",
         type    = Number,
         require = MessageFrame,
@@ -1563,7 +1553,7 @@ do
     }
 
     --- the position at which new messages are added to the frame
-    Style.Property  {
+    Property    {
         name    = "InsertMode",
         type    = InsertMode,
         require = MessageFrame,
@@ -1573,7 +1563,7 @@ do
     }
 
     --- the amount of time for which a message remains visible before beginning to fade out
-    Style.Property  {
+    Property    {
         name    = "TimeVisible",
         type    = Number,
         require = MessageFrame,
@@ -1588,7 +1578,7 @@ end
 ------------------------------------------------------------
 do
     --- the scroll frame's current horizontal scroll position
-    Style.Property  {
+    Property    {
         name    = "HorizontalScroll",
         type    = Number,
         require = ScrollFrame,
@@ -1598,7 +1588,7 @@ do
     }
 
     --- the scroll frame's vertical scroll position
-    Style.Property  {
+    Property    {
         name    = "VerticalScroll",
         type    = Number,
         require = ScrollFrame,
@@ -1608,7 +1598,7 @@ do
     }
 
     --- The frame scrolled by the scroll frame
-    Style.Property  {
+    Property    {
         name    = "ScrollChild",
         type    = LayoutFrame,
         require = ScrollFrame,
@@ -1621,7 +1611,7 @@ end
 --                       SimpleHTML                       --
 ------------------------------------------------------------
 do
-    Style.Property  {
+    Property    {
         name    = "HyperlinkFormat",
         type    = String,
         require = SimpleHTML,
@@ -1636,7 +1626,7 @@ end
 ------------------------------------------------------------
 do
     --- the texture object for the slider thumb
-    Style.Property  {
+    Property    {
         name    = "ThumbTexture",
         type    = Texture,
         require = Slider,
@@ -1645,7 +1635,7 @@ do
     }
 
     --- the minimum and maximum values of the slider bar
-    Style.Property  {
+    Property    {
         name    = "MinMaxValues",
         type    = MinMax,
         require = { Slider, StatusBar },
@@ -1654,7 +1644,7 @@ do
     }
 
     --- the orientation of the slider
-    Style.Property  {
+    Property    {
         name    = "Orientation",
         type    = Orientation,
         require = { Slider, StatusBar },
@@ -1663,7 +1653,7 @@ do
     }
 
     --- the steps per page of the slider bar
-    Style.Property  {
+    Property    {
         name    = "StepsPerPage",
         type    = Number,
         require = Slider,
@@ -1673,7 +1663,7 @@ do
     }
 
     --- Whether obey the step setting when drag the slider bar
-    Style.Property  {
+    Property    {
         name    = "ObeyStepOnDrag",
         type    = Boolean,
         require = Slider,
@@ -1683,7 +1673,7 @@ do
     }
 
     --- the value representing the current position of the slider thumb
-    Style.Property  {
+    Property    {
         name    = "Value",
         type    = Number,
         require = { Slider, StatusBar },
@@ -1693,7 +1683,7 @@ do
     }
 
     --- the minimum increment between allowed slider values
-    Style.Property  {
+    Property    {
         name    = "ValueStep",
         type    = Number,
         require = Slider,
@@ -1708,7 +1698,7 @@ end
 ------------------------------------------------------------
 do
     --- whether the status bar's texture is rotated to match its orientation
-    Style.Property  {
+    Property    {
         name    = "RotatesTexture",
         type    = Boolean,
         require = StatusBar,
@@ -1718,7 +1708,7 @@ do
     }
 
     --- Whether the status bar's texture is reverse filled
-    Style.Property  {
+    Property    {
         name    = "ReverseFill",
         type    = Boolean,
         require = StatusBar,
@@ -1727,7 +1717,7 @@ do
         get     = function(self) return self:GetReverseFill() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "FillStyle",
         type    = FillStyle,
         require = StatusBar,
@@ -1737,7 +1727,7 @@ do
     }
 
     --- The texture atlas
-    Style.Property  {
+    Property    {
         name    = "StatusBarAtlas",
         type    = String,
         require = StatusBar,
@@ -1746,7 +1736,7 @@ do
     }
 
     --- the color shading for the status bar's texture
-    Style.Property  {
+    Property    {
         name    = "StatusBarColor",
         type    = ColorType,
         require = StatusBar,
@@ -1755,7 +1745,7 @@ do
         get     = function(self) return Color(self:GetStatusBarColor()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "StatusBarTexture",
         type    = Texture,
         require = StatusBar,
@@ -1769,7 +1759,7 @@ end
 ------------------------------------------------------------
 do
     --- The model's camera distance
-    Style.Property  {
+    Property    {
         name    = "CameraDistance",
         type    = Number,
         require = Model,
@@ -1778,7 +1768,7 @@ do
     }
 
     --- The model's camera facing
-    Style.Property  {
+    Property    {
         name    = "CameraFacing",
         type    = Number,
         require = Model,
@@ -1788,7 +1778,7 @@ do
     }
 
     --- The model's camera position
-    Style.Property  {
+    Property    {
         name    = "CameraPosition",
         type    = Position,
         require = { Model, ModelScene },
@@ -1797,7 +1787,7 @@ do
     }
 
     --- The model's camera target position
-    Style.Property  {
+    Property    {
         name    = "CameraTarget",
         type    = Position,
         require = Model,
@@ -1806,7 +1796,7 @@ do
     }
 
     --- The model's camera roll
-    Style.Property  {
+    Property    {
         name    = "CameraRoll",
         type    = Number,
         require = Model,
@@ -1816,7 +1806,7 @@ do
     }
 
     --- Whether has custom camera
-    Style.Property  {
+    Property    {
         name    = "CustomCamera",
         type    = Boolean,
         require = Model,
@@ -1826,7 +1816,7 @@ do
     }
 
     --- the model's current fog color
-    Style.Property  {
+    Property    {
         name    = "FogColor",
         type    = ColorType,
         require = { Model, ModelScene },
@@ -1836,7 +1826,7 @@ do
     }
 
     --- the far clipping distance for the model's fog
-    Style.Property  {
+    Property    {
         name    = "FogFar",
         type    = Number,
         require = { Model, ModelScene },
@@ -1846,7 +1836,7 @@ do
     }
 
     --- the near clipping distance for the model's fog
-    Style.Property  {
+    Property    {
         name    = "FogNear",
         type    = Number,
         require = { Model, ModelScene },
@@ -1856,7 +1846,7 @@ do
     }
 
     --- The model's facing
-    Style.Property  {
+    Property    {
         name    = "Facing",
         type    = Number,
         require = Model,
@@ -1866,7 +1856,7 @@ do
     }
 
     --- the light sources used when rendering the model
-    Style.Property  {
+    Property    {
         name    = "Light",
         type    = LightType,
         require = Model,
@@ -1907,7 +1897,7 @@ do
     }
 
     --- The model to be display
-    Style.Property  {
+    Property    {
         name    = "Model",
         type    = String,
         require = Model,
@@ -1916,7 +1906,7 @@ do
     }
 
     --- The model's alpha
-    Style.Property  {
+    Property    {
         name    = "ModelAlpha",
         type    = ColorFloat,
         require = Model,
@@ -1925,7 +1915,7 @@ do
         get     = function(self) return self:GetModelAlpha() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "ModelCenterToTransform",
         type    = Boolean,
         require = Model,
@@ -1935,7 +1925,7 @@ do
     }
 
     --- The model's draw layer
-    Style.Property  {
+    Property    {
         name    = "ModelDrawLayer",
         type    = DrawLayer,
         require = Model,
@@ -1945,7 +1935,7 @@ do
     }
 
     --- the scale factor determining the size at which the 3D model appears
-    Style.Property  {
+    Property    {
         name    = "ModelScale",
         type    = Number,
         require = Model,
@@ -1955,7 +1945,7 @@ do
     }
 
     --- the position of the 3D model within the frame
-    Style.Property  {
+    Property    {
         name    = "Position",
         type    = Position,
         require = Model,
@@ -1964,7 +1954,7 @@ do
         get     = function(self) return Position(self:GetPosition()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "Paused",
         type    = Boolean,
         require = Model,
@@ -1973,7 +1963,7 @@ do
         get     = function(self) return self:GetPaused() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "ParticlesEnabled",
         type    = Boolean,
         require = Model,
@@ -1982,7 +1972,7 @@ do
     }
 
     --- The model's pitch
-    Style.Property  {
+    Property    {
         name    = "Pitch",
         type    = Number,
         require = Model,
@@ -1992,7 +1982,7 @@ do
     }
 
     --- The model's roll
-    Style.Property  {
+    Property    {
         name    = "Roll",
         type    = Number,
         require = Model,
@@ -2002,7 +1992,7 @@ do
     }
 
     --- The shadow effect
-    Style.Property  {
+    Property    {
         name    = "ShadowEffect",
         type    = Number,
         require = Model,
@@ -2011,7 +2001,7 @@ do
         get     = function(self) return self:GetShadowEffect() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "ViewInsets",
         type    = Inset,
         require = { Model, ModelScene },
@@ -2020,7 +2010,7 @@ do
         get     = function(self) return Inset(self:GetViewInsets()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "ViewTranslation",
         type    = Dimension,
         require = { Model, ModelScene },
@@ -2034,7 +2024,7 @@ end
 --                       ModelScene                       --
 ------------------------------------------------------------
 do
-    Style.Property  {
+    Property    {
         name    = "CameraFarClip",
         type    = Number,
         require = ModelScene,
@@ -2043,7 +2033,7 @@ do
         get     = function(self) return self:GetCameraFarClip() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "CameraNearClip",
         type    = Number,
         require = ModelScene,
@@ -2052,7 +2042,7 @@ do
         get     = function(self) return self:GetCameraNearClip() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "LightAmbientColor",
         type    = ColorType,
         require = ModelScene,
@@ -2061,7 +2051,7 @@ do
         get     = function(self) return Color(self:GetLightAmbientColor()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "LightPosition",
         type    = Position,
         require = ModelScene,
@@ -2070,7 +2060,7 @@ do
         get     = function(self) return Position(self:GetLightPosition()) end,
         }
 
-    Style.Property  {
+    Property    {
         name    = "LightType",
         type    = Number,
         require = ModelScene,
@@ -2079,7 +2069,7 @@ do
         get     = function(self) return self:GetLightType() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "LightDirection",
         type    = Position,
         require = ModelScene,
@@ -2088,7 +2078,7 @@ do
         get     = function(self) return Position(self:GetLightDirection()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "CameraFieldOfView",
         type    = Number,
         require = ModelScene,
@@ -2097,7 +2087,7 @@ do
         get     = function(self) return self:GetCameraFieldOfView() end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "LightDiffuseColor",
         type    = ColorType,
         require = ModelScene,
@@ -2106,7 +2096,7 @@ do
         get     = function(self) return Color(self:GetLightDiffuseColor()) end,
     }
 
-    Style.Property  {
+    Property    {
         name    = "LightVisible",
         type    = Number,
         require = ModelScene,
@@ -2121,7 +2111,7 @@ end
 ------------------------------------------------------------
 do
     --- Whether auto dress
-    Style.Property  {
+    Property    {
         name    = "AutoDress",
         type    = Boolean,
         require = DressUpModel,
@@ -2131,7 +2121,7 @@ do
     }
 
     --- Whether sheathed the weapon
-    Style.Property  {
+    Property    {
         name    = "Sheathed",
         type    = Boolean,
         require = DressUpModel,
@@ -2141,7 +2131,7 @@ do
     }
 
     --- Whether use transmog skin
-    Style.Property  {
+    Property    {
         name    = "UseTransmogSkin",
         type    = Boolean,
         require = DressUpModel,

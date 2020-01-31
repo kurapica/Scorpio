@@ -12,10 +12,10 @@ Scorpio           "Scorpio.UI.Widget"                "1.0.0"
 do
     local UI_PROTOTYPE          = {}
 
-    local function onEventHandlerChanged(handler, self, name)
-        if not handler.Hooked and self:HasScript(name) then
-            handler.Hooked      = true
-            self:HookScript(name, function(_, ...) return handler(self, ...) end)
+    local function onEventHandlerChanged(delegate, self, name)
+        if not delegate.Hooked and self:HasScript(name) then
+            delegate.Hooked     = true
+            self:HookScript(name, function(_, ...) return delegate(self, ...) end)
         end
     end
 
@@ -73,6 +73,59 @@ do
         _ENV.__new              = new
     end
 end
+
+__Sealed__() class "__PopupEvent__" (function(_ENV)
+    extend "IApplyAttribute"
+
+    local getChild              = UIObject.GetChild
+
+    -----------------------------------------------------------
+    --                       property                        --
+    -----------------------------------------------------------
+    property "AttributeTarget"  { set = false, default = AttributeTargets.Event }
+
+    -----------------------------------------------------------
+    --                        method                         --
+    -----------------------------------------------------------
+    --- apply changes on the target
+    -- @param   target                      the target
+    -- @param   targettype                  the target type
+    -- @param   manager                     the definition manager of the target
+    -- @param   owner                       the target's owner
+    -- @param   name                        the target's name in the owner
+    -- @param   stack                       the stack level
+    function ApplyAttribute(self, target, targettype, manager, owner, name, stack)
+        local map               = self[1]
+
+        Event.SetEventChangeHandler(target, function(delegate, owner, eventname)
+            if not delegate.PopupeBinded then
+                delegate.PopupeBinded = true
+
+                for name, event in pairs(map) do
+                    local child = getChild(owner, name)
+
+                    if not child then
+                        error(("The child named %q doesn't existed in object of %s"):format(child, tostring(getmetatable(owner))))
+                    elseif not child:HasScript(event) then
+                        error(("The child named %q in object of %s doesn't have an event named %q"):format(child, tostring(getmetatable(owner)), event))
+                    end
+
+                    child:HookScript(event, function(self, ...)
+                        return delegate(owner, ...)
+                    end)
+                end
+            end
+        end, stack + 1)
+    end
+
+    -----------------------------------------------------------
+    --                      constructor                      --
+    -----------------------------------------------------------
+    __Arguments__{ struct { [NEString] = NEString } }
+    function __new(_, map)
+        return { map }, true
+    end
+end)
 
 --- LayoutFrame is the basic type for anything that can occupy an area of the screen
 __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
