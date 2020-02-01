@@ -84,10 +84,10 @@ local _ClassQueue               = Queue()
 local _ClassQueueInfo           = {}
 local _Recycle                  = Recycle()
 
-_DefaultStyle             = {}
-_CustomStyle              = setmetatable({}, META_WEAKKEY)
-_TempStyle                = {}
-_TempPath                 = {}
+local _DefaultStyle             = {}
+local _CustomStyle              = setmetatable({}, META_WEAKKEY)
+local _TempStyle                = {}
+local _TempPath                 = {}
 local _Inited                   = false
 
 local _ClassMap                 = {}
@@ -99,14 +99,11 @@ local function applyDefaultStyle(frame)
 
     for name, value in pairs(_TempStyle) do
         if value == NIL then value = nil end
-        Trace("[Scorpio.UI.Apply]%s", name)
         applyProperty(frame, props[name], value)
     end
 end
 
 local function buildTempStyle(frame)
-    Trace("[Scorpio.UI.buildTempStyle]%s", frame:GetName(true))
-
     wipe(_TempStyle)
     wipe(_TempPath)
 
@@ -189,9 +186,9 @@ local function processStyleApply()
     while _StyleQueue.Count > 0 do
         local frame             = _StyleQueue:Peek()
 
-        Trace("[Scorpio.UI]Apply Style To Frame: %s", frame:GetName(true))
-
         if not frame.Disposed then
+            Trace("[Scorpio.UI.Core]Apply Style: %s", frame:GetName(true))
+
             buildTempStyle(frame)
             _StyleQueue[frame]  = nil
 
@@ -213,7 +210,6 @@ local function applyStyle(frame)
     if _StyleQueue.Count == 0 then Next(processStyleApply) end
     _StyleQueue[frame]          = true
     _StyleQueue:Enqueue(frame)
-    Trace("[Scorpio.UI]Queue %s", frame:GetName(true) or "nil")
 end
 
 local function processClassStyleApply()
@@ -288,62 +284,25 @@ local function applyClassStyle(class, ...)
 end
 
 local function setTargetStyle(value, stack)
-    local target                = _StyleOwner[1]
+    local target                = _StyleOwner[0]
+    local iscustom              = _StyleOwner[-1]
+    local pname                 = _StyleOwner[-2]
     local tarcls, default
-    local pname
+    local hasnilset             = false
 
-    if isUIObject(target) then
-        for i = 2, #_StyleOwner do
-            local name          = _StyleOwner[i]
-            local child         = UIObject.GetChild(target, name)
-
-            if not child then
-                if i == #_StyleOwner then
-                    tarcls      = getmetatable(target)
-                    name        = strlower(name)
-
-                    if _Property[tarcls] and _Property[tarcls][name] then
-                        pname   = name
-                    end
-                end
-
-                if not pname then
-                    error("The target of the style settings doesn't existed", stack + 1)
-                end
-            else
-                target          = child
-            end
-        end
-
+    if iscustom then
         tarcls                  = getmetatable(target)
         default                 = gettable(_CustomStyle, target)
-        applyStyle(target)
+        -- applyStyle(target)
     elseif isUIObjectType(target) then
-        default                 = gettable(_DefaultStyle, target)
         tarcls                  = target
+        default                 = gettable(_DefaultStyle, _StyleOwner[1])
 
         for i = 2, #_StyleOwner do
-            local name          = _StyleOwner[i]
-            local childtype     = __Template__.GetElementType(tarcls, name)
-            if not childtype then
-                if i == #_StyleOwner then
-                    name        = strlower(name)
-
-                    if _Property[tarcls] and _Property[tarcls][name] then
-                        pname   = name
-                    end
-                end
-
-                if not pname then
-                    error("The target of the style settings doesn't existed", stack + 1)
-                end
-            else
-                tarcls          = childtype
-                default         = gettable(gettable(default, 0), name)
-            end
+            default             = gettable(gettable(default, 0), _StyleOwner[i])
         end
 
-        applyClassStyle(unpack(_StyleOwner, 1, #_StyleOwner - (pname and 1 or 0)))
+        applyClassStyle(unpack(_StyleOwner))
     else
         error("The target of the style settings isn't valid", stack + 1)
     end
@@ -355,6 +314,7 @@ local function setTargetStyle(value, stack)
         local prop              = props[pname]
 
         if value == nil or value == NIL then
+            hasnilset           = true
             default[pname]      = NIL
         else
             if prop.validate then
@@ -364,6 +324,10 @@ local function setTargetStyle(value, stack)
             end
 
             default[pname]      = value
+
+            if iscustom then
+                applyProperty(target, prop, value)
+            end
         end
     else
         if type(value) ~= "table" then
@@ -377,16 +341,25 @@ local function setTargetStyle(value, stack)
 
             if pv == NIL then
                 default[ln]     = NIL
+                hasnilset       = true
             else
                 if prop.validate then
-                    local ret, msg = prop.validate(prop.type, value)
+                    local ret, msg = prop.validate(prop.type, pv)
                     if msg then error(Struct.GetErrorMessage(msg, prop.name), stack + 1) end
-                    value       = ret
+                    pv          = ret
                 end
 
-                default[ln]     = value
+                default[ln]     = pv
+
+                if iscustom then
+                    applyProperty(target, prop, pv)
+                end
             end
         end
+    end
+
+    if iscustom and hasnilset then
+        return applyStyle(target)
     end
 end
 
@@ -808,8 +781,11 @@ local Style                     = Namespace.SaveNamespace("Scorpio.UI.Style", pr
             return _StyleMethods[key]
         end
 
-        if isUIObject(key) or isUIObjectType(key) then
+        local iscustom          = isUIObject(key)
+        if iscustom or isUIObjectType(key) then
             wipe(_StyleOwner)[1]= key
+            _StyleOwner[0]      = key
+            _StyleOwner[-1]     = iscustom
             return _StyleAccessor
         end
     end,
@@ -819,12 +795,26 @@ local Style                     = Namespace.SaveNamespace("Scorpio.UI.Style", pr
                 error(("The method named %s already existed in Scorpio.UI.Style"):format(key), 2)
             end
 
+            if Attribute.HaveRegisteredAttributes() then
+                Attribute.SaveAttributes(value, AttributeTargets.Function, 2)
+                local ret       = Attribute.InitDefinition(value, AttributeTargets.Function, value, self, key, 2)
+                if ret ~= value then
+                    Attribute.ToggleTarget(value, ret)
+                    value        = ret
+                end
+                Attribute.ApplyAttributes (value, AttributeTargets.Function, nil, self, key, 2)
+                Attribute.AttachAttributes(value, AttributeTargets.Function, self, key, 2)
+            end
+
             _StyleMethods[key]  = value
             return
         end
 
-        if isUIObject(key) or isUIObjectType(key) then
+        local iscustom          = isUIObject(key)
+        if iscustom or isUIObjectType(key) then
             wipe(_StyleOwner)[1]= key
+            _StyleOwner[0]      = key
+            _StyleOwner[-1]     = iscustom
             setTargetStyle(value, 2)
         end
 
@@ -835,21 +825,142 @@ local Style                     = Namespace.SaveNamespace("Scorpio.UI.Style", pr
 _StyleAccessor                  = prototype {
     __metatable                 = Style,
     __index                     = function(self, key)
-        local len               = #_StyleOwner
-        if len > 0 and type(key) == "string" then
-            _StyleOwner[len + 1]= key
-            return _StyleAccessor
-        else
-            error("The sub key must be string", 2)
+        local target            = _StyleOwner[0]
+
+        if target and type(key) == "string" then
+            if _StyleOwner[-1] then
+                local star      = UIObject.GetChild(target, key)
+                if star then
+                    tinsert(_StyleOwner, key)
+                    _StyleOwner[0] = star
+                    return _StyleAccessor
+                else
+                    wipe(_StyleOwner)
+
+                    local cls   = getmetatable(target)
+                    local prop  = _Property[cls] and _Property[cls][strlower(key)]
+                    if prop then
+                        return prop.get and prop.get(target)
+                    end
+                end
+            else
+                local star      = __Template__.GetElementType(target, key)
+                if star then
+                    tinsert(_StyleOwner, key)
+                    _StyleOwner[0] = star
+                    return _StyleAccessor
+                else
+                    key         = strlower(key)
+                    local prop  = _Property[target] and _Property[target][key]
+                    if prop then
+                        target  = _StyleOwner[1]
+                        local default   = _DefaultStyle[target]
+                        if default then
+                            for i = 2, #_StyleOwner do
+                                default     = default[0]
+                                default     = default and default[_StyleOwner[i]]
+                                if not default then break end
+                            end
+
+                        end
+
+                        wipe(_StyleOwner)
+
+                        if default and default[key] ~= nil then
+                            return clone(default[key])
+                        else
+                            return
+                        end
+                    end
+                end
+            end
         end
+
+        wipe(_StyleOwner)
+        error("The sub key must be child name or property name", 2)
     end,
     __newindex                  = function(self, key, value)
-        local len               = #_StyleOwner
-        if len > 0 and type(key) == "string" then
-            _StyleOwner[len + 1]= key
-            setTargetStyle(value, 2)
-        else
-            error("The sub key must be string", 2)
+        local target            = _StyleOwner[0]
+
+        if target and type(key) == "string" then
+            if _StyleOwner[-1] then
+                local star      = UIObject.GetChild(target, key)
+                if star then
+                    tinsert(_StyleOwner, key)
+                    _StyleOwner[0] = star
+                    setTargetStyle(value, 2)
+                    return
+                else
+                    key         = strlower(key)
+                    local cls   = getmetatable(target)
+                    local prop  = _Property[cls] and _Property[cls][key]
+                    if prop then
+                        _StyleOwner[-2] = key
+                        setTargetStyle(value, 2)
+                        return
+                    end
+                end
+            else
+                local star      = __Template__.GetElementType(target, key)
+                if star then
+                    tinsert(_StyleOwner, key)
+                    _StyleOwner[0] = star
+                    setTargetStyle(value, 2)
+                    return
+                else
+                    key         = strlower(key)
+                    local prop  = _Property[target] and _Property[target][key]
+                    if prop then
+                        _StyleOwner[-2] = key
+                        setTargetStyle(value, 2)
+                        return
+                    end
+                end
+            end
         end
+
+        wipe(_StyleOwner)
+        error("The sub key must be child name or property name", 2)
     end
 }
+
+__Iterator__() __Arguments__{ UI }
+function Style.GetCustomStyles(frame)
+    local custom                = _CustomStyle[frame]
+    if custom then
+        local props             = _Property[getmetatable(frame)]
+
+        for name, value in pairs(custom) do
+            yield(props[name].name, (clone(value)))
+        end
+    end
+end
+
+__Arguments__{ - UIObject, NEString * 0 } __Iterator__()
+function Style.GetDefaultStyles(class, ...)
+    local default               = _DefaultStyle[class]
+
+    if default then
+        for i = 1, select("#", ...) do
+            local name          = select(i, ...)
+            class               = __Template__.GetElementType(class, name)
+            if not class then return end
+
+            default             = default[0]
+            default             = default and default[name]
+            if not default then return end
+        end
+
+        local props             = _Property[class]
+
+        for name, value in pairs(default) do
+            if name ~= 0 then
+                yield(props[name].name, (clone(value)))
+            end
+        end
+    end
+end
+
+----------------------------------------------
+--           Style Group Manager            --
+----------------------------------------------
