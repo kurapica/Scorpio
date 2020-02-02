@@ -379,6 +379,87 @@ local function unregisterFrame(frame)
     _ClassMap[getmetatable(frame)][frame] = nil
 end
 
+local function emptyDefaultStyle(settings)
+    if settings then
+        for k, v in pairs(settings) do
+            if k == 0 then
+                for child, csetting in pairs(v) do
+                    emptyDefaultStyle(csetting)
+                end
+            else
+                settings[k]     = NIL
+            end
+        end
+    end
+
+    return settings
+end
+
+----------------------------------------------
+--              Helper - Skin               --
+----------------------------------------------
+local _Skins                    = {}
+local _ActiveSkin               = {}
+
+local function saveSkinSettings(class, container, settings)
+    if type(settings) ~= "table" then
+        throw("The skin settings for " .. class ..  "must be table")
+    end
+
+    local props                 = _Property[class]
+
+    for name, value in pairs(settings) do
+        local element           = __Template__.GetElementType(class, name)
+        if element then
+            saveSkinSettings(element, gettable(gettable(container, 0), name), value)
+        elseif props then
+            name                = strlower(name)
+            local prop          = props[name]
+
+            if value == nil or value == NIL then
+                container[name] = NIL
+            else
+                if prop.validate then
+                    local ret, msg  = prop.validate(prop.type, value)
+                    if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
+                    value           = ret
+                end
+
+                container[name]     = value
+            end
+        else
+            throw("The " .. class .. " has no property definitions")
+        end
+    end
+end
+
+local function copyToDefault(settings, default, ...)
+    local temp                  = { ... }
+    local nxt                   = #temp + 1
+    for name, value in pairs(settings) do
+        if name == 0 then
+            for element, setting in pairs(value) do
+                temp[nxt]       = element
+                copyToDefault(setting, gettable(gettable(default, 0), element), unpack(temp))
+            end
+        else
+            default[name]       = value
+        end
+    end
+
+    applyClassStyle(...)
+end
+
+local function activeSkin(name, class, skin)
+    if _ActiveSkin[class] == name then return end
+    _ActiveSkin[class] = name
+
+    local default                   = emptyDefaultStyle(_DefaultStyle[class]) or {}
+    _DefaultStyle[class]            = default
+
+    copyToDefault(skin, default, class)
+end
+
 ----------------------------------------------
 --                 UIObject                 --
 ----------------------------------------------
@@ -962,5 +1043,76 @@ function Style.GetDefaultStyles(class, ...)
 end
 
 ----------------------------------------------
---           Style Group Manager            --
+--               Skin System                --
 ----------------------------------------------
+__Arguments__{ NEString, struct { [ - UIObject ] = Table } }:Throwable()
+function Style.RegisterSkin(name, settings)
+    name                        = strlower(name)
+
+    if _Skins[name] then
+        throw("Usage: Style.RegisterSkin(name, settings) - the name is already used")
+    end
+
+    local skins                 = {}
+    _Skins[name]                = skins
+
+    for class, setting in pairs(settings) do
+        local skin              = {}
+        skins[class]            = skin
+
+        saveSkinSettings(class, skin, setting)
+    end
+end
+
+__Arguments__{ NEString, struct { [ - UIObject ] = Table } }:Throwable()
+function Style.UpdateSkin(name, settings)
+    local skins                 = _Skins[strlower(name)]
+
+    if not skins then
+        throw("Usage: Style.UpdateSkin(name, settings) - the name doesn't existed")
+    end
+
+    for class, setting in pairs(settings) do
+        local skin              = emptyDefaultStyle(skins[class]) or {}
+        skins[class]            = skin
+
+        saveSkinSettings(class, skin, setting)
+    end
+end
+
+__Arguments__{ NEString, - UIObject/nil }:Throwable()
+function Style.ActiveSkin(name, class)
+    name                        = strlower(name)
+    local skins                 = _Skins[name]
+
+    if not skins then
+        throw("Usage: Style.ActiveSkin(name[, uitype]) - the name doesn't existed")
+    end
+
+    if class then
+        local skin              = skins[class]
+        if not skin then
+            throw("Usage: Style.ActiveSkin(name[, uitype]) - the skin doesn't have settings for " .. class)
+        end
+
+        return activeSkin(name, class, skin)
+    else
+        for cls, skin in pairs(skins) do
+            activeSkin(name, cls, skin)
+        end
+    end
+end
+
+__Arguments__{ - UIObject }
+function Style.GetActiveSkin(class)
+    return _ActiveSkin[class]
+end
+
+__Arguments__{ - UIObject } __Iterator__()
+function Style.GetSkins(class)
+    for name, skins in pairs(_Skins) do
+        if skins[class] then
+            yield(name)
+        end
+    end
+end
