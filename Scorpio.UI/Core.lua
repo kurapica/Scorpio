@@ -487,6 +487,7 @@ local function copyToDefault(settings, default, ...)
 end
 
 local function activeSkin(name, class, skin, force)
+    if force and _ActiveSkin[class] ~= name then return end
     if not force and _ActiveSkin[class] == name then return end
     _ActiveSkin[class] = name
 

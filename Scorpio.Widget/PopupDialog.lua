@@ -167,6 +167,11 @@ Style.UpdateSkin("Default", {
     }
 })
 
+Style.ActiveSkin("Default", DialogButton)
+Style.ActiveSkin("Default", AlertDialog)
+Style.ActiveSkin("Default", InputDialog)
+Style.ActiveSkin("Default", ConfirmDialog)
+
 -----------------------------------------------------------
 --                       Popup API                       --
 -----------------------------------------------------------
