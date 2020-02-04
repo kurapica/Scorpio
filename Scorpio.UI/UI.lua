@@ -482,6 +482,10 @@ do
 
     __Sealed__()
     struct "RectType" {
+        { name = "left",        type = Number },
+        { name = "right",       type = Number },
+        { name = "top",         type = Number },
+        { name = "bottom",      type = Number },
         { name = "ULx",         type = Number },
         { name = "ULy",         type = Number },
         { name = "LLx",         type = Number },
@@ -515,8 +519,9 @@ do
 
     __Sealed__()
     struct "TextureType" {
-        { name = "file",        type = String,  require = true },
+        { name = "file",        type = String + Number,  require = true },
         { name = "color",       type = ColorType },
+        { name = "texcoord",    type = RectType },
     }
 end
 

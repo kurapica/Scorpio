@@ -401,12 +401,48 @@ end
 local _Skins                    = {}
 local _ActiveSkin               = {}
 
+local function copyBaseSkinSettings(container, base)
+    for k, v in pairs(base) do
+        if k == 0 then
+            for name, setting in pairs(v) do
+                copyBaseSkinSettings(gettable(gettable(container, 0), name), setting)
+            end
+        else
+            container[k]        = v
+        end
+    end
+end
+
 local function saveSkinSettings(class, container, settings)
     if type(settings) ~= "table" then
         throw("The skin settings for " .. class ..  "must be table")
     end
 
     local props                 = _Property[class]
+
+    -- Check inherit
+    for name, value in pairs(settings) do
+        if type(name) ~= "string" then
+            throw("The skin settings only accpet string values as key")
+        end
+        if strlower(name) == "inherit" then
+            settings[name]      = nil
+
+            if type(value) ~= "string" then
+                throw("The inherit only accpet skin name as value")
+            end
+            local base          = _Skins[strlower(value)]
+            if not base then
+                throw(strformat("The skin named %q doesn't existed", value))
+            elseif not base[class] then
+                throw(strformat("The skin named %q doesn't provide skin for %s", value, tostring(class)))
+            end
+
+            copyBaseSkinSettings(container, base[class])
+
+            break
+        end
+    end
 
     for name, value in pairs(settings) do
         local element           = __Template__.GetElementType(class, name)
@@ -450,8 +486,8 @@ local function copyToDefault(settings, default, ...)
     applyClassStyle(...)
 end
 
-local function activeSkin(name, class, skin)
-    if _ActiveSkin[class] == name then return end
+local function activeSkin(name, class, skin, force)
+    if not force and _ActiveSkin[class] == name then return end
     _ActiveSkin[class] = name
 
     local default                   = emptyDefaultStyle(_DefaultStyle[class]) or {}
@@ -1045,7 +1081,9 @@ end
 ----------------------------------------------
 --               Skin System                --
 ----------------------------------------------
-__Arguments__{ NEString, struct { [ - UIObject ] = Table } }:Throwable()
+local SkinSettings              = struct { [ - UIObject ] = Table }
+
+__Arguments__{ NEString, SkinSettings/nil }:Throwable()
 function Style.RegisterSkin(name, settings)
     name                        = strlower(name)
 
@@ -1056,17 +1094,20 @@ function Style.RegisterSkin(name, settings)
     local skins                 = {}
     _Skins[name]                = skins
 
-    for class, setting in pairs(settings) do
-        local skin              = {}
-        skins[class]            = skin
+    if settings then
+        for class, setting in pairs(settings) do
+            local skin          = {}
+            skins[class]        = skin
 
-        saveSkinSettings(class, skin, setting)
+            saveSkinSettings(class, skin, setting)
+        end
     end
 end
 
-__Arguments__{ NEString, struct { [ - UIObject ] = Table } }:Throwable()
+__Arguments__{ NEString, SkinSettings }:Throwable()
 function Style.UpdateSkin(name, settings)
-    local skins                 = _Skins[strlower(name)]
+    name                        = strlower(name)
+    local skins                 = _Skins[name]
 
     if not skins then
         throw("Usage: Style.UpdateSkin(name, settings) - the name doesn't existed")
@@ -1077,6 +1118,7 @@ function Style.UpdateSkin(name, settings)
         skins[class]            = skin
 
         saveSkinSettings(class, skin, setting)
+        activeSkin(name, class, skin, true)
     end
 end
 
@@ -1116,3 +1158,5 @@ function Style.GetSkins(class)
         end
     end
 end
+
+Style.RegisterSkin("Default")

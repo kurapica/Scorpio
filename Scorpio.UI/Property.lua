@@ -378,9 +378,33 @@ do
         name    = "TexCoord",
         type    = RectType,
         require = { Texture, Line },
-        get     = function(self) return RectType(self:GetTexCoord()) end,
-        set     = function(self, val) self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end,
+        get     = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
+        set     = function(self, val) if val.left then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
         clear   = function(self) self:SetTexCoord(0, 1, 0, 1) end,
+    }
+
+    --- The texture settings
+    Position    {
+        name    = "Texture",
+        type    = Number + String + TextureType,
+        require = { Texture, Line },
+        get     = function(self) return self:GetTexture() end,
+        set     = function(self, val)
+                    if type(val) ~= "table" then
+                        self:SetTexture(val)
+                    else
+                        self:SetTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
+        clear   = function(self) self:SetTexture(nil) end,
     }
 
     --- The texture file id
@@ -1094,40 +1118,96 @@ do
     --- the texture object used when the button is pushed
     Property    {
         name    = "PushedTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = Button,
         nilable = true,
-        set     = function(self, val) self:SetPushedTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetPushedTexture(val)
+                    else
+                        self:SetPushedTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetPushedTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetPushedTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetPushedTexture() end,
     }
 
     --- the texture object used when the button is highlighted
     Property    {
         name    = "HighlightTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = Button,
         nilable = true,
-        set     = function(self, val) self:SetHighlightTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetHighlightTexture(val)
+                    else
+                        self:SetHighlightTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetHighlightTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetHighlightTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetHighlightTexture() end,
     }
 
     --- the texture object used for the button's normal state
     Property    {
         name    = "NormalTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = Button,
         nilable = true,
-        set     = function(self, val) self:SetNormalTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetNormalTexture(val)
+                    else
+                        self:SetNormalTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetNormalTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetNormalTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetNormalTexture() end,
     }
 
     --- the texture object used when the button is disabled
     Property    {
         name    = "DisabledTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = Button,
         nilable = true,
-        set     = function(self, val) self:SetDisabledTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetDisabledTexture(val)
+                    else
+                        self:SetDisabledTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetDisabledTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetDisabledTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetDisabledTexture() end,
     }
 
@@ -1179,20 +1259,48 @@ do
     --- the texture object used when the button is checked
     Property    {
         name    = "CheckedTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = CheckButton,
         nilable = true,
-        set     = function(self, val) self:SetCheckedTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetCheckedTexture(val)
+                    else
+                        self:SetCheckedTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetCheckedTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetCheckedTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetCheckedTexture() end,
     }
 
     --- the texture object used when the button is disabled and checked
     Property    {
         name    = "DisabledCheckedTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = CheckButton,
         nilable = true,
-        set     = function(self, val) self:SetDisabledCheckedTexture(val) end,
+        set     = function(self, val) self:SetDisabledCheckedTexture(val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetDisabledCheckedTexture(val)
+                    else
+                        self:SetDisabledCheckedTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetDisabledCheckedTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetDisabledCheckedTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetDisabledCheckedTexture() end,
     }
 end
@@ -1224,40 +1332,96 @@ do
     --- the texture for the color picker's value slider background
     Property    {
         name    = "ColorValueTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = ColorSelect,
         nilable = true,
-        set     = function(self, val) self:SetColorValueTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetColorValueTexture(val)
+                    else
+                        self:SetColorValueTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetColorValueTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetColorValueTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetColorValueTexture() end,
     }
 
     --- the texture for the selection indicator on the color picker's hue/saturation wheel
     Property    {
         name    = "ColorWheelThumbTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = ColorSelect,
         nilable = true,
-        set     = function(self, val) self:SetColorWheelThumbTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetColorWheelThumbTexture(val)
+                    else
+                        self:SetColorWheelThumbTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetColorWheelThumbTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetColorWheelThumbTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetColorWheelThumbTexture() end,
     }
 
     --- the texture for the color picker's hue/saturation wheel
     Property    {
         name    = "ColorWheelTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = ColorSelect,
         nilable = true,
-        set     = function(self, val) self:SetColorWheelTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetColorWheelTexture(val)
+                    else
+                        self:SetColorWheelTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetColorWheelTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetColorWheelTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetColorWheelTexture() end,
     }
 
     --- the texture for the color picker's value slider thumb
     Property    {
         name    = "ColorValueThumbTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = ColorSelect,
         nilable = true,
-        set     = function(self, val) self:SetColorValueThumbTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetColorValueThumbTexture(val)
+                    else
+                        self:SetColorValueThumbTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetColorValueThumbTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetColorValueThumbTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetColorValueThumbTexture() end,
     }
 end
@@ -1628,9 +1792,23 @@ do
     --- the texture object for the slider thumb
     Property    {
         name    = "ThumbTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = Slider,
-        set     = function(self, val) self:SetThumbTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetThumbTexture(val)
+                    else
+                        self:SetThumbTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetThumbTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetThumbTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetThumbTexture() end,
     }
 
@@ -1747,9 +1925,23 @@ do
 
     Property    {
         name    = "StatusBarTexture",
-        type    = Texture,
+        type    = Number + String + TextureType + Texture,
         require = StatusBar,
-        set     = function(self, val) self:SetStatusBarTexture(val) end,
+        set     = function(self, val)
+                    if type(val) ~= "table" or getmetatable(val) ~= nil then
+                        self:SetStatusBarTexture(val)
+                    else
+                        self:SetStatusBarTexture(val.file)
+                        val = val.texcoord
+                        if val then
+                            if val.left then
+                                self:GetStatusBarTexture():SetTexCoord(val.left, val.right, val.top, val.bottom)
+                            else
+                                self:GetStatusBarTexture():SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy)
+                            end
+                        end
+                    end
+                end,
         get     = function(self) return self:GetStatusBarTexture() end,
     }
 end

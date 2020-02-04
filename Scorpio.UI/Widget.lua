@@ -74,7 +74,7 @@ do
     end
 end
 
-__Sealed__() class "__PopupEvent__" (function(_ENV)
+__Sealed__() class "__Bubbling__" (function(_ENV)
     extend "IApplyAttribute"
 
     local getChild              = UIObject.GetChild
