@@ -394,6 +394,9 @@ do
                         self:SetTexture(val)
                     else
                         self:SetTexture(val.file)
+                        if val.alphamode then
+                            self:SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1126,6 +1129,9 @@ do
                         self:SetPushedTexture(val)
                     else
                         self:SetPushedTexture(val.file)
+                        if val.alphamode then
+                            self:GetPushedTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1150,6 +1156,9 @@ do
                         self:SetHighlightTexture(val)
                     else
                         self:SetHighlightTexture(val.file)
+                        if val.alphamode then
+                            self:GetHighlightTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1174,6 +1183,9 @@ do
                         self:SetNormalTexture(val)
                     else
                         self:SetNormalTexture(val.file)
+                        if val.alphamode then
+                            self:GetNormalTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1198,6 +1210,9 @@ do
                         self:SetDisabledTexture(val)
                     else
                         self:SetDisabledTexture(val.file)
+                        if val.alphamode then
+                            self:GetDisabledTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1267,6 +1282,9 @@ do
                         self:SetCheckedTexture(val)
                     else
                         self:SetCheckedTexture(val.file)
+                        if val.alphamode then
+                            self:GetCheckedTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1291,6 +1309,9 @@ do
                         self:SetDisabledCheckedTexture(val)
                     else
                         self:SetDisabledCheckedTexture(val.file)
+                        if val.alphamode then
+                            self:GetDisabledCheckedTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1340,6 +1361,9 @@ do
                         self:SetColorValueTexture(val)
                     else
                         self:SetColorValueTexture(val.file)
+                        if val.alphamode then
+                            self:GetColorValueTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1364,6 +1388,9 @@ do
                         self:SetColorWheelThumbTexture(val)
                     else
                         self:SetColorWheelThumbTexture(val.file)
+                        if val.alphamode then
+                            self:GetColorValueThumbTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1388,6 +1415,9 @@ do
                         self:SetColorWheelTexture(val)
                     else
                         self:SetColorWheelTexture(val.file)
+                        if val.alphamode then
+                            self:GetColorWheelTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1412,6 +1442,9 @@ do
                         self:SetColorValueThumbTexture(val)
                     else
                         self:SetColorValueThumbTexture(val.file)
+                        if val.alphamode then
+                            self:GetColorWheelThumbTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1799,6 +1832,9 @@ do
                         self:SetThumbTexture(val)
                     else
                         self:SetThumbTexture(val.file)
+                        if val.alphamode then
+                            self:GetThumbTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then
@@ -1932,6 +1968,9 @@ do
                         self:SetStatusBarTexture(val)
                     else
                         self:SetStatusBarTexture(val.file)
+                        if val.alphamode then
+                            self:GetStatusBarTexture():SetBlendMode(val.alphamode)
+                        end
                         val = val.texcoord
                         if val then
                             if val.left then

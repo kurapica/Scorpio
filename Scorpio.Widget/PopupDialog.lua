@@ -24,8 +24,6 @@ export {
 -----------------------------------------------------------
 --                     Popup Widget                      --
 -----------------------------------------------------------
-__Sealed__() class "DialogButton" { Button }
-
 __Sealed__() class "AlertDialog" (function(_ENV)
     inherit "Frame"
 
@@ -34,7 +32,7 @@ __Sealed__() class "AlertDialog" (function(_ENV)
 
     __Template__{
         Message                 = FontString,
-        OkayButton              = DialogButton,
+        OkayButton              = UIPanelButton,
     }
     function __ctor(self)
         self:GetChild("OkayButton"):SetText(_G.OKAY or "Okay")
@@ -44,17 +42,17 @@ end)
 __Sealed__() class "InputDialog" (function(_ENV)
     inherit "Frame"
 
-    __Bubbling__{ ConfirmButton = "OnClick" }
+    __Bubbling__{ ConfirmButton = "OnClick", InputBox = "OnEnterPressed" }
     event "OnConfirm"
 
-    __Bubbling__{ CancelButton  = "OnClick" }
+    __Bubbling__{ CancelButton  = "OnClick", InputBox = "OnEscapePressed" }
     event "OnCancel"
 
     __Template__{
         Message                 = FontString,
-        InputBox                = EditBox,
-        ConfirmButton           = DialogButton,
-        CancelButton            = DialogButton,
+        InputBox                = InputBox,
+        ConfirmButton           = UIPanelButton,
+        CancelButton            = UIPanelButton,
     }
     function __ctor(self)
         self:GetChild("ConfirmButton"):SetText(_G.OKAY or "Okay")
@@ -73,8 +71,8 @@ __Sealed__() class "ConfirmDialog" (function(_ENV)
 
     __Template__{
         Message                 = FontString,
-        ConfirmButton           = DialogButton,
-        CancelButton            = DialogButton,
+        ConfirmButton           = UIPanelButton,
+        CancelButton            = UIPanelButton,
     }
     function __ctor(self)
         self:GetChild("ConfirmButton"):SetText(_G.OKAY or "Okay")
@@ -85,31 +83,9 @@ end)
 -----------------------------------------------------------
 --                Dialog Style - Default                 --
 -----------------------------------------------------------
-Style.UpdateSkin("Default", {
-    [DialogButton]              = {
-        NormalFontObject        = GameFontNormal,
-        DisabledFontObject      = GameFontDisable,
-        HighlightFontObject     = GameFontHighlight,
-
-        NormalTexture           = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Up]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
-        },
-        PushedTexture           = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Down]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
-        },
-        DisabledTexture         = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Disabled]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
-        },
-        HighlightTexture        = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Highlight]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
-        }
-    },
+Style.UpdateSkin("Default",     {
     [AlertDialog]               = {
-        Size                    = Size(320, 72),
+        Size                    = Size(320, 100),
         FrameStrata             = "FULLSCREEN_DIALOG",
         Toplevel                = true,
         Location                = { Anchor("CENTER") },
@@ -119,7 +95,7 @@ Style.UpdateSkin("Default", {
             tile                = true, tileSize = 32, edgeSize = 32,
             insets              = { left = 11, right = 12, top = 12, bottom = 11 }
         },
-        BackdropBorderColor     = ColorType(0, 0, 0),
+        BackdropBorderColor     = ColorType(1, 1, 1),
 
         -- Childs
         Message                 = {
@@ -130,14 +106,11 @@ Style.UpdateSkin("Default", {
         },
         OkayButton              = {
             Location            = { Anchor("BOTTOM", 0, 16) },
-            Size                = Size(128, 20),
+            Size                = Size(90, 20),
         }
     },
     [InputDialog]               = {
-
-    },
-    [ConfirmDialog]             = {
-        Size                    = Size(320, 72),
+        Size                    = Size(360, 130),
         FrameStrata             = "FULLSCREEN_DIALOG",
         Toplevel                = true,
         Location                = { Anchor("CENTER") },
@@ -147,7 +120,41 @@ Style.UpdateSkin("Default", {
             tile                = true, tileSize = 32, edgeSize = 32,
             insets              = { left = 11, right = 12, top = 12, bottom = 11 }
         },
-        BackdropBorderColor     = ColorType(0, 0, 0),
+        BackdropBorderColor     = ColorType(1, 1, 1),
+
+        -- Childs
+        Message                 = {
+            Location            = { Anchor("TOP", 0, -16) },
+            Width               = 290,
+            DrawLayer           = "ARTWORK",
+            FontObject          = GameFontHighlight,
+        },
+        InputBox                = {
+            Location            = { Anchor("TOP", 0, -50) },
+            Size                = Size(240, 32),
+            AutoFocus           = true,
+        },
+        ConfirmButton           = {
+            Location            = { Anchor("BOTTOMRIGHT", -4, 16, nil, "BOTTOM") },
+            Size                = Size(90, 20),
+        },
+        CancelButton            = {
+            Location            = { Anchor("BOTTOMLEFT", 4, 16, nil, "BOTTOM") },
+            Size                = Size(90, 20),
+        }
+    },
+    [ConfirmDialog]             = {
+        Size                    = Size(360, 100),
+        FrameStrata             = "FULLSCREEN_DIALOG",
+        Toplevel                = true,
+        Location                = { Anchor("CENTER") },
+        Backdrop                = {
+            bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
+            edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
+            tile                = true, tileSize = 32, edgeSize = 32,
+            insets              = { left = 11, right = 12, top = 12, bottom = 11 }
+        },
+        BackdropBorderColor     = ColorType(1, 1, 1),
 
         -- Childs
         Message                 = {
@@ -158,19 +165,18 @@ Style.UpdateSkin("Default", {
         },
         ConfirmButton           = {
             Location            = { Anchor("BOTTOMRIGHT", -4, 16, nil, "BOTTOM") },
-            Size                = Size(128, 20),
+            Size                = Size(90, 20),
         },
         CancelButton            = {
             Location            = { Anchor("BOTTOMLEFT", 4, 16, nil, "BOTTOM") },
-            Size                = Size(128, 20),
+            Size                = Size(90, 20),
         }
     }
 })
 
-Style.ActiveSkin("Default", DialogButton)
-Style.ActiveSkin("Default", AlertDialog)
-Style.ActiveSkin("Default", InputDialog)
-Style.ActiveSkin("Default", ConfirmDialog)
+Style.ActiveSkin("Default",     AlertDialog)
+Style.ActiveSkin("Default",     InputDialog)
+Style.ActiveSkin("Default",     ConfirmDialog)
 
 -----------------------------------------------------------
 --                       Popup API                       --
@@ -192,6 +198,7 @@ function showPopup()
         end
     elseif qtype == POPUP_TYPE_INPUT then
         _CurrentPopup           = InputDialog("Scorpio_InputDialog")
+        _CurrentPopup:GetChild("InputBox"):SetText("")
         _CurrentPopup.OnConfirm = function(self)
             local text          = self:GetChild("InputBox"):GetText() or ""
             self:Hide()
