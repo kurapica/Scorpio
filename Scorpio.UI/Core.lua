@@ -452,6 +452,10 @@ local function saveSkinSettings(class, container, settings)
             name                = strlower(name)
             local prop          = props[name]
 
+            if not prop then
+                throw(strformat("The %q isn't a valid property for %s", name, tostring(class)))
+            end
+
             if value == nil or value == NIL then
                 container[name] = NIL
             else
@@ -553,6 +557,10 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         else
             return name
         end
+    end
+
+    __Final__() function GetDebugName(self)
+        return self:GetName(true)
     end
 
     --- Gets the parent of ui object
@@ -934,6 +942,7 @@ local Style                     = Namespace.SaveNamespace("Scorpio.UI.Style", pr
             _StyleOwner[0]      = key
             _StyleOwner[-1]     = iscustom
             setTargetStyle(value, 2)
+            return
         end
 
         error("The Scorpio.UI.Style access is denied", 2)
@@ -1085,11 +1094,11 @@ end
 local SkinSettings              = struct { [ - UIObject ] = Table }
 
 __Arguments__{ NEString, SkinSettings/nil }:Throwable()
-function Style.RegisterSkin(name, settings)
+function Style.RegisteSkin(name, settings)
     name                        = strlower(name)
 
     if _Skins[name] then
-        throw("Usage: Style.RegisterSkin(name, settings) - the name is already used")
+        throw("Usage: Style.RegisteSkin(name, settings) - the name is already used")
     end
 
     local skins                 = {}
@@ -1160,4 +1169,4 @@ function Style.GetSkins(class)
     end
 end
 
-Style.RegisterSkin("Default")
+Style.RegisteSkin("Default")
