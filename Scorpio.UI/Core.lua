@@ -94,6 +94,7 @@ local _DefaultStyle             = {}
 local _CustomStyle              = setmetatable({}, META_WEAKKEY)
 local _TempStyle                = {}
 local _TempPath                 = {}
+local _TempClass                = {}
 local _Inited                   = false
 
 local _ClassMap                 = {}
@@ -119,28 +120,39 @@ local function buildTempStyle(frame)
 
     while parent do
         local cls               = getmetatable(parent)
+        wipe(_TempClass)
+
         if cls and isUIObjectType(cls) then
             tinsert(_TempPath, 1, name)
 
-            local default       = _DefaultStyle[cls]
-            local index         = 1
+            repeat
+                tinsert(_TempClass, cls)
+                cls             = Class.GetSuperClass(cls)
+            until not cls
 
-            while default and _TempPath[index] do
-                default         = default[0]
-                default         = default and default[_TempPath[index]]
-                index           = index + 1
-            end
+            for i = #_TempClass, 1, -1 do
+                cls                 = _TempClass[i]
 
-            if default then
-                -- The parent -> ... -> child style settings
-                for prop, value in pairs(default) do
-                    if prop ~= 0 then
-                        if value == NIL then
-                            if _TempStyle[prop] == nil then
-                                _TempStyle[prop] = NIL
+                local default       = _DefaultStyle[cls]
+                local index         = 1
+
+                while default and _TempPath[index] do
+                    default         = default[0]
+                    default         = default and default[_TempPath[index]]
+                    index           = index + 1
+                end
+
+                if default then
+                    -- The parent -> ... -> child style settings
+                    for prop, value in pairs(default) do
+                        if prop ~= 0 then
+                            if value == NIL then
+                                if _TempStyle[prop] == nil then
+                                    _TempStyle[prop] = NIL
+                                end
+                            else
+                                _TempStyle[prop] = value
                             end
-                        else
-                            _TempStyle[prop] = value
                         end
                     end
                 end
@@ -265,10 +277,7 @@ local function processClassStyleApply()
     end
 end
 
-local function applyClassStyle(class, ...)
-    if not _Inited then return end
-    if _ClassQueue.Count == 0 then Next(processClassStyleApply) end
-
+local function queueClassApply(class, ...)
     if not _ClassQueue[class] then
         _ClassQueue:Enqueue(class)
         _ClassQueue[class]      = true
@@ -279,14 +288,27 @@ local function applyClassStyle(class, ...)
 
     local count                 = select("#", ...)
     if count == 0 then
+        if info[""] then return end
         info[""]                = true
     else
         local s                 = select(1, ...)
         for i = 2, count do
             s                   = s .. "^" .. select(i, ...)
         end
+        if info[s] then return end
         info[s]                 = true
     end
+
+    for scls in Class.GetSubTypes(class) do
+        queueClassApply(scls, ...)
+    end
+end
+
+local function applyClassStyle(class, ...)
+    if not _Inited then return end
+    if _ClassQueue.Count == 0 then Next(processClassStyleApply) end
+
+    queueClassApply(class, ...)
 end
 
 local function setTargetStyle(target, pname, value, stack)
@@ -520,6 +542,12 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     local validate              = Struct.ValidateValue
 
     ----------------------------------------------
+    --                  event                   --
+    ----------------------------------------------
+    -- Fired when parent is changed
+    event "OnParentChanged"
+
+    ----------------------------------------------
     --              Static Methods              --
     ----------------------------------------------
     --- Gets the ui object with the full name
@@ -634,6 +662,8 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         end
 
         children[name]          = self
+
+        OnParentChanged(self, parent, oparent)
     end
 
     --- Gets the children of the frame
@@ -724,6 +754,66 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
 end)
 
 ----------------------------------------------
+--               __Bubbling__               --
+----------------------------------------------
+__Sealed__() class "__Bubbling__" (function(_ENV)
+    extend "IApplyAttribute"
+
+    local getChild              = UIObject.GetChild
+
+    -----------------------------------------------------------
+    --                       property                        --
+    -----------------------------------------------------------
+    property "AttributeTarget"  { set = false, default = AttributeTargets.Event }
+
+    -----------------------------------------------------------
+    --                        method                         --
+    -----------------------------------------------------------
+    --- apply changes on the target
+    -- @param   target                      the target
+    -- @param   targettype                  the target type
+    -- @param   manager                     the definition manager of the target
+    -- @param   owner                       the target's owner
+    -- @param   name                        the target's name in the owner
+    -- @param   stack                       the stack level
+    function ApplyAttribute(self, target, targettype, manager, owner, name, stack)
+        local map               = self[1]
+
+        Event.SetEventChangeHandler(target, function(delegate, owner, eventname)
+            if not delegate.PopupeBinded then
+                delegate.PopupeBinded = true
+
+                for name, event in pairs(map) do
+                    local child = type(name) == "number" and owner or getChild(owner, name)
+
+                    if not child then
+                        error(("The child named %q doesn't existed in object of %s"):format(name, tostring(getmetatable(owner))))
+                    elseif not child:HasScript(event) then
+                        if child == owner then
+                            error(("The object of %s doesn't have an event named %q"):format(tostring(getmetatable(owner)), event))
+                        else
+                            error(("The child named %q in object of %s doesn't have an event named %q"):format(name, tostring(getmetatable(owner)), event))
+                        end
+                    end
+
+                    child:HookScript(event, function(self, ...)
+                        return delegate(owner, ...)
+                    end)
+                end
+            end
+        end, stack + 1)
+    end
+
+    -----------------------------------------------------------
+    --                      constructor                      --
+    -----------------------------------------------------------
+    __Arguments__{ struct { [NEString] = NEString } }
+    function __new(_, map)
+        return { map }, true
+    end
+end)
+
+----------------------------------------------
 --                 Template                 --
 ----------------------------------------------
 __Sealed__() class "__Template__" (function (_ENV)
@@ -734,6 +824,7 @@ __Sealed__() class "__Template__" (function (_ENV)
     local isUIObjectType        = UI.IsUIObjectType
     local getSuperCTOR          = Class.GetSuperMetaMethod
     local yield                 = coroutine.yield
+    local getSuperClass         = Class.GetSuperClass
 
     -----------------------------------------------------------
     --                     static method                     --
@@ -747,8 +838,13 @@ __Sealed__() class "__Template__" (function (_ENV)
 
     __Static__()
     function GetElementType(cls, name)
-        local elements          = _Template[cls]
-        return elements and elements[name]
+        repeat
+            local elements      = _Template[cls]
+            local type          = elements and elements[name]
+            if type then return type end
+
+            cls                 = getSuperClass(cls)
+        until not cls
     end
 
     -----------------------------------------------------------
@@ -785,6 +881,9 @@ __Sealed__() class "__Template__" (function (_ENV)
             _Template[owner]    = elements
 
             return function(self, ...)
+                local sctor = getSuperCTOR(owner, "__ctor")
+                if sctor then sctor(self, ...) end
+
                 for k, v in pairs(elements) do
                     v(k, self)
                 end
@@ -830,7 +929,7 @@ __Sealed__() class "__Template__" (function (_ENV)
     -----------------------------------------------------------
     --                      constructor                      --
     -----------------------------------------------------------
-    __Arguments__{ ClassType/nil }
+    __Arguments__{ - UIObject/nil }
     function __new(_, cls) return { [0] = cls }, true end
 
     __Arguments__{ RawTable }

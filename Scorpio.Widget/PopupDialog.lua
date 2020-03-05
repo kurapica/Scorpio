@@ -25,9 +25,9 @@ export {
 --                     Popup Widget                      --
 -----------------------------------------------------------
 __Sealed__() class "AlertDialog" (function(_ENV)
-    inherit "Frame"
+    inherit "Dialog"
 
-    __Bubbling__{ OkayButton    = "OnClick" }
+    __Bubbling__{ OkayButton    = "OnClick", CloseButton = "OnClick" }
     event "OnOkay"
 
     __Template__{
@@ -40,12 +40,12 @@ __Sealed__() class "AlertDialog" (function(_ENV)
 end)
 
 __Sealed__() class "InputDialog" (function(_ENV)
-    inherit "Frame"
+    inherit "Dialog"
 
     __Bubbling__{ ConfirmButton = "OnClick", InputBox = "OnEnterPressed" }
     event "OnConfirm"
 
-    __Bubbling__{ CancelButton  = "OnClick", InputBox = "OnEscapePressed" }
+    __Bubbling__{ CancelButton  = "OnClick", InputBox = "OnEscapePressed", CloseButton = "OnClick" }
     event "OnCancel"
 
     __Template__{
@@ -61,12 +61,12 @@ __Sealed__() class "InputDialog" (function(_ENV)
 end)
 
 __Sealed__() class "ConfirmDialog" (function(_ENV)
-    inherit "Frame"
+    inherit "Dialog"
 
     __Bubbling__{ ConfirmButton = "OnClick" }
     event "OnConfirm"
 
-    __Bubbling__{ CancelButton  = "OnClick" }
+    __Bubbling__{ CancelButton  = "OnClick", CloseButton = "OnClick" }
     event "OnCancel"
 
     __Template__{
@@ -87,15 +87,6 @@ Style.UpdateSkin("Default",     {
     [AlertDialog]               = {
         Size                    = Size(320, 100),
         FrameStrata             = "FULLSCREEN_DIALOG",
-        Toplevel                = true,
-        Location                = { Anchor("CENTER") },
-        Backdrop                = {
-            bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
-            edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
-            tile                = true, tileSize = 32, edgeSize = 32,
-            insets              = { left = 11, right = 12, top = 12, bottom = 11 }
-        },
-        BackdropBorderColor     = ColorType(1, 1, 1),
 
         -- Childs
         Message                 = {
@@ -112,15 +103,6 @@ Style.UpdateSkin("Default",     {
     [InputDialog]               = {
         Size                    = Size(360, 130),
         FrameStrata             = "FULLSCREEN_DIALOG",
-        Toplevel                = true,
-        Location                = { Anchor("CENTER") },
-        Backdrop                = {
-            bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
-            edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
-            tile                = true, tileSize = 32, edgeSize = 32,
-            insets              = { left = 11, right = 12, top = 12, bottom = 11 }
-        },
-        BackdropBorderColor     = ColorType(1, 1, 1),
 
         -- Childs
         Message                 = {
@@ -146,15 +128,6 @@ Style.UpdateSkin("Default",     {
     [ConfirmDialog]             = {
         Size                    = Size(360, 100),
         FrameStrata             = "FULLSCREEN_DIALOG",
-        Toplevel                = true,
-        Location                = { Anchor("CENTER") },
-        Backdrop                = {
-            bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
-            edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
-            tile                = true, tileSize = 32, edgeSize = 32,
-            insets              = { left = 11, right = 12, top = 12, bottom = 11 }
-        },
-        BackdropBorderColor     = ColorType(1, 1, 1),
 
         -- Childs
         Message                 = {

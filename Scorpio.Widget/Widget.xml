@@ -2,7 +2,9 @@
 	<Script file="Widget.lua"/>
 
 	<!-- UI Widget Class -->
+	<Script file="Draggable.lua"/>
 	<Script file="UIPanelButton.lua"/>
 	<Script file="InputBox.lua"/>
+	<Script file="Dialog.lua"/>
     <Script file="PopupDialog.lua"/>
 </Ui>

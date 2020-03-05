@@ -524,6 +524,15 @@ do
         { name = "texcoord",    type = RectType },
         { name = "alphamode",   type = AlphaMode },
     }
+
+    __Sealed__()
+    struct "FadeoutOption" {
+        { name = "duration",    type = Number, require = true },
+        { name = "delay",       type = Number, default = 0 },
+        { name = "start",       type = Number, default = 1 },
+        { name = "stop",        type = Number, default = 0 },
+        { name = "autohide",    type = Boolean },
+    }
 end
 
 ----------------------------------------------

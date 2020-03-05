@@ -10,6 +10,53 @@ Scorpio           "Scorpio.UI.Property"              "1.0.0"
 --========================================================--
 
 ------------------------------------------------------------
+--                         Helper                         --
+------------------------------------------------------------
+do
+    local defaultFadeoutOption  = FadeoutOption{ duration = 1 }
+
+    function fadeIn(self)
+        local fade              = self[fadeOut]
+        self:SetAlpha(fade and fade.start or 1)
+    end
+
+    __Async__() function fadeOut(self)
+        local fade              = self[fadeOut] or defaultFadeoutOption
+        local target            = GetTime()
+        local duration          = fade.duration or 1
+        local stop              = fade.stop or 0
+        local start             = fade.start or 1
+
+        -- Check the delay
+        if fade.delay and fade.delay > 0 then
+            target              = target + fade.delay
+            while GetTime() < target and not self:IsMouseOver() do
+                Next()
+            end
+        end
+
+        local current           = start
+
+        target                  = target + duration
+
+        while current < target and not self:IsMouseOver() do
+            self:SetAlpha(stop + (start - stop) * (target - current) / duration)
+
+            Next()
+            current             = GetTime()
+        end
+
+        if self:IsMouseOver() then
+            self:SetAlpha(start)
+        elseif current >= target and fade.autohide then
+            if pcall(self.Hide, self) then
+                self:SetAlpha(start)
+            end
+        end
+    end
+end
+
+------------------------------------------------------------
 --                      LayoutFrame                       --
 ------------------------------------------------------------
 do
@@ -21,6 +68,30 @@ do
         default = 1,
         get     = function(self) return self:GetAlpha() end,
         set     = function(self, alpha) self:SetAlpha(alpha) end,
+    }
+
+    --- the frame's fadeout settings
+    Property    {
+        name    = "Fadeout",
+        type    = FadeoutOption + Boolean,
+        require = { LayoutFrame, Line },
+        default = false,
+        set     = function(self, fade)
+            if fade then
+                if fade ~= true then self[fadeOut] = fade else fade = nil end
+                self:SetAlpha(fade and fade.start or 1)
+
+                self.OnLeave    = self.OnLeave + fadeOut
+                self.OnEnter    = self.OnEnter + fadeIn
+            else
+                fade            = self[fadeOut]
+                self:SetAlpha(fade and fade.start or 1)
+
+                self[fadeOut]   = nil
+                self.OnLeave    = self.OnLeave - fadeOut
+                self.OnEnter    = self.OnEnter - fadeIn
+            end
+        end,
     }
 
     --- the height of the LayoutFrame
@@ -103,7 +174,7 @@ end
 
 ------------------------------------------------------------
 --                      LayeredFrame                      --
-------------------------------------------------------------
+------------------------------------C------------------------
 do
     --- the layer at which the LayeredFrame's graphics are drawn relative to others in its frame
     Property    {
