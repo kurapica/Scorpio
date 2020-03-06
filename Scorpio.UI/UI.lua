@@ -521,8 +521,6 @@ do
     struct "TextureType" {
         { name = "file",        type = String + Number,  require = true },
         { name = "color",       type = ColorType },
-        { name = "texcoord",    type = RectType },
-        { name = "alphamode",   type = AlphaMode },
     }
 
     __Sealed__()

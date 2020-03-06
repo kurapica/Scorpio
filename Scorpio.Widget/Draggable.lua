@@ -9,6 +9,8 @@
 Scorpio           "Scorpio.Widget.Draggable"          "1.0.0"
 --========================================================--
 
+local _M                        = _M -- to be used inside the class
+
 -----------------------------------------------------------
 --                   Draggable Widget                    --
 -----------------------------------------------------------
@@ -65,6 +67,21 @@ __Sealed__() class "Resizer" (function(_ENV)
     function __ctor(self)
         self.OnMouseDown        = onMouseDown
         self.OnMouseUp          = onMouseUp
+
+        local parent            = self:GetParent()
+        if parent:IsResizable() then
+            self:Show()
+        else
+            self:Hide()
+        end
+
+    _M:SecureHook(parent, "SetResizable", function(par, flag)
+            if flag then
+                self:Show()
+            else
+                self:Hide()
+            end
+        end)
     end
 end)
 

@@ -7,4 +7,5 @@
 	<Script file="InputBox.lua"/>
 	<Script file="Dialog.lua"/>
     <Script file="PopupDialog.lua"/>
+    <Script file="UIPanelScrollFrame.lua"/>
 </Ui>

@@ -16,12 +16,8 @@ local clone                     = Toolset.clone
 local yield                     = coroutine.yield
 local tinsert                   = table.insert
 local strlower                  = strlower
-local gettable                  = function(self, key) local val = self[key] if not val then val = {} self[key] = val end return val end
-
-----------------------------------------------
---                 NIL Value                --
-----------------------------------------------
 local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL", prototype { __tostring = function() return "nil" end })
+local gettable                  = function(self, key) local val = self[key] if not val or val == NIL then val = {} self[key] = val end return val end
 
 ----------------------------------------------
 --            Helper - UIObject             --
@@ -68,6 +64,17 @@ local function applyProperty(self, prop, value)
         if prop.clear then return prop.clear(self) end
         if prop.default then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
+    elseif prop.ischild and type(value) == "table" and getmetatable(value) == nil then
+        -- means settings to the child
+        local child             = prop.get(self)
+        if child then
+            local props         = _Property[prop.childtype]
+
+            for name, value in pairs(value) do
+                if value == NIL then value = nil end
+                applyProperty(child, props[name], value)
+            end
+        end
     else
         prop.set(self, clone(value, true))
     end
@@ -329,6 +336,13 @@ local function setTargetStyle(target, pname, value, stack)
             end
 
             applyProperty(target, prop, nil)
+        elseif prop.ischild and type(value) == "table" and getmetatable(value) == nil then
+            local child         = prop.get(target)
+            if child then
+                setTargetStyle(child, nil, value, stack + 1)
+            else
+                error(strformat("The target has no child element from %q", pname), stack + 1)
+            end
         else
             if prop.validate then
                 local ret, msg  = prop.validate(prop.type, value)
@@ -366,6 +380,13 @@ local function setTargetStyle(target, pname, value, stack)
                     hasnilset   = true
 
                     applyProperty(target, prop, nil)
+                elseif prop.ischild and type(pv) == "table" and getmetatable(pv) == nil then
+                    child       = prop.get(target)
+                    if child then
+                        setTargetStyle(child, nil, pv, stack + 1)
+                    else
+                        error(strformat("The target has no child element from %q", pname), stack + 1)
+                    end
                 else
                     if prop.validate then
                         local ret, msg = prop.validate(prop.type, pv)
@@ -481,6 +502,8 @@ local function saveSkinSettings(class, container, settings)
 
             if value == nil or value == NIL then
                 container[name] = NIL
+            elseif prop.ischild and type(value) == "table" and getmetatable(value) == nil then
+                saveSkinSettings(prop.childtype, gettable(container, name), value)
             else
                 if prop.validate then
                     local ret, msg  = prop.validate(prop.type, value)
@@ -948,6 +971,19 @@ __Sealed__() struct "Scorpio.UI.Property" {
     clear                       = { type  = Function },
     default                     = { type  = Any },
     nilable                     = { type  = Boolean },
+    ischild                     = { type  = Boolean },
+    childtype                   = { type  = - UIObject },
+
+    __valid                     = function(self)
+        if self.ischild then
+            if not self.get then
+                return "%s.get is required if it represent a child element"
+            end
+            if not self.childtype then
+                return "%s.childtype is required if it represent a child element"
+            end
+        end
+    end,
 
     __init                      = function(self)
         local setting           = {
@@ -958,6 +994,8 @@ __Sealed__() struct "Scorpio.UI.Property" {
             clear               = self.clear,
             default             = clone(self.default, true),
             nilable             = self.nilable,
+            ischild             = self.ischild,
+            childtype           = self.childtype,
         }
 
         if self.type then

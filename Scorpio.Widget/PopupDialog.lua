@@ -87,6 +87,7 @@ Style.UpdateSkin("Default",     {
     [AlertDialog]               = {
         Size                    = Size(320, 100),
         FrameStrata             = "FULLSCREEN_DIALOG",
+        Location                = { Anchor("CENTER") },
 
         -- Childs
         Message                 = {
@@ -103,6 +104,7 @@ Style.UpdateSkin("Default",     {
     [InputDialog]               = {
         Size                    = Size(360, 130),
         FrameStrata             = "FULLSCREEN_DIALOG",
+        Location                = { Anchor("CENTER") },
 
         -- Childs
         Message                 = {
@@ -128,6 +130,7 @@ Style.UpdateSkin("Default",     {
     [ConfirmDialog]             = {
         Size                    = Size(360, 100),
         FrameStrata             = "FULLSCREEN_DIALOG",
+        Location                = { Anchor("CENTER") },
 
         -- Childs
         Message                 = {

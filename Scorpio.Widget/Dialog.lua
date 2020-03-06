@@ -28,7 +28,6 @@ Style.UpdateSkin("Default",     {
         Toplevel                = true,
         Movable                 = true,
         Resizable               = true,
-        Location                = { Anchor("CENTER") },
         Backdrop                = {
             bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
             edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
