@@ -54,7 +54,7 @@ class "DialogHeader" {
 -----------------------------------------------------------
 --                   Dialog Property                     --
 -----------------------------------------------------------
---- The headerw of the dialog
+--- The header of the dialog
 UI.Property                     {
     name                        = "Header",
     type                        = DialogHeader,
