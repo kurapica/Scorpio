@@ -86,6 +86,7 @@ end)
 Style.UpdateSkin("Default",     {
     [AlertDialog]               = {
         Size                    = Size(320, 100),
+        Resizable               = false,
         FrameStrata             = "FULLSCREEN_DIALOG",
         Location                = { Anchor("CENTER") },
 
@@ -103,6 +104,7 @@ Style.UpdateSkin("Default",     {
     },
     [InputDialog]               = {
         Size                    = Size(360, 130),
+        Resizable               = false,
         FrameStrata             = "FULLSCREEN_DIALOG",
         Location                = { Anchor("CENTER") },
 
@@ -129,6 +131,7 @@ Style.UpdateSkin("Default",     {
     },
     [ConfirmDialog]             = {
         Size                    = Size(360, 100),
+        Resizable               = false,
         FrameStrata             = "FULLSCREEN_DIALOG",
         Location                = { Anchor("CENTER") },
 
@@ -149,10 +152,6 @@ Style.UpdateSkin("Default",     {
         }
     }
 })
-
-Style.ActiveSkin("Default",     AlertDialog)
-Style.ActiveSkin("Default",     InputDialog)
-Style.ActiveSkin("Default",     ConfirmDialog)
 
 -----------------------------------------------------------
 --                       Popup API                       --

@@ -20,10 +20,6 @@ local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL", prot
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL then val = {} self[key] = val end return val end
 
 ----------------------------------------------
---            Helper - UIObject             --
-----------------------------------------------
-
-----------------------------------------------
 --            Helper - Property             --
 ----------------------------------------------
 local _Property                 = {}
@@ -50,11 +46,30 @@ end
 
 Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
     if ptype == Class and IsUIObjectType(cls) then
-        if _Property[cls] then return end
+        if not _Property[cls] then
+            local super         = Class.GetSuperClass(cls)
+            if super and _Property[super] then
+                _Property[cls]  = clone(_Property[super])
+            end
+        end
 
-        local super             = Class.GetSuperClass(cls)
-        if super and _Property[super] then
-            _Property[cls]      = clone(_Property[super])
+        local _Prop             = System.Property
+
+        -- Scan the class's property
+        for name, feature in Class.GetFeatures(cls) do
+            if _Prop.Validate(feature) and not _Prop.IsStatic(feature) and _Prop.IsWritable(feature) then
+                Trace("[Scorpio.UI.Core]Define Property %s for %s", name, tostring(cls))
+
+                UI.Property     {
+                    name        = name,
+                    type        = _Prop.GetType(feature),
+                    require     = cls,
+                    set         = function(self, val) self[name] = val end,
+                    get         = _Prop.IsReadable(feature) and function(self) return self[name] end or nil,
+                    default     = _Prop.GetDefault(feature),
+                    nilable     = not _Prop.IsValueRequired(feature),
+                }
+            end
         end
     end
 end
@@ -64,7 +79,7 @@ local function applyProperty(self, prop, value)
         if prop.clear then return prop.clear(self) end
         if prop.default then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
-    elseif prop.ischild and type(value) == "table" and getmetatable(value) == nil then
+    elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
         -- means settings to the child
         local child             = prop.get(self)
         if child then
@@ -336,7 +351,7 @@ local function setTargetStyle(target, pname, value, stack)
             end
 
             applyProperty(target, prop, nil)
-        elseif prop.ischild and type(value) == "table" and getmetatable(value) == nil then
+        elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
             local child         = prop.get(target)
             if child then
                 setTargetStyle(child, nil, value, stack + 1)
@@ -380,7 +395,7 @@ local function setTargetStyle(target, pname, value, stack)
                     hasnilset   = true
 
                     applyProperty(target, prop, nil)
-                elseif prop.ischild and type(pv) == "table" and getmetatable(pv) == nil then
+                elseif prop.childtype and type(pv) == "table" and getmetatable(pv) == nil then
                     child       = prop.get(target)
                     if child then
                         setTargetStyle(child, nil, pv, stack + 1)
@@ -502,7 +517,7 @@ local function saveSkinSettings(class, container, settings)
 
             if value == nil or value == NIL then
                 container[name] = NIL
-            elseif prop.ischild and type(value) == "table" and getmetatable(value) == nil then
+            elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
                 saveSkinSettings(prop.childtype, gettable(container, name), value)
             else
                 if prop.validate then
@@ -537,7 +552,7 @@ local function copyToDefault(settings, default, ...)
 end
 
 local function activeSkin(name, class, skin, force)
-    if force and _ActiveSkin[class] ~= name then return end
+    if force and _ActiveSkin[class] and _ActiveSkin[class] ~= name then return end
     if not force and _ActiveSkin[class] == name then return end
     _ActiveSkin[class] = name
 
@@ -971,16 +986,12 @@ __Sealed__() struct "Scorpio.UI.Property" {
     clear                       = { type  = Function },
     default                     = { type  = Any },
     nilable                     = { type  = Boolean },
-    ischild                     = { type  = Boolean },
     childtype                   = { type  = - UIObject },
 
     __valid                     = function(self)
-        if self.ischild then
+        if self.childtype then
             if not self.get then
                 return "%s.get is required if it represent a child element"
-            end
-            if not self.childtype then
-                return "%s.childtype is required if it represent a child element"
             end
         end
     end,
@@ -994,7 +1005,6 @@ __Sealed__() struct "Scorpio.UI.Property" {
             clear               = self.clear,
             default             = clone(self.default, true),
             nilable             = self.nilable,
-            ischild             = self.ischild,
             childtype           = self.childtype,
         }
 
@@ -1244,3 +1254,5 @@ function Style.GetSkins(class)
 end
 
 Style.RegisteSkin("Default")
+
+export { Scorpio.UI.Property }

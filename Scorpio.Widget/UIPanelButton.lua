@@ -60,6 +60,3 @@ Style.UpdateSkin("Default",     {
         },
     },
 })
-
-Style.ActiveSkin("Default",     UIPanelButton)
-Style.ActiveSkin("Default",     UIPanelCloseButton)

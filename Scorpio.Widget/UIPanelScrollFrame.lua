@@ -96,5 +96,3 @@ Style.UpdateSkin("Default",     {
         },
     }
 })
-
-Style.ActiveSkin("Default",     InputBox)

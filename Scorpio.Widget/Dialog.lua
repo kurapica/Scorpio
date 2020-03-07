@@ -12,19 +12,110 @@ Scorpio           "Scorpio.Widget.Dialog"            "1.0.0"
 -----------------------------------------------------------
 --                     Dialog Widget                     --
 -----------------------------------------------------------
+__Sealed__() __Template__(Mover)
+class "DialogHeader" {
+    LeftBG                      = Texture,
+    RightBG                     = Texture,
+    MiddleBG                    = Texture,
+    HeaderText                  = FontString,
+
+    --- The text of the header
+    Text                        = {
+        type                    = String,
+        get                     = function(self)
+            return self:GetChild("HeaderText"):GetText()
+        end,
+        set                     = function(self, text)
+            local headerText    = self:GetChild("HeaderText")
+            headerText:SetText(text or "")
+
+            Next(function()
+                local minwidth  = self:GetMinResize() or 0
+                local maxwidth  = self:GetMaxResize() or math.huge
+                if maxwidth == 0 then maxwidth = math.huge end
+                maxwidth        = math.min(maxwidth, self:GetParent() and self:GetParent():GetWidth() or math.huge)
+                local textwidth = headerText:GetStringWidth() + self.TextPadding
+
+                Style[self].Width = math.min( math.max(minwidth, textwidth), maxwidth)
+            end)
+        end,
+    },
+
+    --- The text padding of the header(the sum of the spacing on the left & right)
+    TextPadding                 = { type = Number, default = 64, handler = function(self) self.Text = self.Text end }
+}
+
 __Sealed__() __Template__(Frame)
 class "Dialog"  {
-    Mover                   	= Mover,
     Resizer                     = Resizer,
     CloseButton         		= UIPanelCloseButton,
+}
+
+-----------------------------------------------------------
+--                   Dialog Property                     --
+-----------------------------------------------------------
+--- The caption of the dialog
+UI.Property                     {
+    name                        = "Header",
+    type                        = DialogHeader,
+    require                     = Dialog,
+    childtype                   = DialogHeader,
+    nilable                     = true,
+    get                         = function(self) local header = DialogHeader("Header", self) header:Show() return header end,
+    set                         = function(self, header) if header then header:SetParent(self) header:SetName("Header") header:Show() elseif self:GetChild("Header") then self:GetChild("Header"):Hide() end end,
 }
 
 -----------------------------------------------------------
 --                     Dialog Style                      --
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
+    [DialogHeader]              = {
+        Height                  = 39,
+        Width                   = 200,
+        Location                = { Anchor("TOP", 0, 11) },
+
+        HeaderText              = {
+            FontObject          = GameFontNormal,
+            Location            = { Anchor("TOP", 0, -13) },
+        },
+        LeftBG                  = {
+            Atlas               = {
+                atlas           = [[UI-Frame-DiamondMetal-Header-CornerLeft]],
+                useAtlasSize    = false,
+            },
+            texelSnappingBias   = 0,
+            snapToPixelGrid     = false,
+            Size                = Size(32, 39),
+            Location            = { Anchor("LEFT") },
+        },
+        RightBG                 = {
+            Atlas               = {
+                atlas           = [[UI-Frame-DiamondMetal-Header-CornerRight]],
+                useAtlasSize    = false,
+            },
+            texelSnappingBias   = 0,
+            snapToPixelGrid     = false,
+            Size                = Size(32, 39),
+            Location            = { Anchor("RIGHT") },
+        },
+        MiddleBG                = {
+            Atlas               = {
+                atlas           = [[_UI-Frame-DiamondMetal-Header-Tile]],
+                useAtlasSize    = false,
+            },
+            horizTile           = true,
+            texelSnappingBias   = 0,
+            snapToPixelGrid     = false,
+            Location            = {
+                Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
+            }
+        },
+    },
     [Dialog]                    = {
         FrameStrata             = "DIALOG",
+        Size                    = Size(300, 200),
+        Location                = { Anchor("CENTER") },
         Toplevel                = true,
         Movable                 = true,
         Resizable               = true,
@@ -40,14 +131,8 @@ Style.UpdateSkin("Default",     {
             Location            = { Anchor("TOPRIGHT", -4, -4)},
         },
 
-        Mover                   = {
-            Location            = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "CloseButton", "LEFT")}
-        },
-
         Resizer                 = {
             Location            = { Anchor("BOTTOMRIGHT", -8, 8)}
         }
     },
 })
-
-Style.ActiveSkin("Default",     Dialog)

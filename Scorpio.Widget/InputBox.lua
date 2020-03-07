@@ -28,9 +28,9 @@ __Sealed__() class "InputBox" (function(_ENV)
     end
 
     __Template__{
-        Left                    = Texture,
-        Right                   = Texture,
-        Middle                  = Texture,
+        LeftBG                  = Texture,
+        RightBG                 = Texture,
+        MiddleBG                = Texture,
     }
     function __ctor(self)
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
@@ -45,7 +45,7 @@ end)
 Style.UpdateSkin("Default",     {
     [InputBox]                  = {
         FontObject              = ChatFontNormal,
-        Left                    = {
+        LeftBG                  = {
             Atlas               = {
                 atlas           = [[common-search-border-left]],
                 useAtlasSize    = false,
@@ -56,7 +56,7 @@ Style.UpdateSkin("Default",     {
             },
             Width = 8,
         },
-        Right                   = {
+        RightBG                 = {
             Atlas               = {
                 atlas           = [[common-search-border-right]],
                 useAtlasSize    = false,
@@ -67,17 +67,15 @@ Style.UpdateSkin("Default",     {
             },
             Width = 8,
         },
-        Middle                  = {
+        MiddleBG                = {
             Atlas               = {
                 atlas           = [[common-search-border-middle]],
                 useAtlasSize    = false,
             },
             Location            = {
-                Anchor("TOPLEFT", 0, 0, "Left", "TOPRIGHT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "Right", "BOTTOMLEFT"),
+                Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
             }
         },
     },
 })
-
-Style.ActiveSkin("Default",     InputBox)

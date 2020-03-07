@@ -95,7 +95,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
     --- Gets the anchor point of the given index
     __Final__() function GetPoint(self, index)
         local p, f, r, x, y     = _GetPoint[getmetatable(self)](self, index)
-        return p, GetProxyUI(f), r, x, y
+        return p, f and GetProxyUI(f), r, x, y
     end
 
     --- Get the region object's location(Type: Anchors), the data is serializable, can be saved directly.
@@ -108,13 +108,15 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
         for i = 1, self:GetNumPoints() do
             local p, f, r, x, y = self:GetPoint(i)
 
-            if IsSameUI(f, parent) then
-                -- Don't save parent
-                f               = nil
-            else
-                -- Save the brother's name or its full name
-                f               = f:GetName(not IsSameUI(f:GetParent(), parent))
-                if not f then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
+            if f then
+                if IsSameUI(f, parent) then
+                    -- Don't save parent
+                    f           = nil
+                else
+                    -- Save the brother's name or its full name
+                    f           = f:GetName(not IsSameUI(f:GetParent(), parent))
+                    if not f then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
+                end
             end
 
             if r == p then r    = nil end

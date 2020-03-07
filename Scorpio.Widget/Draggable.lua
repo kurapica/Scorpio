@@ -109,6 +109,3 @@ Style.UpdateSkin("Default",     {
         }
     },
 })
-
-Style.ActiveSkin("Default",     Mover)
-Style.ActiveSkin("Default",     Resizer)

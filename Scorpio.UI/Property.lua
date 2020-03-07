@@ -61,7 +61,7 @@ end
 ------------------------------------------------------------
 do
     --- the frame's transparency value(0-1)
-    Property            {
+    UI.Property         {
         name            = "Alpha",
         type            = ColorFloat,
         require         = { LayoutFrame, Line },
@@ -71,7 +71,7 @@ do
     }
 
     --- the frame's fadeout settings
-    Property            {
+    UI.Property         {
         name            = "Fadeout",
         type            = FadeoutOption + Boolean,
         require         = { LayoutFrame, Line },
@@ -95,7 +95,7 @@ do
     }
 
     --- the height of the LayoutFrame
-    Property            {
+    UI.Property         {
         name            = "Height",
         type            = Number,
         require         = { LayoutFrame, Line },
@@ -104,7 +104,7 @@ do
     }
 
     --- Whether ignore parent's alpha settings
-    Property            {
+    UI.Property         {
         name            = "ParentAlphaIgnored",
         type            = Boolean,
         require         = { LayoutFrame, Line },
@@ -114,7 +114,7 @@ do
     }
 
     --- Whether ignore prent's scal settings
-    Property            {
+    UI.Property         {
         name            = "ParentScaleIgnored",
         type            = Boolean,
         require         = { LayoutFrame, Line },
@@ -124,17 +124,17 @@ do
     }
 
     --- the location of the LayoutFrame
-    Property            {
+    UI.Property         {
         name            = "Location",
         type            = Anchors,
         require         = LayoutFrame,
         get             = function(self) return LayoutFrame.GetLocation(GetProxyUI(self)) end,
         set             = function(self, loc)   LayoutFrame.SetLocation(GetProxyUI(self), loc) end,
-        clear   = function(self) self:ClearAllPoints() end,
+        clear           = function(self) self:ClearAllPoints() end,
     }
 
     --- the frame's scale factor or the scale animation's setting
-    Property            {
+    UI.Property         {
         name            = "Scale",
         type            = PositiveNumber,
         require         = { LayoutFrame, Scale },
@@ -144,7 +144,7 @@ do
     }
 
     --- The size of the LayoutFrame
-    Property            {
+    UI.Property         {
         name            = "Size",
         type            = Size,
         require         = { LayoutFrame, Line },
@@ -153,7 +153,7 @@ do
     }
 
     --- wheter the LayoutFrame is shown or not.
-    Property            {
+    UI.Property         {
         name            = "Visible",
         type            = Boolean,
         require         = { LayoutFrame, Line },
@@ -163,7 +163,7 @@ do
     }
 
     --- the width of the LayoutFrame
-    Property            {
+    UI.Property         {
         name            = "Width",
         type            = Number,
         require         = { LayoutFrame, Line },
@@ -177,7 +177,7 @@ end
 ------------------------------------C------------------------
 do
     --- the layer at which the LayeredFrame's graphics are drawn relative to others in its frame
-    Property            {
+    UI.Property         {
         name            = "DrawLayer",
         type            = DrawLayer,
         require         = { Texture, FontString, ModelScene, Line },
@@ -187,7 +187,7 @@ do
     }
 
     --- the color shading for the LayeredFrame's graphics
-    Property            {
+    UI.Property         {
         name            = "VertexColor",
         type            = ColorType,
         require         = { Texture, FontString, Line },
@@ -204,7 +204,7 @@ do
     FONT_TYPES  = { EditBox, FontString, MessageFrame, SimpleHTML }
 
     --- the font settings
-    Property            {
+    UI.Property         {
         name            = "Font",
         type            = FontType,
         require         = FONT_TYPES,
@@ -245,7 +245,7 @@ do
     }
 
     --- the Font object
-    Property            {
+    UI.Property         {
         name            = "FontObject",
         type            = FontObject,
         require         = FONT_TYPES,
@@ -254,7 +254,7 @@ do
     }
 
     --- the fontstring's horizontal text alignment style
-    Property            {
+    UI.Property         {
         name            = "JustifyH",
         type            = JustifyHType,
         require         = FONT_TYPES,
@@ -264,7 +264,7 @@ do
     }
 
     --- the fontstring's vertical text alignment style
-    Property            {
+    UI.Property         {
         name            = "JustifyV",
         type            = JustifyVType,
         require         = FONT_TYPES,
@@ -274,7 +274,7 @@ do
     }
 
     --- the color of the font's text shadow
-    Property            {
+    UI.Property         {
         name            = "ShadowColor",
         type            = Color,
         require         = FONT_TYPES,
@@ -284,7 +284,7 @@ do
     }
 
     --- the offset of the fontstring's text shadow from its text
-    Property            {
+    UI.Property         {
         name            = "ShadowOffset",
         type            = Dimension,
         require         = FONT_TYPES,
@@ -294,7 +294,7 @@ do
     }
 
     --- the fontstring's amount of spacing between lines
-    Property            {
+    UI.Property         {
         name            = "Spacing",
         type            = Number,
         require         = FONT_TYPES,
@@ -304,7 +304,7 @@ do
     }
 
     --- the fontstring's default text color
-    Property            {
+    UI.Property         {
         name            = "TextColor",
         type            = Color,
         require         = FONT_TYPES,
@@ -314,7 +314,7 @@ do
     }
 
     --- whether the text wrap will be indented
-    Property            {
+    UI.Property         {
         name            = "IndentedWordWrap",
         type            = Boolean,
         require         = FONT_TYPES,
@@ -329,17 +329,17 @@ end
 ------------------------------------------------------------
 do
     --- the atlas setting of the texture
-    Property            {
+    UI.Property         {
         name            = "Atlas",
         type            = AtlasType,
         require         = { Texture, Line },
         get             = function(self) return AtlasType(self:GetAtlas()) end,
         set             = function(self, val) self:SetAtlas(val.atlas, val.useAtlasSize) end,
-        clear   = function(self) self:SetAtlas(nil) end,
+        clear           = function(self) self:SetAtlas(nil) end,
     }
 
     --- the alpha mode of the texture
-    Property            {
+    UI.Property         {
         name            = "AlphaMode",
         type            = AlphaMode,
         require         = { Texture, Line },
@@ -349,16 +349,16 @@ do
     }
 
     --- the texture's color
-    Property            {
+    UI.Property         {
         name            = "Color",
         type            = ColorType,
         require         = { Texture, Line },
         set             = function(self, color) self:SetColorTexture(color.r, color.g, color.b, color.a) end,
-        clear   = function(self) self:SetTexture(nil) end,
+        clear           = function(self) self:SetTexture(nil) end,
     }
 
     --- whether the texture image should be displayed with zero saturation
-    Property            {
+    UI.Property         {
         name            = "Desaturated",
         type            = Boolean,
         require         = { Texture, Line },
@@ -368,7 +368,7 @@ do
     }
 
     --- The texture's desaturation
-    Property            {
+    UI.Property         {
         name            = "Desaturation",
         type            = ColorFloat,
         require         = { Texture, Line, Model },
@@ -378,7 +378,7 @@ do
     }
 
     --- Whether the texture is horizontal tile
-    Property            {
+    UI.Property         {
         name            = "HorizTile",
         type            = Boolean,
         require         = { Texture, Line },
@@ -388,25 +388,25 @@ do
     }
 
     --- The gradient color shading for the texture
-    Property            {
+    UI.Property         {
         name            = "Gradient",
         type            = GradientType,
         require         = { Texture, Line },
         set             = function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
-        clear   = function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
+        clear           = function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
     }
 
     --- The gradient color shading (including opacity in the gradient) for the texture
-    Property            {
+    UI.Property         {
         name            = "GradientAlpha",
         type            = GradientType,
         require         = { Texture, Line },
         set             = function(self, val) self:SetGradientAlpha(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.mincolor.a, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b, val.maxcolor.a) end,
-        clear   = function(self) self:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1) end,
+        clear           = function(self) self:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1) end,
     }
 
     --- whether the texture object loads its image file in the background
-    Property            {
+    UI.Property         {
         name            = "NonBlocking",
         type            = Boolean,
         require         = { Texture, Line },
@@ -416,7 +416,7 @@ do
     }
 
     --- The rotation of the texture
-    Property            {
+    UI.Property         {
         name            = "Rotation",
         type            = Number,
         require         = { Texture, Line, Cooldown },
@@ -425,7 +425,7 @@ do
     }
 
     --- whether snap to pixel grid
-    Property            {
+    UI.Property         {
         name            = "SnapToPixelGrid",
         type            = Boolean,
         require         = { Texture, Line },
@@ -435,7 +435,7 @@ do
     }
 
     --- the texel snapping bias
-    Property            {
+    UI.Property         {
         name            = "TexelSnappingBias",
         type            = Number,
         require         = { Texture, Line },
@@ -445,77 +445,77 @@ do
     }
 
     --- The corner coordinates for scaling or cropping the texture image
-    Property            {
+    UI.Property         {
         name            = "TexCoord",
         type            = RectType,
         require         = { Texture, Line },
         get             = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
         set             = function(self, val) if val.left then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
-        clear   = function(self) self:SetTexCoord(0, 1, 0, 1) end,
+        clear           = function(self) self:SetTexCoord(0, 1, 0, 1) end,
     }
 
     --- The texture file id
-    Property            {
+    UI.Property         {
         name            = "FileID",
         type            = Number,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFileID() end,
         set             = function(self, val) self:SetTexture(val) end,
-        clear   = function(self) self:SetTexture(nil) end,
+        clear           = function(self) self:SetTexture(nil) end,
     }
 
     --- The texture file path
-    Property            {
+    UI.Property         {
         name            = "File",
         type            = String,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFilePath() end,
         set             = function(self, val) self:SetTexture(val) end,
-        clear   = function(self) self:SetTexture(nil) end,
+        clear           = function(self) self:SetTexture(nil) end,
     }
 
     --- The vertex offset of upperleft corner
-    Property            {
+    UI.Property         {
         name            = "VertexOffsetUpperLeft",
         type            = Dimension,
         require         = { Texture, Line },
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.UpperLeft)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.UpperLeft, val.x, val.y) end,
-        clear   = function(self) self:SetVertexOffset(VertexIndexType.UpperLeft, 0, 0) end,
+        clear           = function(self) self:SetVertexOffset(VertexIndexType.UpperLeft, 0, 0) end,
     }
 
     --- The vertex offset of lowerleft corner
-    Property            {
+    UI.Property         {
         name            = "VertexOffsetLowerLeft",
         type            = Dimension,
         require         = { Texture, Line },
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.LowerLeft)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.LowerLeft, val.x, val.y) end,
-        clear   = function(self) self:SetVertexOffset(VertexIndexType.LowerLeft, 0, 0) end,
+        clear           = function(self) self:SetVertexOffset(VertexIndexType.LowerLeft, 0, 0) end,
     }
 
     --- The vertex offset of upperright corner
-    Property            {
+    UI.Property         {
         name            = "VertexOffsetUpperRight",
         type            = Dimension,
         require         = { Texture, Line },
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.UpperRight)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.UpperRight, val.x, val.y) end,
-        clear   = function(self) self:SetVertexOffset(VertexIndexType.UpperRight, 0, 0) end,
+        clear           = function(self) self:SetVertexOffset(VertexIndexType.UpperRight, 0, 0) end,
     }
 
     --- The vertex offset of lowerright corner
-    Property            {
+    UI.Property         {
         name            = "VertexOffsetLowerRight",
         type            = Dimension,
         require         = { Texture, Line },
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.LowerRight)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.LowerRight, val.x, val.y) end,
-        clear   = function(self) self:SetVertexOffset(VertexIndexType.LowerRight, 0, 0) end,
+        clear           = function(self) self:SetVertexOffset(VertexIndexType.LowerRight, 0, 0) end,
     }
 
     --- Whether the texture is vertical tile
-    Property            {
+    UI.Property         {
         name            = "VertTile",
         require         = { Texture, Line },
         default         = false,
@@ -554,7 +554,7 @@ do
     end
 
     --- the start point of the line
-    Property            {
+    UI.Property         {
         name            = "StartPoint",
         type            = Anchor,
         require         = Line,
@@ -563,7 +563,7 @@ do
     }
 
     --- the end point of the line
-    Property            {
+    UI.Property         {
         name            = "EndPoint",
         type            = Anchor,
         require         = Line,
@@ -572,7 +572,7 @@ do
     }
 
     --- the thickness of the line
-    Property            {
+    UI.Property         {
         name            = "Thickness",
         type            = Number,
         require         = Line,
@@ -587,16 +587,16 @@ end
 ------------------------------------------------------------
 do
     --- The alpha gradient
-    Property            {
+    UI.Property         {
         name            = "AlphaGradient",
         type            = AlphaGradientType,
         require         = FontString,
         set             = function(self, val) self:SetAlphaGradient(val.start, val.length) end,
-        clear   = function(self) self:SetAlphaGradient(0, 10^6) end,
+        clear           = function(self) self:SetAlphaGradient(0, 10^6) end,
     }
 
     --- the max lines of the text
-    Property            {
+    UI.Property         {
         name            = "MaxLines",
         type            = Number,
         require         = FontString,
@@ -606,7 +606,7 @@ do
     }
 
     --- whether long lines of text will wrap within or between words
-    Property            {
+    UI.Property         {
         name            = "NonSpaceWrap",
         type            = Boolean,
         require         = FontString,
@@ -616,7 +616,7 @@ do
     }
 
     --- the text to be displayed in the font string
-    Property            {
+    UI.Property         {
         name            = "Text",
         type            = String,
         require         = { FontString, Button, EditBox },
@@ -626,7 +626,7 @@ do
     }
 
     --- the height of the text displayed in the font string
-    Property            {
+    UI.Property         {
         name            = "TextHeight",
         type            = Boolean,
         require         = FontString,
@@ -635,7 +635,7 @@ do
     }
 
     --- whether long lines of text in the font string can wrap onto subsequent lines
-    Property            {
+    UI.Property         {
         name            = "WordWrap",
         type            = Boolean,
         require         = FontString,
@@ -650,7 +650,7 @@ end
 ------------------------------------------------------------
 do
     --- looping type for the animation group: BOUNCE , NONE  , REPEAT
-    Property            {
+    UI.Property         {
         name            = "Looping",
         type            = AnimLoopType,
         require         = AnimationGroup,
@@ -660,7 +660,7 @@ do
     }
 
     --- Whether to final alpha is set
-    Property            {
+    UI.Property         {
         name            = "ToFinalAlpha",
         type            = Boolean,
         require         = AnimationGroup,
@@ -670,7 +670,7 @@ do
     }
 
     --- Time for the animation to progress from start to finish (in seconds)
-    Property            {
+    UI.Property         {
         name            = "Duration",
         type            = Number,
         require         = Animation,
@@ -680,7 +680,7 @@ do
     }
 
     --- Time for the animation to delay after finishing (in seconds)
-    Property            {
+    UI.Property         {
         name            = "EndDelay",
         type            = Number,
         require         = Animation,
@@ -689,7 +689,7 @@ do
     }
 
     --- Position at which the animation will play relative to others in its group (between 0 and 100)
-    Property            {
+    UI.Property         {
         name            = "Order",
         type            = Integer,
         require         = { Animation, ControlPoint },
@@ -698,7 +698,7 @@ do
     }
 
     --- The smooth progress of the animation
-    Property            {
+    UI.Property         {
         name            = "SmoothProgress",
         type            = Number,
         require         = Animation,
@@ -707,7 +707,7 @@ do
     }
 
     --- Type of smoothing for the animation, IN, IN_OUT, NONE, OUT
-    Property            {
+    UI.Property         {
         name            = "Smoothing",
         type            = AnimSmoothType,
         require         = Animation,
@@ -717,7 +717,7 @@ do
     }
 
     --- Amount of time the animation delays before its progress begins (in seconds)
-    Property            {
+    UI.Property         {
         name            = "StartDelay",
         type            = Number,
         require         = Animation,
@@ -727,7 +727,7 @@ do
     }
 
     --- the animation's amount of alpha (opacity) start from
-    Property            {
+    UI.Property         {
         name            = "FromAlpha",
         type            = ColorFloat,
         require         = Alpha,
@@ -737,7 +737,7 @@ do
     }
 
     --- the animation's amount of alpha (opacity) end to
-    Property            {
+    UI.Property         {
         name            = "ToAlpha",
         type            = ColorFloat,
         require         = Alpha,
@@ -747,7 +747,7 @@ do
     }
 
     --- The curve type of the path
-    Property            {
+    UI.Property         {
         name            = "Curve",
         type            = AnimCurveType,
         require         = Path,
@@ -757,7 +757,7 @@ do
     }
 
     --- the offsets settings
-    Property            {
+    UI.Property         {
         name            = "Offset",
         type            = Dimension,
         require         = { ControlPoint, Translation },
@@ -766,7 +766,7 @@ do
     }
 
     --- the animation's rotation amount (in degrees)
-    Property            {
+    UI.Property         {
         name            = "Degrees",
         type            = Number,
         require         = Rotation,
@@ -775,7 +775,7 @@ do
     }
 
     --- the rotation animation's origin point
-    Property            {
+    UI.Property         {
         name            = "Origin",
         type            = AnimOriginType,
         require         = { Rotation, Scale },
@@ -784,7 +784,7 @@ do
     }
 
     --- the animation's rotation amount (in radians)
-    Property            {
+    UI.Property         {
         name            = "Radians",
         type            = Number,
         require         = Rotation,
@@ -793,7 +793,7 @@ do
     }
 
     --- the animation's scaling factors
-    Property            {
+    UI.Property         {
         name            = "KeepScale",
         type            = Dimension,
         require         = Scale,
@@ -803,7 +803,7 @@ do
     }
 
     --- the animation's scale amount that start from
-    Property            {
+    UI.Property         {
         name            = "FromScale",
         type            = Dimension,
         require         = Scale,
@@ -813,7 +813,7 @@ do
     }
 
     --- the animation's scale amount that end to
-    Property            {
+    UI.Property         {
         name            = "ToScale",
         type            = Dimension,
         require         = Scale,
@@ -828,7 +828,7 @@ end
 ------------------------------------------------------------
 do
     --- the backdrop graphic for the frame
-    Property            {
+    UI.Property         {
         name            = "Backdrop",
         type            = BackdropType,
         require         = Frame,
@@ -838,7 +838,7 @@ do
     }
 
     --- the shading color for the frame's border graphic
-    Property            {
+    UI.Property         {
         name            = "BackdropBorderColor",
         type            = ColorType,
         require         = Frame,
@@ -848,7 +848,7 @@ do
     }
 
     --- the shading color for the frame's background graphic
-    Property            {
+    UI.Property         {
         name            = "BackdropColor",
         type            = ColorType,
         require         = Frame,
@@ -858,7 +858,7 @@ do
     }
 
     --- whether the frame's boundaries are limited to those of the screen
-    Property            {
+    UI.Property         {
         name            = "ClampedToScreen",
         type            = Boolean,
         require         = Frame,
@@ -868,7 +868,7 @@ do
     }
 
     --- offsets from the frame's edges used when limiting user movement or resizing of the frame
-    Property            {
+    UI.Property         {
         name            = "ClampRectInsets",
         type            = Inset,
         require         = Frame,
@@ -878,7 +878,7 @@ do
     }
 
     --- Whether the children is limited to draw inside the frame's boundaries
-    Property            {
+    UI.Property         {
         name            = "ClipChildren",
         type            = Boolean,
         require         = Frame,
@@ -888,7 +888,7 @@ do
     }
 
     --- the 3D depth of the frame (for stereoscopic 3D setups)
-    Property            {
+    UI.Property         {
         name            = "Depth",
         type            = Number,
         require         = Frame,
@@ -898,7 +898,7 @@ do
     }
 
     --- Whether the frame don't save its location in layout-cache
-    Property            {
+    UI.Property         {
         name            = "DontSavePosition",
         type            = Boolean,
         require         = Frame,
@@ -908,7 +908,7 @@ do
     }
 
     --- Whether the frame's child is render in flattens layers
-    Property            {
+    UI.Property         {
         name            = "FlattensRenderLayers",
         type            = Boolean,
         require         = Frame,
@@ -918,7 +918,7 @@ do
     }
 
     --- the level at which the frame is layered relative to others in its strata
-    Property            {
+    UI.Property         {
         name            = "FrameLevel",
         type            = Number,
         require         = Frame,
@@ -928,7 +928,7 @@ do
     }
 
     --- the general layering strata of the frame
-    Property            {
+    UI.Property         {
         name            = "FrameStrata",
         type            = FrameStrata,
         require         = Frame,
@@ -938,7 +938,7 @@ do
     }
 
     --- the insets from the frame's edges which determine its mouse-interactable area
-    Property            {
+    UI.Property         {
         name            = "HitRectInsets",
         type            = Inset,
         require         = Frame,
@@ -948,7 +948,7 @@ do
     }
 
     --- Whether the hyper links are enabled
-    Property            {
+    UI.Property         {
         name            = "HyperlinksEnabled",
         type            = Boolean,
         require         = Frame,
@@ -958,7 +958,7 @@ do
     }
 
     --- a numeric identifier for the frame
-    Property            {
+    UI.Property         {
         name            = "ID",
         type            = Number,
         require         = Frame,
@@ -968,7 +968,7 @@ do
     }
 
     --- whether the frame's depth property is ignored (for stereoscopic 3D setups)
-    Property            {
+    UI.Property         {
         name            = "IgnoringDepth",
         type            = Boolean,
         require         = Frame,
@@ -978,7 +978,7 @@ do
     }
 
     --- Whether the joystick is enabled for the frame
-    Property            {
+    UI.Property         {
         name            = "JoystickEnabled",
         type            = Boolean,
         require         = Frame,
@@ -988,7 +988,7 @@ do
     }
 
     --- whether keyboard interactivity is enabled for the frame
-    Property            {
+    UI.Property         {
         name            = "KeyboardEnabled",
         type            = Boolean,
         require         = Frame,
@@ -998,7 +998,7 @@ do
     }
 
     --- the maximum size of the frame for user resizing
-    Property            {
+    UI.Property         {
         name            = "MaxResize",
         type            = Size,
         require         = Frame,
@@ -1008,7 +1008,7 @@ do
     }
 
     --- Whether the mouse click is enabled
-    Property            {
+    UI.Property         {
         name            = "MouseClickEnabled",
         type            = Boolean,
         require         = Frame,
@@ -1018,7 +1018,7 @@ do
     }
 
     --- whether mouse interactivity is enabled for the frame
-    Property            {
+    UI.Property         {
         name            = "MouseEnabled",
         type            = Boolean,
         require         = Frame,
@@ -1028,7 +1028,7 @@ do
     }
 
     --- Whether the mouse motion in enabled
-    Property            {
+    UI.Property         {
         name            = "MouseMotionEnabled",
         type            = Boolean,
         require         = Frame,
@@ -1038,7 +1038,7 @@ do
     }
 
     --- whether mouse wheel interactivity is enabled for the frame
-    Property            {
+    UI.Property         {
         name            = "MouseWheelEnabled",
         type            = Boolean,
         require         = Frame,
@@ -1048,7 +1048,7 @@ do
     }
 
     --- the minimum size of the frame for user resizing
-    Property            {
+    UI.Property         {
         name            = "MinResize",
         type            = Size,
         require         = Frame,
@@ -1058,7 +1058,7 @@ do
     }
 
     --- whether the frame can be moved by the user
-    Property            {
+    UI.Property         {
         name            = "Movable",
         type            = Boolean,
         require         = Frame,
@@ -1068,7 +1068,7 @@ do
     }
 
     --- Whether the frame get the propagate keyboard input
-    Property            {
+    UI.Property         {
         name            = "PropagateKeyboardInput",
         type            = Boolean,
         require         = Frame,
@@ -1078,7 +1078,7 @@ do
     }
 
     --- whether the frame can be resized by the user
-    Property            {
+    UI.Property         {
         name            = "Resizable",
         type            = Boolean,
         require         = Frame,
@@ -1088,7 +1088,7 @@ do
     }
 
     --- whether the frame should automatically come to the front when clicked
-    Property            {
+    UI.Property         {
         name            = "Toplevel",
         type            = Boolean,
         require         = Frame,
@@ -1098,7 +1098,7 @@ do
     }
 
     --- whether the frame should save/load custom position by the system
-    Property            {
+    UI.Property         {
         name            = "UserPlaced",
         type            = Boolean,
         require         = Frame,
@@ -1113,7 +1113,7 @@ end
 ------------------------------------------------------------
 do
     --- Whether the button is enabled
-    Property            {
+    UI.Property         {
         name            = "Enabled",
         type            = Boolean,
         require         = { Button, EditBox, Slider },
@@ -1123,7 +1123,7 @@ do
     }
 
     --- the FontString object used for the button's label text
-    Property            {
+    UI.Property         {
         name            = "FontString",
         type            = FontString,
         require         = Button,
@@ -1133,7 +1133,7 @@ do
     }
 
     --- The button state
-    Property            {
+    UI.Property         {
         name            = "ButtonState",
         type            = ButtonStateType,
         require         = Button,
@@ -1143,7 +1143,7 @@ do
     }
 
     --- Whether enable the motion script while disabled
-    Property            {
+    UI.Property         {
         name            = "MotionScriptsWhileDisabled",
         type            = Boolean,
         require         = Button,
@@ -1153,7 +1153,7 @@ do
     }
 
     --- the offset for moving the button's label text when pushed
-    Property            {
+    UI.Property         {
         name            = "PushedTextOffset",
         type            = Dimension,
         require         = Button,
@@ -1163,55 +1163,51 @@ do
     }
 
     --- the texture object used when the button is pushed
-    Property            {
+    UI.Property         {
         name            = "PushedTexture",
         type            = Texture,
         require         = Button,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetPushedTexture(val) end,
         get             = function(self)  if not self:GetPushedTexture() then self:SetPushedTexture("dummy") end return self:GetPushedTexture() end,
     }
 
     --- the texture object used when the button is highlighted
-    Property            {
+    UI.Property         {
         name            = "HighlightTexture",
         type            = Texture,
         require         = Button,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetHighlightTexture(val) end,
         get             = function(self)  if not self:GetHighlightTexture() then self:SetHighlightTexture("dummy") end return self:GetHighlightTexture() end,
     }
 
     --- the texture object used for the button's normal state
-    Property            {
+    UI.Property         {
         name            = "NormalTexture",
         type            = Texture,
         require         = Button,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetNormalTexture(val) end,
         get             = function(self)  if not self:GetNormalTexture() then self:SetNormalTexture("dummy") end return self:GetNormalTexture() end,
     }
 
     --- the texture object used when the button is disabled
-    Property            {
+    UI.Property         {
         name            = "DisabledTexture",
         type            = Texture,
         require         = Button,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetDisabledTexture(val) end,
         get             = function(self)  if not self:GetDisabledTexture() then self:SetDisabledTexture("dummy") end return self:GetDisabledTexture() end,
     }
 
     --- the font object used when the button is highlighted
-    Property            {
+    UI.Property         {
         name            = "HighlightFontObject",
         type            = FontObject,
         require         = Button,
@@ -1221,7 +1217,7 @@ do
     }
 
     --- the font object used for the button's normal state
-    Property            {
+    UI.Property         {
         name            = "NormalFontObject",
         type            = FontObject,
         require         = Button,
@@ -1231,7 +1227,7 @@ do
     }
 
     --- the font object used for the button's disabled state
-    Property            {
+    UI.Property         {
         name            = "DisabledFontObject",
         type            = FontObject,
         require         = Button,
@@ -1246,7 +1242,7 @@ end
 ------------------------------------------------------------
 do
     --- Whether the checkbutton is checked
-    Property            {
+    UI.Property         {
         name            = "Checked",
         type            = Boolean,
         require         = CheckButton,
@@ -1256,24 +1252,22 @@ do
     }
 
     --- the texture object used when the button is checked
-    Property            {
+    UI.Property         {
         name            = "CheckedTexture",
         type            = Texture,
         require         = CheckButton,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetCheckedTexture(val) end,
         get             = function(self)  if not self:GetCheckedTexture() then self:SetCheckedTexture("dummy") end return self:GetCheckedTexture() end,
     }
 
     --- the texture object used when the button is disabled and checked
-    Property            {
+    UI.Property         {
         name            = "DisabledCheckedTexture",
         type            = Texture,
         require         = CheckButton,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetDisabledCheckedTexture(val) end,
         get             = function(self)  if not self:GetDisabledCheckedTexture() then self:SetDisabledCheckedTexture("dummy") end return self:GetDisabledCheckedTexture() end,
@@ -1285,7 +1279,7 @@ end
 ------------------------------------------------------------
 do
     --- the HSV color value
-    Property            {
+    UI.Property         {
         name            = "ColorHSV",
         type            = HSVType,
         require         = ColorSelect,
@@ -1295,7 +1289,7 @@ do
     }
 
     --- the RGB color value
-    Property            {
+    UI.Property         {
         name            = "ColorRGB",
         type            = ColorType,
         require         = ColorSelect,
@@ -1305,48 +1299,44 @@ do
     }
 
     --- the texture for the color picker's value slider background
-    Property            {
+    UI.Property         {
         name            = "ColorValueTexture",
         type            = Texture,
         require         = ColorSelect,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorValueTexture(val) end,
         get             = function(self)  if not self:GetColorValueTexture() then self:SetColorValueTexture("dummy") end return self:GetColorValueTexture() end,
     }
 
     --- the texture for the selection indicator on the color picker's hue/saturation wheel
-    Property            {
+    UI.Property         {
         name            = "ColorWheelThumbTexture",
         type            = Texture,
         require         = ColorSelect,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorWheelThumbTexture(val) end,
         get             = function(self)  if not self:GetColorWheelThumbTexture() then self:SetColorWheelThumbTexture("dummy") end return self:GetColorWheelThumbTexture() end,
     }
 
     --- the texture for the color picker's hue/saturation wheel
-    Property            {
+    UI.Property         {
         name            = "ColorWheelTexture",
         type            = Texture,
         require         = ColorSelect,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorWheelTexture(val) end,
         get             = function(self)  if not self:GetColorWheelTexture() then self:SetColorWheelTexture("dummy") end return self:GetColorWheelTexture() end,
     }
 
     --- the texture for the color picker's value slider thumb
-    Property            {
+    UI.Property         {
         name            = "ColorValueThumbTexture",
         type            = Texture,
         require         = ColorSelect,
         nilable         = true,
-        ischild         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorValueThumbTexture(val) end,
         get             = function(self)  if not self:GetColorValueThumbTexture() then self:SetColorValueThumbTexture("dummy") end return self:GetColorValueThumbTexture() end,
@@ -1358,7 +1348,7 @@ end
 ------------------------------------------------------------
 do
     --- Sets the bling texture
-    Property            {
+    UI.Property         {
         name            = "BlingTexture",
         type            = TextureType,
         require         = Cooldown,
@@ -1366,7 +1356,7 @@ do
     }
 
     --- the duration currently shown by the cooldown frame in milliseconds
-    Property            {
+    UI.Property         {
         name            = "CooldownDuration",
         type            = Number,
         require         = Cooldown,
@@ -1376,7 +1366,7 @@ do
     }
 
     --- Whether the cooldown 'bling' when finsihed
-    Property            {
+    UI.Property         {
         name            = "DrawBling",
         type            = Boolean,
         require         = Cooldown,
@@ -1386,7 +1376,7 @@ do
     }
 
     --- Whether a bright line should be drawn on the moving edge of the cooldown animation
-    Property            {
+    UI.Property         {
         name            = "DrawEdge",
         type            = Boolean,
         require         = Cooldown,
@@ -1396,7 +1386,7 @@ do
     }
 
     --- Whether a shadow swipe should be drawn
-    Property            {
+    UI.Property         {
         name            = "DrawSwipe",
         type            = Boolean,
         require         = Cooldown,
@@ -1406,7 +1396,7 @@ do
     }
 
     -- The edge scale
-    Property            {
+    UI.Property         {
         name            = "EdgeScale",
         type            = Number,
         require         = Cooldown,
@@ -1416,7 +1406,7 @@ do
     }
 
     --- Sets the edge texture
-    Property            {
+    UI.Property         {
         name            = "EdgeTexture",
         type            = TextureType,
         require         = Cooldown,
@@ -1424,7 +1414,7 @@ do
     }
 
     --- Whether hide count down numbers
-    Property            {
+    UI.Property         {
         name            = "HideCountdownNumbers",
         type            = Boolean,
         require         = Cooldown,
@@ -1433,7 +1423,7 @@ do
     }
 
     --- Whether the cooldown animation "sweeps" an area of darkness over the underlying image; false if the animation darkens the underlying image and "sweeps" the darkened area away
-    Property            {
+    UI.Property         {
         name            = "Reverse",
         type            = Boolean,
         require         = Cooldown,
@@ -1443,7 +1433,7 @@ do
     }
 
     --- the swipe color
-    Property            {
+    UI.Property         {
         name            = "SwipeColor",
         type            = ColorType,
         require         = Cooldown,
@@ -1451,7 +1441,7 @@ do
     }
 
     --- the swipe texture
-    Property            {
+    UI.Property         {
         name            = "SwipeTexture",
         type            = TextureType,
         require         = Cooldown,
@@ -1459,7 +1449,7 @@ do
     }
 
     --- Whether use circular edge
-    Property            {
+    UI.Property         {
         name            = "UseCircularEdge",
         type            = Boolean,
         require         = Cooldown,
@@ -1473,7 +1463,7 @@ end
 ------------------------------------------------------------
 do
     --- true if the arrow keys are ignored by the edit box unless the Alt key is held
-    Property            {
+    UI.Property         {
         name            = "AltArrowKeyMode",
         type            = Boolean,
         require         = EditBox,
@@ -1483,7 +1473,7 @@ do
     }
 
     --- true if the edit box automatically acquires keyboard input focus
-    Property            {
+    UI.Property         {
         name            = "AutoFocus",
         type            = Boolean,
         require         = EditBox,
@@ -1493,7 +1483,7 @@ do
     }
 
     --- the rate at which the text insertion blinks when the edit box is focused
-    Property            {
+    UI.Property         {
         name            = "BlinkSpeed",
         type            = Number,
         require         = EditBox,
@@ -1503,7 +1493,7 @@ do
     }
 
     --- Whether count the invisible letters for max letters
-    Property            {
+    UI.Property         {
         name            = "CountInvisibleLetters",
         type            = Boolean,
         require         = EditBox,
@@ -1512,7 +1502,7 @@ do
         get             = function(self) return self:IsCountInvisibleLetters() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "HighlightColor",
         type            = ColorType,
         require         = EditBox,
@@ -1521,7 +1511,7 @@ do
     }
 
     --- the maximum number of history lines stored by the edit box
-    Property            {
+    UI.Property         {
         name            = "HistoryLines",
         type            = Number,
         require         = EditBox,
@@ -1531,7 +1521,7 @@ do
     }
 
     --- the maximum number of bytes of text allowed in the edit box, default is 0(Infinite)
-    Property            {
+    UI.Property         {
         name            = "MaxBytes",
         type            = Integer,
         require         = EditBox,
@@ -1541,7 +1531,7 @@ do
     }
 
     --- the maximum number of text characters allowed in the edit box
-    Property            {
+    UI.Property         {
         name            = "MaxLetters",
         type            = Integer,
         require         = EditBox,
@@ -1551,7 +1541,7 @@ do
     }
 
     --- true if the edit box shows more than one line of text
-    Property            {
+    UI.Property         {
         name            = "MultiLine",
         type            = Boolean,
         require         = EditBox,
@@ -1561,7 +1551,7 @@ do
     }
 
     --- true if the edit box only accepts numeric input
-    Property            {
+    UI.Property         {
         name            = "Numeric",
         type            = Boolean,
         require         = EditBox,
@@ -1571,7 +1561,7 @@ do
     }
 
     --- the contents of the edit box as a number
-    Property            {
+    UI.Property         {
         name            = "Number",
         type            = Number,
         require         = EditBox,
@@ -1581,7 +1571,7 @@ do
     }
 
     --- true if the text entered in the edit box is masked
-    Property            {
+    UI.Property         {
         name            = "Password",
         type            = Boolean,
         require         = EditBox,
@@ -1591,7 +1581,7 @@ do
     }
 
     --- the insets from the edit box's edges which determine its interactive text area
-    Property            {
+    UI.Property         {
         name            = "TextInsets",
         type            = Inset,
         require         = EditBox,
@@ -1599,7 +1589,7 @@ do
         get             = function(self) return Inset(self:GetTextInsets()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "VisibleTextByteLimit",
         type            = Boolean,
         require         = EditBox,
@@ -1614,7 +1604,7 @@ end
 ------------------------------------------------------------
 do
     --- the duration of the fade-out animation for disappearing messages
-    Property            {
+    UI.Property         {
         name            = "FadeDuration",
         type            = Number,
         require         = MessageFrame,
@@ -1624,7 +1614,7 @@ do
     }
 
     --- whether messages added to the frame automatically fade out after a period of time
-    Property            {
+    UI.Property         {
         name            = "Fading",
         type            = Boolean,
         require         = MessageFrame,
@@ -1634,7 +1624,7 @@ do
     }
 
     --- The power of the fade-out animation for disappearing messages
-    Property            {
+    UI.Property         {
         name            = "FadePower",
         type            = Number,
         require         = MessageFrame,
@@ -1644,7 +1634,7 @@ do
     }
 
     --- the position at which new messages are added to the frame
-    Property            {
+    UI.Property         {
         name            = "InsertMode",
         type            = InsertMode,
         require         = MessageFrame,
@@ -1654,7 +1644,7 @@ do
     }
 
     --- the amount of time for which a message remains visible before beginning to fade out
-    Property            {
+    UI.Property         {
         name            = "TimeVisible",
         type            = Number,
         require         = MessageFrame,
@@ -1669,7 +1659,7 @@ end
 ------------------------------------------------------------
 do
     --- the scroll frame's current horizontal scroll position
-    Property            {
+    UI.Property         {
         name            = "HorizontalScroll",
         type            = Number,
         require         = ScrollFrame,
@@ -1679,7 +1669,7 @@ do
     }
 
     --- the scroll frame's vertical scroll position
-    Property            {
+    UI.Property         {
         name            = "VerticalScroll",
         type            = Number,
         require         = ScrollFrame,
@@ -1689,7 +1679,7 @@ do
     }
 
     --- The frame scrolled by the scroll frame
-    Property            {
+    UI.Property         {
         name            = "ScrollChild",
         type            = LayoutFrame,
         require         = ScrollFrame,
@@ -1702,7 +1692,7 @@ end
 --                       SimpleHTML                       --
 ------------------------------------------------------------
 do
-    Property            {
+    UI.Property         {
         name            = "HyperlinkFormat",
         type            = String,
         require         = SimpleHTML,
@@ -1717,18 +1707,18 @@ end
 ------------------------------------------------------------
 do
     --- the texture object for the slider thumb
-    Property            {
+    UI.Property         {
         name            = "ThumbTexture",
         type            = Texture,
         require         = Slider,
-        ischild         = true,
+        nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetThumbTexture(val) end,
         get             = function(self)  if not self:GetThumbTexture() then self:SetThumbTexture("dummy") end return self:GetThumbTexture() end,
     }
 
     --- the minimum and maximum values of the slider bar
-    Property            {
+    UI.Property         {
         name            = "MinMaxValues",
         type            = MinMax,
         require         = { Slider, StatusBar },
@@ -1737,7 +1727,7 @@ do
     }
 
     --- the orientation of the slider
-    Property            {
+    UI.Property         {
         name            = "Orientation",
         type            = Orientation,
         require         = { Slider, StatusBar },
@@ -1746,7 +1736,7 @@ do
     }
 
     --- the steps per page of the slider bar
-    Property            {
+    UI.Property         {
         name            = "StepsPerPage",
         type            = Number,
         require         = Slider,
@@ -1756,7 +1746,7 @@ do
     }
 
     --- Whether obey the step setting when drag the slider bar
-    Property            {
+    UI.Property         {
         name            = "ObeyStepOnDrag",
         type            = Boolean,
         require         = Slider,
@@ -1766,7 +1756,7 @@ do
     }
 
     --- the value representing the current position of the slider thumb
-    Property            {
+    UI.Property         {
         name            = "Value",
         type            = Number,
         require         = { Slider, StatusBar },
@@ -1776,7 +1766,7 @@ do
     }
 
     --- the minimum increment between allowed slider values
-    Property            {
+    UI.Property         {
         name            = "ValueStep",
         type            = Number,
         require         = Slider,
@@ -1791,7 +1781,7 @@ end
 ------------------------------------------------------------
 do
     --- whether the status bar's texture is rotated to match its orientation
-    Property            {
+    UI.Property         {
         name            = "RotatesTexture",
         type            = Boolean,
         require         = StatusBar,
@@ -1801,7 +1791,7 @@ do
     }
 
     --- Whether the status bar's texture is reverse filled
-    Property            {
+    UI.Property         {
         name            = "ReverseFill",
         type            = Boolean,
         require         = StatusBar,
@@ -1810,7 +1800,7 @@ do
         get             = function(self) return self:GetReverseFill() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "FillStyle",
         type            = FillStyle,
         require         = StatusBar,
@@ -1820,7 +1810,7 @@ do
     }
 
     --- The texture atlas
-    Property            {
+    UI.Property         {
         name            = "StatusBarAtlas",
         type            = String,
         require         = StatusBar,
@@ -1829,7 +1819,7 @@ do
     }
 
     --- the color shading for the status bar's texture
-    Property            {
+    UI.Property         {
         name            = "StatusBarColor",
         type            = ColorType,
         require         = StatusBar,
@@ -1838,11 +1828,11 @@ do
         get             = function(self) return Color(self:GetStatusBarColor()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "StatusBarTexture",
         type            = Texture,
         require         = StatusBar,
-        ischild         = true,
+        nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetStatusBarTexture(val) end,
         get             = function(self)  if not self:GetStatusBarTexture() then self:SetStatusBarTexture("dummy") end return self:GetStatusBarTexture() end,
@@ -1854,7 +1844,7 @@ end
 ------------------------------------------------------------
 do
     --- The model's camera distance
-    Property            {
+    UI.Property         {
         name            = "CameraDistance",
         type            = Number,
         require         = Model,
@@ -1863,7 +1853,7 @@ do
     }
 
     --- The model's camera facing
-    Property            {
+    UI.Property         {
         name            = "CameraFacing",
         type            = Number,
         require         = Model,
@@ -1873,7 +1863,7 @@ do
     }
 
     --- The model's camera position
-    Property            {
+    UI.Property         {
         name            = "CameraPosition",
         type            = Position,
         require         = { Model, ModelScene },
@@ -1882,7 +1872,7 @@ do
     }
 
     --- The model's camera target position
-    Property            {
+    UI.Property         {
         name            = "CameraTarget",
         type            = Position,
         require         = Model,
@@ -1891,7 +1881,7 @@ do
     }
 
     --- The model's camera roll
-    Property            {
+    UI.Property         {
         name            = "CameraRoll",
         type            = Number,
         require         = Model,
@@ -1901,7 +1891,7 @@ do
     }
 
     --- Whether has custom camera
-    Property            {
+    UI.Property         {
         name            = "CustomCamera",
         type            = Boolean,
         require         = Model,
@@ -1911,7 +1901,7 @@ do
     }
 
     --- the model's current fog color
-    Property            {
+    UI.Property         {
         name            = "FogColor",
         type            = ColorType,
         require         = { Model, ModelScene },
@@ -1921,7 +1911,7 @@ do
     }
 
     --- the far clipping distance for the model's fog
-    Property            {
+    UI.Property         {
         name            = "FogFar",
         type            = Number,
         require         = { Model, ModelScene },
@@ -1931,7 +1921,7 @@ do
     }
 
     --- the near clipping distance for the model's fog
-    Property            {
+    UI.Property         {
         name            = "FogNear",
         type            = Number,
         require         = { Model, ModelScene },
@@ -1941,7 +1931,7 @@ do
     }
 
     --- The model's facing
-    Property            {
+    UI.Property         {
         name            = "Facing",
         type            = Number,
         require         = Model,
@@ -1951,7 +1941,7 @@ do
     }
 
     --- the light sources used when rendering the model
-    Property            {
+    UI.Property         {
         name            = "Light",
         type            = LightType,
         require         = Model,
@@ -1992,16 +1982,16 @@ do
     }
 
     --- The model to be display
-    Property            {
+    UI.Property         {
         name            = "Model",
         type            = String,
         require         = Model,
         set             = function(self, val) self:SetModel(val) end,
-        clear   = function(self) self:ClearModel() end,
+        clear           = function(self) self:ClearModel() end,
     }
 
     --- The model's alpha
-    Property            {
+    UI.Property         {
         name            = "ModelAlpha",
         type            = ColorFloat,
         require         = Model,
@@ -2010,7 +2000,7 @@ do
         get             = function(self) return self:GetModelAlpha() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "ModelCenterToTransform",
         type            = Boolean,
         require         = Model,
@@ -2020,7 +2010,7 @@ do
     }
 
     --- The model's draw layer
-    Property            {
+    UI.Property         {
         name            = "ModelDrawLayer",
         type            = DrawLayer,
         require         = Model,
@@ -2030,7 +2020,7 @@ do
     }
 
     --- the scale factor determining the size at which the 3D model appears
-    Property            {
+    UI.Property         {
         name            = "ModelScale",
         type            = Number,
         require         = Model,
@@ -2040,7 +2030,7 @@ do
     }
 
     --- the position of the 3D model within the frame
-    Property            {
+    UI.Property         {
         name            = "Position",
         type            = Position,
         require         = Model,
@@ -2049,7 +2039,7 @@ do
         get             = function(self) return Position(self:GetPosition()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "Paused",
         type            = Boolean,
         require         = Model,
@@ -2058,7 +2048,7 @@ do
         get             = function(self) return self:GetPaused() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "ParticlesEnabled",
         type            = Boolean,
         require         = Model,
@@ -2067,7 +2057,7 @@ do
     }
 
     --- The model's pitch
-    Property            {
+    UI.Property         {
         name            = "Pitch",
         type            = Number,
         require         = Model,
@@ -2077,7 +2067,7 @@ do
     }
 
     --- The model's roll
-    Property            {
+    UI.Property         {
         name            = "Roll",
         type            = Number,
         require         = Model,
@@ -2087,7 +2077,7 @@ do
     }
 
     --- The shadow effect
-    Property            {
+    UI.Property         {
         name            = "ShadowEffect",
         type            = Number,
         require         = Model,
@@ -2096,7 +2086,7 @@ do
         get             = function(self) return self:GetShadowEffect() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "ViewInsets",
         type            = Inset,
         require         = { Model, ModelScene },
@@ -2105,7 +2095,7 @@ do
         get             = function(self) return Inset(self:GetViewInsets()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "ViewTranslation",
         type            = Dimension,
         require         = { Model, ModelScene },
@@ -2119,7 +2109,7 @@ end
 --                       ModelScene                       --
 ------------------------------------------------------------
 do
-    Property            {
+    UI.Property         {
         name            = "CameraFarClip",
         type            = Number,
         require         = ModelScene,
@@ -2128,7 +2118,7 @@ do
         get             = function(self) return self:GetCameraFarClip() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "CameraNearClip",
         type            = Number,
         require         = ModelScene,
@@ -2137,7 +2127,7 @@ do
         get             = function(self) return self:GetCameraNearClip() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "LightAmbientColor",
         type            = ColorType,
         require         = ModelScene,
@@ -2146,7 +2136,7 @@ do
         get             = function(self) return Color(self:GetLightAmbientColor()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "LightPosition",
         type            = Position,
         require         = ModelScene,
@@ -2155,7 +2145,7 @@ do
         get             = function(self) return Position(self:GetLightPosition()) end,
         }
 
-    Property            {
+    UI.Property         {
         name            = "LightType",
         type            = Number,
         require         = ModelScene,
@@ -2164,7 +2154,7 @@ do
         get             = function(self) return self:GetLightType() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "LightDirection",
         type            = Position,
         require         = ModelScene,
@@ -2173,7 +2163,7 @@ do
         get             = function(self) return Position(self:GetLightDirection()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "CameraFieldOfView",
         type            = Number,
         require         = ModelScene,
@@ -2182,7 +2172,7 @@ do
         get             = function(self) return self:GetCameraFieldOfView() end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "LightDiffuseColor",
         type            = ColorType,
         require         = ModelScene,
@@ -2191,7 +2181,7 @@ do
         get             = function(self) return Color(self:GetLightDiffuseColor()) end,
     }
 
-    Property            {
+    UI.Property         {
         name            = "LightVisible",
         type            = Number,
         require         = ModelScene,
@@ -2206,7 +2196,7 @@ end
 ------------------------------------------------------------
 do
     --- Whether auto dress
-    Property            {
+    UI.Property         {
         name            = "AutoDress",
         type            = Boolean,
         require         = DressUpModel,
@@ -2216,7 +2206,7 @@ do
     }
 
     --- Whether sheathed the weapon
-    Property            {
+    UI.Property         {
         name            = "Sheathed",
         type            = Boolean,
         require         = DressUpModel,
@@ -2226,7 +2216,7 @@ do
     }
 
     --- Whether use transmog skin
-    Property            {
+    UI.Property         {
         name            = "UseTransmogSkin",
         type            = Boolean,
         require         = DressUpModel,
