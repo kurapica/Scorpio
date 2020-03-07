@@ -1193,11 +1193,11 @@ end
 local SkinSettings              = struct { [ - UIObject ] = Table }
 
 __Arguments__{ NEString, SkinSettings/nil }:Throwable()
-function Style.RegisteSkin(name, settings)
+function Style.RegisterSkin(name, settings)
     name                        = strlower(name)
 
     if _Skins[name] then
-        throw("Usage: Style.RegisteSkin(name, settings) - the name is already used")
+        throw("Usage: Style.RegisterSkin(name, settings) - the name is already used")
     end
 
     local skins                 = {}
@@ -1268,6 +1268,6 @@ function Style.GetSkins(class)
     end
 end
 
-Style.RegisteSkin("Default")
+Style.RegisterSkin("Default")
 
 export { Scorpio.UI.Property }

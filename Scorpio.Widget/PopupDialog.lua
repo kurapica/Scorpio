@@ -34,9 +34,7 @@ __Sealed__() class "AlertDialog" (function(_ENV)
         Message                 = FontString,
         OkayButton              = UIPanelButton,
     }
-    function __ctor(self)
-        self:GetChild("OkayButton"):SetText(_G.OKAY or "Okay")
-    end
+    function __ctor(self) end
 end)
 
 __Sealed__() class "InputDialog" (function(_ENV)
@@ -54,10 +52,7 @@ __Sealed__() class "InputDialog" (function(_ENV)
         ConfirmButton           = UIPanelButton,
         CancelButton            = UIPanelButton,
     }
-    function __ctor(self)
-        self:GetChild("ConfirmButton"):SetText(_G.OKAY or "Okay")
-        self:GetChild("CancelButton"):SetText(_G.CANCEL or "Cancel")
-    end
+    function __ctor(self) end
 end)
 
 __Sealed__() class "ConfirmDialog" (function(_ENV)
@@ -74,10 +69,7 @@ __Sealed__() class "ConfirmDialog" (function(_ENV)
         ConfirmButton           = UIPanelButton,
         CancelButton            = UIPanelButton,
     }
-    function __ctor(self)
-        self:GetChild("ConfirmButton"):SetText(_G.OKAY or "Okay")
-        self:GetChild("CancelButton"):SetText(_G.CANCEL or "Cancel")
-    end
+    function __ctor(self) end
 end)
 
 -----------------------------------------------------------
@@ -98,6 +90,7 @@ Style.UpdateSkin("Default",     {
             FontObject          = GameFontHighlight,
         },
         OkayButton              = {
+            Text                = _G.OKAY or "Okay",
             Location            = { Anchor("BOTTOM", 0, 16) },
             Size                = Size(90, 20),
         }
@@ -121,10 +114,12 @@ Style.UpdateSkin("Default",     {
             AutoFocus           = true,
         },
         ConfirmButton           = {
+            Text                = _G.OKAY or "Okay",
             Location            = { Anchor("BOTTOMRIGHT", -4, 16, nil, "BOTTOM") },
             Size                = Size(90, 20),
         },
         CancelButton            = {
+            Text                = _G.CANCEL or "Cancel",
             Location            = { Anchor("BOTTOMLEFT", 4, 16, nil, "BOTTOM") },
             Size                = Size(90, 20),
         }
@@ -143,10 +138,12 @@ Style.UpdateSkin("Default",     {
             FontObject          = GameFontHighlight,
         },
         ConfirmButton           = {
+            Text                = _G.OKAY or "Okay",
             Location            = { Anchor("BOTTOMRIGHT", -4, 16, nil, "BOTTOM") },
             Size                = Size(90, 20),
         },
         CancelButton            = {
+            Text                = _G.CANCEL or "Cancel",
             Location            = { Anchor("BOTTOMLEFT", 4, 16, nil, "BOTTOM") },
             Size                = Size(90, 20),
         }
