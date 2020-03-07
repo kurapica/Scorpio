@@ -15,7 +15,7 @@ Scorpio           "Scorpio.Widget.Dialog"            "1.0.0"
 __Sealed__() __Template__(Frame)
 class "Dialog"  {
     Resizer                     = Resizer,
-    CloseButton         		= UIPanelCloseButton,
+    CloseButton                 = UIPanelCloseButton,
 }
 
 __Sealed__() __Template__(Mover)
