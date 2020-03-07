@@ -12,6 +12,12 @@ Scorpio           "Scorpio.Widget.Dialog"            "1.0.0"
 -----------------------------------------------------------
 --                     Dialog Widget                     --
 -----------------------------------------------------------
+__Sealed__() __Template__(Frame)
+class "Dialog"  {
+    Resizer                     = Resizer,
+    CloseButton         		= UIPanelCloseButton,
+}
+
 __Sealed__() __Template__(Mover)
 class "DialogHeader" {
     LeftBG                      = Texture,
@@ -45,16 +51,10 @@ class "DialogHeader" {
     TextPadding                 = { type = Number, default = 64, handler = function(self) self.Text = self.Text end }
 }
 
-__Sealed__() __Template__(Frame)
-class "Dialog"  {
-    Resizer                     = Resizer,
-    CloseButton         		= UIPanelCloseButton,
-}
-
 -----------------------------------------------------------
 --                   Dialog Property                     --
 -----------------------------------------------------------
---- The caption of the dialog
+--- The headerw of the dialog
 UI.Property                     {
     name                        = "Header",
     type                        = DialogHeader,
@@ -69,49 +69,6 @@ UI.Property                     {
 --                     Dialog Style                      --
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
-    [DialogHeader]              = {
-        Height                  = 39,
-        Width                   = 200,
-        Location                = { Anchor("TOP", 0, 11) },
-
-        HeaderText              = {
-            FontObject          = GameFontNormal,
-            Location            = { Anchor("TOP", 0, -13) },
-        },
-        LeftBG                  = {
-            Atlas               = {
-                atlas           = [[UI-Frame-DiamondMetal-Header-CornerLeft]],
-                useAtlasSize    = false,
-            },
-            texelSnappingBias   = 0,
-            snapToPixelGrid     = false,
-            Size                = Size(32, 39),
-            Location            = { Anchor("LEFT") },
-        },
-        RightBG                 = {
-            Atlas               = {
-                atlas           = [[UI-Frame-DiamondMetal-Header-CornerRight]],
-                useAtlasSize    = false,
-            },
-            texelSnappingBias   = 0,
-            snapToPixelGrid     = false,
-            Size                = Size(32, 39),
-            Location            = { Anchor("RIGHT") },
-        },
-        MiddleBG                = {
-            Atlas               = {
-                atlas           = [[_UI-Frame-DiamondMetal-Header-Tile]],
-                useAtlasSize    = false,
-            },
-            horizTile           = true,
-            texelSnappingBias   = 0,
-            snapToPixelGrid     = false,
-            Location            = {
-                Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
-            }
-        },
-    },
     [Dialog]                    = {
         FrameStrata             = "DIALOG",
         Size                    = Size(300, 200),
@@ -134,5 +91,48 @@ Style.UpdateSkin("Default",     {
         Resizer                 = {
             Location            = { Anchor("BOTTOMRIGHT", -8, 8)}
         }
+    },
+    [DialogHeader]              = {
+        Height                  = 39,
+        Width                   = 200,
+        Location                = { Anchor("TOP", 0, 11) },
+
+        HeaderText              = {
+            FontObject          = GameFontNormal,
+            Location            = { Anchor("TOP", 0, -13) },
+        },
+        LeftBG                  = {
+            Atlas               = {
+                atlas           = [[UI-Frame-DiamondMetal-Header-CornerLeft]],
+                useAtlasSize    = false,
+            },
+            TexelSnappingBias   = 0,
+            SnapToPixelGrid     = false,
+            Size                = Size(32, 39),
+            Location            = { Anchor("LEFT") },
+        },
+        RightBG                 = {
+            Atlas               = {
+                atlas           = [[UI-Frame-DiamondMetal-Header-CornerRight]],
+                useAtlasSize    = false,
+            },
+            TexelSnappingBias   = 0,
+            SnapToPixelGrid     = false,
+            Size                = Size(32, 39),
+            Location            = { Anchor("RIGHT") },
+        },
+        MiddleBG                = {
+            Atlas               = {
+                atlas           = [[_UI-Frame-DiamondMetal-Header-Tile]],
+                useAtlasSize    = false,
+            },
+            HorizTile           = true,
+            TexelSnappingBias   = 0,
+            SnapToPixelGrid     = false,
+            Location            = {
+                Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
+            }
+        },
     },
 })

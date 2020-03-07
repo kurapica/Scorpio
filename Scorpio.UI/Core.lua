@@ -86,8 +86,15 @@ local function applyProperty(self, prop, value)
             local props         = _Property[prop.childtype]
 
             for name, value in pairs(value) do
-                if value == NIL then value = nil end
-                applyProperty(child, props[name], value)
+                if value == NIL then
+                    applyProperty(child, props[name], nil)
+                end
+            end
+
+            for name, value in pairs(value) do
+                if value ~= NIL then
+                    applyProperty(child, props[name], value)
+                end
             end
         end
     else
@@ -126,9 +133,17 @@ local function applyDefaultStyle(frame)
 
     local props                 = _Property[getmetatable(frame)]
 
+    --- Apply the NIL value first to clear
     for name, value in pairs(_TempStyle) do
-        if value == NIL then value = nil end
-        applyProperty(frame, props[name], value)
+        if value == NIL then
+            applyProperty(frame, props[name], nil)
+        end
+    end
+
+    for name, value in pairs(_TempStyle) do
+        if value ~= NIL then
+            applyProperty(frame, props[name], value)
+        end
     end
 end
 

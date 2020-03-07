@@ -175,7 +175,8 @@ function showPopup()
         _CurrentPopup           = InputDialog("Scorpio_InputDialog")
         _CurrentPopup:GetChild("InputBox"):SetText("")
         _CurrentPopup.OnConfirm = function(self)
-            local text          = self:GetChild("InputBox"):GetText() or ""
+            local text          = self:GetChild("InputBox"):GetText()
+            if text and strtrim(text) == "" then text = nil end
             self:Hide()
             Next(showPopup) _CurrentPopup = nil
             return resume(thread, text)
@@ -234,17 +235,20 @@ function queuePopup(qtype, message)
     return yield()
 end
 
-function Widget.Alert(message)
+__Static__()
+function Scorpio.Alert(message)
     local value                 = queuePopup(POPUP_TYPE_ALERT, message)
     return value
 end
 
-function Widget.Input(message)
+__Static__()
+function Scorpio.Input(message)
     local value                 = queuePopup(POPUP_TYPE_INPUT, message)
     return value
 end
 
-function Widget.Confirm(message)
+__Static__()
+function Scorpio.Confirm(message)
     local value                 = queuePopup(POPUP_TYPE_CONFIRM, message)
     return value
 end
