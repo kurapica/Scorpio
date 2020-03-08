@@ -26,6 +26,7 @@ __Sealed__() struct "Scorpio.UI" (function(_ENV)
     local _RawUIMap             = setmetatable({}, META_WEAKALL)
 
     local isSubType             = Class.IsSubType
+    local isClass               = Class.Validate
 
     --- Gets the raw ui of the given ui element, normally created by CreateFrame
     __Static__()  __Arguments__{ UI }
@@ -37,6 +38,17 @@ __Sealed__() struct "Scorpio.UI" (function(_ENV)
     __Static__()  __Arguments__{ UI }
     function GetProxyUI(self)
         return _ProxyMap[self[0]] or self
+    end
+
+    --- Gets the wrapper ui of the given ui element
+    -- if the ui is generated from scorpio, itself will be returned
+    -- if not, a wrapper will be generated
+    __Static__() __Arguments__{ UI }
+    function GetWrapperUI(self)
+        local proxy             = _ProxyMap[self[0]]
+        if proxy then return proxy end
+        if isClass(getmetatable(self)) then return self end
+        return UI[self:GetObjectType()](self)
     end
 
     --- Whether the two UI is the same

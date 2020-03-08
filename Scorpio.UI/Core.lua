@@ -593,6 +593,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     local _GetNew               = getRealMetaMethodCache("__new")
 
     local validate              = Struct.ValidateValue
+    local isClass               = Class.Validate
 
     ----------------------------------------------
     --                  event                   --
@@ -780,6 +781,12 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         end
     end
 
+    __Final__() __Arguments__{ UI }
+    function __exist(cls, ui)
+        local proxy             = UI.GetProxyUI(ui)
+        if proxy and isClass(getmetatable(proxy)) then return proxy end
+    end
+
     __Final__() __Arguments__{ NEString, UI/UIParent, Any * 0 }
     function __new(cls, name, parent, ...)
         local self              = _GetNew[cls](cls, name, parent, ...)
@@ -797,6 +804,14 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
 
         registerFrame(cls, self)
 
+        return self
+    end
+
+    __Final__() __Arguments__{ UI }
+    function __new(cls, ui)
+        local self              = { [0] = ui[0] }
+        UI.RegisterProxyUI(self)
+        UI.RegisterRawUI(ui)
         return self
     end
 
@@ -996,7 +1011,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
     name                        = { type  = NEString, require = true },
     type                        = { type  = AnyType },
     require                     = { type  = ClassType + struct { ClassType }, require = true },
-    set                         = { type  = Function, require = true },
+    set                         = { type  = Function },
     get                         = { type  = Function },
     clear                       = { type  = Function },
     default                     = { type  = Any },

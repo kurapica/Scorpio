@@ -77,6 +77,8 @@ do
         require         = { LayoutFrame, Line },
         default         = false,
         set             = function(self, fade)
+            self        = UI.GetWrapperUI(self)
+
             if fade then
                 if fade ~= true then self[fadeOut] = fade else fade = nil end
                 self:SetAlpha(fade and fade.start or 1)
