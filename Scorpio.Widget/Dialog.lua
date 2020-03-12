@@ -57,12 +57,9 @@ class "DialogHeader" {
 --- The header of the dialog
 UI.Property                     {
     name                        = "Header",
-    type                        = DialogHeader,
     require                     = Dialog,
     childtype                   = DialogHeader,
     nilable                     = true,
-    get                         = function(self) local header = DialogHeader("Header", self) header:Show() return header end,
-    set                         = function(self, header) if header then header:SetParent(self) header:SetName("Header") header:Show() elseif self:GetChild("Header") then self:GetChild("Header"):Hide() end end,
 }
 
 -----------------------------------------------------------

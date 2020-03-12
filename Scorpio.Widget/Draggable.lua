@@ -75,7 +75,7 @@ __Sealed__() class "Resizer" (function(_ENV)
             self:Hide()
         end
 
-    _M:SecureHook(parent, "SetResizable", function(par, flag)
+         _M:SecureHook(parent, "SetResizable", function(par, flag)
             if flag then
                 self:Show()
             else

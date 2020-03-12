@@ -38,12 +38,9 @@ class "GroupBoxHeader" {
 --- The headerw of the dialog
 UI.Property                     {
     name                        = "Header",
-    type                        = GroupBoxHeader,
     require                     = GroupBox,
     childtype                   = GroupBoxHeader,
     nilable                     = true,
-    get                         = function(self) local header = GroupBoxHeader("Header", self) header:Show() return header end,
-    set                         = function(self, header) if header then header:SetParent(self) header:SetName("Header") header:Show() elseif self:GetChild("Header") then self:GetChild("Header"):Hide() end end,
 }
 
 -----------------------------------------------------------

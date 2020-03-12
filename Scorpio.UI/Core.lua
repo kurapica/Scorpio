@@ -1020,8 +1020,12 @@ __Sealed__() struct "Scorpio.UI.Property" {
 
     __valid                     = function(self)
         if self.childtype then
-            if not self.get then
+            if self.set and not self.get then
                 return "%s.get is required if it represent a child element"
+            end
+        else
+            if not self.set then
+                return "%s.set is required"
             end
         end
     end,
@@ -1037,6 +1041,30 @@ __Sealed__() struct "Scorpio.UI.Property" {
             nilable             = self.nilable,
             childtype           = self.childtype,
         }
+
+        if self.childtype and not self.get and not self.set then
+            local childtype     = self.childtype
+            local childname     = Namespace.GetNamespaceName(childtype):gsub("%.", "_")
+
+            setting.get         = function(self)
+                local child     = childtype(childname, self)
+                child:Show()
+                return child
+            end
+
+            if self.nilable then
+                setting.type    = setting.type or self.childtype
+                setting.set     = function(self, child)
+                    if child then
+                        child:SetParent(self)
+                        child:SetName(childname)
+                        child:Show()
+                    elseif self:GetChild(childname) then
+                        self:GetChild(childname):Hide()
+                    end
+                end
+            end
+        end
 
         if self.type then
             if isTypeValidDisabled then
