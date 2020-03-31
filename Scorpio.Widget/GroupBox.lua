@@ -48,24 +48,26 @@ UI.Property                     {
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [GroupBox]              	= {
-        Backdrop                = {
+        backdrop                = {
             edgeFile            = [[Interface\Tooltips\UI-Tooltip-Border]],
             tile                = true, tileSize = 16, edgeSize = 16,
             insets              = { left = 5, right = 5, top = 5, bottom = 5 }
         },
-        BackdropBorderColor     = ColorType(0.6, 0.6, 0.6),
+        backdropBorderColor     = ColorType(0.6, 0.6, 0.6),
     },
     [GroupBoxHeader]			= {
-        Location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
-        Height 					= 48,
+        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
+        height 					= 48,
+
     	HeaderText 				= {
-    		FontObject 			= OptionsFontHighlight,
-    		Location 			= { Anchor("TOPLEFT", 16, -16) },
+    		fontObject 			= OptionsFontHighlight,
+    		location 			= { Anchor("TOPLEFT", 16, -16) },
     	},
+
     	UnderLine 				= {
-    		Height 				= 1,
-    		Color 				= ColorType(1, 1, 1, 0.2),
-    		Location 			= { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
+    		height 				= 1,
+    		color 				= ColorType(1, 1, 1, 0.2),
+    		location 			= { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
     	},
     },
 })

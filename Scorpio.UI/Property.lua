@@ -107,7 +107,7 @@ do
 
     --- Whether ignore parent's alpha settings
     UI.Property         {
-        name            = "ParentAlphaIgnored",
+        name            = "IgnoreParentAlpha",
         type            = Boolean,
         require         = { LayoutFrame, Line },
         default         = false,
@@ -117,7 +117,7 @@ do
 
     --- Whether ignore prent's scal settings
     UI.Property         {
-        name            = "ParentScaleIgnored",
+        name            = "IgnoreParentScale",
         type            = Boolean,
         require         = { LayoutFrame, Line },
         default         = false,
@@ -317,7 +317,7 @@ do
 
     --- whether the text wrap will be indented
     UI.Property         {
-        name            = "IndentedWordWrap",
+        name            = "Indented",
         type            = Boolean,
         require         = FONT_TYPES,
         default         = false,
@@ -328,6 +328,9 @@ end
 
 ------------------------------------------------------------
 --                        Texture                         --
+--                                                        --
+-- The hWrapMode and vWrapMode can't be created since     --
+-- there is no method for them now.                       --
 ------------------------------------------------------------
 do
     --- the atlas setting of the texture
@@ -448,7 +451,7 @@ do
 
     --- The corner coordinates for scaling or cropping the texture image
     UI.Property         {
-        name            = "TexCoord",
+        name            = "TexCoords",
         type            = RectType,
         require         = { Texture, Line },
         get             = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
@@ -474,6 +477,15 @@ do
         get             = function(self) return self:GetTextureFilePath() end,
         set             = function(self, val) self:SetTexture(val) end,
         clear           = function(self) self:SetTexture(nil) end,
+    }
+
+    --- The mask file path
+    UI.Property         = {
+        name            = "Mask",
+        type            = String,
+        require         = { Texture, Line },
+        set             = function(self, val) self:SetMask(val) end,
+        nilable         = true,
     }
 
     --- The vertex offset of upperleft corner
@@ -911,7 +923,7 @@ do
 
     --- Whether the frame's child is render in flattens layers
     UI.Property         {
-        name            = "FlattensRenderLayers",
+        name            = "FlattenRenderLayers",
         type            = Boolean,
         require         = Frame,
         default         = false,
@@ -991,7 +1003,7 @@ do
 
     --- whether keyboard interactivity is enabled for the frame
     UI.Property         {
-        name            = "KeyboardEnabled",
+        name            = "EnableKeyboard",
         type            = Boolean,
         require         = Frame,
         default         = false,
@@ -1011,7 +1023,7 @@ do
 
     --- Whether the mouse click is enabled
     UI.Property         {
-        name            = "MouseClickEnabled",
+        name            = "EnableMouseClicks",
         type            = Boolean,
         require         = Frame,
         default         = false,
@@ -1021,7 +1033,7 @@ do
 
     --- whether mouse interactivity is enabled for the frame
     UI.Property         {
-        name            = "MouseEnabled",
+        name            = "EnableMouse",
         type            = Boolean,
         require         = Frame,
         default         = false,
@@ -1031,7 +1043,7 @@ do
 
     --- Whether the mouse motion in enabled
     UI.Property         {
-        name            = "MouseMotionEnabled",
+        name            = "EnableMouseMotion",
         type            = Boolean,
         require         = Frame,
         default         = false,
@@ -1041,7 +1053,7 @@ do
 
     --- whether mouse wheel interactivity is enabled for the frame
     UI.Property         {
-        name            = "MouseWheelEnabled",
+        name            = "EnableMouseWheel",
         type            = Boolean,
         require         = Frame,
         default         = false,
@@ -1126,12 +1138,13 @@ do
 
     --- the FontString object used for the button's label text
     UI.Property         {
-        name            = "FontString",
+        name            = "ButtonText",
         type            = FontString,
         require         = Button,
         nilable         = true,
+        childtype       = FontString,
         set             = function(self, val) self:SetFontString(val) end,
-        get             = function(self) return self:GetFontString() end,
+        get             = function(self) if not self:GetFontString() then self:SetText(" ") end return self:GetFontString() end,
     }
 
     --- The button state
@@ -1152,6 +1165,24 @@ do
         default         = false,
         set             = function(self, val) self:SetMotionScriptsWhileDisabled(val) end,
         get             = function(self) return self:GetMotionScriptsWhileDisabled() end,
+    }
+
+    --- The registered mouse key for click
+    UI.Property         {
+        name            = "RegisterForClicks",
+        type            = struct { String },
+        require         = Button,
+        nilable         = true,
+        set             = function(self, val) if val then self:RegisterForClicks(unpack(val)) else self:RegisterForClicks(nil) end end
+    }
+
+    --- The registered mouse key for drag
+    UI.Property         {
+        name            = "RegisterForDrag",
+        type            = struct { String },
+        require         = Button,
+        nilable         = true,
+        set             = function(self, val) if val then self:RegisterForDrag(unpack(val)) else self:RegisterForDrag(nil) end end
     }
 
     --- the offset for moving the button's label text when pushed
@@ -1210,7 +1241,7 @@ do
 
     --- the font object used when the button is highlighted
     UI.Property         {
-        name            = "HighlightFontObject",
+        name            = "HighlightFont",
         type            = FontObject,
         require         = Button,
         nilable         = true,
@@ -1220,7 +1251,7 @@ do
 
     --- the font object used for the button's normal state
     UI.Property         {
-        name            = "NormalFontObject",
+        name            = "NormalFont",
         type            = FontObject,
         require         = Button,
         nilable         = true,
@@ -1230,7 +1261,7 @@ do
 
     --- the font object used for the button's disabled state
     UI.Property         {
-        name            = "DisabledFontObject",
+        name            = "DisabledFont",
         type            = FontObject,
         require         = Button,
         nilable         = true,
@@ -1647,7 +1678,7 @@ do
 
     --- the amount of time for which a message remains visible before beginning to fade out
     UI.Property         {
-        name            = "TimeVisible",
+        name            = "DisplayDuration",
         type            = Number,
         require         = MessageFrame,
         default         = 10,

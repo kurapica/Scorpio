@@ -43,28 +43,30 @@ class "UICheckButton" {
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [UIRadioButton]             = {
-        Size                    = Size(16, 16),
+        size                    = Size(16, 16),
+
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-RadioButton]],
-            texcoord            = RectType(0, 0.25, 0, 1),
+            texCoords           = RectType(0, 0.25, 0, 1),
         },
         CheckedTexture           = {
             file                = [[Interface\Buttons\UI-RadioButton]],
-            texcoord            = RectType(0.25, 0.5, 0, 1),
+            texCoords           = RectType(0.25, 0.5, 0, 1),
         },
         HighlightTexture        = {
             file                = [[Interface\Buttons\UI-RadioButton]],
-            texcoord            = RectType(0.5, 0.5, 0, 1),
+            texCoords           = RectType(0.5, 0.5, 0, 1),
             alphaMode           = "ADD",
         },
 
         Label                   = {
-            FontObject          = GameFontNormalSmall,
-            Location            = { Anchor("LEFT", 5, 0, nil, "RIGHT") }
+            fontObject          = GameFontNormalSmall,
+            location            = { Anchor("LEFT", 5, 0, nil, "RIGHT") }
         },
     },
     [UICheckButton]             = {
-        Size                    = Size(32, 32),
+        size                    = Size(32, 32),
+
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-CheckBox-Up]],
         },
@@ -81,10 +83,9 @@ Style.UpdateSkin("Default",     {
         DisabledCheckedTexture  = {
             file                = [[Interface\Buttons\UI-CheckBox-Check-Disabled]],
         },
-
         Label                   = {
-            FontObject          = GameFontNormalSmall,
-            Location            = { Anchor("LEFT", -2, 0, nil, "RIGHT") },
+            fontObject          = GameFontNormalSmall,
+            location            = { Anchor("LEFT", -2, 0, nil, "RIGHT") },
         },
     },
 })

@@ -90,14 +90,15 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [Mover]                     = {
-        Location                = {
+        location                = {
             Anchor("TOPLEFT"), Anchor("TOPRIGHT")
         },
-        Height                  = 26,
+        height                  = 26,
     },
     [Resizer]                   = {
-        Location                = { Anchor("BOTTOMRIGHT") },
-        Size                    = Size(16, 16),
+        location                = { Anchor("BOTTOMRIGHT") },
+        size                    = Size(16, 16),
+
         NormalTexture           = {
             file                = [[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up]],
         },

@@ -67,66 +67,66 @@ UI.Property                     {
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [Dialog]                    = {
-        FrameStrata             = "DIALOG",
-        Size                    = Size(300, 200),
-        Location                = { Anchor("CENTER") },
-        Toplevel                = true,
-        Movable                 = true,
-        Resizable               = true,
-        Backdrop                = {
+        frameStrata             = "DIALOG",
+        size                    = Size(300, 200),
+        location                = { Anchor("CENTER") },
+        toplevel                = true,
+        movable                 = true,
+        resizable               = true,
+        backdrop                = {
             bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
             edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
             tile                = true, tileSize = 32, edgeSize = 32,
             insets              = { left = 11, right = 12, top = 12, bottom = 11 }
         },
-        BackdropBorderColor     = ColorType(1, 1, 1),
+        backdropBorderColor     = ColorType(1, 1, 1),
 
         CloseButton             = {
-            Location            = { Anchor("TOPRIGHT", -4, -4)},
+            location            = { Anchor("TOPRIGHT", -4, -4)},
         },
 
         Resizer                 = {
-            Location            = { Anchor("BOTTOMRIGHT", -8, 8)}
+            location            = { Anchor("BOTTOMRIGHT", -8, 8)}
         }
     },
     [DialogHeader]              = {
-        Height                  = 39,
-        Width                   = 200,
-        Location                = { Anchor("TOP", 0, 11) },
+        height                  = 39,
+        width                   = 200,
+        location                = { Anchor("TOP", 0, 11) },
 
         HeaderText              = {
-            FontObject          = GameFontNormal,
-            Location            = { Anchor("TOP", 0, -13) },
+            fontObject          = GameFontNormal,
+            location            = { Anchor("TOP", 0, -13) },
         },
         LeftBG                  = {
-            Atlas               = {
+            atlas               = {
                 atlas           = [[UI-Frame-DiamondMetal-Header-CornerLeft]],
                 useAtlasSize    = false,
             },
-            TexelSnappingBias   = 0,
-            SnapToPixelGrid     = false,
-            Size                = Size(32, 39),
-            Location            = { Anchor("LEFT") },
+            texelSnappingBias   = 0,
+            snapToPixelGrid     = false,
+            size                = Size(32, 39),
+            location            = { Anchor("LEFT") },
         },
         RightBG                 = {
-            Atlas               = {
+            atlas               = {
                 atlas           = [[UI-Frame-DiamondMetal-Header-CornerRight]],
                 useAtlasSize    = false,
             },
-            TexelSnappingBias   = 0,
-            SnapToPixelGrid     = false,
-            Size                = Size(32, 39),
-            Location            = { Anchor("RIGHT") },
+            texelSnappingBias   = 0,
+            snapToPixelGrid     = false,
+            size                = Size(32, 39),
+            location            = { Anchor("RIGHT") },
         },
         MiddleBG                = {
-            Atlas               = {
+            atlas               = {
                 atlas           = [[_UI-Frame-DiamondMetal-Header-Tile]],
                 useAtlasSize    = false,
             },
-            HorizTile           = true,
-            TexelSnappingBias   = 0,
-            SnapToPixelGrid     = false,
-            Location            = {
+            horizTile           = true,
+            texelSnappingBias   = 0,
+            snapToPixelGrid     = false,
+            location            = {
                 Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
                 Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
             }

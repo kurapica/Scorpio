@@ -9,5 +9,6 @@
     <Script file="PopupDialog.lua"/>
     <Script file="GroupBox.lua"/>
     <Script file="UICheckButton.lua"/>
+    <!--Script file="UIDropDownMenu.lua"/-->
     <Script file="UIPanelScrollFrame.lua"/>
 </Ui>

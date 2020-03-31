@@ -376,7 +376,7 @@ class "Color" (function(_ENV)
     ----------------------------------------------
     __Arguments__{ ColorType }
     function __new(_, color)
-        return color, true
+        return { r = color.r, g = color.g, b = color.b, a = color.a or 1}, true
     end
 
     __Arguments__{
@@ -557,8 +557,17 @@ class "Color" (function(_ENV)
     __Static__() property "POISON"          { default = Color(0.00, 0.60, 0.00) }
 
     --------------- Common Color ----------------
+    --- The normal font color
+    __Static__() property "NORMAL"          { set = false, default = Color(1.0, 0.82, 0.0) }
+
+    --- The high light font color
+    __Static__() property "HIGHLIGHT"       { set = false, default = Color(1.0, 1.0, 1.0) }
+
     --- The red color
     __Static__() property "RED"             { set = false, default = Color(1.00, 0.10, 0.10) }
+
+    --- The dim red color
+    __Static__() property "DIMRED"          { set = false, default = Color(0.8, 0.1, 0.1) }
 
     --- The green color
     __Static__() property "GREEN"           { set = false, default = Color(0.10, 1.00, 0.10) }
@@ -569,11 +578,29 @@ class "Color" (function(_ENV)
     --- The yellow color
     __Static__() property "YELLOW"          { set = false, default = Color(1.00, 1.00, 0.00) }
 
+    --- The blue color
+    __Static__() property "BLUE"            { set = false, default = Color(0, 0.749, 0.953) }
+
     --- The light yellow color
     __Static__() property "LIGHTYELLOW"     { set = false, default = Color(1.00, 1.00, 0.60) }
 
     --- The orange color
     __Static__() property "ORANGE"          { set = false, default = Color(1.00, 0.50, 0.25) }
+
+    --- The passive spell color
+    __Static__() property "PASSIVESPELL"    { set = false, default = Color(0.77, 0.64, 0.0) }
+
+    --- The battle net font color
+    __Static__() property "BATTLENET"       { set = false, default = Color(0.510, 0.773, 1.0) }
+
+    --- The transmogrify font color
+    __Static__() property "TRANSMOGRIFY"    { set = false, default = Color(1, 0.5, 1) }
+
+    --- The disabled font color
+    __Static__() property "DISABLED"        { set = false, default = Color(0.498, 0.498, 0.498) }
+
+    --- The light blue color
+    __Static__() property "LIGHTBLUE"       { set = false, default = Color(0.53, 0.67, 1.0) }
 
     --- The white color
     __Static__() property "WHITE"           { set = false, default = Color(1.00, 1.00, 1.00) }

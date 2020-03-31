@@ -39,60 +39,62 @@ class "UIPanelScrollFrame" { ScrollFrame }
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [UIPanelScrollUpButton]     = {
-        Size                    = Size(18, 16),
+        size                    = Size(18, 16),
+
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollUpButton-Up]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
         },
         PushedTexture           = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollUpButton-Down]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
         },
         DisabledTexture         = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollUpButton-Disabled]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
         },
         HighlightTexture        = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollUpButton-Highlight]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
             alphamode           = "ADD",
         }
     },
     [UIPanelScrollDownButton]   = {
-        Size                    = Size(18, 16),
+        size                    = Size(18, 16),
+
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Up]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
         },
         PushedTexture           = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Down]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
         },
         DisabledTexture         = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Disabled]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
         },
         HighlightTexture        = {
             file                = [[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Highlight]],
-            texcoord            = RectType(0.20, 0.80, 0.25, 0.75),
+            texCoords           = RectType(0.20, 0.80, 0.25, 0.75),
             alphamode           = "ADD",
         }
     },
     [UIPanelScrollBar]          = {
-        Width                   = 16,
+        width                   = 16,
 
         ThumbTexture            = {
             file                = [[Interface\Buttons\UI-ScrollBar-Knob]],
-            texcoord            = RectType(0.20, 0.80, 0.125, 0.875),
+            texCoords           = RectType(0.20, 0.80, 0.125, 0.875),
             alphamode           = "ADD",
         },
 
         -- Childs
         ScrollUpButton          = {
-            Location            = { Anchor("BOTTOM", 0, 0, nil, "TOP") },
+            location            = { Anchor("BOTTOM", 0, 0, nil, "TOP") },
         },
         ScrollDownButton        = {
-            Location            = { Anchor("TOP", 0, 0, nil, "BOTTOM") },
+            location            = { Anchor("TOP", 0, 0, nil, "BOTTOM") },
         },
     }
 })

@@ -44,35 +44,36 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [InputBox]                  = {
-        FontObject              = ChatFontNormal,
+        fontObject              = ChatFontNormal,
+
         LeftBG                  = {
-            Atlas               = {
+            atlas               = {
                 atlas           = [[common-search-border-left]],
                 useAtlasSize    = false,
             },
-            Location            = {
+            location            = {
                 Anchor("TOPLEFT", -5, 0),
                 Anchor("BOTTOMLEFT", -5, 0),
             },
-            Width = 8,
+            width = 8,
         },
         RightBG                 = {
-            Atlas               = {
+            atlas               = {
                 atlas           = [[common-search-border-right]],
                 useAtlasSize    = false,
             },
-            Location            = {
+            location            = {
                 Anchor("TOPRIGHT", 0, 0),
                 Anchor("BOTTOMRIGHT", 0, 0),
             },
-            Width = 8,
+            width = 8,
         },
         MiddleBG                = {
-            Atlas               = {
+            atlas               = {
                 atlas           = [[common-search-border-middle]],
                 useAtlasSize    = false,
             },
-            Location            = {
+            location            = {
                 Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
                 Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
             }

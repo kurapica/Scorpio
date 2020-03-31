@@ -851,22 +851,26 @@ __Sealed__() class "__Bubbling__" (function(_ENV)
             if not delegate.PopupeBinded then
                 delegate.PopupeBinded = true
 
-                for name, event in pairs(map) do
+                for name, events in pairs(map) do
                     local child = type(name) == "number" and owner or getChild(owner, name)
 
                     if not child then
                         error(("The child named %q doesn't existed in object of %s"):format(name, tostring(getmetatable(owner))))
-                    elseif not child:HasScript(event) then
-                        if child == owner then
-                            error(("The object of %s doesn't have an event named %q"):format(tostring(getmetatable(owner)), event))
-                        else
-                            error(("The child named %q in object of %s doesn't have an event named %q"):format(name, tostring(getmetatable(owner)), event))
-                        end
                     end
 
-                    child:HookScript(event, function(self, ...)
-                        return delegate(owner, ...)
-                    end)
+                    for event in events:match("%w+") do
+                        if not child:HasScript(event) then
+                            if child == owner then
+                                error(("The object of %s doesn't have an event named %q"):format(tostring(getmetatable(owner)), event))
+                            else
+                                error(("The child named %q in object of %s doesn't have an event named %q"):format(name, tostring(getmetatable(owner)), event))
+                            end
+                        end
+
+                        child:HookScript(event, function(self, ...)
+                            return delegate(owner, ...)
+                        end)
+                    end
                 end
             end
         end, stack + 1)

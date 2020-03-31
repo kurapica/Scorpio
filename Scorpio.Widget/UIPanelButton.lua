@@ -13,8 +13,12 @@ Scorpio           "Scorpio.Widget.UIPanelButton"     "1.0.0"
 -----------------------------------------------------------
 --                 UIPanelButton Widget                  --
 -----------------------------------------------------------
-__Sealed__()
-class "UIPanelButton" { Button }
+__Sealed__() __Template__(Button)
+class "UIPanelButton" {
+    LeftBG                      = Texture,
+    RightBG                     = Texture,
+    MiddleBG                    = Texture,
+}
 
 __Sealed__()
 class "UIPanelCloseButton" { Button, function(self) self.OnClick = function(self) self:GetParent():Hide() end end }
@@ -24,30 +28,43 @@ class "UIPanelCloseButton" { Button, function(self) self.OnClick = function(self
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [UIPanelButton]             = {
-        NormalFontObject        = GameFontNormal,
-        DisabledFontObject      = GameFontDisable,
-        HighlightFontObject     = GameFontHighlight,
+        size                    = Size(80, 22),
+        normalFont             = GameFontNormal,
+        disabledFont           = GameFontDisable,
+        highlightFont          = GameFontHighlight,
 
-        NormalTexture           = {
+        LeftBG                  = {
+            drawLayer           = "ARTWORK",
             file                = [[Interface\Buttons\UI-Panel-Button-Up]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
+            texCoords           = RectType(0, 0.09375, 0, 0.6875),
+            location            = {
+                Anchor("TOPLEFT", 0, 0),
+                Anchor("BOTTOMLEFT", 0, 0),
+            },
+            width               = 12,
         },
-        PushedTexture           = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Down]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
+        RightBG                 = {
+            file                = [[Interface\Buttons\UI-Panel-Button-Up]],
+            texCoords           = RectType(0.53125, 0.625, 0, 0.6875),
+            location            = {
+                Anchor("TOPRIGHT", 0, 0),
+                Anchor("BOTTOMRIGHT", 0, 0),
+            },
+            width               = 12,
         },
-        DisabledTexture         = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Disabled]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
+        MiddleBG                = {
+            file                = [[Interface\Buttons\UI-Panel-Button-Up]],
+            texCoords           = RectType(0.09375, 0.53125, 0, 0.6875),
+            location            = {
+                Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT"),
+            }
         },
-        HighlightTexture        = {
-            file                = [[Interface\Buttons\UI-Panel-Button-Highlight]],
-            texcoord            = RectType(0, 0.625, 0, 0.6875),
-        }
     },
     [UIPanelCloseButton]        = {
-        Size                    = Size(32, 32),
-        Location                = { Anchor("TOPRIGHT", -4, 4) },
+        size                    = Size(32, 32),
+        location                = { Anchor("TOPRIGHT", -4, 4) },
+
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-Panel-MinimizeButton-Up]],
         },
