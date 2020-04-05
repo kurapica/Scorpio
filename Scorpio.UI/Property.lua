@@ -480,7 +480,7 @@ do
     }
 
     --- The mask file path
-    UI.Property         = {
+    UI.Property         {
         name            = "Mask",
         type            = String,
         require         = { Texture, Line },
@@ -859,6 +859,7 @@ do
         default         = Color.TRANSPARENT,
         set             = function(self, val) self:SetBackdropBorderColor(val.r, val.g, val.b, val.a) end,
         get             = function(self) local r, g, b, a = self:GetBackdropBorderColor() if r then return Color(r, g, b, a) end end,
+        depends         = { "Backdrop" },
     }
 
     --- the shading color for the frame's background graphic
@@ -869,6 +870,7 @@ do
         default         = Color.TRANSPARENT,
         set             = function(self, val) self:SetBackdropColor(val.r, val.g, val.b, val.a) end,
         get             = function(self) local r, g, b, a = self:GetBackdropColor() if r then return Color(r, g, b, a) end end,
+        depends         = { "Backdrop" },
     }
 
     --- whether the frame's boundaries are limited to those of the screen

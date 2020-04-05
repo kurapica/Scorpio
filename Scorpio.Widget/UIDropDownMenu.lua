@@ -50,44 +50,40 @@ local function autoHideMenuList()
     end
 end
 
-local function adjustLocation(self, owner)
+local function adjustLocation(self, owner, anchor)
+    anchor                      = anchor or "ANCHOR_TOPRIGHT"
+
+    local scale                 = self:GetEffectiveScale()
+
+    local width                 = self:GetWidth() * scale
+    local height                = self:GetHeight() * scale
+
     local x, y
     if owner then
-        x, y                    = owner:GetTop() * owner:GetEffectiveScale(), owner:GetRight() * owner:GetEffectiveScale()
-    else
-        x, y                    = GetCursorPosition()
+        local ownerScale        = owner:GetEffectiveScale()
+
+        if anchor == "ANCHOR_TOPRIGHT" then
+            x, y                = owner:GetRight() * ownerScale, owner:GetTop() * ownerScale
+        elseif anchor == "ANCHOR_RIGHT" then
+            x, y                = owner:GetRight() * ownerScale, select(2, owner:GetCenter()) * ownerScale
+        elseif anchor == "ANCHOR_BOTTOMRIGHT" then
+            x, y                = owner:GetRight() * ownerScale - width, owner:GetBottom() * ownerScale
+        elseif anchor == "ANCHOR_TOPLEFT" then
+            x, y                = owner:GetLeft()  * ownerScale - width, owner:GetTop() * ownerScale
+        elseif anchor == "ANCHOR_LEFT" then
+            x, y                = owner:GetLeft()  * ownerScale - width, select(2, owner:GetCenter()) * ownerScale
+        elseif anchor == "ANCHOR_BOTTOMLEFT" then
+            x, y                = owner:GetLeft()  * ownerScale, owner:GetBottom() * ownerScale
+        end
     end
 
-    local scale                 = UIParent:GetScale()
+    if not (x and y) then x, y  = GetCursorPosition() end
 
-    local width                 = self:GetWidth() * owner:GetEffectiveScale()
-    local height                = self:GetHeight() * owner:GetEffectiveScale()
+    x                           = math.min(math.max(x, 0), GetScreenWidth() * scale - width)
+    y                           = math.max(y, height)
 
     self:ClearAllPoints()
-
-    if x + width >= GetScreenWidth() then
-        if owner then
-            self:SetPoint("RIGHT", owner, "LEFT")
-        else
-            self:SetPoint("LEFT", UIParent, (x - width) / scale, 0)
-        end
-    else
-        if owner then
-            self:SetPoint("LEFT", owner, "RIGHT")
-        else
-            self:SetPoint("LEFT", UIParent, x / scale, 0)
-        end
-    end
-
-    if y > height then
-        if owner then
-            self:SetPoint("TOP", owner, "TOP")
-        else
-            self:SetPoint("TOP", UIParent, 0, y / scale)
-        end
-    else
-        self:SetPoint("BOTTOM", UIParent)
-    end
+    self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / scale, y / scale)
 end
 
 local function showMenuList(self)
@@ -109,18 +105,24 @@ local function showMenuList(self)
     _UIDropDownListLevel[1]     = self
 
     for _, child in UIObject.GetChilds(self) do
-        child.MenuLevel         = 1
+        if Class.IsObjectType(child, UIDropDownMenuButton) then
+            child.MenuLevel     = 2
+            child:SetFrameLevel(self:GetFrameLevel() + 2)
+        end
     end
 
-    adjustLocation(self, self.Owner)
+    adjustLocation(self, self.Owner, self.Anchor)
     self:Show()
 end
 
 local function showSubList(self)
     local level                 = self.MenuLevel
     local submenu               = self.SubMenu
+
     if not (level and submenu and self:IsShown()) then return end
     if _UIDropDownListLevel[level] == submenu then return end
+
+    submenu:SetFrameLevel(self:GetFrameLevel() + 2)
 
     for i = #_UIDropDownListLevel, level, -1 do
         _UIDropDownListLevel[i]:Hide()
@@ -133,11 +135,13 @@ local function showSubList(self)
     _UIDropDownMenuButton[level]= self
 
     for _, child in UIObject.GetChilds(submenu) do
-        child.MenuLevel         = level + 1
+        if Class.IsObjectType(child, UIDropDownMenuButton) then
+            child.MenuLevel     = level + 1
+            child:SetFrameLevel(submenu:GetFrameLevel() + 2)
+        end
     end
 
     adjustLocation(submenu, self)
-    submenu:SetFrameLevel(self:GetFrameLevel() + 2)
     submenu:Show()
 end
 
@@ -168,17 +172,15 @@ end
 --- Secure hook the gobal mouse event to auto close the drop down list
 __SecureHook__()
 function UIDropDownMenu_HandleGlobalMouseEvent(button, event)
-    if event == "GLOBAL_MOUSE_DOWN" and (button == "LeftButton" or button == "RightButton") then
-        return closeMenuList()
+    -- must use the mouse up here
+    if event == "GLOBAL_MOUSE_UP" and (button == "LeftButton" or button == "RightButton") then
+        return Next(closeMenuList)
     end
 end
 
 -----------------------------------------------------------
 --                 UIDropDownMenu Widget                 --
 -----------------------------------------------------------
---- The UI drop menu list template
-class "UIDropDownList" { }
-
 --- The UI drop down menu button template
 __Sealed__()
 class "UIDropDownMenuButton" (function(_ENV)
@@ -187,16 +189,25 @@ class "UIDropDownMenuButton" (function(_ENV)
     export { IsObjectType = Class.IsObjectType, GetChilds = UIObject.GetChilds }
 
     local function refreshCheckState(self)
-        if self.IsCheckButton and self.Checked then
-            self:GetChild("Check"):Show()
-        else
-            self:GetChild("Check"):Hide()
-        end
+        self:GetChild("Check"):Hide()
+        self:GetChild("UnCheck"):Hide()
+        self:GetChild("RadioCheck"):Hide()
+        self:GetChild("RadioUnCheck"):Hide()
 
-        if self.IsCheckButton and not self.Checked then
-            self:GetChild("UnCheck"):Show()
-        else
-            self:GetChild("UnCheck"):Hide()
+        if self.IsCheckButton then
+            if self:GetParent() and self:GetParent().IsMultiCheck then
+                if self.Checked then
+                    self:GetChild("Check"):Show()
+                else
+                    self:GetChild("UnCheck"):Show()
+                end
+            else
+                if self.Checked then
+                    self:GetChild("RadioCheck"):Show()
+                else
+                    self:GetChild("RadioUnCheck"):Show()
+                end
+            end
         end
     end
 
@@ -257,9 +268,13 @@ class "UIDropDownMenuButton" (function(_ENV)
             -- Block the custom onclick
             return true
         elseif self.IsCheckButton then
-            self.Checked        = not self.Check
-
-            OnCheckStateChanged(self, self.Checked)
+            if self:GetParent().IsMultiCheck then
+                self.Checked    = not self.Checked
+                OnCheckStateChanged(self, self.Checked)
+            elseif not self.Checked then
+                self.Checked    = true
+                self:GetParent():OnCheckStateChanged(self.CheckValue)
+            end
 
             return true
         elseif self.SubMenu then
@@ -312,6 +327,9 @@ class "UIDropDownMenuButton" (function(_ENV)
 
     --- Whether the button is checked
     property "Checked"          { type = Boolean, handler = refreshCheckState }
+
+    --- The check value of the menu button
+    property "CheckValue"       { type = Any }
 
     --- The color property used to hold the color value
     property "Color"            {
@@ -371,7 +389,7 @@ class "UIDropDownMenuButton" (function(_ENV)
     -------------------------------------------------------
     --- To prevent the auto drop down hidden for sub menu button
     function HandlesGlobalMouseEvent(self, buttonID, event)
-        return self.SubMenu and event == "GLOBAL_MOUSE_DOWN" and buttonID == "LeftButton"
+        return self.SubMenu and buttonID == "LeftButton"
     end
 
     -------------------------------------------------------
@@ -381,6 +399,8 @@ class "UIDropDownMenuButton" (function(_ENV)
         Highlight                   = Texture,
         Check                       = Texture,
         UnCheck                     = Texture,
+        RadioCheck                  = Texture,
+        RadioUnCheck                = Texture,
         Icon                        = Texture,
         ExpandArrow                 = Texture,
         ColorSwatchBG               = Texture,
@@ -388,17 +408,19 @@ class "UIDropDownMenuButton" (function(_ENV)
         InvisibleButton             = Button,
     }
     function __ctor(self)
-        self:SetFrameLevel(self:GetParent():GetFrameLevel() + 1)
-
         self:GetChild("Highlight"):Hide()
         self:GetChild("Check"):Hide()
         self:GetChild("UnCheck"):Hide()
+        self:GetChild("RadioCheck"):Hide()
+        self:GetChild("RadioUnCheck"):Hide()
         self:GetChild("Icon"):Hide()
         self:GetChild("ColorSwatch"):Hide()
         self:GetChild("ColorSwatchBG"):Hide()
         self:GetChild("ExpandArrow"):Hide()
         self:GetChild("InvisibleButton"):Hide()
 
+        self.OnEnter                = self.OnEnter + OnEnter
+        self.OnLeave                = self.OnLeave + OnLeave
         self.OnClick                = self.OnClick + OnClick
 
         self:GetChild("InvisibleButton"):SetScript("OnEnter", InvisibleButton_OnEnter)
@@ -407,21 +429,27 @@ class "UIDropDownMenuButton" (function(_ENV)
 end)
 
 --- The drop down list template
-__Sealed__() class "UIDropDownList" (function(_ENV)
+__Sealed__() class "UIDropDownMenuList" (function(_ENV)
     inherit "Button"
 
-    export { IsObjectType = Class.IsObjectType, GetChilds = UIObject.GetChilds, OrgSetFrameLevel = Button.SetFrameLevel }
+    --- The check state change event, only triggered when IsMultiCheck is false
+    event "OnCheckStateChanged"
 
-    function SetFrameLevel(self, level)
-        for _, child in GetChild(self) do
-            if IsObjectType(child, UIDropDownMenuButton) then
-                child:SetFrameLevel(level + 1)
-            end
-        end
-    end
+    --- The owner of the drop down list
+    property "Owner"            { type = UI }
 
+    --- The Anchor to the owner
+    property "Anchor"           { type = AnchorType, default = "ANCHOR_TOPRIGHT" }
 
+    --- Whether the check menu buttons on the list is multi choosable
+    property "IsMultiCheck"     { type = Boolean, default = true }
+
+    --- The offsets from the frame's edges used to limit the menu buttons
+    property "ButtonInsets"     { type = Inset }
 end)
+
+--- The drop down list menu template
+__Sealed__() class "UIDropDownList" { UIDropDownMenuList }
 
 -----------------------------------------------------------
 --                 UIDropDownMenu Style                  --
@@ -434,7 +462,7 @@ Style.UpdateSkin("Default",     {
         disabledFont            = GameFontDisableSmallLeft,
 
         ButtonText              = {
-            location            = { Anchor("LEFT", -5, 0) },
+            location            = { Anchor("LEFT", 18, 0), Anchor("RIGHT", -24, 0) },
         },
 
         -- Layer
@@ -446,12 +474,24 @@ Style.UpdateSkin("Default",     {
         },
         Check                   = {
             drawLayer           = "ARTWORK",
+            file                = [[Interface\Buttons\UI-CheckBox-Check]],
+            size                = Size(16, 16),
+            location            = { Anchor("LEFT") },
+        },
+        UnCheck                 = {
+            drawLayer           = "ARTWORK",
+            file                = [[Interface\Buttons\UI-CheckBox-Up]],
+            size                = Size(16, 16),
+            location            = { Anchor("LEFT") },
+        },
+        RadioCheck              = {
+            drawLayer           = "ARTWORK",
             file                = [[Interface\Common\UI-DropDownRadioChecks]],
             size                = Size(16, 16),
             location            = { Anchor("LEFT") },
             texCoords           = RectType(0, 0.5, 0.5, 1.0),
         },
-        UnCheck                 = {
+        RadioUnCheck            = {
             drawLayer           = "ARTWORK",
             file                = [[Interface\Common\UI-DropDownRadioChecks]],
             size                = Size(16, 16),
@@ -484,7 +524,264 @@ Style.UpdateSkin("Default",     {
             location            = { Anchor("TOPLEFT"), Anchor("BOTTOMLEFT"), Anchor("RIGHT", 0, 0, "ColorSwatch", "LEFT") },
         },
     },
+    [UIDropDownMenuList]        = {
+        frameStrata             = "FULLSCREEN_DIALOG",
+        enableMouse             = true,
+        Toplevel                = true,
+        backdrop                = {
+            bgFile              = [[Interface\Tooltips\UI-Tooltip-Background]],
+            edgeFile            = [[Interface\Tooltips\UI-Tooltip-Border]],
+            tile                = true, tileSize = 16, edgeSize = 16,
+            insets              = { left = 5, right = 4, top = 4, bottom = 4 }
+        },
+        backdropBorderColor     = ColorType(1, 1, 1),
+        backdropColor           = ColorType(0.09, 0.09, 0.19),
+        buttonInsets            = Inset(8, 8, 8, 8),
+    },
     [UIDropDownList]            = {
-        frameStrata             = "DIALOG",
+        backdrop                = {
+            bgFile              = [[Interface\DialogFrame\UI-DialogBox-Background]],
+            edgeFile            = [[Interface\DialogFrame\UI-DialogBox-Border]],
+            tile                = true, tileSize = 32, edgeSize = 32,
+            insets              = { left = 11, right = 12, top = 12, bottom = 11 }
+        },
+        backdropColor           = NIL,
+        buttonInsets            = Inset(16, 16, 16, 16),
     },
 })
+
+-----------------------------------------------------------
+--                  UIDropDownMenu API                   --
+-----------------------------------------------------------
+local _ButtonHolder             = CreateFrame("Frame")
+_ButtonHolder:Hide()
+
+local rycDropDownMenuButtons    = Recycle(UIDropDownMenuButton, "Scorpio_UIDropDownMenuButton%d", _ButtonHolder)
+local rycDropDownMenuLists      = Recycle(UIDropDownMenuList, "Scorpio_UIDropDownMenuList%d")
+local rycDropDownLists          = Recycle(UIDropDownList, "Scorpio_UIDropDownList%d")
+
+local function refreshMenuSize(self)
+    local insets                = self.ButtonInsets
+    local offset                = -(insets and insets.top or 0)
+    local leftoff               = insets and insets.left or 0
+    local rightoff              = -(insets and insets.right or 0)
+
+    local maxw                  = 0
+    local child
+
+    for i = 1, #self do
+        child                   = self[i]
+        child:ClearAllPoints()
+        child:SetPoint("LEFT", leftoff, 0)
+        child:SetPoint("RIGHT", rightoff, 0)
+        child:SetPoint("TOP", 0, offset)
+
+        offset                  = offset - child:GetHeight()
+
+        local ft                = child:GetFontString()
+        if ft then
+            local leftw         = 0
+            local rightw        = 0
+            for i = 1, ft:GetNumPoints() do
+                local p, f, r, x, y = ft:GetPoint(i)
+
+                if f and IsSameUI(f, child) and p and r then
+                    if p:match("LEFT") and r:match("LEFT") then
+                        leftw   = x
+                    elseif p:match("RIGHT") and r:match("RIGHT") then
+                        rightw  = - x
+                    end
+                end
+            end
+            maxw                = math.max(maxw, (ft:GetStringWidth() or 0) + leftw + rightw)
+        end
+
+        if child.SubMenu then
+            refreshMenuSize(child.SubMenu)
+        end
+    end
+
+    maxw                        = maxw + (insets and (insets.left + insets.right) or 0)
+    offset                      = math.abs(offset) + (insets and insets.bottom or 0)
+
+    local minwidth, minheight   = self:GetMinResize()
+    local maxwidth, maxheight   = self:GetMaxResize()
+
+    if maxwidth == 0  then maxwidth  = nil end
+    if maxheight == 0 then maxheight = nil end
+
+    maxw                        = math.min(math.max(maxw, minwidth or 0), maxwidth or math.huge)
+    offset                      = math.min(math.max(offset, minheight or 0), maxheight or math.huge)
+
+    self:SetWidth(maxw)
+    self:SetHeight(offset)
+end
+
+local function recycleMenu(self)
+    for i = #self, 1, -1 do
+        local button            = self[i]
+
+        if button.SubMenu then
+            recycleMenu(button.SubMenu)
+            button.SubMenu      = nil
+        end
+
+        button:SetParent(_ButtonHolder)
+        button:ClearAllPoints()
+
+        rycDropDownMenuButtons(button)
+
+        self[i]                 = nil
+    end
+
+    self.OnHide                 = nil
+
+    if Class.IsObjectType(self, UIDropDownList) then
+        rycDropDownLists(self)
+    else
+        rycDropDownMenuLists(self)
+    end
+end
+
+local function buildDropDownMenuList(info, dropdown, root)
+    local menu                  = dropdown and rycDropDownLists() or rycDropDownMenuLists()
+
+    if root then
+        menu.Owner              = info.owner
+        menu.Anchor             = info.anchor
+        menu.OnHide             = recycleMenu
+    else
+        menu.OnHide             = nil
+    end
+
+    local checkvalue
+
+    if info.check then
+        menu.IsMultiCheck       = false
+
+        menu.OnCheckStateChanged= function(self, val)
+            return info.check.set(val)
+        end
+
+        if type(info.check.get) == "function" then
+            checkvalue          = info.check.get()
+        else
+            checkvalue          = info.check.get
+        end
+    else
+        menu.IsMultiCheck       = true
+
+        menu.OnCheckStateChanged= nil
+    end
+
+    for i, binfo in ipairs(info) do
+        local button            = rycDropDownMenuButtons()
+        button:SetParent(menu)
+        button:SetID(i)
+
+        menu[i]                 = button
+
+        button:SetText(binfo.text)
+
+        if binfo.color then
+            button.IsColorButton= true
+            local value
+            if type(binfo.color.get) == "function" then
+                value           = binfo.color.get()
+            else
+                value           = binfo.color.get
+            end
+            value               = value and Struct.ValidateValue(ColorType, value)
+            if value then
+                button.Color    = value
+            end
+
+            button.OnColorChoosed = function(self, color)
+                return binfo.color.set(color)
+            end
+        else
+            button.IsColorButton= nil
+            button.OnColorChoosed = nil
+        end
+
+        if not menu.IsMultiCheck and binfo.checkvalue ~= nil then
+            button.IsCheckButton= true
+            button.CheckValue   = binfo.checkvalue
+            button.Checked      = checkvalue == binfo.checkvalue
+            button.OnCheckStateChanged = nil
+        elseif binfo.check then
+            button.IsCheckButton= true
+            local value
+            if type(binfo.check.get) == "function" then
+                value           = binfo.check.get()
+            else
+                value           = binfo.check.get
+            end
+            button.Checked      = value and true or false
+
+            button.OnCheckStateChanged = function(self, checked)
+                return binfo.check.set(checked)
+            end
+        else
+            button.IsCheckButton= false
+            button.OnCheckStateChanged = nil
+        end
+
+        if binfo.click then
+            button.OnClick      = function(self)
+                return Continue(binfo.click)
+            end
+        else
+            button.OnClick      = nil
+        end
+
+        if binfo.submenu then
+            button.SubMenu      = buildDropDownMenuList(binfo.submenu, dropdown)
+        end
+    end
+
+    return menu
+end
+
+struct "UIDropDownMenuInfo" {}
+
+__Sealed__() struct "UIDropDownMenuButtonInfo" {
+    { name = "text",    type = String, require = true },
+    { name = "color",   type = PropertyAccessor },
+    { name = "check",   type = PropertyAccessor },
+    { name = "checkvalue", type = Any },
+    { name = "click",   type = Function },
+    { name = "submenu", type = UIDropDownMenuInfo }
+}
+
+__Sealed__() struct "UIDropDownMenuInfo" {
+    { name = "dropdown",type = Boolean },
+    { name = "owner",   type = UIObject },
+    { name = "anchor",  type = AnchorType },
+    { name = "check",   type = PropertyAccessor },
+
+    function (self)
+        if #self == 0 then
+            return "%s must contain menu button settings"
+        end
+
+        for i = 1, #self do
+            local val, message = Struct.ValidateValue(UIDropDownMenuButtonInfo, self[i])
+            if message then
+                return message:gsub("%%s", "%%s[" .. i .. "]")
+            end
+        end
+    end
+}
+
+--- The API to show the drop down menu
+__Static__() __Async__()
+__Arguments__{ UIDropDownMenuInfo }
+function Scorpio.ShowDropDownMenu(info)
+    local menu                  = buildDropDownMenuList(info, info.dropdown and info.owner and true or false, true)
+    Next() Next() Next()
+
+    refreshMenuSize(menu)
+
+    return showMenuList(menu)
+end

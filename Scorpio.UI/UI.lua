@@ -543,6 +543,12 @@ do
         { name = "stop",        type = Number, default = 0 },
         { name = "autohide",    type = Boolean },
     }
+
+    __Sealed__()
+    struct "PropertyAccessor" {
+        { name = "set",         type = Function, require = true },
+        { name = "get",         type = Any }
+    }
 end
 
 ----------------------------------------------

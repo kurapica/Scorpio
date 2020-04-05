@@ -124,12 +124,14 @@ local _CustomStyle              = setmetatable({}, META_WEAKKEY)
 local _TempStyle                = {}
 local _TempPath                 = {}
 local _TempClass                = {}
+local _TempDepends              = {}
 local _Inited                   = false
 
 local _ClassMap                 = {}
 
 local function applyDefaultStyle(frame)
     if frame.Disposed then return end
+    wipe(_TempDepends)
 
     local props                 = _Property[getmetatable(frame)]
 
@@ -138,13 +140,31 @@ local function applyDefaultStyle(frame)
         if value == NIL then
             applyProperty(frame, props[name], nil)
         end
+
+        -- Register the depends, normally this is one level depends
+        -- so no order for now, I may check it later for complex order
+        if props[name].depends then
+            for _, dep in ipairs(props[name].depends) do
+                _TempDepends[dep] = _TempStyle[dep]
+            end
+        end
     end
 
-    for name, value in pairs(_TempStyle) do
+    -- Check Depends
+    for name, value in pairs(_TempDepends) do
         if value ~= NIL then
             applyProperty(frame, props[name], value)
         end
     end
+
+    -- Apply the rest
+    for name, value in pairs(_TempStyle) do
+        if value ~= NIL and not _TempDepends[name] then
+            applyProperty(frame, props[name], value)
+        end
+    end
+
+    wipe(_TempDepends)
 end
 
 local function buildTempStyle(frame)
@@ -224,7 +244,7 @@ local function buildTempStyle(frame)
                 if prop ~= 0 then
                     local pval  = _TempStyle[prop]
 
-                    if pval == nil or pval == NIL then
+                    if pval == nil then
                         _TempStyle[prop] = value
                     end
                 end
@@ -776,7 +796,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
             if getmetatable(object) == cls then
                 return object
             else
-                throw(("Usage : %s(name, parent, ...) - the parent already has a child named '%s'."):format(GetNamespaceName(cls), name))
+                throw(("Usage : %s(name, parent, ...) - the parent already has a child named '%s'."):format(Namespace.GetNamespaceName(cls), name))
             end
         end
     end
@@ -858,7 +878,7 @@ __Sealed__() class "__Bubbling__" (function(_ENV)
                         error(("The child named %q doesn't existed in object of %s"):format(name, tostring(getmetatable(owner))))
                     end
 
-                    for event in events:match("%w+") do
+                    for event in events:gmatch("%w+") do
                         if not child:HasScript(event) then
                             if child == owner then
                                 error(("The object of %s doesn't have an event named %q"):format(tostring(getmetatable(owner)), event))
@@ -1021,6 +1041,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
     default                     = { type  = Any },
     nilable                     = { type  = Boolean },
     childtype                   = { type  = - UIObject },
+    depends                     = { type  = struct { NEString } },
 
     __valid                     = function(self)
         if self.childtype then
@@ -1089,6 +1110,13 @@ __Sealed__() struct "Scorpio.UI.Property" {
 
             if setting.default ~= nil and setting.validate then
                 setting.default = setting.validate(setting.type, setting.default)
+            end
+        end
+
+        if self.depends then
+            setting.depends     = {}
+            for i, v in ipairs(self.depends) do
+                setting.depends[i] = strlower(v)
             end
         end
 
