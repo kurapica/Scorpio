@@ -371,7 +371,6 @@ end
 local function setTargetStyle(target, pname, value, stack)
     local tarcls, isUICls       = getUIPrototype(target)
     local default               = isUICls and gettable(_CustomStyle, target)
-    local hasnilset             = false
 
     local props                 = _Property[tarcls]
     if not props then error("The target has no property definitions", stack + 1) end
@@ -380,12 +379,11 @@ local function setTargetStyle(target, pname, value, stack)
         local prop              = props[pname]
 
         if value == nil or value == NIL then
-            hasnilset           = true
             if default then
                 default[pname]  = NIL
             end
 
-            applyProperty(target, prop, nil)
+            if not isUICls then applyProperty(target, prop, nil) end
         elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
             local child         = prop.get(target)
             if child then
@@ -404,7 +402,7 @@ local function setTargetStyle(target, pname, value, stack)
                 default[pname]  = value
             end
 
-            applyProperty(target, prop, value)
+            if not isUICls then applyProperty(target, prop, value) end
         end
     else
         if type(value) ~= "table" then
@@ -427,9 +425,8 @@ local function setTargetStyle(target, pname, value, stack)
 
                 if pv == NIL then
                     if default then default[ln] = NIL end
-                    hasnilset   = true
 
-                    applyProperty(target, prop, nil)
+                    if not isUICls then applyProperty(target, prop, nil) end
                 elseif prop.childtype and type(pv) == "table" and getmetatable(pv) == nil then
                     child       = prop.get(target)
                     if child then
@@ -446,15 +443,13 @@ local function setTargetStyle(target, pname, value, stack)
 
                     if default then default[ln] = pv end
 
-                    applyProperty(target, prop, pv)
+                    if not isUICls then applyProperty(target, prop, pv) end
                 end
             end
         end
     end
 
-    if hasnilset and isUICls then
-        return applyStyle(target)
-    end
+    return isUICls and applyStyle(target)
 end
 
 local function registerFrame(cls, frame)

@@ -4,6 +4,7 @@
 	<!-- UI Widget Class -->
 	<Script file="Draggable.lua"/>
 	<Script file="UIPanelButton.lua"/>
+    <Script file="UIPanelLabel.lua"/>
 	<Script file="InputBox.lua"/>
     <Script file="TrackBar.lua"/>
 	<Script file="Dialog.lua"/>
@@ -11,5 +12,6 @@
     <Script file="GroupBox.lua"/>
     <Script file="UICheckButton.lua"/>
     <Script file="UIDropDownMenu.lua"/>
+    <Script file="ComboBox.lua"/>
     <Script file="UIPanelScrollFrame.lua"/>
 </Ui>

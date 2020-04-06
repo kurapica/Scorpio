@@ -79,6 +79,11 @@ local function adjustLocation(self, owner, anchor)
 
     if not (x and y) then x, y  = GetCursorPosition() end
 
+    if self.OwnerOffset then
+        x                       = x + self.OwnerOffset.x * scale
+        y                       = y + self.OwnerOffset.y * scale
+    end
+
     x                           = math.min(math.max(x, 0), GetScreenWidth() * scale - width)
     y                           = math.max(y, height)
 
@@ -212,7 +217,7 @@ class "UIDropDownMenuButton" (function(_ENV)
     end
 
     local function refreshIcon(self)
-        local icon              = self:GetChild("Icon")
+        local icon              = self:GetChild("DisplayIcon")
 
         if self.MouseOverIcon and self:IsMouseOver() then
             icon:SetTexture(self.MouseOverIcon)
@@ -401,7 +406,7 @@ class "UIDropDownMenuButton" (function(_ENV)
         UnCheck                     = Texture,
         RadioCheck                  = Texture,
         RadioUnCheck                = Texture,
-        Icon                        = Texture,
+        DisplayIcon                 = Texture,
         ExpandArrow                 = Texture,
         ColorSwatchBG               = Texture,
         ColorSwatch                 = Texture,
@@ -413,7 +418,7 @@ class "UIDropDownMenuButton" (function(_ENV)
         self:GetChild("UnCheck"):Hide()
         self:GetChild("RadioCheck"):Hide()
         self:GetChild("RadioUnCheck"):Hide()
-        self:GetChild("Icon"):Hide()
+        self:GetChild("DisplayIcon"):Hide()
         self:GetChild("ColorSwatch"):Hide()
         self:GetChild("ColorSwatchBG"):Hide()
         self:GetChild("ExpandArrow"):Hide()
@@ -445,7 +450,10 @@ __Sealed__() class "UIDropDownMenuList" (function(_ENV)
     property "IsMultiCheck"     { type = Boolean, default = true }
 
     --- The offsets from the frame's edges used to limit the menu buttons
-    property "ButtonInsets"     { type = Inset }
+    property "ContainerInsets"  { type = Inset }
+
+    --- The x & y offsets to the owner
+    property "OwnerOffset"      { type = Dimension }
 end)
 
 --- The drop down list menu template
@@ -498,7 +506,7 @@ Style.UpdateSkin("Default",     {
             location            = { Anchor("LEFT") },
             texCoords           = RectType(0.5, 1.0, 0.5, 1.0),
         },
-        Icon                    = {
+        DisplayIcon             = {
             drawLayer           = "ARTWORK",
             size                = Size(16, 16),
             location            = { Anchor("RIGHT") },
@@ -536,7 +544,7 @@ Style.UpdateSkin("Default",     {
         },
         backdropBorderColor     = ColorType(1, 1, 1),
         backdropColor           = ColorType(0.09, 0.09, 0.19),
-        buttonInsets            = Inset(8, 8, 8, 8),
+        containerInsets         = Inset(8, 8, 8, 8),
     },
     [UIDropDownList]            = {
         backdrop                = {
@@ -546,7 +554,8 @@ Style.UpdateSkin("Default",     {
             insets              = { left = 11, right = 12, top = 12, bottom = 11 }
         },
         backdropColor           = NIL,
-        buttonInsets            = Inset(16, 16, 16, 16),
+        containerInsets         = Inset(16, 16, 16, 16),
+        ownerOffset             = Dimension(0, 0),
     },
 })
 
@@ -561,7 +570,7 @@ local rycDropDownMenuLists      = Recycle(UIDropDownMenuList, "Scorpio_UIDropDow
 local rycDropDownLists          = Recycle(UIDropDownList, "Scorpio_UIDropDownList%d")
 
 local function refreshMenuSize(self)
-    local insets                = self.ButtonInsets
+    local insets                = self.ContainerInsets
     local offset                = -(insets and insets.top or 0)
     local leftoff               = insets and insets.left or 0
     local rightoff              = -(insets and insets.right or 0)
@@ -618,6 +627,10 @@ local function refreshMenuSize(self)
 end
 
 local function recycleMenu(self)
+    if self.CallbackOnClose then
+        Continue(self.CallbackOnClose)
+    end
+
     for i = #self, 1, -1 do
         local button            = self[i]
 
@@ -635,6 +648,7 @@ local function recycleMenu(self)
     end
 
     self.OnHide                 = nil
+    self.CallbackOnClose        = nil
 
     if Class.IsObjectType(self, UIDropDownList) then
         rycDropDownLists(self)
@@ -650,6 +664,10 @@ local function buildDropDownMenuList(info, dropdown, root)
         menu.Owner              = info.owner
         menu.Anchor             = info.anchor
         menu.OnHide             = recycleMenu
+
+        if info.close then
+            menu.CallbackOnClose= info.close
+        end
     else
         menu.OnHide             = nil
     end
@@ -735,6 +753,12 @@ local function buildDropDownMenuList(info, dropdown, root)
             button.OnClick      = nil
         end
 
+        if binfo.disabled then
+            button.Disabled     = true
+        else
+            button.Disabled     = false
+        end
+
         if binfo.submenu then
             button.SubMenu      = buildDropDownMenuList(binfo.submenu, dropdown)
         end
@@ -751,6 +775,7 @@ __Sealed__() struct "UIDropDownMenuButtonInfo" {
     { name = "check",   type = PropertyAccessor },
     { name = "checkvalue", type = Any },
     { name = "click",   type = Function },
+    { name = "disabled",type = Boolean },
     { name = "submenu", type = UIDropDownMenuInfo }
 }
 
@@ -759,6 +784,7 @@ __Sealed__() struct "UIDropDownMenuInfo" {
     { name = "owner",   type = UIObject },
     { name = "anchor",  type = AnchorType },
     { name = "check",   type = PropertyAccessor },
+    { name = "close",   type = Function },
 
     function (self)
         if #self == 0 then
@@ -785,3 +811,6 @@ function Scorpio.ShowDropDownMenu(info)
 
     return showMenuList(menu)
 end
+
+__Static__()
+Scorpio.CloseDropDownMenu       = closeMenuList
