@@ -48,14 +48,17 @@ Style.UpdateSkin("Default",     {
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-RadioButton]],
             texCoords           = RectType(0, 0.25, 0, 1),
+            setAllPoints        = true,
         },
         CheckedTexture           = {
             file                = [[Interface\Buttons\UI-RadioButton]],
             texCoords           = RectType(0.25, 0.5, 0, 1),
+            setAllPoints        = true,
         },
         HighlightTexture        = {
             file                = [[Interface\Buttons\UI-RadioButton]],
             texCoords           = RectType(0.5, 0.5, 0, 1),
+            setAllPoints        = true,
             alphaMode           = "ADD",
         },
 
@@ -69,19 +72,24 @@ Style.UpdateSkin("Default",     {
 
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-CheckBox-Up]],
+            setAllPoints        = true,
         },
         PushedTexture           = {
             file                = [[Interface\Buttons\UI-CheckBox-Down]],
+            setAllPoints        = true,
         },
         HighlightTexture        = {
             file                = [[Interface\Buttons\UI-CheckBox-Highlight]],
+            setAllPoints        = true,
             alphamode           = "ADD",
         },
         CheckedTexture          = {
             file                = [[Interface\Buttons\UI-CheckBox-Check]],
+            setAllPoints        = true,
         },
         DisabledCheckedTexture  = {
             file                = [[Interface\Buttons\UI-CheckBox-Check-Disabled]],
+            setAllPoints        = true,
         },
         Label                   = {
             fontObject          = GameFontNormalSmall,

@@ -9,6 +9,12 @@
 Scorpio           "Scorpio.UI.Core"                  "1.0.0"
 --========================================================--
 
+--- Clear the property value of the target object
+local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL",   prototype { __tostring = function() return "nil"   end })
+
+--- Clear the property value of the settings(so other settings may be used for the property)
+local CLEAR                     = Namespace.SaveNamespace("Scorpio.UI.CLEAR", prototype { __tostring = function() return "clear" end })
+
 local isTypeValidDisabled       = System.Platform.TYPE_VALIDATION_DISABLED
 local isUIObject                = UI.IsUIObject
 local isUIObjectType            = UI.IsUIObjectType
@@ -16,13 +22,39 @@ local clone                     = Toolset.clone
 local yield                     = coroutine.yield
 local tinsert                   = table.insert
 local strlower                  = strlower
-local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL", prototype { __tostring = function() return "nil" end })
-local gettable                  = function(self, key) local val = self[key] if not val or val == NIL then val = {} self[key] = val end return val end
+local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
+
+local CHILD_SETTING             = 0   -- For children
 
 ----------------------------------------------
 --            Helper - Property             --
 ----------------------------------------------
 local _Property                 = {}
+
+local _RecycleHolder            = CreateFrame("Frame") _RecycleHolder:Hide()
+local _PropertyChildName        = setmetatable({}, META_WEAKKEY)
+local _PropertyChildMap         = setmetatable({}, { __index = function(self, prop) local val = setmetatable({}, META_WEAKALL) rawset(self, prop, val) return val end })
+local _PropertyChildRecycle     = setmetatable({}, {
+    __index                     = function(self, type)
+        local recycle           = Recycle(type, "__" .. Namespace.GetNamespaceName(type):gsub("%.", "_") .. "%d", _RecycleHolder)
+        rawset(self, type, recycle)
+        return recycle
+    end,
+    __call                      = function(self, obj)
+        if obj.Disposed then return end
+
+        local cls               = getmetatable(obj)
+        local recycle           = cls and rawget(self, cls)
+
+        if recycle then
+            obj:SetParent(_RecycleHolder)
+            if obj.ClearAllPoints then obj:ClearAllPoints() end
+            recycle(obj)
+
+            return true
+        end
+    end
+})
 
 local function dispatchPropertySetting(cls, prop, setting, oldsetting, root)
     local settings              = _Property[cls]
@@ -58,7 +90,7 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
         -- Scan the class's property
         for name, feature in Class.GetFeatures(cls) do
             if _Prop.Validate(feature) and not _Prop.IsStatic(feature) and _Prop.IsWritable(feature) then
-                Trace("[Scorpio.UI.Core]Define Property %s for %s", name, tostring(cls))
+                Trace("[Scorpio.UI]Define Property %s for %s", name, tostring(cls))
 
                 UI.Property     {
                     name        = name,
@@ -79,25 +111,7 @@ local function applyProperty(self, prop, value)
         if prop.clear then return prop.clear(self) end
         if prop.default then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
-    elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
-        -- means settings to the child
-        local child             = prop.get(self)
-        if child then
-            local props         = _Property[prop.childtype]
-
-            for name, value in pairs(value) do
-                if value == NIL then
-                    applyProperty(child, props[name], nil)
-                end
-            end
-
-            for name, value in pairs(value) do
-                if value ~= NIL then
-                    applyProperty(child, props[name], value)
-                end
-            end
-        end
-    else
+    elseif prop.set then
         prop.set(self, clone(value, true))
     end
 end
@@ -115,294 +129,92 @@ local _StyleMethods             = {}
 local _StyleOwner
 local _StyleAccessor
 local _StyleQueue               = Queue()
+local _ClearQueue               = Queue()
 local _ClassQueue               = Queue()
-local _ClassQueueInfo           = {}
 local _Recycle                  = Recycle()
 
 local _DefaultStyle             = {}
 local _CustomStyle              = setmetatable({}, META_WEAKKEY)
-local _TempStyle                = {}
-local _TempPath                 = {}
-local _TempClass                = {}
-local _TempDepends              = {}
-local _Inited                   = false
+local _ClassFrames              = {}
 
-local _ClassMap                 = {}
-
-local function applyDefaultStyle(frame)
-    if frame.Disposed then return end
-    wipe(_TempDepends)
-
-    local props                 = _Property[getmetatable(frame)]
-
-    --- Apply the NIL value first to clear
-    for name, value in pairs(_TempStyle) do
-        if value == NIL then
-            applyProperty(frame, props[name], nil)
-        end
-
-        -- Register the depends, normally this is one level depends
-        -- so no order for now, I may check it later for complex order
-        if props[name].depends then
-            for _, dep in ipairs(props[name].depends) do
-                _TempDepends[dep] = _TempStyle[dep]
-            end
-        end
-    end
-
-    -- Check Depends
-    for name, value in pairs(_TempDepends) do
-        if value ~= NIL then
-            applyProperty(frame, props[name], value)
-        end
-    end
-
-    -- Apply the rest
-    for name, value in pairs(_TempStyle) do
-        if value ~= NIL and not _TempDepends[name] then
-            applyProperty(frame, props[name], value)
-        end
-    end
-
-    wipe(_TempDepends)
-end
-
-local function buildTempStyle(frame)
-    wipe(_TempStyle)
-    wipe(_TempPath)
-
-    -- Custom -> Root Parent Class -> ... -> Parent Class -> Frame Class -> Super Class
-    local name                  = UIObject.GetName(frame)
-    local parent                = UIObject.GetParent(frame)
-
-    while parent do
-        local cls               = getmetatable(parent)
-        wipe(_TempClass)
-
-        if cls and isUIObjectType(cls) then
-            tinsert(_TempPath, 1, name)
-
-            repeat
-                tinsert(_TempClass, cls)
-                cls             = Class.GetSuperClass(cls)
-            until not cls
-
-            for i = #_TempClass, 1, -1 do
-                cls                 = _TempClass[i]
-
-                local default       = _DefaultStyle[cls]
-                local index         = 1
-
-                while default and _TempPath[index] do
-                    default         = default[0]
-                    default         = default and default[_TempPath[index]]
-                    index           = index + 1
-                end
-
-                if default then
-                    -- The parent -> ... -> child style settings
-                    for prop, value in pairs(default) do
-                        if prop ~= 0 then
-                            if value == NIL then
-                                if _TempStyle[prop] == nil then
-                                    _TempStyle[prop] = NIL
-                                end
-                            else
-                                _TempStyle[prop] = value
-                            end
-                        end
-                    end
-                end
-            end
-
-            name                = UIObject.GetName(parent)
-            parent              = UIObject.GetParent(parent)
-        else
-            break
-        end
-    end
-
-    if _CustomStyle[frame] then
-        for prop, value in pairs(_CustomStyle[frame]) do
-            if value == NIL then
-                if _TempStyle[prop] == nil then
-                    _TempStyle[prop] = NIL
-                end
-            else
-                _TempStyle[prop] = value
-            end
-        end
-    end
-
-    local cls                   = getmetatable(frame)
-
-    while cls do
-        local default           = _DefaultStyle[cls]
-
-        if default then
-            for prop, value in pairs(default) do
-                if prop ~= 0 then
-                    local pval  = _TempStyle[prop]
-
-                    if pval == nil then
-                        _TempStyle[prop] = value
-                    end
-                end
-            end
-        end
-
-        cls                     = Class.GetSuperClass(cls)
-    end
-end
-
-local function processStyleApply()
-    _Inited                     = true
-
-    while _StyleQueue.Count > 0 do
-        local frame             = _StyleQueue:Peek()
-
-        if not frame.Disposed then
-            Trace("[Scorpio.UI.Core]Apply Style: %s", frame:GetName(true))
-
-            buildTempStyle(frame)
-            _StyleQueue[frame]  = nil
-
-            Continue()
-
-            applyDefaultStyle(frame)
-
-            Continue()
-        else
-            _StyleQueue[frame]  = nil
-        end
-
-        _StyleQueue:Dequeue()
-    end
+local function collectPropertyChild(frame)
+    if _ClearQueue[frame] then return end
+    if _ClearQueue.Count == 0 then FireSystemEvent("SCORPIO_UI_COLLECT_PROPERTY_CHILD") end
+    _ClearQueue[frame]          = true
+    _ClearQueue:Enqueue(frame)
 end
 
 local function applyStyle(frame)
     if _StyleQueue[frame] then return end
-    if _StyleQueue.Count == 0 then Next(processStyleApply) end
+    if _StyleQueue.Count == 0 then FireSystemEvent("SCORPIO_UI_APPLY_STYLE") end
     _StyleQueue[frame]          = true
     _StyleQueue:Enqueue(frame)
 end
 
-local function processClassStyleApply()
-    while _ClassQueue.Count > 0 do
-        local class             = _ClassQueue:Peek()
-        local info              = _ClassQueueInfo[class]
-        _ClassQueueInfo[class]  = nil
-        _ClassQueue[class]      = nil -- Allow queue again
-
-        local count             = 1
-        local frames            = _ClassMap[class]
-
-        if frames then
-            for frame in pairs(frames) do
-                for path in pairs(info) do
-                    local frm   = frame
-
-                    if path == "" then
-                        applyStyle(frame)
-                        count   = count + 1
-                    else
-                        for p in path:gmatch("[^^]+") do
-                            frm = UIObject.GetChild(frm, p)
-                            if not frm then break end
-                        end
-
-                        if frm then
-                            applyStyle(frm)
-                            count = count + 1
-                        end
-                    end
-                end
-
-                if count > 10 then
-                    count       = 0
-                    Continue()
-                end
-            end
-        end
-
-        wipe(info)
-        _Recycle(info)
-
-        Continue()
-
-        _ClassQueue:Dequeue()
-    end
-end
-
-local function queueClassApply(class, ...)
+local function queueClassFrames(class)
     if not _ClassQueue[class] then
-        _ClassQueue:Enqueue(class)
+        if _ClassQueue.Count == 0 then FireSystemEvent("SCORPIO_UI_UPDATE_CLASS_SKIN") end
         _ClassQueue[class]      = true
-    end
-
-    local info                  = _ClassQueueInfo[class] or _Recycle()
-    _ClassQueueInfo[class]      = info
-
-    local count                 = select("#", ...)
-    if count == 0 then
-        if info[""] then return end
-        info[""]                = true
-    else
-        local s                 = select(1, ...)
-        for i = 2, count do
-            s                   = s .. "^" .. select(i, ...)
-        end
-        if info[s] then return end
-        info[s]                 = true
+        _ClassQueue:Enqueue(class)
     end
 
     for scls in Class.GetSubTypes(class) do
-        queueClassApply(scls, ...)
+        queueClassFrames(scls)
     end
 end
 
-local function applyClassStyle(class, ...)
-    if not _Inited then return end
-    if _ClassQueue.Count == 0 then Next(processClassStyleApply) end
+local function emptyDefaultStyle(settings)
+    if settings and settings ~= NIL and settings ~= CLEAR then
+        for k, v in pairs(settings) do
+            if k == CHILD_SETTING then
+                for child, csetting in pairs(v) do
+                    emptyDefaultStyle(csetting)
+                end
+            else
+                settings[k]     = CLEAR
+            end
+        end
+    end
 
-    queueClassApply(class, ...)
+    return settings
 end
 
-local function setTargetStyle(target, pname, value, stack)
-    local tarcls, isUICls       = getUIPrototype(target)
-    local default               = isUICls and gettable(_CustomStyle, target)
+local function setCustomStyle(target, pname, value, stack)
+    local custom                = gettable(_CustomStyle, target)
 
-    local props                 = _Property[tarcls]
+    local props                 = _Property[getUIPrototype(target)]
     if not props then error("The target has no property definitions", stack + 1) end
 
     if pname then
         local prop              = props[pname]
 
-        if value == nil or value == NIL then
-            if default then
-                default[pname]  = NIL
-            end
+        if prop.childtype then
+            custom[pname]       = true
 
-            if not isUICls then applyProperty(target, prop, nil) end
-        elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
-            local child         = prop.get(target)
-            if child then
-                setTargetStyle(child, nil, value, stack + 1)
+            if value == nil or value == CLEAR or value == NIL then
+                custom[pname]   = value or CLEAR
+            elseif type(value) == "table" and getmetatable(value) == nil then
+                local child     = prop.get(target)
+                if child then
+                    setCustomStyle(child, nil, value, stack + 1)
+                else
+                    error(strformat("The target has no child element from %q", pname), stack + 1)
+                end
             else
-                error(strformat("The target has no child element from %q", pname), stack + 1)
+                error(strformat("The %q is a child poperty, its setting should be a table", pname), stack + 1)
             end
         else
-            if prop.validate then
-                local ret, msg  = prop.validate(prop.type, value)
-                if msg then error(Struct.GetErrorMessage(msg, prop.name), stack + 1) end
-                value           = ret
-            end
+            if value == nil or value == NIL or value == CLEAR then
+                custom[pname]   = value or CLEAR
+            else
+                if prop.validate then
+                    local ret, msg  = prop.validate(prop.type, value)
+                    if msg then error(Struct.GetErrorMessage(msg, prop.name), stack + 1) end
+                    value       = ret
+                end
 
-            if default then
-                default[pname]  = value
+                custom[pname]   = value
             end
-
-            if not isUICls then applyProperty(target, prop, value) end
         end
     else
         if type(value) ~= "table" then
@@ -417,46 +229,52 @@ local function setTargetStyle(target, pname, value, stack)
             local child         = UIObject.GetChild(target, pn)
 
             if child then
-                setTargetStyle(child, nil, pv, stack + 1)
+                setCustomStyle(child, nil, pv, stack + 1)
             else
                 local ln        = strlower(pn)
                 local prop      = props[ln]
                 if not prop then error(strformat("The %q isn't a valid property for the target", pn), stack + 1) end
 
-                if pv == NIL then
-                    if default then default[ln] = NIL end
+                if prop.childtype then
+                    custom[ln]  = true
 
-                    if not isUICls then applyProperty(target, prop, nil) end
-                elseif prop.childtype and type(pv) == "table" and getmetatable(pv) == nil then
-                    child       = prop.get(target)
-                    if child then
-                        setTargetStyle(child, nil, pv, stack + 1)
+                    if pv == CLEAR or pv == NIL then
+                        custom[ln] = pv
+                    elseif type(pv) == "table" and getmetatable(pv) == nil then
+                        child   = prop.get(target)
+                        if child then
+                            setCustomStyle(child, nil, pv, stack + 1)
+                        else
+                            error(strformat("The target has no child element from %q", pn), stack + 1)
+                        end
                     else
-                        error(strformat("The target has no child element from %q", pname), stack + 1)
+                        error(strformat("The %q is a child poperty, its setting should be a table", pname), stack + 1)
                     end
                 else
-                    if prop.validate then
-                        local ret, msg = prop.validate(prop.type, pv)
-                        if msg then error(Struct.GetErrorMessage(msg, prop.name), stack + 1) end
-                        pv      = ret
+                    if pv == NIL or pv == CLEAR then
+                        custom[ln] = pv
+                    else
+                        if prop.validate then
+                            local ret, msg = prop.validate(prop.type, pv)
+                            if msg then error(Struct.GetErrorMessage(msg, prop.name), stack + 1) end
+                            pv  = ret
+                        end
+
+                        custom[ln] = pv
                     end
-
-                    if default then default[ln] = pv end
-
-                    if not isUICls then applyProperty(target, prop, pv) end
                 end
             end
         end
     end
 
-    return isUICls and applyStyle(target)
+    return applyStyle(target)
 end
 
 local function registerFrame(cls, frame)
-    local map                   = _ClassMap[cls]
+    local map                   = _ClassFrames[cls]
     if not map then
         map                     = setmetatable({}, META_WEAKKEY)
-        _ClassMap[cls]          = map
+        _ClassFrames[cls]       = map
     end
 
     map[frame]                  = true
@@ -465,23 +283,7 @@ local function registerFrame(cls, frame)
 end
 
 local function unregisterFrame(frame)
-    _ClassMap[getmetatable(frame)][frame] = nil
-end
-
-local function emptyDefaultStyle(settings)
-    if settings then
-        for k, v in pairs(settings) do
-            if k == 0 then
-                for child, csetting in pairs(v) do
-                    emptyDefaultStyle(csetting)
-                end
-            else
-                settings[k]     = NIL
-            end
-        end
-    end
-
-    return settings
+    _ClassFrames[getmetatable(frame)][frame] = nil
 end
 
 ----------------------------------------------
@@ -492,9 +294,9 @@ local _ActiveSkin               = {}
 
 local function copyBaseSkinSettings(container, base)
     for k, v in pairs(base) do
-        if k == 0 then
+        if k == CHILD_SETTING then
             for name, setting in pairs(v) do
-                copyBaseSkinSettings(gettable(gettable(container, 0), name), setting)
+                copyBaseSkinSettings(gettable(gettable(container, k), name), setting)
             end
         else
             container[k]        = v
@@ -536,7 +338,7 @@ local function saveSkinSettings(class, container, settings)
     for name, value in pairs(settings) do
         local element           = __Template__.GetElementType(class, name)
         if element then
-            saveSkinSettings(element, gettable(gettable(container, 0), name), value)
+            saveSkinSettings(element, gettable(gettable(container, CHILD_SETTING), name), value)
         elseif props then
             name                = strlower(name)
             local prop          = props[name]
@@ -545,18 +347,29 @@ local function saveSkinSettings(class, container, settings)
                 throw(strformat("The %q isn't a valid property for %s", name, tostring(class)))
             end
 
-            if value == nil or value == NIL then
-                container[name] = NIL
-            elseif prop.childtype and type(value) == "table" and getmetatable(value) == nil then
-                saveSkinSettings(prop.childtype, gettable(container, name), value)
-            else
-                if prop.validate then
-                    local ret, msg  = prop.validate(prop.type, value)
-                    if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
-                    value           = ret
-                end
+            if prop.childtype then
+                container[name] = true -- So we can easily track the child property settings
 
-                container[name]     = value
+                if value == NIL or value == CLEAR then
+                    if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
+                    container[name]     = value
+                elseif type(value) == "table" and getmetatable(value) == nil then
+                    saveSkinSettings(prop.childtype, gettable(gettable(container, CHILD_SETTING), name), value)
+                else
+                    throw(strformat("The %q is a child generated from property, need table as settings", name))
+                end
+            else
+                if value == NIL or value == CLEAR then
+                    container[name]     = value
+                else
+                    if prop.validate then
+                        local ret, msg  = prop.validate(prop.type, value)
+                        if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
+                        value           = ret
+                    end
+
+                    container[name]     = value
+                end
             end
         else
             throw("The " .. class .. " has no property definitions")
@@ -564,21 +377,17 @@ local function saveSkinSettings(class, container, settings)
     end
 end
 
-local function copyToDefault(settings, default, ...)
-    local temp                  = { ... }
-    local nxt                   = #temp + 1
+local function copyToDefault(settings, default)
     for name, value in pairs(settings) do
-        if name == 0 then
+        if name == CHILD_SETTING then
+            local childsettings = gettable(default, CHILD_SETTING)
             for element, setting in pairs(value) do
-                temp[nxt]       = element
-                copyToDefault(setting, gettable(gettable(default, 0), element), unpack(temp))
+                copyToDefault(setting, gettable(childsettings, element))
             end
         else
             default[name]       = value
         end
     end
-
-    applyClassStyle(...)
 end
 
 local function activeSkin(name, class, skin, force)
@@ -586,10 +395,11 @@ local function activeSkin(name, class, skin, force)
     if not force and _ActiveSkin[class] == name then return end
     _ActiveSkin[class] = name
 
-    local default                   = emptyDefaultStyle(_DefaultStyle[class]) or {}
-    _DefaultStyle[class]            = default
+    local default               = emptyDefaultStyle(_DefaultStyle[class]) or {}
+    _DefaultStyle[class]        = default
 
-    copyToDefault(skin, default, class)
+    copyToDefault(skin, default)
+    queueClassFrames(class)
 end
 
 ----------------------------------------------
@@ -663,7 +473,8 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
 
     --- Gets the parent of ui object
     __Final__() function GetParent(self)
-        return GetProxyUI(_GetParent[getmetatable(self)](self))
+        local parent            = (_GetParent[getmetatable(self)] or self.GetParent)(self)
+        return parent and GetProxyUI(parent)
     end
 
     --- Sets the ui object's name
@@ -747,6 +558,8 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
 
     --- Gets the child with the given name
     function GetChild(self, name)
+        if name == 0 then return end
+
         local children          = _ChildMap[self[0]]
         return children and children[name]
     end
@@ -1039,14 +852,8 @@ __Sealed__() struct "Scorpio.UI.Property" {
     depends                     = { type  = struct { NEString } },
 
     __valid                     = function(self)
-        if self.childtype then
-            if self.set and not self.get then
-                return "%s.get is required if it represent a child element"
-            end
-        else
-            if not self.set then
-                return "%s.set is required"
-            end
+        if not self.childtype and not self.set then
+            return "%s.set is required"
         end
     end,
 
@@ -1062,27 +869,39 @@ __Sealed__() struct "Scorpio.UI.Property" {
             childtype           = self.childtype,
         }
 
-        if self.childtype and not self.get and not self.set then
+        if self.childtype then
+            -- The child property type should be handled specially
+            local name          = self.name
             local childtype     = self.childtype
-            local childname     = Namespace.GetNamespaceName(childtype):gsub("%.", "_")
+            local set           = self.set
+            local nilable       = self.nilable
+            local childname     = strlower(self.name)
 
-            setting.get         = function(self)
-                local child     = childtype(childname, self)
-                child:Show()
+            setting.get         = function(self, try)
+                local child     = _PropertyChildMap[setting][self]
+                if child or try then return child end
+
+                child           = _PropertyChildRecycle[childtype]()
+
+                if child then
+                    child:SetParent(self)
+                    if set then set(self, child) end
+
+                    _PropertyChildMap[setting][self]= child
+                    _PropertyChildName[child]       = childname
+                end
+
                 return child
             end
 
-            if self.nilable then
-                setting.type    = setting.type or self.childtype
-                setting.set     = function(self, child)
-                    if child then
-                        child:SetParent(self)
-                        child:SetName(childname)
-                        child:Show()
-                    elseif self:GetChild(childname) then
-                        self:GetChild(childname):Hide()
-                    end
-                end
+            setting.clear       = function(self)
+                local child     = _PropertyChildMap[setting][self]
+                if not child then return end
+
+                collectPropertyChild(child)
+
+                _PropertyChildMap[setting][self]    = nil
+                if nilable and set then set(self, nil) end
             end
         end
 
@@ -1167,7 +986,7 @@ local Style                     = Namespace.SaveNamespace("Scorpio.UI.Style", pr
         end
 
         if isUIObject(key) then
-            setTargetStyle(key, nil, value, 2)
+            setCustomStyle(key, nil, value, 2)
             return
         end
 
@@ -1189,7 +1008,10 @@ _StyleAccessor                  = prototype {
 
                 local cls       = getUIPrototype(target)
                 local prop      = cls and _Property[cls] and _Property[cls][strlower(key)]
-                if prop then return prop.get and prop.get(target) end
+                if prop and prop.childtype then
+                    _StyleOwner = prop.get(target)
+                    if _StyleOwner then return _StyleAccessor end
+                end
             end
         end
 
@@ -1203,14 +1025,14 @@ _StyleAccessor                  = prototype {
         if target and type(key) == "string" then
             local star          = UIObject.GetChild(target, key)
             if star then
-                setTargetStyle(star, nil, value, 2)
+                setCustomStyle(star, nil, value, 2)
                 return
             else
                 key             = strlower(key)
                 local cls       = getUIPrototype(target)
                 local prop      = cls and _Property[cls] and _Property[cls][key]
                 if prop then
-                    setTargetStyle(target, key, value, 2)
+                    setCustomStyle(target, key, value, 2)
                     return
                 end
             end
@@ -1338,6 +1160,352 @@ function Style.GetSkins(class)
     end
 end
 
+__Arguments__{ -UIObject } __Iterator__()
+function Style.GetProperties(class)
+    local props                 = _Property[class]
+    if props then
+        for name, prop in pairs(props) do
+            yield(name, prop.type, prop.nilable, prop.childtype)
+        end
+    end
+end
+
 Style.RegisterSkin("Default")
 
 export { Scorpio.UI.Property }
+
+----------------------------------------------
+--           Skin System Services           --
+----------------------------------------------
+local function applyStylesOnFrame(frame, styles)
+    local depends                           = _Recycle()
+
+    local props                             = _Property[getUIPrototype(frame)]
+    if not props then return end
+
+    --- Apply the NIL value first to clear
+    for name, value in pairs(styles) do
+        if value == NIL or value == CLEAR then
+            applyProperty(frame, props[name], nil)
+        end
+
+        -- Register the depends, normally this is one level depends
+        -- so no order for now, I may check it later for complex order
+        if props[name].depends then
+            for _, dep in ipairs(props[name].depends) do
+                depends[dep]                = styles[dep]
+            end
+        end
+    end
+
+    -- Check Depends
+    for name, value in pairs(depends) do
+        if value ~= NIL and value ~= CLEAR then
+            applyProperty(frame, props[name], value)
+        end
+    end
+
+    -- Apply the rest
+    for name, value in pairs(styles) do
+        if value ~= NIL and value ~= CLEAR and not depends[name] then
+            applyProperty(frame, props[name], value)
+        end
+    end
+
+    _Recycle(wipe(depends))
+    _Recycle(wipe(styles))
+end
+
+local function clearStylesOnFrame(frame, styles)
+    local props                             = _Property[getUIPrototype(frame)]
+    if not props then return end
+
+    for name, value in pairs(styles) do
+        applyProperty(frame, props[name], nil)
+    end
+
+    _Recycle(wipe(styles))
+end
+
+local function buildTempStyle(frame)
+    local styles                            = _Recycle()
+    local paths                             = _Recycle()
+    local children                          = _Recycle()
+    local tempClass                         = _Recycle()
+
+    -- Prepare the style settings
+    -- Custom -> Root Parent Class -> ... -> Parent Class -> Frame Class -> Super Class
+    local name                              = _PropertyChildName[frame] or UIObject.GetName(frame)
+    local parent                            = UIObject.GetParent(frame)
+
+    while parent and name do
+        local cls                           = getmetatable(parent)
+
+        tinsert(paths, 1, name)
+
+        if cls and isUIObjectType(cls) then
+            wipe(tempClass)
+
+            repeat
+                tinsert(tempClass, cls)
+                cls                         = Class.GetSuperClass(cls)
+            until not cls
+
+            for i = #tempClass, 1, -1 do
+                cls                         = tempClass[i]
+
+                local default               = _DefaultStyle[cls]
+                local index                 = 1
+
+                while default and paths[index] do
+                    default                 = default[CHILD_SETTING]
+                    default                 = default and default[paths[index]]
+                    index                   = index + 1
+                end
+
+                if default then
+                    -- The parent -> ... -> child style settings
+                    for prop, value in pairs(default) do
+                        if prop == CHILD_SETTING then
+                            for name in pairs(value) do
+                                children[name] = true
+                            end
+                        else
+                            if value ~= CLEAR or styles[prop] == nil then
+                                styles[prop]= value
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        name                                = _PropertyChildName[parent] or UIObject.GetName(parent)
+        parent                              = UIObject.GetParent(parent)
+    end
+
+    _Recycle(wipe(paths))
+    _Recycle(wipe(tempClass))
+
+    if _CustomStyle[frame] then
+        for prop, value in pairs(_CustomStyle[frame]) do
+            if value ~= CLEAR or styles[prop] == nil then
+                styles[prop]                = value
+            end
+        end
+    end
+
+    local cls                               = getmetatable(frame)
+
+    if isUIObjectType(cls) then
+        while cls do
+            local default                   = _DefaultStyle[cls]
+
+            if default then
+                for prop, value in pairs(default) do
+                    if prop == CHILD_SETTING then
+                        for name in pairs(value) do
+                            children[name]  = true
+                        end
+                    elseif styles[prop] == nil or styles[prop] == CLEAR then
+                        styles[prop]        = value
+                    end
+                end
+            end
+
+            cls                             = Class.GetSuperClass(cls)
+        end
+    end
+
+    return styles, children
+end
+
+local function clearStyle(frame)
+    local props                             = _Property[getUIPrototype(frame)]
+
+    if props and not frame.Disposed then
+        local debugname                     = frame:GetName(true) or frame:GetObjectType()
+        local clearChilds                   = _Recycle()
+
+        Trace("[Scorpio.UI]Clear Style: %s", debugname)
+
+        local styles, children              = buildTempStyle(frame)
+
+        -- Clear the children
+        for name in pairs(children) do
+            local child                     = UIObject.GetChild(frame, name)
+
+            if child then
+                clearStyle(child)
+            elseif props[name] and props[name].childtype then
+                child                       = props[name].get(frame, true)
+                styles[name]                = CLEAR
+                if child then
+                    clearChilds[child]      = true
+                    _ClearQueue[child]      = true
+
+                    clearStyle(child)
+                end
+            end
+        end
+
+        _Recycle(wipe(children))
+
+        -- Apply the style settings
+        local ok, err                       = pcall(clearStylesOnFrame, frame, styles)
+        if not ok then Error("[Scorpio.UI]Clear Style: %s - Failed: %s", debugname, tostring(err)) end
+
+        for child in pairs(clearChilds) do
+            _ClearQueue[child]              = nil
+        end
+
+        _Recycle(wipe(clearChilds))
+    end
+
+    _CustomStyle[frame]                     = nil
+    if _PropertyChildName[frame] then
+        _PropertyChildName[frame]           = nil
+        _PropertyChildRecycle(frame)
+    end
+
+    Continue() -- Smoothing the process
+end
+
+__Service__(true)
+function ApplyStyleService()
+    while true do
+        local frame                         = _StyleQueue:Dequeue()
+
+        while frame do
+            if _StyleQueue[frame] then
+                local props                 = _Property[getUIPrototype(frame)]
+
+                if props and not frame.Disposed then
+                    local debugname         = frame:GetName(true) or frame:GetObjectType()
+
+                    Trace("[Scorpio.UI]Apply Style: %s", debugname)
+
+                    local styles, children  = buildTempStyle(frame)
+
+                    -- Queue the children
+                    for name in pairs(children) do
+                        local child         = UIObject.GetChild(frame, name)
+
+                        if child then
+                            applyStyle(child)
+                        elseif props[name] and props[name].childtype and styles[name] == true then
+                            styles[name]    = nil
+                            child           = props[name].get(frame)
+                            if child then applyStyle(child) end
+                        end
+                    end
+
+                    _Recycle(wipe(children))
+
+                    _StyleQueue[frame]      = nil
+
+                    -- Apply the style settings
+                    local ok, err           = pcall(applyStylesOnFrame, frame, styles)
+                    if not ok then Error("[Scorpio.UI]Apply Style: %s - Failed: %s", debugname, tostring(err)) end
+
+                    Continue() -- Smoothing the process
+                else
+                    _StyleQueue[frame]      = nil
+                end
+            end
+
+            frame                           = _StyleQueue:Dequeue()
+        end
+
+        NextEvent("SCORPIO_UI_APPLY_STYLE")
+    end
+end
+
+__Service__(true)
+function CollectPropertyChildService()
+    while true do
+        local frame                         = _ClearQueue:Dequeue()
+
+        while frame do
+            if _ClearQueue[frame] then
+                _ClearQueue[frame]          = nil
+
+                clearStyle(frame)
+            end
+
+            frame                           = _ClearQueue:Dequeue()
+
+            Continue()
+        end
+
+        NextEvent("SCORPIO_UI_COLLECT_PROPERTY_CHILD")
+    end
+end
+
+__Service__(true)
+function QueueClassFramesService()
+    while true do
+        local class                 = _ClassQueue:Dequeue()
+
+        while class do
+            if _ClassQueue[class] then
+                _ClassQueue[class]  = nil -- Allow queue again
+
+                local count         = 1
+                local frames        = _ClassFrames[class]
+
+                if frames then
+                    for frame in pairs(frames) do
+                        applyStyle(frame)
+                        count       = count + 1
+
+                        if count > 30 then
+                            count   = 1
+                            Continue()
+                        end
+                    end
+                end
+            end
+
+            Continue()
+
+            class                   = _ClassQueue:Dequeue()
+        end
+
+        NextEvent("SCORPIO_UI_UPDATE_CLASS_SKIN")
+    end
+end
+
+-- Apply the style on the frame instantly
+__Arguments__{ UIObject }
+function Style.InstantApplyStyle(frame)
+    _StyleQueue[frame]      = nil
+
+    local props             = _Property[getUIPrototype(frame)]
+    if not props then return end
+
+    local debugname         = frame:GetName(true) or frame:GetObjectType()
+
+    Trace("[Scorpio.UI]Instant Apply Style: %s", debugname)
+
+    local styles, children  = buildTempStyle(frame)
+
+    -- Queue the children
+    for name in pairs(children) do
+        local child         = UIObject.GetChild(frame, name)
+
+        if child then
+            Style.InstantApplyStyle(child)
+        elseif props[name] and props[name].childtype and styles[name] == true then
+            styles[name]    = nil
+            child           = props[name].get(frame)
+            if child then Style.InstantApplyStyle(child) end
+        end
+    end
+
+    _Recycle(wipe(children))
+
+    -- Apply the style settings
+    local ok, err           = pcall(applyStylesOnFrame, frame, styles)
+    if not ok then Error("[Scorpio.UI]Apply Style: %s - Failed: %s", debugname, tostring(err)) end
+end

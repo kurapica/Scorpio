@@ -569,6 +569,18 @@ local rycDropDownMenuButtons    = Recycle(UIDropDownMenuButton, "Scorpio_UIDropD
 local rycDropDownMenuLists      = Recycle(UIDropDownMenuList, "Scorpio_UIDropDownMenuList%d")
 local rycDropDownLists          = Recycle(UIDropDownList, "Scorpio_UIDropDownList%d")
 
+function rycDropDownMenuButtons:OnInit(obj)
+    return Style.InstantApplyStyle(obj)
+end
+
+function rycDropDownMenuLists:OnInit(obj)
+    return Style.InstantApplyStyle(obj)
+end
+
+function rycDropDownLists:OnInit(obj)
+    return Style.InstantApplyStyle(obj)
+end
+
 local function refreshMenuSize(self)
     local insets                = self.ContainerInsets
     local offset                = -(insets and insets.top or 0)
@@ -805,7 +817,7 @@ __Static__() __Async__()
 __Arguments__{ UIDropDownMenuInfo }
 function Scorpio.ShowDropDownMenu(info)
     local menu                  = buildDropDownMenuList(info, info.dropdown and info.owner and true or false, true)
-    Next() Next() Next()
+    Next() Next()
 
     refreshMenuSize(menu)
 

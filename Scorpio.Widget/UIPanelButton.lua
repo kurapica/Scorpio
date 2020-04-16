@@ -67,12 +67,15 @@ Style.UpdateSkin("Default",     {
 
         NormalTexture           = {
             file                = [[Interface\Buttons\UI-Panel-MinimizeButton-Up]],
+            setAllPoints        = true,
         },
         PushedTexture           = {
             file                = [[Interface\Buttons\UI-Panel-MinimizeButton-Down]],
+            setAllPoints        = true,
         },
         HighlightTexture        = {
             file                = [[Interface\Buttons\UI-Panel-MinimizeButton-Highlight]],
+            setAllPoints        = true,
             alphamode           = "ADD",
         },
     },

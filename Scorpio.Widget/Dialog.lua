@@ -28,10 +28,7 @@ class "DialogHeader" {
     --- The text of the header
     Text                        = {
         type                    = String,
-        get                     = function(self)
-            return self:GetChild("HeaderText"):GetText()
-        end,
-        set                     = function(self, text)
+        handler                 = function(self, text)
             local headerText    = self:GetChild("HeaderText")
             headerText:SetText(text or "")
 
@@ -42,7 +39,7 @@ class "DialogHeader" {
                 maxwidth        = math.min(maxwidth, self:GetParent() and self:GetParent():GetWidth() or math.huge)
                 local textwidth = headerText:GetStringWidth() + self.TextPadding
 
-                Style[self].Width = math.min( math.max(minwidth, textwidth), maxwidth)
+                self:SetWidth(math.min( math.max(minwidth, textwidth), maxwidth))
             end)
         end,
     },

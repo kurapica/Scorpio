@@ -115,7 +115,7 @@ do
         set             = function(self, flag) self:SetIgnoreParentAlpha(flag) end,
     }
 
-    --- Whether ignore prent's scal settings
+    --- Whether ignore parent's scal settings
     UI.Property         {
         name            = "IgnoreParentScale",
         type            = Boolean,
@@ -123,6 +123,15 @@ do
         default         = false,
         get             = function(self) return self:IsIgnoringParentScale() end,
         set             = function(self, flag) self:SetIgnoreParentScale(flag) end,
+    }
+
+    --- Whether set all points to the parent
+    UI.Property         {
+        name            = "SetAllPoints",
+        type            = Boolean,
+        require         = LayoutFrame,
+        set             = function(self, flag) self:ClearAllPoints() if flag then self:SetPoint("TOPLEFT") self:SetPoint("BOTTOMRIGHT") end end,
+        clear           = function(self) self:ClearAllPoints() end,
     }
 
     --- the location of the LayoutFrame
@@ -133,6 +142,7 @@ do
         get             = function(self) return LayoutFrame.GetLocation(GetProxyUI(self)) end,
         set             = function(self, loc)   LayoutFrame.SetLocation(GetProxyUI(self), loc) end,
         clear           = function(self) self:ClearAllPoints() end,
+        depends         = { "SetAllPoints" }, -- So it can override the setAllPoints settings
     }
 
     --- the frame's scale factor or the scale animation's setting
@@ -457,6 +467,7 @@ do
         get             = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
         set             = function(self, val) if val.left then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
         clear           = function(self) self:SetTexCoord(0, 1, 0, 1) end,
+        depends         = { "FileID", "File" }
     }
 
     --- The texture file id
@@ -1146,7 +1157,6 @@ do
         nilable         = true,
         childtype       = FontString,
         set             = function(self, val) self:SetFontString(val) end,
-        get             = function(self) if not self:GetFontString() then self:SetText(" ") end return self:GetFontString() end,
     }
 
     --- The button state
@@ -1205,7 +1215,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetPushedTexture(val) end,
-        get             = function(self)  if not self:GetPushedTexture() then self:SetPushedTexture("dummy") end return self:GetPushedTexture() end,
     }
 
     --- the texture object used when the button is highlighted
@@ -1216,7 +1225,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetHighlightTexture(val) end,
-        get             = function(self)  if not self:GetHighlightTexture() then self:SetHighlightTexture("dummy") end return self:GetHighlightTexture() end,
     }
 
     --- the texture object used for the button's normal state
@@ -1227,7 +1235,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetNormalTexture(val) end,
-        get             = function(self)  if not self:GetNormalTexture() then self:SetNormalTexture("dummy") end return self:GetNormalTexture() end,
     }
 
     --- the texture object used when the button is disabled
@@ -1238,7 +1245,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetDisabledTexture(val) end,
-        get             = function(self)  if not self:GetDisabledTexture() then self:SetDisabledTexture("dummy") end return self:GetDisabledTexture() end,
     }
 
     --- the font object used when the button is highlighted
@@ -1294,7 +1300,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetCheckedTexture(val) end,
-        get             = function(self)  if not self:GetCheckedTexture() then self:SetCheckedTexture("dummy") end return self:GetCheckedTexture() end,
     }
 
     --- the texture object used when the button is disabled and checked
@@ -1305,7 +1310,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetDisabledCheckedTexture(val) end,
-        get             = function(self)  if not self:GetDisabledCheckedTexture() then self:SetDisabledCheckedTexture("dummy") end return self:GetDisabledCheckedTexture() end,
     }
 end
 
@@ -1341,7 +1345,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorValueTexture(val) end,
-        get             = function(self)  if not self:GetColorValueTexture() then self:SetColorValueTexture("dummy") end return self:GetColorValueTexture() end,
     }
 
     --- the texture for the selection indicator on the color picker's hue/saturation wheel
@@ -1352,7 +1355,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorWheelThumbTexture(val) end,
-        get             = function(self)  if not self:GetColorWheelThumbTexture() then self:SetColorWheelThumbTexture("dummy") end return self:GetColorWheelThumbTexture() end,
     }
 
     --- the texture for the color picker's hue/saturation wheel
@@ -1363,7 +1365,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorWheelTexture(val) end,
-        get             = function(self)  if not self:GetColorWheelTexture() then self:SetColorWheelTexture("dummy") end return self:GetColorWheelTexture() end,
     }
 
     --- the texture for the color picker's value slider thumb
@@ -1374,7 +1375,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetColorValueThumbTexture(val) end,
-        get             = function(self)  if not self:GetColorValueThumbTexture() then self:SetColorValueThumbTexture("dummy") end return self:GetColorValueThumbTexture() end,
     }
 end
 
@@ -1749,7 +1749,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetThumbTexture(val) end,
-        get             = function(self)  if not self:GetThumbTexture() then self:SetThumbTexture("dummy") end return self:GetThumbTexture() end,
     }
 
     --- the minimum and maximum values of the slider bar
@@ -1870,7 +1869,6 @@ do
         nilable         = true,
         childtype       = Texture,
         set             = function(self, val) self:SetStatusBarTexture(val) end,
-        get             = function(self)  if not self:GetStatusBarTexture() then self:SetStatusBarTexture("dummy") end return self:GetStatusBarTexture() end,
     }
 end
 

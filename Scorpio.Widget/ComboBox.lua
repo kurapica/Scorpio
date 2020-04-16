@@ -198,15 +198,19 @@ Style.UpdateSkin("Default",     {
 
             NormalTexture       = {
                 file            = [[Interface\ChatFrame\UI-ChatIcon-ScrollDown-Up]],
+                setAllPoints    = true,
             },
             PushedTexture       = {
                 file            = [[Interface\ChatFrame\UI-ChatIcon-ScrollDown-Down]],
+                setAllPoints    = true,
             },
             DisabledTexture     = {
                 file            = [[Interface\ChatFrame\UI-ChatIcon-ScrollDown-Disabled]],
+                setAllPoints    = true,
             },
             HighlightTexture    = {
                 file            = [[Interface\Buttons\UI-Common-MouseHilight]],
+                setAllPoints    = true,
                 alphamode       = "ADD",
             },
         },
