@@ -130,9 +130,6 @@ class "ComboBox" (function(_ENV)
     end
 
     __Template__{
-        LeftBG                  = Texture,
-        MiddleBG                = Texture,
-        RightBG                 = Texture,
         DisplayText             = FontString,
         DisplayIcon             = Texture,
         Toggle                  = Button,
@@ -155,7 +152,7 @@ Style.UpdateSkin("Default",     {
     [ComboBox]                  = {
         size                    = Size(165, 32),
 
-        LeftBG                  = {
+        LeftBGTexture           = {
             drawLayer           = "ARTWORK",
             file                = [[Interface\Glues\CharacterCreate\CharacterCreate-LabelFrame]],
             width               = 25,
@@ -163,7 +160,7 @@ Style.UpdateSkin("Default",     {
             texCoords           = RectType(0, 0.1953125, 0, 1),
         },
 
-        RightBG                 = {
+        RightBGTexture          = {
             drawLayer           = "ARTWORK",
             file                = [[Interface\Glues\CharacterCreate\CharacterCreate-LabelFrame]],
             width               = 25,
@@ -171,10 +168,10 @@ Style.UpdateSkin("Default",     {
             texCoords           = RectType(0.8046875, 1, 0, 1),
         },
 
-        MiddleBG                = {
+        MiddleBGTexture         = {
             drawLayer           = "ARTWORK",
             file                = [[Interface\Glues\CharacterCreate\CharacterCreate-LabelFrame]],
-            location            = { Anchor("TOPLEFT", 0, 0, "LeftBG", "TOPRIGHT"), Anchor("BOTTOMRIGHT", 0, 0, "RightBG", "BOTTOMLEFT") },
+            location            = { Anchor("TOPLEFT", 0, 0, "LeftBGTexture", "TOPRIGHT"), Anchor("BOTTOMRIGHT", 0, 0, "RightBGTexture", "BOTTOMLEFT") },
             texCoords           = RectType(0.1953125, 0.8046875, 0, 1),
         },
 

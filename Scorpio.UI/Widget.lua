@@ -112,9 +112,13 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
                 if IsSameUI(f, parent) then
                     -- Don't save parent
                     f           = nil
+                elseif IsSameUI(f:GetParent(), parent) then
+                    -- Save the brother's name, it may be a child generated from property
+                    f           = UIObject.GetChildPropertyName(f) or f:GetName()
+                    if not f then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
                 else
-                    -- Save the brother's name or its full name
-                    f           = f:GetName(not IsSameUI(f:GetParent(), parent))
+                    -- Save its full name
+                    f           = f:GetName(true)
                     if not f then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
                 end
             end
@@ -139,7 +143,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
             local relativeFrame
 
             if relativeTo then
-                relativeFrame   = parent and UIObject.GetChild(parent, relativeTo) or UIObject.FromName(relativeTo)
+                relativeFrame   = parent and (UIObject.GetChild(parent, relativeTo) or UIObject.GetPropertyChild(parent, relativeTo)) or UIObject.FromName(relativeTo)
 
                 if not relativeFrame then
                     throw("Usage: LayoutFrame:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.")
@@ -171,7 +175,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
                 local relativeTo = anchor.relativeTo
 
                 if relativeTo then
-                    relativeTo = parent and UIObject.GetChild(parent, relativeTo) or UIObject.FromName(relativeTo)
+                    relativeTo = parent and (UIObject.GetChild(parent, relativeTo) or UIObject.GetPropertyChild(parent, relativeTo)) or UIObject.FromName(relativeTo)
 
                     if not relativeTo then
                         throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo frame")

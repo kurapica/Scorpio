@@ -15,13 +15,15 @@ Scorpio        "Scorpio.Widget.UIPanelScrollFrame"   "1.0.0"
 __Sealed__() class "UIPanelScrollBar" (function(_ENV)
     inherit "Slider"
 
+    local abs                   = math.abs
+
     local function refreshState(self)
         local value             = self:GetValue() or 0
         local min, max          = self:GetMinMaxValues()
         min                     = min or 0
         max                     = max or 0
 
-        if math.abs(max - min) < 0.005 then
+        if abs(max - min) < 0.005 then
             self:GetChild("ScrollUpButton"):SetEnabled(false)
             self:GetChild("ScrollDownButton"):SetEnabled(false)
 
@@ -65,6 +67,7 @@ __Sealed__() class "UIPanelScrollBar" (function(_ENV)
     --- Whether the scroll bar should be hidden if no need to be used
     property "AutoHide"         { type = Boolean, handler = refreshState }
 
+    --- @Override
     function SetMinMaxValues(self, min, max)
         Slider.SetMinMaxValues(self, min, max)
         return refreshState(self)
@@ -133,21 +136,140 @@ end)
 __Sealed__() class "InputScrollFrame" (function(_ENV)
     inherit "UIPanelScrollFrame"
 
+    local Next                  = Scorpio.Next
+
+    local function OnMouseDown(self)
+        self:GetChild("EditBox"):SetFocus()
+    end
+
+    local function handleCursorChange(self)
+        local height, range, scroll, size, cursorOffset
+        local scrollFrame       = self:GetParent()
+
+        height                  = scrollFrame:GetHeight()
+        range                   = scrollFrame:GetVerticalScrollRange()
+        scroll                  = scrollFrame:GetVerticalScroll()
+        size                    = height + range
+        cursorOffset            = -self.cursorOffset or 0
+
+        if ( math.floor(height) <= 0 or math.floor(range) <= 0 ) then
+            --Frame has no area, nothing to calculate.
+            return
+        end
+
+        while ( cursorOffset < scroll ) do
+            scroll              = (scroll - (height / 2))
+            if ( scroll < 0 ) then
+                scroll          = 0
+            end
+            scrollFrame:SetVerticalScroll(scroll)
+        end
+
+        while ( (cursorOffset + self.cursorHeight) > (scroll + height) and scroll < range ) do
+            scroll              = (scroll + (height / 2))
+            if ( scroll > range ) then
+                scroll          = range
+            end
+            scrollFrame:SetVerticalScroll(scroll)
+        end
+    end
+
+    local function OnCursorChanged(self, x, y, w, h)
+        self.cursorOffset       = y
+        self.cursorHeight       = h
+        Next(handleCursorChange, self)
+    end
+
+    local function OnTextChanged(self)
+        local scrollFrame       = self:GetParent()
+
+        handleCursorChange(self)
+
+        if self:GetText() ~= "" then
+            scrollFrame:GetChild("InstructionLabel"):Hide()
+        else
+            scrollFrame:GetChild("InstructionLabel"):Show()
+        end
+
+        local charCount         = scrollFrame:GetChild("CharCount")
+
+        if self:GetMaxLetters() then
+            charCount:SetText(self:GetNumLetters() .. "/" .. self:GetMaxLetters())
+        else
+            charCount:SetText("")
+        end
+
+        charCount:ClearAllPoints()
+
+        if scrollFrame:GetChild("ScrollBar"):IsShown() then
+            charCount:SetPoint("BOTTOMRIGHT", -17, 0)
+        else
+            charCount:SetPoint("BOTTOMRIGHT", 0, 0)
+        end
+    end
+
+    local function OnEscapePressed(self)
+        self:ClearFocus()
+    end
+
+    --- The max letters of the input scroll frame
+    property "MaxLetters" {
+        type                    = Number,
+        set                     = function(self, value)
+            self:GetChild("EditBox"):SetMaxLetters(value)
+        end,
+        get                     = function(self)
+            return self:GetChild("EditBox"):GetMaxLetters()
+        end,
+    }
+
+    --- The instructions of the input scroll frame
+    property "Instructions"     {
+        type                    = String,
+        set                     = function(self, value)
+            self:GetChild("InstructionLabel"):SetText(value)
+        end,
+        get                     = function(self)
+            return self:GetChild("InstructionLabel"):GetText()
+        end,
+    }
+
+    --- Whether show the char count
+    property "HideCharCount"    {
+        type                    = Boolean,
+        set                     = function(self, value)
+            self:GetChild("CharCount"):SetShown(not value)
+        end,
+        get                     = function(self)
+            return not self:GetChild("CharCount"):IsShown()
+        end,
+    }
+
+    --- Sets the text to the input scroll frame
+    function SetText(self, text)
+        self:GetChild("EditBox"):SetText(text)
+    end
+
+    --- Gets the text from the input scroll frame
+    function GetText(self)
+        return self:GetChild("EditBox"):GetText()
+    end
+
     __Template__{
-        TopLeftTex              = Texture,
-        TopRightTex             = Texture,
-        TopTex                  = Texture,
-        BottomLeftTex           = Texture,
-        BottomRightTex          = Texture,
-        BottomTex               = Texture,
-        LeftTex                 = Texture,
-        RightTex                = Texture,
-        MiddleTex               = Texture,
         CharCount               = FontString,
         EditBox                 = EditBox,
-        Instructions            = FontString,
+        InstructionLabel        = FontString,
     }
     function __ctor(self)
+        local editBox           = self:GetChild("EditBox")
+        editBox:SetHeight(32)
+        self:SetScrollChild(editBox)
+
+        self.OnMouseDown        = self.OnMouseDown          + OnMouseDown
+
+        editBox.OnTextChanged   = editBox.OnTextChanged     + OnTextChanged
+        editBox.OnCursorChanged = editBox.OnCursorChanged   + OnCursorChanged
+        editBox.OnEscapePressed = editBox.OnEscapePressed   + OnEscapePressed
     end
 end)
 
@@ -275,64 +397,79 @@ Style.UpdateSkin("Default",     {
         },
     },
     [InputScrollFrame]          = {
-        TopLeftTex              = {
+        scrollBarHideable       = true,
+
+        ScrollBar               = {
+            location            = {
+                Anchor("TOPLEFT", -13, -11, nil, "TOPRIGHT"),
+                Anchor("BOTTOMLEFT", -13, 9, nil, "BOTTOMRIGHT")
+            },
+
+            ScrollUpButton      = {
+                location        = { Anchor("BOTTOM", 0, -4, nil, "TOP") },
+            },
+            ScrollDownButton    = {
+                location        = { Anchor("BOTTOM", 0, 4, nil, "TOP") },
+            },
+        },
+        TopLeftBGTexture        = {
             file                = [[Interface\Common\Common-Input-Border-TL]],
             size                = Size(8, 8),
             location            = { Anchor("TOPLEFT", -5, 5) },
         },
-        TopRightTex             = {
+        TopRightBGTexture       = {
             file                = [[Interface\Common\Common-Input-Border-TR]],
             size                = Size(8, 8),
             location            = { Anchor("TOPRIGHT", 5, 5) },
         },
-        TopTex                  = {
+        TopBGTexture            = {
             file                = [[Interface\Common\Common-Input-Border-T]],
             size                = Size(8, 8),
             location            = {
-                Anchor("TOPLEFT", 0, 0, "TopLeftTex", "TOPRIGHT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "TopRightTex", "BOTTOMLEFT")
+                Anchor("TOPLEFT", 0, 0, "TopLeftBGTexture", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "TopRightBGTexture", "BOTTOMLEFT")
             },
         },
-        BottomLeftTex           = {
+        BottomLeftBGTexture     = {
             file                = [[Interface\Common\Common-Input-Border-BL]],
             size                = Size(8, 8),
             location            = { Anchor("BOTTOMLEFT", -5, -5) },
         },
-        BottomRightTex          = {
+        BottomRightBGTexture    = {
             file                = [[Interface\Common\Common-Input-Border-BR]],
             size                = Size(8, 8),
-            location            = { Anchor("BOTTOMLEFT", 5, -5) },
+            location            = { Anchor("BOTTOMRIGHT", 5, -5) },
         },
-        BottomTex               = {
+        BottomBGTexture         = {
             file                = [[Interface\Common\Common-Input-Border-B]],
             size                = Size(8, 8),
             location            = {
-                Anchor("TOPLEFT", 0, 0, "BottomLeftTex", "TOPRIGHT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "BottomRightTex", "BOTTOMLEFT")
+                Anchor("TOPLEFT", 0, 0, "BottomLeftBGTexture", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "BottomRightBGTexture", "BOTTOMLEFT")
             },
         },
-        LeftTex           = {
+        LeftBGTexture           = {
             file                = [[Interface\Common\Common-Input-Border-L]],
             size                = Size(8, 8),
             location            = {
-                Anchor("TOPLEFT", 0, 0, "TopLeftTex", "BOTTOMLEFT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "BottomLeftTex", "TOPRIGHT")
+                Anchor("TOPLEFT", 0, 0, "TopLeftBGTexture", "BOTTOMLEFT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "BottomLeftBGTexture", "TOPRIGHT")
             },
         },
-        RightTex          = {
+        RightBGTexture          = {
             file                = [[Interface\Common\Common-Input-Border-R]],
             size                = Size(8, 8),
             location            = {
-                Anchor("TOPLEFT", 0, 0, "TopRightTex", "BOTTOMLEFT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "BottomRightTex", "TOPRIGHT")
+                Anchor("TOPLEFT", 0, 0, "TopRightBGTexture", "BOTTOMLEFT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "BottomRightBGTexture", "TOPRIGHT")
             },
         },
-        MiddleTex               = {
+        MiddleBGTexture         = {
             file                = [[Interface\Common\Common-Input-Border-M]],
             size                = Size(8, 8),
             location            = {
-                Anchor("TOPLEFT", 0, 0, "LeftTex", "TOPRIGHT"),
-                Anchor("BOTTOMRIGHT", 0, 0, "RightTex", "BOTTOMLEFT")
+                Anchor("TOPLEFT", 0, 0, "LeftBGTexture", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBGTexture", "BOTTOMLEFT")
             },
         },
         CharCount               = {
@@ -345,13 +482,14 @@ Style.UpdateSkin("Default",     {
             multiLine           = true,
             countInvisibleLetters = true,
             autoFocus           = false,
-            size                = Size(1, 1),
-            location            = { Anchor("TOPLEFT") },
+            location            = { Anchor("TOPLEFT"), Anchor("RIGHT", -18, 0) },
         },
-        Instructions            = {
+        InstructionLabel        = {
             drawLayer           = "BORDER",
             fontObject          = GameFontNormalSmall,
-            location            = { Anchor("TOPLEFT") },
+            justifyH            = "LEFT",
+            justifyV            = "TOP",
+            location            = { Anchor("TOPLEFT", 0, 0, "EditBox"), Anchor("RIGHT") },
             textColor           = Color(0.35, 0.35, 0.35),
         },
     },

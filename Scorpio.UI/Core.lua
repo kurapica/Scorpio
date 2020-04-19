@@ -109,7 +109,7 @@ end
 local function applyProperty(self, prop, value)
     if value == nil then
         if prop.clear then return prop.clear(self) end
-        if prop.default then return prop.set(self, clone(prop.default, true)) end
+        if prop.default ~= nil then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
     elseif prop.set then
         prop.set(self, clone(value, true))
@@ -196,7 +196,7 @@ local function setCustomStyle(target, pname, value, stack)
             elseif type(value) == "table" and getmetatable(value) == nil then
                 local child     = prop.get(target)
                 if child then
-                    setCustomStyle(child, nil, value, stack + 1)
+                    return setCustomStyle(child, nil, value, stack + 1)
                 else
                     error(strformat("The target has no child element from %q", pname), stack + 1)
                 end
@@ -1165,9 +1165,16 @@ function Style.GetProperties(class)
     local props                 = _Property[class]
     if props then
         for name, prop in pairs(props) do
-            yield(name, prop.type, prop.nilable, prop.childtype)
+            yield(name, prop.childtype or prop.type)
         end
     end
+end
+
+__Arguments__{ - UIObject, String }
+function Style.GetProperty(class, name)
+    local props                 = _Property[class]
+    local prop                  = props and props[strlower(name)]
+    if prop then return prop.childtype or prop.type end
 end
 
 Style.RegisterSkin("Default")
@@ -1178,10 +1185,10 @@ export { Scorpio.UI.Property }
 --           Skin System Services           --
 ----------------------------------------------
 local function applyStylesOnFrame(frame, styles)
-    local depends                           = _Recycle()
-
     local props                             = _Property[getUIPrototype(frame)]
-    if not props then return end
+    if not props then return _Recycle(wipe(styles)) end
+
+    local depends                           = _Recycle()
 
     --- Apply the NIL value first to clear
     for name, value in pairs(styles) do
@@ -1218,12 +1225,30 @@ end
 
 local function clearStylesOnFrame(frame, styles)
     local props                             = _Property[getUIPrototype(frame)]
-    if not props then return end
+    if not props then return _Recycle(wipe(styles)) end
+
+    local depends                           = _Recycle()
+
+    -- Check depends
+    for name in pairs(styles) do
+        if props[name].depends then
+            for _, dep in ipairs(props[name].depends) do
+                depends[dep]                = styles[dep]
+            end
+        end
+    end
 
     for name, value in pairs(styles) do
+        if depends[name] == nil then
+            applyProperty(frame, props[name], nil)
+        end
+    end
+
+    for name, value in pairs(depends) do
         applyProperty(frame, props[name], nil)
     end
 
+    _Recycle(wipe(depends))
     _Recycle(wipe(styles))
 end
 
@@ -1327,7 +1352,7 @@ local function clearStyle(frame)
         local debugname                     = frame:GetName(true) or frame:GetObjectType()
         local clearChilds                   = _Recycle()
 
-        Trace("[Scorpio.UI]Clear Style: %s", debugname)
+        Trace("[Scorpio.UI]Clear Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
         local styles, children              = buildTempStyle(frame)
 
@@ -1383,7 +1408,7 @@ function ApplyStyleService()
                 if props and not frame.Disposed then
                     local debugname         = frame:GetName(true) or frame:GetObjectType()
 
-                    Trace("[Scorpio.UI]Apply Style: %s", debugname)
+                    Trace("[Scorpio.UI]Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
                     local styles, children  = buildTempStyle(frame)
 
@@ -1477,35 +1502,50 @@ function QueueClassFramesService()
 end
 
 -- Apply the style on the frame instantly
-__Arguments__{ UIObject }
-function Style.InstantApplyStyle(frame)
-    _StyleQueue[frame]      = nil
+function UIObject:InstantApplyStyle()
+    _StyleQueue[self]       = nil
 
-    local props             = _Property[getUIPrototype(frame)]
+    local props             = _Property[getUIPrototype(self)]
     if not props then return end
 
-    local debugname         = frame:GetName(true) or frame:GetObjectType()
+    local debugname         = self:GetName(true) or self:GetObjectType()
 
     Trace("[Scorpio.UI]Instant Apply Style: %s", debugname)
 
-    local styles, children  = buildTempStyle(frame)
+    local styles, children  = buildTempStyle(self)
 
     -- Queue the children
     for name in pairs(children) do
-        local child         = UIObject.GetChild(frame, name)
+        local child         = UIObject.GetChild(self, name)
 
         if child then
-            Style.InstantApplyStyle(child)
+            UIObject.InstantApplyStyle(child)
         elseif props[name] and props[name].childtype and styles[name] == true then
             styles[name]    = nil
-            child           = props[name].get(frame)
-            if child then Style.InstantApplyStyle(child) end
+            child           = props[name].get(self)
+            if child then UIObject.InstantApplyStyle(child) end
         end
     end
 
     _Recycle(wipe(children))
 
     -- Apply the style settings
-    local ok, err           = pcall(applyStylesOnFrame, frame, styles)
+    local ok, err           = pcall(applyStylesOnFrame, self, styles)
     if not ok then Error("[Scorpio.UI]Apply Style: %s - Failed: %s", debugname, tostring(err)) end
+end
+
+-- Get the child property name of the frame if it's generated by the property
+function UIObject:GetChildPropertyName()
+    return _PropertyChildName[self]
+end
+
+-- Get the child generated from the given property name
+__Arguments__{ String }
+function UIObject:GetPropertyChild(name)
+    self                        = GetProxyUI(self)
+
+    local props                 = _Property[getUIPrototype(self)]
+    local prop                  = props and props[strlower(name)]
+
+    return prop and prop.childtype and prop.get(self, true)
 end

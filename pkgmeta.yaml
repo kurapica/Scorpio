@@ -11,3 +11,6 @@ move-folders:
   Scorpio/Scorpio.Widget  : Scorpio.Widget
 
 manual-changelog: changelog.txt
+
+ignore:
+  - Docs

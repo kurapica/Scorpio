@@ -343,6 +343,8 @@ end
 -- there is no method for them now.                       --
 ------------------------------------------------------------
 do
+    local _Texture_Deps = { "Color", "Atlas", "FileID", "File" }
+
     --- the atlas setting of the texture
     UI.Property         {
         name            = "Atlas",
@@ -361,6 +363,7 @@ do
         default         = "ADD",
         get             = function(self) return self:GetBlendMode() end,
         set             = function(self, val) self:SetBlendMode(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- the texture's color
@@ -380,6 +383,7 @@ do
         default         = false,
         get             = function(self) return self:IsDesaturated() end,
         set             = function(self, val) self:SetDesaturated(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- The texture's desaturation
@@ -390,6 +394,7 @@ do
         default         = 0,
         get             = function(self) return self:GetDesaturation() end,
         set             = function(self, val) self:SetDesaturation(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- Whether the texture is horizontal tile
@@ -400,6 +405,7 @@ do
         default         = false,
         get             = function(self) return self:GetHorizTile() end,
         set             = function(self, val) self:SetHorizTile(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- The gradient color shading for the texture
@@ -409,6 +415,7 @@ do
         require         = { Texture, Line },
         set             = function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
         clear           = function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
+        depends         = _Texture_Deps,
     }
 
     --- The gradient color shading (including opacity in the gradient) for the texture
@@ -418,6 +425,7 @@ do
         require         = { Texture, Line },
         set             = function(self, val) self:SetGradientAlpha(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.mincolor.a, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b, val.maxcolor.a) end,
         clear           = function(self) self:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1) end,
+        depends         = _Texture_Deps,
     }
 
     --- whether the texture object loads its image file in the background
@@ -435,8 +443,10 @@ do
         name            = "Rotation",
         type            = Number,
         require         = { Texture, Line, Cooldown },
+        default         = 0,
         get             = function(self) return self:GetRotation() end,
         set             = function(self, val) self:SetRotation(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- whether snap to pixel grid
@@ -447,6 +457,7 @@ do
         default         = false,
         get             = function(self) return self:IsSnappingToPixelGrid() end,
         set             = function(self, val) self:SetSnapToPixelGrid(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- the texel snapping bias
@@ -457,6 +468,7 @@ do
         default         = 0,
         get             = function(self) return self:GetTexelSnappingBias() end,
         set             = function(self, val) self:SetTexelSnappingBias(val) end,
+        depends         = _Texture_Deps,
     }
 
     --- The corner coordinates for scaling or cropping the texture image
@@ -467,7 +479,7 @@ do
         get             = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
         set             = function(self, val) if val.left then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
         clear           = function(self) self:SetTexCoord(0, 1, 0, 1) end,
-        depends         = { "FileID", "File" }
+        depends         = _Texture_Deps,
     }
 
     --- The texture file id
@@ -497,6 +509,7 @@ do
         require         = { Texture, Line },
         set             = function(self, val) self:SetMask(val) end,
         nilable         = true,
+        depends         = _Texture_Deps,
     }
 
     --- The vertex offset of upperleft corner
@@ -507,6 +520,7 @@ do
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.UpperLeft)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.UpperLeft, val.x, val.y) end,
         clear           = function(self) self:SetVertexOffset(VertexIndexType.UpperLeft, 0, 0) end,
+        depends         = _Texture_Deps,
     }
 
     --- The vertex offset of lowerleft corner
@@ -517,6 +531,7 @@ do
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.LowerLeft)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.LowerLeft, val.x, val.y) end,
         clear           = function(self) self:SetVertexOffset(VertexIndexType.LowerLeft, 0, 0) end,
+        depends         = _Texture_Deps,
     }
 
     --- The vertex offset of upperright corner
@@ -527,6 +542,7 @@ do
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.UpperRight)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.UpperRight, val.x, val.y) end,
         clear           = function(self) self:SetVertexOffset(VertexIndexType.UpperRight, 0, 0) end,
+        depends         = _Texture_Deps,
     }
 
     --- The vertex offset of lowerright corner
@@ -537,6 +553,7 @@ do
         get             = function(self) return Dimension(self:GetVertexOffset(VertexIndexType.LowerRight)) end,
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.LowerRight, val.x, val.y) end,
         clear           = function(self) self:SetVertexOffset(VertexIndexType.LowerRight, 0, 0) end,
+        depends         = _Texture_Deps,
     }
 
     --- Whether the texture is vertical tile
@@ -546,6 +563,7 @@ do
         default         = false,
         get             = function(self) return self:GetVertTile() end,
         set             = function(self, val) self:SetVertTile(val) end,
+        depends         = _Texture_Deps,
     }
 end
 
@@ -2256,5 +2274,72 @@ do
         default         = false,
         set             = function(self, val) self:SetUseTransmogSkin(val) end,
         get             = function(self) return self:GetUseTransmogSkin() end,
+    }
+end
+
+------------------------------------------------------------
+--                Useful Child Properties                 --
+------------------------------------------------------------
+do
+    -- The left background texture
+    UI.Property         {
+        name            = "LeftBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The right background texture
+    UI.Property         {
+        name            = "RightBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The middle background texture
+    UI.Property         {
+        name            = "MiddleBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The top left background texture
+    UI.Property         {
+        name            = "TopLeftBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The top right background texture
+    UI.Property         {
+        name            = "TopRightBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+    -- The top background texture
+    UI.Property         {
+        name            = "TopBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The bottom left background texture
+    UI.Property         {
+        name            = "BottomLeftBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The bottom right background texture
+    UI.Property         {
+        name            = "BottomRightBGTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The bottom background texture
+    UI.Property         {
+        name            = "BottomBGTexture",
+        require         = Frame,
+        childtype       = Texture,
     }
 end

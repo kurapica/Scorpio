@@ -9,7 +9,7 @@
 Scorpio           "Scorpio.Widget.UIDropDownMenu"    "1.0.0"
 --========================================================--
 
-local DELAY_TO_HIDE             = 2
+local DELAY_TO_HIDE             = 1.5
 
 local _UIDropDownListLevel      = {}
 local _UIDropDownMenuButton     = {}
@@ -570,15 +570,15 @@ local rycDropDownMenuLists      = Recycle(UIDropDownMenuList, "Scorpio_UIDropDow
 local rycDropDownLists          = Recycle(UIDropDownList, "Scorpio_UIDropDownList%d")
 
 function rycDropDownMenuButtons:OnInit(obj)
-    return Style.InstantApplyStyle(obj)
+    return obj:InstantApplyStyle()
 end
 
 function rycDropDownMenuLists:OnInit(obj)
-    return Style.InstantApplyStyle(obj)
+    return obj:InstantApplyStyle()
 end
 
 function rycDropDownLists:OnInit(obj)
-    return Style.InstantApplyStyle(obj)
+    return obj:InstantApplyStyle()
 end
 
 local function refreshMenuSize(self)
@@ -771,6 +771,11 @@ local function buildDropDownMenuList(info, dropdown, root)
             button.Disabled     = false
         end
 
+        button.Icon             = binfo.icon
+        button.MouseOverIcon    = binfo.mouseOverIcon
+        button.TooltipTitle     = binfo.tiptitle
+        button.TooltipText      = binfo.tiptext
+
         if binfo.submenu then
             button.SubMenu      = buildDropDownMenuList(binfo.submenu, dropdown)
         end
@@ -782,13 +787,18 @@ end
 struct "UIDropDownMenuInfo" {}
 
 __Sealed__() struct "UIDropDownMenuButtonInfo" {
-    { name = "text",    type = String, require = true },
-    { name = "color",   type = PropertyAccessor },
-    { name = "check",   type = PropertyAccessor },
-    { name = "checkvalue", type = Any },
-    { name = "click",   type = Function },
-    { name = "disabled",type = Boolean },
-    { name = "submenu", type = UIDropDownMenuInfo }
+    { name = "text",            type = String, require = true },
+    { name = "color",           type = PropertyAccessor },
+    { name = "check",           type = PropertyAccessor },
+    { name = "checkvalue",      type = Any },
+    { name = "click",           type = Function },
+    { name = "disabled",        type = Boolean },
+    { name = "submenu",         type = UIDropDownMenuInfo },
+
+    { name = "icon",            type = String + Number },
+    { name = "mouseovericon",   type = String + Number },
+    { name = "tiptitle",        type = String },
+    { name = "tiptext",         type = String },
 }
 
 __Sealed__() struct "UIDropDownMenuInfo" {
