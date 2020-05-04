@@ -1730,15 +1730,6 @@ do
         set             = function(self, val) self:SetVerticalScroll(val) end,
         get             = function(self) return self:GetVerticalScroll() end,
     }
-
-    --- The frame scrolled by the scroll frame
-    UI.Property         {
-        name            = "ScrollChild",
-        type            = LayoutFrame,
-        require         = ScrollFrame,
-        set             = function(self, val) self:SetScrollChild(val) end,
-        get             = function(self) return self:GetScrollChild() end,
-    }
 end
 
 ------------------------------------------------------------

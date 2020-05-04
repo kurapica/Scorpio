@@ -16,8 +16,47 @@ __Sealed__()
 class "ComboBox" (function(_ENV)
     inherit "Frame"
 
+    USE_LIST_LIMIT_COUNT        = 5
+
     local DropDownListOwner
     local DropDownListConfig
+
+    local ShareListFrameOwner
+    local ShareListFrame        = ListFrame("Scorpio_ComboBox_ShareListFrame")
+    ShareListFrame:SetFrameStrata("TOOLTIP")
+    ShareListFrame:Hide()
+
+    __Async__()
+    function ShareListFrame:OnShow()
+        local count             = 120
+
+        while self:IsShown() do
+            if self:IsMouseOver() then
+                count           = 120
+            else
+                count           = count - 1
+
+                if count < 1 then
+                    return self:Hide()
+                end
+            end
+
+            Next()
+        end
+    end
+
+    function ShareListFrame:OnHide()
+        ShareListFrameOwner     = nil
+    end
+
+    function ShareListFrame:OnItemClick(value)
+        if ShareListFrameOwner then
+            ShareListFrameOwner.SelectedValue = value
+            OnSelectedChange(ShareListFrameOwner, value)
+        end
+
+        self:Hide()
+    end
 
     DropDownListConfig          = {
         dropdown                = true,
@@ -42,37 +81,24 @@ class "ComboBox" (function(_ENV)
         end,
     }
 
-    local function Toggle_OnClick(self)
+    local function openDropDownList(self)
         local owner             = self:GetParent()
+        while DropDownListOwner or ShareListFrameOwner do Next() end
 
-        if DropDownListOwner == owner then
-            return Scorpio.CloseDropDownMenu()
-        end
+        local items             = owner.__ComboBox_Items
 
-        if DropDownListOwner then
-            Scorpio.CloseDropDownMenu()
+        if #items > USE_LIST_LIMIT_COUNT then
+            ShareListFrameOwner = owner
+            ShareListFrame:ClearAllPoints()
+            ShareListFrame:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT")
+            ShareListFrame:SetPoint("LEFT", owner, "LEFT")
 
-            -- Wait the preivous drop down closed
-            Next(function()
-                while DropDownListOwner do Next() end
-
-                DropDownListOwner       = owner
-                DropDownListConfig.owner= self
-
-                local items             = owner.__ComboBox_Items
-                if items then
-                    for i = 1, #items do
-                        DropDownListConfig[i] = items[i]
-                    end
-                end
-
-                Scorpio.ShowDropDownMenu(DropDownListConfig)
-            end)
+            ShareListFrame.RawItems = items
+            ShareListFrame:Show()
         else
-            DropDownListOwner           = owner
-            DropDownListConfig.owner    = self
+            DropDownListOwner   = owner
+            DropDownListConfig.owner = self
 
-            local items                 = owner.__ComboBox_Items
             if items then
                 for i = 1, #items do
                     DropDownListConfig[i] = items[i]
@@ -81,6 +107,26 @@ class "ComboBox" (function(_ENV)
 
             Scorpio.ShowDropDownMenu(DropDownListConfig)
         end
+    end
+
+    local function Toggle_OnClick(self)
+        local owner             = self:GetParent()
+
+        if DropDownListOwner then
+            if DropDownListOwner == owner then
+                return Scorpio.CloseDropDownMenu()
+            end
+
+            Scorpio.CloseDropDownMenu()
+        elseif ShareListFrameOwner then
+            if ShareListFrameOwner == owner then
+                return ShareListFrame:Hide()
+            end
+
+            ShareListFrame:Hide()
+        end
+
+        Next(openDropDownList, self)
     end
 
     --- Fired when the selected value changed
@@ -106,21 +152,75 @@ class "ComboBox" (function(_ENV)
     }
 
     --- The selected value of the combobox
-    property "SelectedValue"    { type = Any }
+    property "SelectedValue"    { type = Any,
+        handler                 = function(self, value)
+            local items         = self.__ComboBox_Items or {}
+            local itemidx
+
+            for i, item in ipairs(items) do
+                if item.checkvalue == value then
+                    self.Text   = item.text
+                    break
+                end
+            end
+        end
+    }
 
     --- The items to be selected
     __Indexer__()
     property "Items"            {
-        type                    = String,
+        type                    = String + ListFrame.ListItem,
         set                     = function(self, value, text)
             local items         = self.__ComboBox_Items or {}
+            local itemidx
 
-            tinsert(items, {
-                text            = text,
-                checkvalue      = value,
-            })
+            for i, item in ipairs(items) do
+                if item.checkvalue == value then
+                    itemidx     = i
+                    break
+                end
+            end
 
-            self.__ComboBox_Items = items
+            if text == nil then
+                if itemidx then tremove(items, itemidx) end
+            elseif type(text) == "string" then
+                if itemidx then
+                    local item      = items[itemidx]
+
+                    item.checkvalue = value
+                    item.text       = text
+                    item.icon       = nil
+                    item.tiptitle   = nil
+                    item.tiptext    = nil
+                else
+                    tinsert(items, {
+                        -- So we share the same struct for dropdown menu item and combobox
+                        -- Just for simple
+                        checkvalue  = value,
+                        text        = text,
+                    })
+                end
+            else
+                if itemidx then
+                    local item      = items[itemidx]
+
+                    item.checkvalue = value
+                    item.text       = text.text
+                    item.icon       = text.icon
+                    item.tiptitle   = text.tiptitle
+                    item.tiptext    = text.tiptext
+                else
+                    tinsert(items, {
+                        checkvalue  = value,
+                        text        = text.text,
+                        icon        = text.icon,
+                        tiptitle    = text.tiptitle,
+                        tiptext     = text.tiptext,
+                    })
+                end
+            end
+
+            self.__ComboBox_Items   = items
         end,
     }
 
@@ -150,7 +250,7 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ComboBox]                  = {
-        size                    = Size(165, 32),
+        height                  = 32,
 
         LeftBGTexture           = {
             drawLayer           = "ARTWORK",

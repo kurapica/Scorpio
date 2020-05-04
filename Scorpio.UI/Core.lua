@@ -21,6 +21,7 @@ local isUIObjectType            = UI.IsUIObjectType
 local clone                     = Toolset.clone
 local yield                     = coroutine.yield
 local tinsert                   = table.insert
+local tremove                   = table.remove
 local strlower                  = strlower
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
 
@@ -304,24 +305,20 @@ local function copyBaseSkinSettings(container, base)
     end
 end
 
-local function saveSkinSettings(class, container, settings)
-    if type(settings) ~= "table" then
-        throw("The skin settings for " .. class ..  "must be table")
-    end
+local function saveSkinSettings(classes, paths, container, settings)
+    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  "must be table") end
 
+    local pathIdx               = #classes
+    local class                 = classes[pathIdx]
     local props                 = _Property[class]
 
     -- Check inherit
     for name, value in pairs(settings) do
-        if type(name) ~= "string" then
-            throw("The skin settings only accpet string values as key")
-        end
+        if type(name) ~= "string" then throw("The skin settings only accpet string values as key") end
         if strlower(name) == "inherit" then
             settings[name]      = nil
 
-            if type(value) ~= "string" then
-                throw("The inherit only accpet skin name as value")
-            end
+            if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
             local base          = _Skins[strlower(value)]
             if not base then
                 throw(strformat("The skin named %q doesn't existed", value))
@@ -336,9 +333,23 @@ local function saveSkinSettings(class, container, settings)
     end
 
     for name, value in pairs(settings) do
-        local element           = __Template__.GetElementType(class, name)
+        local element
+
+        paths[pathIdx]          = name
+
+        for i = 1, pathIdx do
+            element             = __Template__.GetElementType(classes[i], unpack(paths, i))
+            if element then break end
+        end
+
+        paths[pathIdx]          = nil
+
         if element then
-            saveSkinSettings(element, gettable(gettable(container, CHILD_SETTING), name), value)
+            tinsert(classes, element)
+            tinsert(paths, name)
+            saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value)
+            tremove(classes)
+            tremove(paths)
         elseif props then
             name                = strlower(name)
             local prop          = props[name]
@@ -354,7 +365,7 @@ local function saveSkinSettings(class, container, settings)
                     if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
                     container[name]     = value
                 elseif type(value) == "table" and getmetatable(value) == nil then
-                    saveSkinSettings(prop.childtype, gettable(gettable(container, CHILD_SETTING), name), value)
+                    saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value)
                 else
                     throw(strformat("The %q is a child generated from property, need table as settings", name))
                 end
@@ -720,32 +731,129 @@ __Sealed__() class "__Template__" (function (_ENV)
     extend "IInitAttribute"
 
     local _Template             = {}
+    local CHILDREN_MAP          = 1
 
     local isUIObjectType        = UI.IsUIObjectType
     local getSuperCTOR          = Class.GetSuperMetaMethod
     local yield                 = coroutine.yield
     local getSuperClass         = Class.GetSuperClass
+    local tinsert               = table.insert
+    local tremove               = table.remove
+    local strformat             = string.format
+    local tconcat               = table.concat
+
+    local function getElementType(cls, ...)
+        local pathCnt           = select("#", ...)
+        local scls              = cls
+
+        repeat
+            local childtree     = _Template[scls]
+            local i             = 1
+            local name          = select(i, ...)
+
+            while childtree and i < pathCnt do
+                local child     = childtree[name]
+
+                if child then
+                    -- Check if it's created by the child
+                    local type  = getElementType(child, select(i + 1, ...))
+                    if type then return type, false end
+                end
+
+                childtree       = childtree[CHILDREN_MAP] and childtree[CHILDREN_MAP][name]
+                i               = i + 1
+                name            = select(i, ...)
+            end
+
+            local type          = childtree and i == pathCnt and childtree[name]
+            if type then return type, scls == cls end
+
+            scls                 = getSuperClass(scls)
+        until not scls
+    end
+
+    local function parseChildTree(cls, path, elements, supercls, stack)
+        local childtree         = {}
+        local container         = _Template
+        local pathCnt           = #path
+        local pathIdx           = pathCnt + 1
+
+        -- Save the tree
+        if pathCnt == 0 then
+            _Template[cls]      = childtree
+        else
+            container           = _Template[cls]
+
+            for i = 1, #path - 1 do
+                container       = container[CHILDREN_MAP][path[i]]
+            end
+
+            container[CHILDREN_MAP]             = container[CHILDREN_MAP] or {}
+            container[CHILDREN_MAP][path[#path]]= childtree
+        end
+
+        -- Save settings to the tree
+        local subtree
+
+        for k, v in pairs(elements) do
+            if type(k) == "string" and isUIObjectType(v) then
+                path[pathIdx]   = k
+
+                -- Check if already created by children or super class
+                if getElementType(cls, unpack(path)) or (supercls and getElementType(supercls, unpack(path))) then
+                    error(strformat("The the child element named %q is already defined", k), stack + 1)
+                end
+
+                path[pathIdx]   = nil
+
+                childtree[k]    = v
+            elseif type(k) == "number" and type(v) == "table" and getmetatable(v) == nil and not subtree then
+                subtree         = v
+            else
+                error("The __Template__'s element type must be an ui object type", stack + 1)
+            end
+        end
+
+        if subtree then
+            childtree[CHILDREN_MAP] = {}
+
+            for name, subelements in pairs(subtree) do
+                if type(name) == "string" and type(subelements) == "table" and getmetatable(subelements) == nil then
+                    path[pathIdx] = name
+
+                    if getElementType(cls, unpack(path)) or (supercls and getElementType(supercls, unpack(path))) then
+                        parseChildTree(cls, path, subelements, supercls, stack + 1)
+                    else
+                        error(strformat("The child with the path %q doesn't existed", tconcat(path, ".")), stack + 1)
+                    end
+                else
+                    error("The __Template__'s element's children settings must be a table", stack + 1)
+                end
+            end
+
+            path[pathIdx]       = nil
+        end
+    end
+
+    local function generateChildren(self, childtree)
+        for k, v in pairs(childtree) do
+            if k ~= CHILDREN_MAP then
+                v(k, self)
+            end
+        end
+
+        if childtree[CHILDREN_MAP] then
+            for name, tree in pairs(childtree[CHILDREN_MAP]) do
+                generateChildren(self:GetChild(name), tree)
+            end
+        end
+    end
 
     -----------------------------------------------------------
     --                     static method                     --
     -----------------------------------------------------------
-    __Static__() __Iterator__()
-    function GetElements(cls)
-        local elements          = _Template[cls]
-        if not elements then return end
-        for k, v in pairs(elements) do yield(k, v) end
-    end
-
-    __Static__()
-    function GetElementType(cls, name)
-        repeat
-            local elements      = _Template[cls]
-            local type          = elements and elements[name]
-            if type then return type end
-
-            cls                 = getSuperClass(cls)
-        until not cls
-    end
+    __Arguments__{ - UIObject, NEString * 1 }
+    __Static__() GetElementType = getElementType
 
     -----------------------------------------------------------
     --                        method                         --
@@ -760,33 +868,16 @@ __Sealed__() class "__Template__" (function (_ENV)
     -- @return  definition                  the new definition
     function InitDefinition(self, target, targettype, definition, owner, name, stack)
         if targettype == AttributeTargets.Method then
-            if name ~= "__ctor" then
-                error("The __Template__ can only be used on the constructor, not nomral method", stack + 1)
-            end
+            if name ~= "__ctor" then error("The __Template__ can only be used on the constructor, not nomral method", stack + 1) end
+            if type(self[1]) ~= "table" then error("The __Template__ lack the element settings", stack + 1) end
 
-            if type(self[1]) ~= "table" then
-                error("The __Template__ lack the element settings", stack + 1)
-            end
-
-            local elements      = {}
-
-            for k, v in pairs(self[1]) do
-                if type(k) == "string" and isUIObjectType(v) then
-                    elements[k] = v
-                else
-                    error("The __Template__'s element type must be an ui object type", stack + 1)
-                end
-            end
-
-            _Template[owner]    = elements
+            parseChildTree(owner, {}, self[1], nil, stack + 1)
 
             return function(self, ...)
                 local sctor = getSuperCTOR(owner, "__ctor")
                 if sctor then sctor(self, ...) end
 
-                for k, v in pairs(elements) do
-                    v(k, self)
-                end
+                generateChildren(self, _Template[owner])
 
                 return definition(self, ...)
             end
@@ -798,20 +889,20 @@ __Sealed__() class "__Template__" (function (_ENV)
                 for k, v in pairs(definition) do
                     if type(k) == "string" and isUIObjectType(v) then
                         elements[k] = v
+                    elseif type(k) == "number" and type(v) == "table" and elements[CHILDREN_MAP] == nil then
+                        elements[CHILDREN_MAP] = v
                     else
                         new[k]  = v
                     end
                 end
 
-                _Template[target] = elements
+                parseChildTree(target, {}, elements, self[0], stack + 1)
 
                 new.__ctor      = function(self, ...)
                     local sctor = getSuperCTOR(target, "__ctor")
                     if sctor then sctor(self, ...) end
 
-                    for k, v in pairs(elements) do
-                        v(k, self)
-                    end
+                    generateChildren(self, _Template[target])
                 end
 
                 return new
@@ -1059,14 +1150,17 @@ function Style.GetDefaultStyles(class, ...)
     local default               = _DefaultStyle[class]
 
     if default then
-        for i = 1, select("#", ...) do
-            local name          = select(i, ...)
-            class               = __Template__.GetElementType(class, name)
+        if select("#", ...) > 0 then
+            class               = __Template__.GetElementType(class, ...)
             if not class then return end
 
-            default             = default[0]
-            default             = default and default[name]
-            if not default then return end
+            for i = 1, select("#", ...) do
+                local name      = select(i, ...)
+
+                default         = default[CHILD_SETTING]
+                default         = default and default[name]
+                if not default then return end
+            end
         end
 
         local props             = _Property[class]
@@ -1100,7 +1194,7 @@ function Style.RegisterSkin(name, settings)
             local skin          = {}
             skins[class]        = skin
 
-            saveSkinSettings(class, skin, setting)
+            saveSkinSettings({class}, {}, skin, setting)
         end
     end
 end
@@ -1118,7 +1212,7 @@ function Style.UpdateSkin(name, settings)
         local skin              = emptyDefaultStyle(skins[class]) or {}
         skins[class]            = skin
 
-        saveSkinSettings(class, skin, setting)
+        saveSkinSettings({class}, {}, skin, setting)
         activeSkin(name, class, skin, true)
     end
 end
@@ -1510,21 +1604,26 @@ function UIObject:InstantApplyStyle()
 
     local debugname         = self:GetName(true) or self:GetObjectType()
 
-    Trace("[Scorpio.UI]Instant Apply Style: %s", debugname)
+    Trace("[Scorpio.UI]Instant Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
     local styles, children  = buildTempStyle(self)
 
     -- Queue the children
     for name in pairs(children) do
         local child         = UIObject.GetChild(self, name)
+        children[name]      = false
 
         if child then
-            UIObject.InstantApplyStyle(child)
+            children[name]  = child
         elseif props[name] and props[name].childtype and styles[name] == true then
             styles[name]    = nil
             child           = props[name].get(self)
-            if child then UIObject.InstantApplyStyle(child) end
+            if child then children[name] = child end
         end
+    end
+
+    for name, child in pairs(children) do
+        if child then UIObject.InstantApplyStyle(child) end
     end
 
     _Recycle(wipe(children))

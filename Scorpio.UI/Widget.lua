@@ -178,6 +178,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
                     relativeTo = parent and (UIObject.GetChild(parent, relativeTo) or UIObject.GetPropertyChild(parent, relativeTo)) or UIObject.FromName(relativeTo)
 
                     if not relativeTo then
+                        print("Failed location", parent:GetName(true), anchor.relativeTo)
                         throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo frame")
                     end
                 else

@@ -5,6 +5,7 @@
     <Script file="SharedTemplates.lua"/>
     <Script file="PopupDialog.lua"/>
     <Script file="UIDropDownMenu.lua"/>
-    <Script file="ComboBox.lua"/>
     <Script file="UIPanelScrollFrame.lua"/>
+    <Script file="ComboBox.lua"/>
+    <Script file="TabControl.lua"/>
 </Ui>
