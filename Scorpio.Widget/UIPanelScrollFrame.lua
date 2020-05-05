@@ -173,13 +173,6 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
         scrollFrame:UpdateScrollChildRect()
         Next()
 
-
-        if self:GetText() ~= "" then
-            scrollFrame:GetChild("InstructionLabel"):Hide()
-        else
-            scrollFrame:GetChild("InstructionLabel"):Show()
-        end
-
         local charCount         = scrollFrame:GetChild("CharCount")
 
         if self:GetMaxLetters() then
@@ -249,17 +242,6 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
         end,
     }
 
-    --- The instructions of the input scroll frame
-    property "Instructions"     {
-        type                    = String,
-        set                     = function(self, value)
-            self:GetScrollChild():GetChild("InstructionLabel"):SetText(value)
-        end,
-        get                     = function(self)
-            return self:GetScrollChild():GetChild("InstructionLabel"):GetText()
-        end,
-    }
-
     --- Whether show the char count
     property "HideCharCount"    {
         type                    = Boolean,
@@ -307,7 +289,6 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
 
     __Template__{
         CharCount               = FontString,
-        InstructionLabel        = FontString,
 
         {
             ScrollChild         = {
@@ -399,11 +380,15 @@ __Sealed__() class "ListFrame" (function(_ENV)
     local Next                  = Scorpio.Next
 
     local function ItemButton_OnClick(self)
-        return OnItemClick(self:GetParent():GetParent(), self.checkvalue)
+        local list              = self:GetParent():GetParent()
+        list.SelectedValue      = self.checkvalue
+        return OnItemClick(list, self.checkvalue)
     end
 
     local function ItemButton_OnDoubleClick(self)
-        return OnItemDoubleClick(self:GetParent():GetParent(), self.checkvalue)
+        local list              = self:GetParent():GetParent()
+        list.SelectedValue      = self.checkvalue
+        return OnItemDoubleClick(list, self.checkvalue)
     end
 
     local function refreshItems(self)
@@ -430,6 +415,16 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
                 if item.tiptitle and item:IsMouseOver() then
                     btn:OnEnter()
+                end
+
+                if self.SelectedValue == item.checkvalue then
+                    local color = self.SelectHightlightColor
+                    btn:LockHighlight()
+                    btn:GetPropertyChild("HighlightTexture"):SetVertexColor(color.r, color.g, color.b)
+                else
+                    local color = self.UnselectHightlightColor
+                    btn:UnlockHighlight()
+                    btn:GetPropertyChild("HighlightTexture"):SetVertexColor(color.r, color.g, color.b)
                 end
             else
                 btn:SetText("")
@@ -509,6 +504,15 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
     --- Fired when double click on the item
     event "OnItemDoubleClick"
+
+    --- The select node highlight color
+    property "SelectHightlightColor"    { type = Color, default = Color(1, 1, 0) }
+
+    --- The un-select node highlight color
+    property "UnselectHightlightColor"  { type = Color, default = Color(.196, .388, .8) }
+
+    --- The selected value of the list frame
+    property "SelectedValue"    { handler = refreshItems }
 
     --- The items to be selected
     __Indexer__()
@@ -1075,14 +1079,6 @@ Style.UpdateSkin("Default",     {
             drawLayer           = "OVERLAY",
             fontObject          = GameFontDisableLarge,
             location            = { Anchor("BOTTOMRIGHT", -6, 0) },
-        },
-        InstructionLabel        = {
-            drawLayer           = "BORDER",
-            fontObject          = GameFontNormalSmall,
-            justifyH            = "LEFT",
-            justifyV            = "TOP",
-            location            = { Anchor("TOPLEFT", 0, 0, "EditBox"), Anchor("RIGHT") },
-            textColor           = Color(0.35, 0.35, 0.35),
         },
     },
     [ListFrameItemButton]       = {

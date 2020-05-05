@@ -94,6 +94,7 @@ class "ComboBox" (function(_ENV)
             ShareListFrame:SetPoint("LEFT", owner, "LEFT")
 
             ShareListFrame.RawItems = items
+            ShareListFrame.SelectedValue = owner.SelectedValue
             ShareListFrame:Show()
         else
             DropDownListOwner   = owner

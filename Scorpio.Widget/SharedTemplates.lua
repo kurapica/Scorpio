@@ -325,13 +325,14 @@ Style.UpdateSkin("Default",     {
     [UIPanelLabel]              = {
         drawLayer               = "BACKGROUND",
         fontObject              = GameFontHighlight,
-        location                = { Anchor("LEFT", -100, 0) },
+        location                = { Anchor("RIGHT", -24, 0, nil, "LEFT") },
+        justifyH                = "RIGHT",
     },
     [UIPanelButton]             = {
         size                    = Size(80, 22),
-        normalFont             = GameFontNormal,
-        disabledFont           = GameFontDisable,
-        highlightFont          = GameFontHighlight,
+        normalFont              = GameFontNormal,
+        disabledFont            = GameFontDisable,
+        highlightFont           = GameFontHighlight,
 
         LeftBGTexture           = {
             drawLayer           = "ARTWORK",

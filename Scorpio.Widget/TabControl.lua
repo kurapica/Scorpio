@@ -51,7 +51,7 @@ __Sealed__() class "TabButton" (function(_ENV)
             self:GetChild("Left"):SetShown(not flag)
             self:GetChild("Middle"):SetShown(not flag)
             self:GetChild("Right"):SetShown(not flag)
-            self:GetChild("Container"):SetShown(flag)
+            self.Container:SetShown(flag)
 
             local text      = self:GetFontString()
             if flag then
@@ -76,6 +76,9 @@ __Sealed__() class "TabButton" (function(_ENV)
         end,
     }
 
+    --- The Container of the tab page
+    property "Container"        { type = Frame }
+
     --- Override the SetText method
     function SetText(self, text)
         Button.SetText(self, text)
@@ -95,15 +98,12 @@ __Sealed__() class "TabButton" (function(_ENV)
         Left                    = Texture,
         Middle                  = Texture,
         Right                   = Texture,
-
-        Container               = Frame,
     }
     function __ctor(self)
         self:SetWidth(115)
         self:InstantApplyStyle()
 
         self:SetFrameLevel(self:GetFrameLevel() + 4)
-        self.Selected           = false
 
         self.OnClick            = self.OnClick + OnClick
         self.OnEnable           = self.OnEnable + OnEnable
@@ -235,9 +235,16 @@ class "TabControl" (function(_ENV)
         end
 
         tabButton:SetText(name)
-        local container         = tabButton:GetChild("Container")
-        container:SetPoint("TOPLEFT", self:GetChild("Body"))
-        container:SetPoint("BOTTOMRIGHT", self:GetChild("Body"))
+        local container         = Frame("TabPageContainer" .. index, self:GetChild("Body"))
+        container:SetPoint("TOPLEFT")
+        container:SetPoint("BOTTOMRIGHT")
+        tabButton.Container     = container
+
+        if index == 1 then
+            tabButton.Selected  = true
+        else
+            tabButton.Selected  = false
+        end
 
         return tabButton
     end
@@ -342,7 +349,6 @@ Style.UpdateSkin("Default",     {
         },
         ButtonText              = {
             fontObject          = GlueFontNormalSmall,
-            location            = { Anchor("CENTER", 0, -3 ) },
         },
 
         HighlightTexture        = {
