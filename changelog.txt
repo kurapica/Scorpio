@@ -1,3 +1,6 @@
+2020/05/05 v36
+	1. The Scorpio.UI & Scorpio.Widget Lib are finished.
+
 2019/07/31
 	1. Style Class system is fixed to support changes.
 
