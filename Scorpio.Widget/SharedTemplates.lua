@@ -10,6 +10,7 @@ Scorpio           "Scorpio.Widget.SharedUIPanel"     "1.0.0"
 --========================================================--
 
 local _M                        = _M -- to be used inside the class
+local IS_CLASSIC                = select(4, GetBuildInfo()) < 20000
 
 -----------------------------------------------------------
 --                   Draggable Widget                    --
@@ -304,6 +305,7 @@ Style.UpdateSkin("Default",     {
     [Mover]                     = {
         location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
         height                  = 26,
+        enableMouse             = true,
     },
     [Resizer]                   = {
         location                = { Anchor("BOTTOMRIGHT") },
@@ -590,6 +592,70 @@ Style.UpdateSkin("Default",     {
         Label                   = {
             fontObject          = GameFontNormalSmall,
             location            = { Anchor("LEFT", -2, 0, nil, "RIGHT") },
+        },
+    },
+})
+
+if not IS_CLASSIC then return end
+Style.UpdateSkin("Default", {
+    [InputBox]                  = {
+        fontObject              = ChatFontNormal,
+
+        LeftBGTexture           = {
+            file                = [[Interface\Common\Common-Input-Border]],
+            texCoords           = RectType(0, 0.0625, 0, 0.625),
+            location            = {
+                Anchor("TOPLEFT", -5, 0),
+                Anchor("BOTTOMLEFT", -5, 0),
+            },
+            width = 8,
+        },
+        RightBGTexture          = {
+            file                = [[Interface\Common\Common-Input-Border]],
+            texCoords           = RectType(0.9375, 1.0, 0, 0.625),
+            location            = {
+                Anchor("TOPRIGHT", 0, 0),
+                Anchor("BOTTOMRIGHT", 0, 0),
+            },
+            width = 8,
+        },
+        MiddleBGTexture         = {
+            file                = [[Interface\Common\Common-Input-Border]],
+            texCoords           = RectType(0.0625, 0.9375, 0, 0.625),
+            location            = {
+                Anchor("TOPLEFT", 0, 0, "LeftBGTexture", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBGTexture", "BOTTOMLEFT"),
+            }
+        },
+    },
+    [DialogHeader]              = {
+        height                  = 39,
+        width                   = 200,
+        location                = { Anchor("TOP", 0, 11) },
+
+        HeaderText              = {
+            fontObject          = GameFontNormal,
+            location            = { Anchor("TOP", 0, -13) },
+        },
+        LeftBGTexture           = {
+            file                = [[Interface\DialogFrame\UI-DialogBox-Header]],
+            size                = Size(32, 41),
+            location            = { Anchor("LEFT") },
+            texCoords           = RectType(0.22265625, 0.34375, 0, 0.640625),
+        },
+        RightBGTexture          = {
+            file                = [[Interface\DialogFrame\UI-DialogBox-Header]],
+            size                = Size(32, 41),
+            location            = { Anchor("RIGHT") },
+            texCoords           = RectType(0.65234375, 0.77734375, 0, 0.640625),
+        },
+        MiddleBGTexture         = {
+            file                = [[Interface\DialogFrame\UI-DialogBox-Header]],
+            texCoords           = RectType(0.34375, 0.65234375, 0, 0.640625),
+            location            = {
+                Anchor("TOPLEFT", 0, 0, "LeftBGTexture", "TOPRIGHT"),
+                Anchor("BOTTOMRIGHT", 0, 0, "RightBGTexture", "BOTTOMLEFT"),
+            }
         },
     },
 })

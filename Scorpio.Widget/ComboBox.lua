@@ -9,6 +9,8 @@
 Scorpio           "Scorpio.Widget.ComboBox"          "1.0.0"
 --========================================================--
 
+local IS_CLASSIC                = select(4, GetBuildInfo()) < 20000
+
 -----------------------------------------------------------
 --                    ComboBox Widget                    --
 -----------------------------------------------------------
@@ -239,8 +241,10 @@ class "ComboBox" (function(_ENV)
         self:GetChild("DisplayIcon"):Hide()
 
         local button            = self:GetChild("Toggle")
-        DropDownToggleButtonMixin.OnLoad_Intrinsic(button)
-        button.HandlesGlobalMouseEvent = DropDownToggleButtonMixin.HandlesGlobalMouseEvent
+        if not IS_CLASSIC then
+            DropDownToggleButtonMixin.OnLoad_Intrinsic(button)
+            button.HandlesGlobalMouseEvent = DropDownToggleButtonMixin.HandlesGlobalMouseEvent
+        end
 
         button.OnClick          = button.OnClick + Toggle_OnClick
     end

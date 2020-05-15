@@ -10,6 +10,7 @@ Scorpio           "Scorpio.Widget.UIDropDownMenu"    "1.0.0"
 --========================================================--
 
 local DELAY_TO_HIDE             = 1.5
+local IS_CLASSIC                = select(4, GetBuildInfo()) < 20000
 
 local _UIDropDownListLevel      = {}
 local _UIDropDownMenuButton     = {}
@@ -174,13 +175,21 @@ local function closeSubList(self)
     end
 end
 
+local function tryCloseMenuList()
+    return Next(closeMenuList)
+end
+
 --- Secure hook the gobal mouse event to auto close the drop down list
-__SecureHook__()
-function UIDropDownMenu_HandleGlobalMouseEvent(button, event)
-    -- must use the mouse up here
-    if event == "GLOBAL_MOUSE_UP" and (button == "LeftButton" or button == "RightButton") then
-        return Next(closeMenuList)
+if not IS_CLASSIC then
+    __SecureHook__()
+    function UIDropDownMenu_HandleGlobalMouseEvent(button, event)
+        -- must use the mouse up here
+        if event == "GLOBAL_MOUSE_UP" and (button == "LeftButton" or button == "RightButton") then
+            return Next(closeMenuList)
+        end
     end
+
+    tryCloseMenuList = function() end
 end
 
 -----------------------------------------------------------
@@ -270,6 +279,8 @@ class "UIDropDownMenuButton" (function(_ENV)
                 OnColorChoosed(self, Scorpio.PickColor(color))
             end)
 
+            tryCloseMenuList()
+
             -- Block the custom onclick
             return true
         elseif self.IsCheckButton then
@@ -281,6 +292,8 @@ class "UIDropDownMenuButton" (function(_ENV)
                 self:GetParent():OnCheckStateChanged(self.CheckValue)
             end
 
+            tryCloseMenuList()
+
             return true
         elseif self.SubMenu then
             if self.SubMenu:IsShown() then
@@ -291,6 +304,8 @@ class "UIDropDownMenuButton" (function(_ENV)
 
             return true
         end
+
+        tryCloseMenuList()
     end
 
     local function InvisibleButton_OnEnter(self)
