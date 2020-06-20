@@ -174,11 +174,12 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
         Next()
 
         local charCount         = scrollFrame:GetChild("CharCount")
+        local max               = self:GetMaxLetters() or 0
 
-        if self:GetMaxLetters() then
-            charCount:SetText(self:GetNumLetters() .. "/" .. self:GetMaxLetters())
+        if max > 0 then
+            charCount:SetText(self:GetNumLetters() .. "/" .. max)
         else
-            charCount:SetText("")
+            charCount:SetText(self:GetNumLetters())
         end
 
         charCount:ClearAllPoints()

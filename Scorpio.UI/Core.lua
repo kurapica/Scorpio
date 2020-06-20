@@ -668,6 +668,13 @@ __Sealed__() class "__Bubbling__" (function(_ENV)
 
     local getChild              = UIObject.GetChild
 
+    local function getTarget(owner, name)
+        for s in name:gmatch("[^%.]+") do
+            owner               = owner and getChild(owner, s)
+        end
+        return owner
+    end
+
     -----------------------------------------------------------
     --                       property                        --
     -----------------------------------------------------------
@@ -691,7 +698,7 @@ __Sealed__() class "__Bubbling__" (function(_ENV)
                 delegate.PopupeBinded = true
 
                 for name, events in pairs(map) do
-                    local child = type(name) == "number" and owner or getChild(owner, name)
+                    local child = type(name) == "number" and owner or getTarget(owner, name)
 
                     if not child then
                         error(("The child named %q doesn't existed in object of %s"):format(name, tostring(getmetatable(owner))))
