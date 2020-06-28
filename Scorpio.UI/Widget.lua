@@ -202,7 +202,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
 end)
 
 --- Frame is in many ways the most fundamental widget object. Other types of widget derivatives such as FontStrings, Textures and Animations can only be created attached to a Frame or other derivative of a Frame.
-__Sealed__() class "Frame"                  (function(_ENV) inherit(LayoutFrame) InstallPrototype(_ENV) end)
+__Sealed__() class "Frame"                  (function(_ENV) inherit(LayoutFrame) InstallPrototype(_ENV) function Dispose(self) self:UnregisterAllEvents() end end)
 
 --- FontStrings are one of the two types of LayoutFrame that is visible on the screen. It draws a block of text on the screen using the characteristics in an associated FontObject.
 __Sealed__() class "FontString"             (function(_ENV) inherit(LayoutFrame)__new = function (_, name, parent, layer, inherits, ...) return parent:CreateFontString(nil, layer or "OVERLAY", inherits or "GameFontNormal", ...) end InstallPrototype(_ENV, nil, _G.ZoneTextString) end)
