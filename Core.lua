@@ -85,6 +85,10 @@ PLoop(function(_ENV)
         local _RegisterService  = {}
         local _ResidentService  = setmetatable({}, META_WEAKKEY)
 
+        local _SingleAsync      = setmetatable({}, META_WEAKVAL)
+        local _RunSingleAsync   = setmetatable({}, META_WEAKKEY)
+        local _CancelSingleAsync= setmetatable({}, META_WEAKKEY)
+
         -- For diagnosis
         g_CacheGenerated        = 0
         g_CacheRamain           = 1
@@ -254,11 +258,15 @@ PLoop(function(_ENV)
 
                     local task  = r_Header[i]
 
-                    if task then
+                    if task and not _CancelSingleAsync[task] then
                         -- Process the task
                         local ok, msg   = resume(task)
                         if not ok then
                             pcall(geterrorhandler(), msg)
+                            if _RunSingleAsync[task] then
+                                _SingleAsync[_RunSingleAsync[task]] = false
+                                _RunSingleAsync[task] = nil
+                            end
                             if _ResidentService[task] then
                                 ThreadCall(_ResidentService[task], msg)
                                 _ResidentService[task] = nil
@@ -294,11 +302,15 @@ PLoop(function(_ENV)
 
                     local task  = r_Header[i]
 
-                    if task then
+                    if task and not _CancelSingleAsync[task] then
                         -- Process the task
                         local ok, msg   = resume(task)
                         if not ok then
                             pcall(geterrorhandler(), msg)
+                            if _RunSingleAsync[task] then
+                                _SingleAsync[_RunSingleAsync[task]] = false
+                                _RunSingleAsync[task] = nil
+                            end
                             if _ResidentService[task] then
                                 ThreadCall(_ResidentService[task])
                                 _ResidentService[task] = nil
@@ -602,6 +614,52 @@ PLoop(function(_ENV)
                 local task      = _RegisterService
                 _RegisterService= {}
                 for i = 1, #task do ThreadCall(task[i]) end
+            end
+        end
+
+        local function retSingleAsync(...)
+            local curr              = running()
+            local guid              = _RunSingleAsync[curr]
+
+            _RunSingleAsync[curr]   = nil
+            _CancelSingleAsync[curr]= nil
+
+            if guid then
+                _SingleAsync[guid]  = false
+            end
+
+            return ...
+        end
+
+        local function registerSingleAsync(func, override)
+            local guid          = Guid.New()
+            while _SingleAsync[guid] ~= nil do guid = Guid.New() end
+            _SingleAsync[guid]  = false
+
+            local wrapper       = function(...)
+                local curr              = running()
+                _RunSingleAsync[curr]   = guid
+                _SingleAsync[guid]      = curr
+
+                return retSingleAsync(func(...))
+            end
+
+            if override then
+                return function(...)
+                    local curr                  = _SingleAsync[guid]
+                    if curr then
+                        _SingleAsync[guid]      = false
+                        _RunSingleAsync[curr]   = nil
+                        _CancelSingleAsync[curr]= true
+                    end
+
+                    return ThreadCall(wrapper, ...)
+                end
+            else
+                return function(...)
+                    if _SingleAsync[guid] then return end
+                    return ThreadCall(wrapper, ...)
+                end
             end
         end
 
@@ -1268,7 +1326,7 @@ PLoop(function(_ENV)
 
         __Arguments__{ }
         __Static__() function Continue()
-            local thread = running()
+            local thread        = running()
             if not thread then error("Scorpio.Continue() can only be used in a thread.", 2) end
 
             queueTask(HIGH_PRIORITY, thread)
@@ -1889,6 +1947,44 @@ PLoop(function(_ENV)
             function __Service__(self, flag)
                 self[1]         = flag
             end
+        end)
+
+        --- Mark the async method that can only be run one copy in the same time.
+        -- So if the method is still running, another call will be cancelled.
+        -- We can also change the behavior by set the override flag to true, so
+        -- when call the method again, the previous call will be cancelled.
+        __Sealed__()
+        class "__AsyncSingle__" (function(_ENV)
+            extend "IInitAttribute"
+
+            -----------------------------------------------------------
+            --                        method                         --
+            -----------------------------------------------------------
+            --- modify the target's definition
+            -- @param   target                      the target
+            -- @param   targettype                  the target type
+            -- @param   definition                  the target's definition
+            -- @param   owner                       the target's owner
+            -- @param   name                        the target's name in the owner
+            -- @param   stack                       the stack level
+            -- @return  definition                  the new definition
+            function InitDefinition(self, target, targettype, definition, owner, name, stack)
+                return registerSingleAsync(definition, self[1])
+            end
+
+            -----------------------------------------------------------
+            --                       property                        --
+            -----------------------------------------------------------
+            --- the attribute target
+            property "AttributeTarget"  { type = AttributeTargets,  default = AttributeTargets.Method + AttributeTargets.Function }
+
+            --- the attribute's priority
+            property "Priority"         { type = AttributePriority, default = AttributePriority.Lower }
+
+            -----------------------------------------------------------
+            --                      constructor                      --
+            -----------------------------------------------------------
+            function __new(_, override) return { override }, true end
         end)
 
         ----------------------------------------------
