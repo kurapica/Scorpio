@@ -19,23 +19,40 @@ __Sealed__()
 class "Mover" (function(_ENV)
     inherit "Frame"
 
+    local _Moving               = setmetatable({}, META_WEAKKEY)
+
+    -- Fired when start moving
+    event "OnStartMoving"
+
     -- Fired when stop moving
-    event "OnMoved"
+    event "OnStopMoving"
 
     local function onMouseDown(self)
         local parent            = self:GetParent()
         if parent:IsMovable() then
-            self.IsMoving       = true
+            _Moving[self]       = LayoutFrame.GetLocation(parent)
             parent:StartMoving()
+            return OnStartMoving(self)
         end
     end
 
     local function onMouseUp(self)
-        if self.IsMoving then
-            self.IsMoving       = false
-            self:GetParent():StopMovingOrSizing()
-            OnMoved(self)
+        local loc               = _Moving[self]
+        if loc then
+            _Moving[self]       = nil
+
+            local parent        = self:GetParent()
+            parent:StopMovingOrSizing()
+
+            LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
+
+            return OnStopMoving(self)
         end
+    end
+
+    -- Whether the mover is moving
+    function IsMoving(self)
+        return _Moving[self] and true or false
     end
 
     function __ctor(self)
@@ -48,23 +65,40 @@ __Sealed__()
 class "Resizer" (function(_ENV)
     inherit "Button"
 
+    local _Resizing             = {}
+
+    -- Fired when start resizing
+    event "OnStartResizing"
+
     -- Fired when stop resizing
-    event "OnResized"
+    event "OnStopResizing"
 
     local function onMouseDown(self)
         local parent            = self:GetParent()
         if parent:IsResizable() then
-            self.IsResizing     = true
+            _Resizing[self]     = LayoutFrame.GetLocation(parent)
             parent:StartSizing("BOTTOMRIGHT")
+            return OnStartResizing(self)
         end
     end
 
     local function onMouseUp(self)
-        if self.IsResizing then
-            self.IsResizing     = false
-            self:GetParent():StopMovingOrSizing()
-            OnResized(self)
+        local loc               = _Resizing[self]
+        if loc then
+            _Resizing[self]     = nil
+
+            local parent        = self:GetParent()
+            parent:StopMovingOrSizing()
+
+            LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
+
+            return OnStopResizing(self)
         end
+    end
+
+    --- Whether the resizer is resizing
+    function IsResizing(self)
+        return _Resizing[self] and true or false
     end
 
     function __ctor(self)
