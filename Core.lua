@@ -258,21 +258,25 @@ PLoop(function(_ENV)
 
                     local task  = r_Header[i]
 
-                    if task and not _CancelSingleAsync[task] then
-                        -- Process the task
-                        local ok, msg   = resume(task)
-                        if not ok then
-                            pcall(geterrorhandler(), msg)
-                            if _RunSingleAsync[task] then
-                                _SingleAsync[_RunSingleAsync[task]] = false
-                                _RunSingleAsync[task] = nil
+                    if task then
+                        if _CancelSingleAsync[task] then
+                            _CancelSingleAsync[task] = nil
+                        else
+                            -- Process the task
+                            local ok, msg   = resume(task)
+                            if not ok then
+                                pcall(geterrorhandler(), msg)
+                                if _RunSingleAsync[task] then
+                                    _SingleAsync[_RunSingleAsync[task]] = false
+                                    _RunSingleAsync[task] = nil
+                                end
+                                if _ResidentService[task] then
+                                    ThreadCall(_ResidentService[task], msg)
+                                    _ResidentService[task] = nil
+                                end
                             end
-                            if _ResidentService[task] then
-                                ThreadCall(_ResidentService[task], msg)
-                                _ResidentService[task] = nil
-                            end
+                            g_FinishedTask  = g_FinishedTask + 1
                         end
-                        g_FinishedTask  = g_FinishedTask + 1
                     end
                     r_Count     = r_Count - 1
                 end
@@ -302,21 +306,25 @@ PLoop(function(_ENV)
 
                     local task  = r_Header[i]
 
-                    if task and not _CancelSingleAsync[task] then
-                        -- Process the task
-                        local ok, msg   = resume(task)
-                        if not ok then
-                            pcall(geterrorhandler(), msg)
-                            if _RunSingleAsync[task] then
-                                _SingleAsync[_RunSingleAsync[task]] = false
-                                _RunSingleAsync[task] = nil
+                    if task then
+                        if _CancelSingleAsync[task] then
+                            _CancelSingleAsync[task] = nil
+                        else
+                            -- Process the task
+                            local ok, msg   = resume(task)
+                            if not ok then
+                                pcall(geterrorhandler(), msg)
+                                if _RunSingleAsync[task] then
+                                    _SingleAsync[_RunSingleAsync[task]] = false
+                                    _RunSingleAsync[task] = nil
+                                end
+                                if _ResidentService[task] then
+                                    ThreadCall(_ResidentService[task])
+                                    _ResidentService[task] = nil
+                                end
                             end
-                            if _ResidentService[task] then
-                                ThreadCall(_ResidentService[task])
-                                _ResidentService[task] = nil
-                            end
+                            g_FinishedTask  = g_FinishedTask + 1
                         end
-                        g_FinishedTask  = g_FinishedTask + 1
                     end
                 end
 
