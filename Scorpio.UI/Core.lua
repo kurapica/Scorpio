@@ -947,7 +947,8 @@ __Sealed__() struct "Scorpio.UI.Property" {
     default                     = { type  = Any },
     nilable                     = { type  = Boolean },
     childtype                   = { type  = - UIObject },
-    depends                     = { type  = struct { NEString } },
+    depends                     = { type  = struct { NEString } },  -- Processed after other properties
+    override                    = { type  = struct { NEString } },  -- override other properties
 
     __valid                     = function(self)
         if not self.childtype and not self.set then
@@ -1029,6 +1030,13 @@ __Sealed__() struct "Scorpio.UI.Property" {
             setting.depends     = {}
             for i, v in ipairs(self.depends) do
                 setting.depends[i] = strlower(v)
+            end
+        end
+
+        if self.override then
+            setting.override    = {}
+            for i, v in ipairs(self.override) do
+                setting.override[i] = strlower(v)
             end
         end
 
@@ -1359,6 +1367,9 @@ local function buildTempStyle(frame)
     local children                          = _Recycle()
     local tempClass                         = _Recycle()
 
+    local props                             = _Property[getUIPrototype(frame)]
+    if not props then return styles, children end -- No properties can be found
+
     -- Prepare the style settings
     -- Custom -> Root Parent Class -> ... -> Parent Class -> Frame Class -> Super Class
     local name                              = _PropertyChildName[frame] or UIObject.GetName(frame)
@@ -1394,11 +1405,29 @@ local function buildTempStyle(frame)
                     for prop, value in pairs(default) do
                         if prop == CHILD_SETTING then
                             for name in pairs(value) do
-                                children[name] = true
+                                children[name]      = true
                             end
                         else
                             if value ~= CLEAR or styles[prop] == nil then
-                                styles[prop]= value
+                                styles[prop]        = value
+
+                                -- Check override
+                                if props[prop].override then
+                                    if value ~= CLEAR then
+                                        for _, op in ipairs(props[prop].override) do
+                                            styles[op]      = nil  -- The overridden property won't be applied
+                                        end
+                                    else
+                                        for _, op in ipairs(props[prop].override) do
+                                            if styles[op]  ~= nil and styles[op] ~= CLEAR then
+                                                styles[prop]= nil
+                                                break
+                                            else
+                                                styles[op]  = nil
+                                            end
+                                        end
+                                    end
+                                end
                             end
                         end
                     end
@@ -1417,6 +1446,24 @@ local function buildTempStyle(frame)
         for prop, value in pairs(_CustomStyle[frame]) do
             if value ~= CLEAR or styles[prop] == nil then
                 styles[prop]                = value
+
+                -- Check override
+                if props[prop].override then
+                    if value ~= CLEAR then
+                        for _, op in ipairs(props[prop].override) do
+                            styles[op]      = nil  -- The overridden property won't be applied
+                        end
+                    else
+                        for _, op in ipairs(props[prop].override) do
+                            if styles[op]  ~= nil and styles[op] ~= CLEAR then
+                                styles[prop]= nil
+                                break
+                            else
+                                styles[op]  = nil
+                            end
+                        end
+                    end
+                end
             end
         end
     end
@@ -1434,7 +1481,23 @@ local function buildTempStyle(frame)
                             children[name]  = true
                         end
                     elseif styles[prop] == nil or styles[prop] == CLEAR then
-                        styles[prop]        = value
+                        local noOverride    = true
+
+                        -- Check override
+                        if props[prop].override then
+                            for _, op in ipairs(props[prop].override) do
+                                if styles[op] ~= nil and styles[op] ~= CLEAR then
+                                    noOverride  = false
+                                    break
+                                else
+                                    styles[op]  = nil  -- Clear the CLEAR value styles
+                                end
+                            end
+                        end
+
+                        if noOverride then
+                            styles[prop]    = value
+                        end
                     end
                 end
             end

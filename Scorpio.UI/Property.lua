@@ -132,6 +132,7 @@ do
         require         = LayoutFrame,
         set             = function(self, flag) self:ClearAllPoints() if flag then self:SetPoint("TOPLEFT") self:SetPoint("BOTTOMRIGHT") end end,
         clear           = function(self) self:ClearAllPoints() end,
+        override        = { "Location" }, -- So it can override the Location settings
     }
 
     --- the location of the LayoutFrame
@@ -142,7 +143,7 @@ do
         get             = function(self) return LayoutFrame.GetLocation(GetProxyUI(self)) end,
         set             = function(self, loc)   LayoutFrame.SetLocation(GetProxyUI(self), loc) end,
         clear           = function(self) self:ClearAllPoints() end,
-        depends         = { "SetAllPoints" }, -- So it can override the setAllPoints settings
+        override        = { "SetAllPoints" }, -- So it can override the setAllPoints settings
     }
 
     --- the frame's scale factor or the scale animation's setting
