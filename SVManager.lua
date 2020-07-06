@@ -161,21 +161,110 @@ __Sealed__() class "SVManager" (function(_ENV)
     __Sealed__() class "SVCharManager" (function(_ENV)
         inherit (SVProxy)
 
-        ----------------------------------------------
-        --               SVSpecManager              --
-        ----------------------------------------------
-        __Sealed__() class "SVSpecManager" (function(_ENV)
-            inherit (SVProxy)
-
-            if not _G.GetSpecialization then return end
-
+        if Scorpio.IsRetail then
             ----------------------------------------------
-            --             SVWarModeManager             --
+            --               SVSpecManager              --
             ----------------------------------------------
-            __Sealed__() class "SVWarModeManager" (function(_ENV)
+            __Sealed__() class "SVSpecManager" (function(_ENV)
                 inherit (SVProxy)
 
+                ----------------------------------------------
+                --             SVWarModeManager             --
+                ----------------------------------------------
+                __Sealed__() class "SVWarModeManager" (function(_ENV)
+                    inherit (SVProxy)
+
+                    local _RTDefault        = {}
+
+                    ----------------------------------------------
+                    --                Constructor               --
+                    ----------------------------------------------
+                    __Arguments__{ Table + NEString, SVProxy/nil }
+                    function __ctor(self, sv, root)
+                        if root then
+                            root            = _Root[root] or root
+                            _RTDefault[root]= _RTDefault[root] or {}
+
+                            super(self, sv, _RTDefault[root])
+                        else
+                            super(self, sv)
+                        end
+                    end
+                end)
+
+                local WarMode_PVE       = WarMode.PVE
+                local WarMode_PVP       = WarMode.PVP
+                local IsWarModeDesired  = C_PvP.IsWarModeDesired
+
+                local _CurrentWarMode   = WarMode.PVE
+                local _DBModeMap        = {}
                 local _RTDefault        = {}
+
+                ----------------------------------------------
+                --                   Method                 --
+                ----------------------------------------------
+                function GetData(self)
+                    local modes         = self.__ScorpioModes
+                    self.__ScorpioModes = nil
+
+                    local data          = super.GetData(self)
+
+                    self.__ScorpioModes = modes
+
+                    return data
+                end
+
+                __Arguments__{ Table }
+                function SetData(self, data)
+                    local modes         = self.__ScorpioModes
+                    self.__ScorpioModes = nil
+
+                    super.SetData(self, data)
+
+                    self.__ScorpioModes = modes
+                end
+
+                --- Reset current specialization saved variable with default
+                function Reset(self)
+                    local modes         = self.__ScorpioModes
+
+                    super.Reset(self)
+
+                    self.__ScorpioModes = modes
+                end
+
+                ----------------------------------------------
+                --                 Property                 --
+                ----------------------------------------------
+                --- The char's specialization saved variable
+                property "WarMode"      {
+                    get                 = function(self)
+                        local cmode     = IsWarModeDesired() and WarMode_PVP or WarMode_PVE
+                        if _CurrentWarMode ~= cmode then
+                            _CurrentWarMode = cmode
+                            wipe(_DBModeMap)
+                        end
+
+                        local mode      = _DBModeMap[self]
+                        if not mode then
+                            self.__ScorpioModes                 = self.__ScorpioModes or {}
+                            self.__ScorpioModes[_CurrentWarMode]= self.__ScorpioModes[_CurrentWarMode] or {}
+                            mode        = SVWarModeManager(self.__ScorpioModes[_CurrentWarMode], self)
+                            _DBModeMap[self]= mode
+                        end
+                        return mode
+                    end
+                }
+
+                --- The specialization sv mananger
+                __Indexer__(WarMode)
+                property "WarModes"     {
+                    get                 = function(self, index)
+                        local modes     = self.__ScorpioModes
+                        local mode      = modes and modes[index]
+                        return mode and SVWarModeManager(mode, self)
+                    end,
+                }
 
                 ----------------------------------------------
                 --                Constructor               --
@@ -184,6 +273,7 @@ __Sealed__() class "SVManager" (function(_ENV)
                 function __ctor(self, sv, root)
                     if root then
                         root            = _Root[root] or root
+                        _Root[self]     = root
                         _RTDefault[root]= _RTDefault[root] or {}
 
                         super(self, sv, _RTDefault[root])
@@ -193,99 +283,43 @@ __Sealed__() class "SVManager" (function(_ENV)
                 end
             end)
 
-            local WarMode_PVE       = WarMode.PVE
-            local WarMode_PVP       = WarMode.PVP
-            local IsWarModeDesired  = C_PvP.IsWarModeDesired
-
-            local _CurrentWarMode   = WarMode.PVE
-            local _DBModeMap        = {}
-            local _RTDefault        = {}
-
-            ----------------------------------------------
-            --                   Method                 --
-            ----------------------------------------------
-            function GetData(self)
-                local modes         = self.__ScorpioModes
-                self.__ScorpioModes = nil
-
-                local data          = super.GetData(self)
-
-                self.__ScorpioModes = modes
-
-                return data
-            end
-
-            __Arguments__{ Table }
-            function SetData(self, data)
-                local modes         = self.__ScorpioModes
-                self.__ScorpioModes = nil
-
-                super.SetData(self, data)
-
-                self.__ScorpioModes = modes
-            end
-
-            --- Reset current specialization saved variable with default
-            function Reset(self)
-                local modes         = self.__ScorpioModes
-
-                super.Reset(self)
-
-                self.__ScorpioModes = modes
-            end
+            local _CurrentSpec  = 1
+            local _DBSpecMap    = {}
 
             ----------------------------------------------
             --                 Property                 --
             ----------------------------------------------
             --- The char's specialization saved variable
-            property "WarMode"      {
-                get                 = function(self)
-                    local cmode     = IsWarModeDesired() and WarMode_PVP or WarMode_PVE
-                    if _CurrentWarMode ~= cmode then
-                        _CurrentWarMode = cmode
-                        wipe(_DBModeMap)
+            property "Spec"     {
+                get             = function(self)
+                    local nowSpec                           = GetSpecialization() or 1
+                    if _CurrentSpec ~= nowSpec then
+                        _CurrentSpec                        = nowSpec
+                        wipe(_DBSpecMap)
                     end
 
-                    local mode      = _DBModeMap[self]
-                    if not mode then
-                        self.__ScorpioModes                 = self.__ScorpioModes or {}
-                        self.__ScorpioModes[_CurrentWarMode]= self.__ScorpioModes[_CurrentWarMode] or {}
-                        mode        = SVWarModeManager(self.__ScorpioModes[_CurrentWarMode], self)
-                        _DBModeMap[self]= mode
+                    local spec  = _DBSpecMap[self]
+                    if not spec then
+                        self.__ScorpioSpecs                 = self.__ScorpioSpecs or {}
+                        self.__ScorpioSpecs[_CurrentSpec]   = self.__ScorpioSpecs[_CurrentSpec] or {}
+                        spec                                = SVSpecManager(self.__ScorpioSpecs[_CurrentSpec], self)
+                        _DBSpecMap[self]                    = spec
                     end
-                    return mode
+                    return spec
                 end
             }
 
             --- The specialization sv mananger
-            __Indexer__(WarMode)
-            property "WarModes"     {
-                get                 = function(self, index)
-                    local modes     = self.__ScorpioModes
-                    local mode      = modes and modes[index]
-                    return mode and SVWarModeManager(mode, self)
+            __Indexer__(Number)
+            property "Specs"    {
+                get             = function(self, index)
+                    local specs = self.__ScorpioSpecs
+                    local spec  = specs and specs[index]
+                    return spec and SVSpecManager(spec, self)
                 end,
             }
+        end
 
-            ----------------------------------------------
-            --                Constructor               --
-            ----------------------------------------------
-            __Arguments__{ Table + NEString, SVProxy/nil }
-            function __ctor(self, sv, root)
-                if root then
-                    root            = _Root[root] or root
-                    _Root[self]     = root
-                    _RTDefault[root]= _RTDefault[root] or {}
-
-                    super(self, sv, _RTDefault[root])
-                else
-                    super(self, sv)
-                end
-            end
-        end)
-
-        local _CurrentSpec      = 1
-        local _DBSpecMap        = {}
         local _RTDefault        = {}
 
         ----------------------------------------------
@@ -319,41 +353,6 @@ __Sealed__() class "SVManager" (function(_ENV)
             super.Reset(self)
 
             self.__ScorpioSpecs = specs
-        end
-
-        ----------------------------------------------
-        --                 Property                 --
-        ----------------------------------------------
-        if _G.GetSpecialization then
-            --- The char's specialization saved variable
-            property "Spec"         {
-                get                 = function(self)
-                    local nowSpec   = GetSpecialization() or 1
-                    if _CurrentSpec ~= nowSpec then
-                        _CurrentSpec= nowSpec
-                        wipe(_DBSpecMap)
-                    end
-
-                    local spec      = _DBSpecMap[self]
-                    if not spec then
-                        self.__ScorpioSpecs               = self.__ScorpioSpecs or {}
-                        self.__ScorpioSpecs[_CurrentSpec] = self.__ScorpioSpecs[_CurrentSpec] or {}
-                        spec        = SVSpecManager(self.__ScorpioSpecs[_CurrentSpec], self)
-                        _DBSpecMap[self]= spec
-                    end
-                    return spec
-                end
-            }
-
-            --- The specialization sv mananger
-            __Indexer__(Number)
-            property "Specs"        {
-                get                 = function(self, index)
-                    local specs     = self.__ScorpioSpecs
-                    local spec      = specs and specs[index]
-                    return spec and SVSpecManager(spec, self)
-                end,
-            }
         end
 
         ----------------------------------------------

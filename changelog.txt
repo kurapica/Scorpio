@@ -1,3 +1,8 @@
+2020/07/06 v37
+	1. Fix some bugs in the child property and style system.
+	2. Add override for the ui style properties, so the 'setAllPoints = true' settings will override the 'location' settings, they won't both work, that would cause conflict.
+	3. __AsyncSingle__ attribute added for functions and methods, so the async function can only have one coroutine running at the same time.
+
 2020/05/05 v36
 	1. The Scorpio.UI & Scorpio.Widget Lib are finished.
 

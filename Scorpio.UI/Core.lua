@@ -59,10 +59,7 @@ local _PropertyChildRecycle     = setmetatable({}, {
 
 local function dispatchPropertySetting(cls, prop, setting, oldsetting, root)
     local settings              = _Property[cls]
-    if not settings then
-        settings                = {}
-        _Property[cls]          = settings
-    end
+    if not settings then return end -- So it doesn't finished the definition
 
     if root then
         oldsetting              = settings[prop]
@@ -80,9 +77,13 @@ end
 Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
     if ptype == Class and IsUIObjectType(cls) then
         if not _Property[cls] then
+            Trace("[Scorpio.UI]Init Property List for %q", tostring(cls))
+
             local super         = Class.GetSuperClass(cls)
             if super and _Property[super] then
                 _Property[cls]  = clone(_Property[super])
+            else
+                _Property[cls]  = {}
             end
         end
 

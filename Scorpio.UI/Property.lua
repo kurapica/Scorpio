@@ -103,6 +103,7 @@ do
         require         = { LayoutFrame, Line },
         get             = function(self) return self:GetHeight() end,
         set             = function(self, height) self:SetHeight(height) end,
+        override        = { "Size" },
     }
 
     --- Whether ignore parent's alpha settings
@@ -163,6 +164,7 @@ do
         require         = { LayoutFrame, Line },
         get             = function(self) return Size(self:GetSize()) end,
         set             = function(self, size) self:SetSize(size.width, size.height) end,
+        override        = { "Height", "Width" },
     }
 
     --- wheter the LayoutFrame is shown or not.
@@ -182,6 +184,7 @@ do
         require         = { LayoutFrame, Line },
         get             = function(self) return self:GetWidth() end,
         set             = function(self, width) self:SetWidth(width) end,
+        override        = { "Size" },
     }
 end
 
@@ -255,6 +258,7 @@ do
             end
             return self:SetFont(font.font, font.height, flags)
         end,
+        override        = { "FontObject" },
     }
 
     --- the Font object
@@ -264,6 +268,7 @@ do
         require         = FONT_TYPES,
         get             = function(self) return self:GetFontObject() end,
         set             = function(self, fontObject) self:SetFontObject(fontObject) end,
+        override        = { "Font" },
     }
 
     --- the fontstring's horizontal text alignment style
@@ -354,6 +359,7 @@ do
         get             = function(self) return AtlasType(self:GetAtlas()) end,
         set             = function(self, val) self:SetAtlas(val.atlas, val.useAtlasSize) end,
         clear           = function(self) self:SetAtlas(nil) end,
+        override        = { "Color", "FileID", "File" },
     }
 
     --- the alpha mode of the texture
@@ -374,6 +380,7 @@ do
         require         = { Texture, Line },
         set             = function(self, color) self:SetColorTexture(color.r, color.g, color.b, color.a) end,
         clear           = function(self) self:SetTexture(nil) end,
+        override        = { "Atlas", "FileID", "File" },
     }
 
     --- whether the texture image should be displayed with zero saturation
@@ -491,6 +498,7 @@ do
         get             = function(self) return self:GetTextureFileID() end,
         set             = function(self, val) self:SetTexture(val) end,
         clear           = function(self) self:SetTexture(nil) end,
+        override        = { "Atlas", "Color", "File" },
     }
 
     --- The texture file path
@@ -501,6 +509,7 @@ do
         get             = function(self) return self:GetTextureFilePath() end,
         set             = function(self, val) self:SetTexture(val) end,
         clear           = function(self) self:SetTexture(nil) end,
+        override        = { "Atlas", "Color", "FileID" },
     }
 
     --- The mask file path

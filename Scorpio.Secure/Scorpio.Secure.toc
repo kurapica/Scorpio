@@ -4,7 +4,7 @@
 ## Version: v001
 ## Notes: Scorpio Secure FrameWork
 ## URL: http://github.com/kurapica/Scorpio
-## Dependencies: Scorpio
+## Dependencies: Scorpio.UI
 ## DefaultState: Enabled
 ## LoadOnDemand: 1
 

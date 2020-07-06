@@ -10,7 +10,6 @@ Scorpio           "Scorpio.Widget.UIDropDownMenu"    "1.0.0"
 --========================================================--
 
 local DELAY_TO_HIDE             = 1.5
-local IS_CLASSIC                = select(4, GetBuildInfo()) < 20000
 
 local _UIDropDownListLevel      = {}
 local _UIDropDownMenuButton     = {}
@@ -180,7 +179,7 @@ local function tryCloseMenuList()
 end
 
 --- Secure hook the gobal mouse event to auto close the drop down list
-if not IS_CLASSIC then
+if Scorpio.IsRetail then
     __SecureHook__()
     function UIDropDownMenu_HandleGlobalMouseEvent(button, event)
         -- must use the mouse up here

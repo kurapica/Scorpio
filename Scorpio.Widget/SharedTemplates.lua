@@ -9,12 +9,13 @@
 Scorpio           "Scorpio.Widget.SharedUIPanel"     "1.0.0"
 --========================================================--
 
-local _M                        = _M -- to be used inside the class
-local IS_CLASSIC                = select(4, GetBuildInfo()) < 20000
+local _M                        = _M    -- to be used inside the class
+local START_MOVE_RESIZE_DELAY   = 0.15  -- A delay to start moving/resizing to reduce the cost
 
 -----------------------------------------------------------
 --                   Draggable Widget                    --
 -----------------------------------------------------------
+--- The widget used as a handler to move other frames
 __Sealed__()
 class "Mover" (function(_ENV)
     inherit "Frame"
@@ -27,27 +28,46 @@ class "Mover" (function(_ENV)
     -- Fired when stop moving
     event "OnStopMoving"
 
+    local function checkMoving(self)
+        local start             = GetTime()
+
+        repeat Next() until _Moving[self] == nil or (GetTime() - start) >= START_MOVE_RESIZE_DELAY
+
+        if _Moving[self] == nil then return end
+        local parent            = self:GetMoveTarget()
+
+        _Moving[self]           = LayoutFrame.GetLocation(parent)
+        parent:StartMoving()
+        return OnStartMoving(self)
+    end
+
     local function onMouseDown(self)
-        local parent            = self:GetParent()
-        if parent:IsMovable() then
-            _Moving[self]       = LayoutFrame.GetLocation(parent)
-            parent:StartMoving()
-            return OnStartMoving(self)
+        if self:GetMoveTarget():IsMovable() then
+            _Moving[self]       = false
+            return Scorpio.Continue(checkMoving, self)
         end
     end
 
     local function onMouseUp(self)
         local loc               = _Moving[self]
+        _Moving[self]           = nil
         if loc then
-            _Moving[self]       = nil
-
-            local parent        = self:GetParent()
+            local parent        = self:GetMoveTarget()
             parent:StopMovingOrSizing()
 
             LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
 
             return OnStopMoving(self)
         end
+    end
+
+    __Arguments__{ UI/nil }
+    function SetMoveTarget(self, ui)
+        self.__Mover_Target     = ui
+    end
+
+    function GetMoveTarget(self)
+        return self.__Mover_Target or self:GetParent()
     end
 
     -- Whether the mover is moving
@@ -61,6 +81,7 @@ class "Mover" (function(_ENV)
     end
 end)
 
+--- The widget used as handler to resize other frames
 __Sealed__()
 class "Resizer" (function(_ENV)
     inherit "Button"
@@ -73,27 +94,63 @@ class "Resizer" (function(_ENV)
     -- Fired when stop resizing
     event "OnStopResizing"
 
+    local function checkResizing(self)
+        local start             = GetTime()
+
+        repeat Next() until _Resizing[self] == nil or (GetTime() - start) >= START_MOVE_RESIZE_DELAY
+
+        if _Resizing[self] == nil then return end
+        local parent            = self:GetResizeTarget()
+
+        _Resizing[self]         = LayoutFrame.GetLocation(parent)
+        parent:StartSizing("BOTTOMRIGHT")
+        return OnStartResizing(self)
+    end
+
     local function onMouseDown(self)
-        local parent            = self:GetParent()
-        if parent:IsResizable() then
-            _Resizing[self]     = LayoutFrame.GetLocation(parent)
-            parent:StartSizing("BOTTOMRIGHT")
-            return OnStartResizing(self)
+        if self:GetResizeTarget():IsResizable() then
+            _Resizing[self]     = false
+            return Scorpio.Continue(checkResizing, self)
         end
     end
 
     local function onMouseUp(self)
         local loc               = _Resizing[self]
+        _Resizing[self]         = nil
         if loc then
-            _Resizing[self]     = nil
-
-            local parent        = self:GetParent()
+            local parent        = self:GetResizeTarget()
             parent:StopMovingOrSizing()
 
             LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
 
             return OnStopResizing(self)
         end
+    end
+
+    __Arguments__{ UI/nil }
+    function SetResizeTarget(self, ui)
+        local old               = self:GetResizeTarget()
+        if old and ui and UI.IsSameUI(old, ui) then return end
+
+        if old then
+            _M:SecureUnHook(old, "SetResizable")
+        end
+
+        if ui then
+             _M:SecureHook(ui, "SetResizable", function(par, flag)
+                if flag then
+                    self:Show()
+                else
+                    self:Hide()
+                end
+            end)
+        end
+
+        self.__Resizer_Target   = ui
+    end
+
+    function GetResizeTarget(self)
+        return self.__Resizer_Target or self:GetParent()
     end
 
     --- Whether the resizer is resizing
@@ -119,6 +176,317 @@ class "Resizer" (function(_ENV)
                 self:Hide()
             end
         end)
+    end
+end)
+
+--- The widget used as mask to move, resize, toggle, key binding for the target widget
+__Sealed__()
+class "Mask" (function(_ENV)
+    inherit "Mover"
+
+    ---------------------------------------------------
+    --                     Event                     --
+    ---------------------------------------------------
+    --- Fired when the mask start resizing
+    __Bubbling__{ Resizer = "OnStartResizing" }
+    event "OnStartResizing"
+
+    --- Fired when the mask stop resizing
+    __Bubbling__{ Resizer = "OnStopResizing" }
+    event "OnStopResizing"
+
+    --- Fired when set the binding key on the mask
+    event "OnKeySet"
+
+    --- Fired when clear the binding key on the mask
+    event "OnKeyClear"
+
+    --- Fired when use right click to toggle
+    event "OnToggle"
+
+    ---------------------------------------------------
+    --                 Event Handler                 --
+    ---------------------------------------------------
+    local _Moving               = setmetatable({}, META_WEAKKEY)
+
+    local _BlockKey             = {
+        UNKNOWN                 = true,
+        LSHIFT                  = true,
+        RSHIFT                  = true,
+        LCTRL                   = true,
+        RCTRL                   = true,
+        LALT                    = true,
+        RALT                    = true,
+    }
+
+    local _ReplaceKey           = {
+        ['ALT']                 = 'A',
+        ['CTRL']                = 'C',
+        ['SHIFT']               = 'S',
+        ['NUMPAD']              = 'N',
+        ['PLUS']                = '+',
+        ['MINUS']               = '-',
+        ['MULTIPLY']            = '*',
+        ['DIVIDE']              = '/',
+        ['BACKSPACE']           = 'BAK',
+        ['BUTTON']              = 'B',
+        ['CAPSLOCK']            = 'CAPS',
+        ['CLEAR']               = 'CLR',
+        ['DELETE']              = 'DEL',
+        ['END']                 = 'END',
+        ['HOME']                = 'HME',
+        ['INSERT']              = 'INS',
+        ['MOUSEWHEELDOWN']      = 'WD',
+        ['MOUSEWHEELUP']        = 'WU',
+        ['NUMLOCK']             = 'NL',
+        ['PAGEDOWN']            = 'PD',
+        ['PAGEUP']              = 'PU',
+        ['SCROLLLOCK']          = 'SL',
+        ['SPACEBAR']            = 'SP',
+        ['SPACE']               = 'SP',
+        ['TAB']                 = '↦',
+        ['DOWNARROW']           = '↓',
+        ['LEFTARROW']           = '←',
+        ['RIGHTARROW']          = '→',
+        ['UPARROW']             = '↑',
+    }
+
+    local function refreshToggleState(self)
+        self:SetAlpha((not self.EnableToggle or self.ToggleState) and 1 or 0.5)
+    end
+
+    local function refreshBindKey(self, key)
+        self:GetChild("KeyBindText"):SetText(self.EnableKeyBinding and self.BindingKey and self.BindingKey:upper():gsub(' ', ''):gsub("%a+", _ReplaceKey) or " ")
+    end
+
+    local function updateBindKey(self, key)
+        local oldKey            = self.BindingKey
+        key                     = key:upper()
+
+        if _BlockKey[key] then return end
+
+        if key == GetBindingKey("SCREENSHOT") then
+            return Screenshot()
+        end
+
+        if key == GetBindingKey("OPENCHAT") then
+            if _G.ChatFrameEditBox then
+                _G.ChatFrameEditBox:Show()
+            end
+            return
+        end
+
+        if key == "ESCAPE" then
+            if oldKey then
+                self.BindingKey = nil
+                return OnKeyClear(self, oldKey)
+            end
+        end
+
+        -- Remap mouse key
+        if key == "LEFTBUTTON" then
+            key                 = "BUTTON1"
+        elseif key == "RIGHTBUTTON" then
+            key                 = "BUTTON2"
+        elseif key == "MIDDLEBUTTON" then
+            key                 = "BUTTON3"
+        end
+
+        if IsShiftKeyDown() then
+            key                 = "SHIFT-" .. key
+        end
+        if IsControlKeyDown() then
+            key                 = "CTRL-" .. key
+        end
+        if IsAltKeyDown() then
+            key                 = "ALT-" .. key
+        end
+
+        self.BindingKey         = key
+
+        OnKeySet(self, key, oldKey)
+    end
+
+    local function OnShow(self)
+        local parent            = self:GetParent()
+        if not parent then self:SetShown(false) end
+
+        self:SetSize(parent:GetSize())
+    end
+
+    local function OnHide(self)
+
+    end
+
+    local function OnMouseDown(self)
+        local parent            = self:GetParent()
+        if parent:IsMovable() then
+            _Moving[self]       = LayoutFrame.GetLocation(parent)
+            parent:StartMoving()
+            return OnStartMoving(self)
+        end
+    end
+
+    local function OnMouseUp(self)
+        local loc               = _Moving[self]
+        if loc then
+            _Moving[self]       = nil
+
+            local parent        = self:GetParent()
+            parent:StopMovingOrSizing()
+
+            LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
+
+            return OnStopMoving(self)
+        end
+    end
+
+    local function OnClick(self, button)
+        if self.EnableToggle and button == "RightButton" then
+            self.ToggleState = not self.ToggleState
+            return OnToggle(self, self.ToggleState)
+        elseif self.EnableKeyBinding then
+            return updateBindKey(self, button)
+        end
+    end
+
+    local function OnMouseWheel(self, wheel)
+        if self.EnableKeyBinding then
+            return updateBindKey(self, wheel > 0 and "MOUSEWHEELUP" or "MOUSEWHEELDOWN")
+        end
+    end
+
+    local function OnKeyDown(self, key)
+        if self.EnableKeyBinding then
+            return updateBindKey(self, key)
+        end
+    end
+
+    local function OnEnter(self)
+        self:EnableKeyboard(self.EnableKeyBinding)
+    end
+
+    local function OnLeave(self)
+        self:EnableKeyboard(false)
+    end
+
+    local function OnParentChanged(self, parent)
+        if parent then
+            self:ClearAllPoints()
+            self:SetAllPoints(parent)
+
+            self:GetChild("Resizer"):SetResizeTarget(self:GetParent())
+        else
+            self:ClearAllPoints()
+            self:Hide()
+        end
+    end
+
+    local function OnStartResizing(self)
+    end
+
+    local function OnStopResizing(self)
+    end
+
+    ---------------------------------------------------
+    --                    Method                     --
+    ---------------------------------------------------
+    --- Whether the mask is resizing
+    function IsResizing(self)
+        return self:GetChild("Resizer"):IsResizing()
+    end
+
+    --- Whether the mask is moving
+    function IsMoving(self)
+
+    end
+
+    --- Enable the key binding
+    function SetKeyBindingEnabled(self, flag)
+        self.EnableKeyBinding   = flag
+    end
+
+    --- Whether the key binding is enabled
+    function IsKeyBindingEnabled(self)
+        return self.EnableKeyBinding
+    end
+
+    --- Sets the binding key
+    function SetBindingKey(self, key)
+        self.BindingKey         = key
+    end
+
+    --- Gets the binding key
+    function GetBindingKey(self)
+        return self.BindingKey
+    end
+
+    --- Enable the right-click toggle functionality
+    function SetToggleEnabled(self, flag)
+        self.EnableToggle       = flag
+    end
+
+    --- Whether the right-click toggle functionality is enabled
+    function IsToggleEnabled(self)
+        return self.EnableToggle
+    end
+
+    --- Sets the toggle state
+    function SetToggleState(self, flag)
+        self.ToggleState        = flag
+    end
+
+    --- Gets the toggle state
+    function GetToggleState(self)
+        return self.ToggleState
+    end
+
+    ---------------------------------------------------
+    --                   Property                    --
+    ---------------------------------------------------
+    --- Whether the key binding is enabled
+    property "EnableKeyBinding" { type = Boolean, handler = refreshBindKey }
+
+    --- The binding key
+    property "BindingKey"       { type = String,  handler = refreshBindKey }
+
+    --- Whether the right-click toggle functionality is enabled
+    property "EnableToggle"     { type = Boolean, handler = refreshToggleState }
+
+    --- The toggle state
+    property "ToggleState"      { type = Boolean, handler = refreshToggleState }
+
+    ---------------------------------------------------
+    --                  Constructor                  --
+    ---------------------------------------------------
+    __Template__{
+        Resizer                 = Resizer,
+        KeyBindText             = FontString,
+    }
+    function __ctor(self)
+        self.OnShow             = self.OnShow           + OnShow
+        self.OnHide             = self.OnHide           + OnHide
+        self.OnMouseDown        = self.OnMouseDown      + OnMouseDown
+        self.OnMouseUp          = self.OnMouseUp        + OnMouseUp
+        self.OnClick            = self.OnClick          + OnClick
+        self.OnMouseWheel       = self.OnMouseWheel     + OnMouseWheel
+        self.OnKeyDown          = self.OnKeyDown        + OnKeyDown
+        self.OnEnter            = self.OnEnter          + OnEnter
+        self.OnLeave            = self.OnLeave          + OnLeave
+        self.OnParentChanged    = self.OnParentChanged  + OnParentChanged
+        self.OnStartResizing    = self.OnStartResizing  + OnStartResizing
+        self.OnStopResizing     = self.OnStopResizing   + OnStopResizing
+
+        self:RegisterForClicks("AnyUp")
+
+        self:GetChild("Resizer"):SetResizeTarget(self:GetParent())
+
+        -- For Key Bindings
+        self:EnableMouse(true)
+        self:EnableMouseWheel(true)
+        self:EnableKeyboard(false)
+
+        self:SetShown(false)
     end
 end)
 
@@ -156,6 +524,8 @@ __Sealed__() class "InputBox" (function(_ENV)
     end
 
     function __ctor(self)
+        self:InstantApplyStyle() -- Fix for classic version
+
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
         self.OnEditFocusGained  = self.OnEditFocusGained + OnEditFocusGained
         self.OnEditFocusLost    = self.OnEditFocusLost + OnEditFocusLost
@@ -356,6 +726,23 @@ Style.UpdateSkin("Default",     {
         HighlightTexture        = {
             file                = [[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight]],
             setAllPoints        = true,
+        }
+    },
+    [Mask]                      = {
+        toplevel                = true,
+        frameStrata             = "TOOLTIP",
+        setAllPoints            = true,
+        backdrop                = {
+            bgFile              = [[Interface\Tooltips\UI-Tooltip-Background]],
+            edgeFile            = [[Interface\Tooltips\UI-Tooltip-Border]],
+            tile                = true, tileSize = 16, edgeSize = 8,
+            insets              = { left = 3, right = 3, top = 3, bottom = 3 }
+        },
+        backdropColor           = ColorType(0, 1, 0, 0.4),
+
+        KeyBindText             = {
+            location            = { Anchor("CENTER") },
+            fontObject          = GameFontNormal,
         }
     },
     [UIPanelLabel]              = {
@@ -630,7 +1017,9 @@ Style.UpdateSkin("Default",     {
     },
 })
 
-if not IS_CLASSIC then return end
+if Scorpio.IsRetail then return end
+
+-- The skin for the classic game
 Style.UpdateSkin("Default", {
     [InputBox]                  = {
         fontObject              = ChatFontNormal,

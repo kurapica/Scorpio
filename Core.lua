@@ -1588,6 +1588,12 @@ PLoop(function(_ENV)
         --- Whether the task schedule system is suspended
         __Static__() property "SystemSuspended" { type = Boolean, get = function() return r_InLoadingScreen end, set = function(self, val) r_InLoadingScreen = val end }
 
+        --- Whether the game is classic version
+        __Static__() property "IsClassic"       { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC end }
+
+        --- Whether the game is retail version
+        __Static__() property "IsRetail"        { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_MAINLINE end }
+
         ----------------------------------------------
         --                 Property                 --
         ----------------------------------------------
