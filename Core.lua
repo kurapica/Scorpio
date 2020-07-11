@@ -3,7 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/12/12                              --
--- Update Date :  2019/07/07                              --
+-- Update Date :  2019/07/12                              --
 --========================================================--
 
 PLoop(function(_ENV)
@@ -85,6 +85,7 @@ PLoop(function(_ENV)
         local _RegisterService  = {}
         local _ResidentService  = setmetatable({}, META_WEAKKEY)
 
+        local _ObjectGuidMap    = setmetatable({}, META_WEAKKEY)
         local _SingleAsync      = setmetatable({}, META_WEAKVAL)
         local _RunSingleAsync   = setmetatable({}, META_WEAKKEY)
         local _CancelSingleAsync= setmetatable({}, META_WEAKKEY)
@@ -639,34 +640,99 @@ PLoop(function(_ENV)
             return ...
         end
 
-        local function registerSingleAsync(func, override)
-            local guid          = Guid.New()
-            while _SingleAsync[guid] ~= nil do guid = Guid.New() end
-            _SingleAsync[guid]  = false
+        local function registerSingleAsync(func, override, owner, name)
+            if owner then
+                -- For method, the guid should be binded to class
+                -- But we need check if the method is static
+                local staticguid
 
-            local wrapper       = function(...)
-                local curr              = running()
-                _RunSingleAsync[curr]   = guid
-                _SingleAsync[guid]      = curr
+                local getGuid                       = function(self)
+                    if staticguid then
+                        -- For static method
+                        return staticguid
+                    elseif staticguid == nil then
+                        -- Check whether is static method
+                        if Interface.IsStaticMethod(owner, name) then
+                            local guid              = Guid.New()
+                            while _SingleAsync[guid] ~= nil do guid = Guid.New() end
+                            _SingleAsync[guid]      = false
+                            staticguid              = guid
 
-                return retSingleAsync(func(...))
-            end
-
-            if override then
-                return function(...)
-                    local curr                  = _SingleAsync[guid]
-                    if curr then
-                        _SingleAsync[guid]      = false
-                        _RunSingleAsync[curr]   = nil
-                        _CancelSingleAsync[curr]= true
+                            return guid
+                        else
+                            staticguid              = false
+                        end
+                    else
+                        -- For object method
+                        local guid                  = _ObjectGuidMap[self]
+                        if not guid then
+                            guid                    = Guid.New()
+                            while _SingleAsync[guid] ~= nil do guid = Guid.New() end
+                            _SingleAsync[guid]      = false
+                            _ObjectGuidMap[self]    = guid
+                        end
+                        return guid
                     end
+                end
 
-                    return ThreadCall(wrapper, ...)
+                local wrapper                       = function(self, ...)
+                    local guid                      = getGuid(self)
+                    local curr                      = running()
+                    _RunSingleAsync[curr]           = guid
+                    _SingleAsync[guid]              = curr
+
+                    return retSingleAsync(func(self, ...))
+                end
+
+                if override then
+                    return function(self, ...)
+                        local guid                  = getGuid(self)
+                        local curr                  = _SingleAsync[guid]
+                        if curr then
+                            _SingleAsync[guid]      = false
+                            _RunSingleAsync[curr]   = nil
+                            _CancelSingleAsync[curr]= true
+                        end
+
+                        return ThreadCall(wrapper, self, ...)
+                    end
+                else
+                    return function(self, ...)
+                        local guid                  = getGuid(self)
+                        if _SingleAsync[guid] then return end
+                        return ThreadCall(wrapper, self, ...)
+                    end
                 end
             else
-                return function(...)
-                    if _SingleAsync[guid] then return end
-                    return ThreadCall(wrapper, ...)
+                -- For function the guid is binded to function
+                local guid                          = Guid.New()
+                while _SingleAsync[guid] ~= nil do guid = Guid.New() end
+                _SingleAsync[guid]                  = false
+
+                local wrapper                       = function(...)
+                    local curr                      = running()
+                    _RunSingleAsync[curr]           = guid
+                    _SingleAsync[guid]              = curr
+
+                    return retSingleAsync(func(...))
+                end
+
+                if override then
+                    return function(...)
+                        local curr                  = _SingleAsync[guid]
+                        if curr then
+                            _SingleAsync[guid]      = false
+                            _RunSingleAsync[curr]   = nil
+                            _CancelSingleAsync[curr]= true
+                        end
+
+                        return ThreadCall(wrapper, ...)
+                    end
+                else
+                    return function(...)
+                        if _SingleAsync[guid] then return end
+                        return ThreadCall(wrapper, ...)
+                    end
                 end
             end
         end
@@ -1983,7 +2049,11 @@ PLoop(function(_ENV)
             -- @param   stack                       the stack level
             -- @return  definition                  the new definition
             function InitDefinition(self, target, targettype, definition, owner, name, stack)
-                return registerSingleAsync(definition, self[1])
+                if targettype == AttributeTargets.Method and (Class.Validate(owner) or Inteface.Validate(owner))  then
+                    return registerSingleAsync(definition, self[1], owner, name)
+                else
+                    return registerSingleAsync(definition, self[1])
+                end
             end
 
             -----------------------------------------------------------

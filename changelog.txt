@@ -1,3 +1,6 @@
+2020/07/12 v38
+	1. The `__AsyncSingle__` can works for the class method and static method, for object method, each object can only have one coroutine running for the same method, for static method, for all objects, only on running coroutine is allowed.
+
 2020/07/06 v37
 	1. Fix some bugs in the child property and style system.
 	2. Add override for the ui style properties, so the 'setAllPoints = true' settings will override the 'location' settings, they won't both work, that would cause conflict.
