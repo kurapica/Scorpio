@@ -268,7 +268,11 @@ PLoop(function(_ENV)
                             if not ok then
                                 pcall(geterrorhandler(), msg)
                                 if _RunSingleAsync[task] then
-                                    _SingleAsync[_RunSingleAsync[task]] = false
+                                    if type(_RunSingleAsync[task]) == "string" then
+                                        _SingleAsync[_RunSingleAsync[task]] = false
+                                    else
+                                        _RunSingleAsync[task][1] = false
+                                    end
                                     _RunSingleAsync[task] = nil
                                 end
                                 if _ResidentService[task] then
@@ -316,7 +320,11 @@ PLoop(function(_ENV)
                             if not ok then
                                 pcall(geterrorhandler(), msg)
                                 if _RunSingleAsync[task] then
-                                    _SingleAsync[_RunSingleAsync[task]] = false
+                                    if type(_RunSingleAsync[task]) == "string" then
+                                        _SingleAsync[_RunSingleAsync[task]] = false
+                                    else
+                                        _RunSingleAsync[task][1] = false
+                                    end
                                     _RunSingleAsync[task] = nil
                                 end
                                 if _ResidentService[task] then
@@ -634,7 +642,11 @@ PLoop(function(_ENV)
             _CancelSingleAsync[curr]= nil
 
             if guid then
-                _SingleAsync[guid]  = false
+                if type(guid) == "string" then
+                    _SingleAsync[guid] = false
+                else
+                    guid[1]         = false
+                end
             end
 
             return ...
@@ -664,42 +676,73 @@ PLoop(function(_ENV)
                         end
                     else
                         -- For object method
-                        local guid                  = _ObjectGuidMap[self]
+                        local map                   = _ObjectGuidMap[self]
+                        if not map then
+                            map                     = {}
+                            _ObjectGuidMap[self]    = map
+                        end
+
+                        local guid                  = map[name]
                         if not guid then
                             guid                    = Guid.New()
-                            while _SingleAsync[guid] ~= nil do guid = Guid.New() end
-                            _SingleAsync[guid]      = false
-                            _ObjectGuidMap[self]    = guid
+                            while map[guid] ~= nil do guid = Guid.New() end
+                            map[name]               = guid
+                            map[guid]               = { [0]= guid, [1] = false }
                         end
-                        return guid
+                        return guid, map[guid]
                     end
                 end
 
                 local wrapper                       = function(self, ...)
-                    local guid                      = getGuid(self)
+                    local guid, obmap               = getGuid(self)
+
                     local curr                      = running()
-                    _RunSingleAsync[curr]           = guid
-                    _SingleAsync[guid]              = curr
+
+                    if obmap then
+                        _RunSingleAsync[curr]       = obmap
+                        _CancelSingleAsync[curr]    = nil
+                        obmap[1]                    = curr
+                    else
+                        _RunSingleAsync[curr]       = guid
+                        _CancelSingleAsync[curr]    = nil
+                        _SingleAsync[guid]          = curr
+                    end
 
                     return retSingleAsync(func(self, ...))
                 end
 
                 if override then
                     return function(self, ...)
-                        local guid                  = getGuid(self)
-                        local curr                  = _SingleAsync[guid]
-                        if curr then
-                            _SingleAsync[guid]      = false
-                            _RunSingleAsync[curr]   = nil
-                            _CancelSingleAsync[curr]= true
+                        local guid, obmap           = getGuid(self)
+
+                        if obmap then
+                            local curr              = obmap[1]
+                            if curr then
+                                obmap[1]                = false
+                                _RunSingleAsync[curr]   = nil
+                                _CancelSingleAsync[curr]= true
+                            end
+                        else
+                            local curr              = _SingleAsync[guid]
+                            if curr then
+                                _SingleAsync[guid]      = false
+                                _RunSingleAsync[curr]   = nil
+                                _CancelSingleAsync[curr]= true
+                            end
                         end
 
                         return ThreadCall(wrapper, self, ...)
                     end
                 else
                     return function(self, ...)
-                        local guid                  = getGuid(self)
-                        if _SingleAsync[guid] then return end
+                        local guid, obmap           = getGuid(self)
+
+                        if obmap then
+                            if obmap[1] then return end
+                        else
+                            if _SingleAsync[guid] then return end
+                        end
+
                         return ThreadCall(wrapper, self, ...)
                     end
                 end
