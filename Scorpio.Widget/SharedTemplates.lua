@@ -616,6 +616,9 @@ class "DialogHeader" {
                 self:SetWidth(math.min( math.max(minwidth, textwidth), maxwidth))
             end)
         end,
+        get                     = function(self)
+            return self:GetChild("HeaderText"):GetText()
+        end
     },
 
     --- The text padding of the header(the sum of the spacing on the left & right)

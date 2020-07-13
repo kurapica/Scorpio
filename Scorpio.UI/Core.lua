@@ -2,7 +2,7 @@
 --                Scorpio Core System                     --
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
--- Create Date :  2020/01/26                              --
+-- Create Date :  2020/07/13                              --
 --========================================================--
 
 --========================================================--
@@ -1115,9 +1115,15 @@ _StyleAccessor                  = prototype {
 
                 local cls       = getUIPrototype(target)
                 local prop      = cls and _Property[cls] and _Property[cls][strlower(key)]
-                if prop and prop.childtype then
-                    _StyleOwner = prop.get(target)
-                    if _StyleOwner then return _StyleAccessor end
+                if prop then
+                    if prop.childtype then
+                        _StyleOwner = prop.get(target)
+                        if _StyleOwner then return _StyleAccessor end
+                    elseif prop.get then
+                        return prop.get(target)
+                    else
+                        error("The " .. key .. " property has no get method")
+                    end
                 end
             end
         end
