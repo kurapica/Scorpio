@@ -570,8 +570,55 @@ class "Font" (function(_ENV)
     ----------------------------------------------
     --               Constructor                --
     ----------------------------------------------
-    __Arguments__{ NEString }
-    function __new(_, name)
-        return CreateFont(name), true
+    __Arguments__{ NEString, FontType/nil }
+    function __new(_, name, font)
+        local self              = CreateFont(name)
+
+        if font then
+            local flags
+
+            if font.outline then
+                if font.outline == "NORMAL" then
+                    flags           = "OUTLINE"
+                elseif font.outline == "THICK" then
+                    flags           = "THICKOUTLINE"
+                end
+            end
+            if font.monochrome then
+                if flags then
+                    flags           = flags..",MONOCHROME"
+                else
+                    flags           = "MONOCHROME"
+                end
+            end
+            self:SetFont(font.font, font.height, flags)
+        end
+
+        return self, true
+    end
+
+    __Arguments__{ NEString, String, Number, OutlineType/nil, Boolean/nil }
+    function __new(_, name, font, height, outline, monochrome)
+        local self              = CreateFont(name)
+
+        local flags
+
+        if outline then
+            if outline == "NORMAL" then
+                flags           = "OUTLINE"
+            elseif outline == "THICK" then
+                flags           = "THICKOUTLINE"
+            end
+        end
+        if monochrome then
+            if flags then
+                flags           = flags..",MONOCHROME"
+            else
+                flags           = "MONOCHROME"
+            end
+        end
+        self:SetFont(font, height, flags)
+
+        return self, true
     end
 end)
