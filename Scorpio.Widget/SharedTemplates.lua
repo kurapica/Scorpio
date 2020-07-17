@@ -16,7 +16,7 @@ local START_MOVE_RESIZE_DELAY   = 0.15  -- A delay to start moving/resizing to r
 --                   Draggable Widget                    --
 -----------------------------------------------------------
 --- The widget used as a handler to move other frames
-__Sealed__()
+__Sealed__() __ChildProperty__(Frame, "Mover")
 class "Mover" (function(_ENV)
     inherit "Frame"
 
@@ -82,7 +82,7 @@ class "Mover" (function(_ENV)
 end)
 
 --- The widget used as handler to resize other frames
-__Sealed__()
+__Sealed__() __ChildProperty__(Frame, "Resizer")
 class "Resizer" (function(_ENV)
     inherit "Button"
 
@@ -144,6 +144,8 @@ class "Resizer" (function(_ENV)
                     self:Hide()
                 end
             end)
+
+            self:SetShown(ui:IsResizable())
         end
 
         self.__Resizer_Target   = ui
@@ -180,7 +182,7 @@ class "Resizer" (function(_ENV)
 end)
 
 --- The widget used as mask to move, resize, toggle, key binding for the target widget
-__Sealed__()
+__Sealed__()  __ChildProperty__(Frame, "Mask")
 class "Mask" (function(_ENV)
     inherit "Mover"
 
