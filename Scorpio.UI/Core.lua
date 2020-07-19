@@ -108,7 +108,11 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
     end
 end
 
+local applyStylesOnFrame
+
 local function applyProperty(self, prop, value)
+    --Trace("[Scorpio.UI]Apply Property:%s - %s", prop.name, tostring(value))
+
     if value == nil then
         if prop.clear then return prop.clear(self) end
         if prop.default ~= nil then return prop.set(self, clone(prop.default, true)) end
@@ -183,22 +187,26 @@ end
 
 local function setCustomStyle(target, pname, value, stack)
     local custom                = gettable(_CustomStyle, target)
+    local haschanges            = false
+    local directapply           = not _StyleQueue[target]
 
     local props                 = _Property[getUIPrototype(target)]
     if not props then error("The target has no property definitions", stack + 1) end
 
     if pname then
         local prop              = props[pname]
+        local cval
 
         if prop.childtype then
-            custom[pname]       = true
+            cval                = true  -- So the system can track the child property
+            directapply         = false
 
             if value == nil or value == CLEAR or value == NIL then
-                custom[pname]   = value or CLEAR
+                cval            = value or CLEAR
             elseif type(value) == "table" and getmetatable(value) == nil then
                 local child     = prop.get(target)
                 if child then
-                    return setCustomStyle(child, nil, value, stack + 1)
+                    setCustomStyle(child, nil, value, stack + 1)
                 else
                     error(strformat("The target has no child element from %q", pname), stack + 1)
                 end
@@ -207,7 +215,8 @@ local function setCustomStyle(target, pname, value, stack)
             end
         else
             if value == nil or value == NIL or value == CLEAR then
-                custom[pname]   = value or CLEAR
+                directapply     = false
+                cval            = value or CLEAR
             else
                 if prop.validate then
                     local ret, msg  = prop.validate(prop.type, value)
@@ -215,13 +224,24 @@ local function setCustomStyle(target, pname, value, stack)
                     value       = ret
                 end
 
-                custom[pname]   = value
+                cval            = value
+            end
+        end
+
+        if custom[pname] ~= cval then
+            custom[pname]       = cval
+            haschanges          = true
+
+            if directapply then
+                return applyProperty(target, prop, cval)
             end
         end
     else
         if type(value) ~= "table" then
             error("The style settings must be property key value pair or a table contains the key-value pairs", stack + 1)
         end
+
+        directapply             = directapply and _Recycle()
 
         for pn, pv in pairs(value) do
             if type(pn) ~= "string" then
@@ -233,17 +253,21 @@ local function setCustomStyle(target, pname, value, stack)
             if child then
                 setCustomStyle(child, nil, pv, stack + 1)
             else
+                local cval
                 local ln        = strlower(pn)
                 local prop      = props[ln]
+                local isclear   = false
+
                 if not prop then error(strformat("The %q isn't a valid property for the target", pn), stack + 1) end
 
                 if prop.childtype then
-                    custom[ln]  = true
+                    cval        = true
 
                     if pv == CLEAR or pv == NIL then
-                        custom[ln] = pv
+                        cval    = pv
+                        isclear = true
                     elseif type(pv) == "table" and getmetatable(pv) == nil then
-                        child   = prop.get(target)
+                        child       = prop.get(target)
                         if child then
                             setCustomStyle(child, nil, pv, stack + 1)
                         else
@@ -254,7 +278,8 @@ local function setCustomStyle(target, pname, value, stack)
                     end
                 else
                     if pv == NIL or pv == CLEAR then
-                        custom[ln] = pv
+                        cval    = pv
+                        isclear = true
                     else
                         if prop.validate then
                             local ret, msg = prop.validate(prop.type, pv)
@@ -262,14 +287,33 @@ local function setCustomStyle(target, pname, value, stack)
                             pv  = ret
                         end
 
-                        custom[ln] = pv
+                        cval    = pv
+                    end
+                end
+
+                if custom[ln] ~= cval then
+                    custom[ln]  = cval
+                    haschanges  = true
+
+                    if directapply then
+                        if isclear then
+                            _Recycle(wipe(directapply))
+                            directapply = nil
+                        else
+                            directapply[ln] = cval
+                        end
                     end
                 end
             end
         end
+
+        if directapply then
+            -- Instant apply custon settings, no need queue it
+            return applyStylesOnFrame(target, directapply)
+        end
     end
 
-    return applyStyle(target)
+    return haschanges and applyStyle(target)
 end
 
 local function registerFrame(cls, frame)
@@ -1300,42 +1344,57 @@ export { Scorpio.UI.Property }
 ----------------------------------------------
 --           Skin System Services           --
 ----------------------------------------------
-local function applyStylesOnFrame(frame, styles)
-    local props                             = _Property[getUIPrototype(frame)]
-    if not props then return _Recycle(wipe(styles)) end
+local function genPriority(props, name, styles, priority, lvl)
+    lvl                         = (lvl or 0) + 1
+    local maxlvl                = lvl
 
-    local depends                           = _Recycle()
+    for _, dep in ipairs(props[name].depends) do
+        local val               = styles[dep]
+        if val ~= nil and val ~= NIL and val ~= CLEAR then
+            priority[dep]       = max(priority[dep] or 0, lvl)
 
-    --- Apply the NIL value first to clear
-    for name, value in pairs(styles) do
-        if value == NIL or value == CLEAR then
-            applyProperty(frame, props[name], nil)
-        end
-
-        -- Register the depends, normally this is one level depends
-        -- so no order for now, I may check it later for complex order
-        if props[name].depends then
-            for _, dep in ipairs(props[name].depends) do
-                depends[dep]                = styles[dep]
+            if props[dep].depends then
+                maxlvl          = max(maxlvl, genPriority(props, dep, styles, priority, lvl))
             end
         end
     end
 
-    -- Check Depends
-    for name, value in pairs(depends) do
-        if value ~= NIL and value ~= CLEAR then
-            applyProperty(frame, props[name], value)
-        end
-    end
+    return maxlvl
+end
 
-    -- Apply the rest
+function applyStylesOnFrame(frame, styles)
+    local props                 = _Property[getUIPrototype(frame)]
+    if not props then return _Recycle(wipe(styles)) end
+
+    local priority              = _Recycle()
+    local maxlvl                = 0
+
+    -- Generate the priority to apply the styles based on the depends
     for name, value in pairs(styles) do
-        if value ~= NIL and value ~= CLEAR and not depends[name] then
-            applyProperty(frame, props[name], value)
+        if value == NIL or value == CLEAR then
+            applyProperty(frame, props[name], nil)
+            styles[name]        = nil
+        elseif props[name].depends then
+            maxlvl              = max(maxlvl, genPriority(props, name, styles, priority))
         end
     end
 
-    _Recycle(wipe(depends))
+    -- Process with priority
+    for i = maxlvl, 1, -1 do
+        for name, lv in pairs(priority) do
+            if lv == i and styles[name] ~= nil then
+                applyProperty(frame, props[name], styles[name])
+                styles[name]    = nil
+            end
+        end
+    end
+
+    -- Process the rest
+    for name, value in pairs(styles) do
+        applyProperty(frame, props[name], value)
+    end
+
+    _Recycle(wipe(priority))
     _Recycle(wipe(styles))
 end
 
@@ -1343,28 +1402,36 @@ local function clearStylesOnFrame(frame, styles)
     local props                             = _Property[getUIPrototype(frame)]
     if not props then return _Recycle(wipe(styles)) end
 
-    local depends                           = _Recycle()
+    local priority              = _Recycle()
+    local maxlvl                = 0
 
-    -- Check depends
-    for name in pairs(styles) do
-        if props[name].depends then
-            for _, dep in ipairs(props[name].depends) do
-                depends[dep]                = styles[dep]
-            end
+    -- Generate the priority to apply the styles based on the depends
+    for name, value in pairs(styles) do
+        if value == NIL or value == CLEAR then
+            applyProperty(frame, props[name], nil)
+            styles[name]        = nil
+        elseif props[name].depends then
+            maxlvl              = max(maxlvl, genPriority(props, name, styles, priority))
         end
     end
 
+    -- Process property with no priority
     for name, value in pairs(styles) do
-        if depends[name] == nil then
+        if not priority[name] then
             applyProperty(frame, props[name], nil)
         end
     end
 
-    for name, value in pairs(depends) do
-        applyProperty(frame, props[name], nil)
+    -- Process with priority
+    for i = 1, maxlvl do
+        for name, lv in pairs(priority) do
+            if lv == i and styles[name] ~= nil then
+                applyProperty(frame, props[name], nil)
+            end
+        end
     end
 
-    _Recycle(wipe(depends))
+    _Recycle(wipe(priority))
     _Recycle(wipe(styles))
 end
 

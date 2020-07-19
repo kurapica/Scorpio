@@ -881,6 +881,7 @@ Style.UpdateSkin("Default",     {
         frameStrata             = "DIALOG",
         size                    = Size(300, 200),
         location                = { Anchor("CENTER") },
+        minResize               = Size(100, 100),
         toplevel                = true,
         movable                 = true,
         resizable               = true,

@@ -207,7 +207,7 @@ do
         name            = "VertexColor",
         type            = ColorType,
         require         = { Texture, FontString, Line },
-        default         = Color(1, 1, 1),
+        default         = Color.WHITE,
         get             = function(self) if self.GetVertexColor then return Color(self:GetVertexColor()) end end,
         set             = function(self, color) self:SetVertexColor(color.r, color.g, color.b, color.a) end,
     }
@@ -413,7 +413,7 @@ do
         default         = false,
         get             = function(self) return self:GetHorizTile() end,
         set             = function(self, val) self:SetHorizTile(val) end,
-        depends         = _Texture_Deps,
+        depends         = { "Color", "Atlas", "FileID", "File", "TexCoords" },
     }
 
     --- The gradient color shading for the texture
@@ -485,7 +485,7 @@ do
         type            = RectType,
         require         = { Texture, Line },
         get             = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
-        set             = function(self, val) if val.left then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
+        set             = function(self, val) if not val.ULx then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
         clear           = function(self) self:SetTexCoord(0, 1, 0, 1) end,
         depends         = _Texture_Deps,
     }
@@ -573,7 +573,7 @@ do
         default         = false,
         get             = function(self) return self:GetVertTile() end,
         set             = function(self, val) self:SetVertTile(val) end,
-        depends         = _Texture_Deps,
+        depends         = { "Color", "Atlas", "FileID", "File", "TexCoords" },
     }
 end
 
@@ -880,38 +880,6 @@ end
 --                         Frame                          --
 ------------------------------------------------------------
 do
-    --- the backdrop graphic for the frame
-    UI.Property         {
-        name            = "Backdrop",
-        type            = BackdropType,
-        require         = Frame,
-        nilable         = true,
-        set             = function(self, val) self:SetBackdrop(val) end,
-        get             = function(self) return self:GetBackdrop() end,
-    }
-
-    --- the shading color for the frame's border graphic
-    UI.Property         {
-        name            = "BackdropBorderColor",
-        type            = ColorType,
-        require         = Frame,
-        default         = Color.TRANSPARENT,
-        set             = function(self, val) self:SetBackdropBorderColor(val.r, val.g, val.b, val.a) end,
-        get             = function(self) local r, g, b, a = self:GetBackdropBorderColor() if r then return Color(r, g, b, a) end end,
-        depends         = { "Backdrop" },
-    }
-
-    --- the shading color for the frame's background graphic
-    UI.Property         {
-        name            = "BackdropColor",
-        type            = ColorType,
-        require         = Frame,
-        default         = Color.TRANSPARENT,
-        set             = function(self, val) self:SetBackdropColor(val.r, val.g, val.b, val.a) end,
-        get             = function(self) local r, g, b, a = self:GetBackdropColor() if r then return Color(r, g, b, a) end end,
-        depends         = { "Backdrop" },
-    }
-
     --- whether the frame's boundaries are limited to those of the screen
     UI.Property         {
         name            = "ClampedToScreen",
@@ -2342,5 +2310,452 @@ do
         name            = "BottomBGTexture",
         require         = Frame,
         childtype       = Texture,
+    }
+end
+
+------------------------------------------------------------
+--                  Backdrop Properties                   --
+------------------------------------------------------------
+if Frame.SetBackdrop then  -- For 8.0 and classic
+    --- the backdrop graphic for the frame
+    UI.Property         {
+        name            = "Backdrop",
+        type            = BackdropType,
+        require         = Frame,
+        nilable         = true,
+        set             = function(self, val) self:SetBackdrop(val or nil) end,
+        get             = function(self) return self:GetBackdrop() end,
+    }
+
+    --- the shading color for the frame's border graphic
+    UI.Property         {
+        name            = "BackdropBorderColor",
+        type            = ColorType,
+        require         = Frame,
+        default         = Color.TRANSPARENT,
+        set             = function(self, val) self:SetBackdropBorderColor(val.r, val.g, val.b, val.a) end,
+        get             = function(self) local r, g, b, a = self:GetBackdropBorderColor() if r then return Color(r, g, b, a) end end,
+        depends         = { "Backdrop" },
+    }
+
+    --- the shading color for the frame's background graphic
+    UI.Property         {
+        name            = "BackdropColor",
+        type            = ColorType,
+        require         = Frame,
+        default         = Color.TRANSPARENT,
+        set             = function(self, val) self:SetBackdropColor(val.r, val.g, val.b, val.a) end,
+        get             = function(self) local r, g, b, a = self:GetBackdropColor() if r then return Color(r, g, b, a) end end,
+        depends         = { "Backdrop" },
+    }
+else  -- For 9.0
+    local clone             = Toolset.clone
+    local getPropertyChild  = UIObject.GetPropertyChild
+
+    local coordStart        = 0.0625
+    local coordEnd          = 1 - coordStart
+    local textureUVs        = {
+        BackdropTopLeft     = { setWidth = true, setHeight = true, ULx = 0.5078125, ULy = coordStart, LLx = 0.5078125, LLy = coordEnd,  URx = 0.6171875, URy = coordStart, LRx = 0.6171875, LRy = coordEnd },
+        BackdropTopRight    = { setWidth = true, setHeight = true, ULx = 0.6328125, ULy = coordStart, LLx = 0.6328125, LLy = coordEnd,  URx = 0.7421875, URy = coordStart, LRx = 0.7421875, LRy = coordEnd },
+        BackdropBottomLeft  = { setWidth = true, setHeight = true, ULx = 0.7578125, ULy = coordStart, LLx = 0.7578125, LLy = coordEnd,  URx = 0.8671875, URy = coordStart, LRx = 0.8671875, LRy = coordEnd },
+        BackdropBottomRight = { setWidth = true, setHeight = true, ULx = 0.8828125, ULy = coordStart, LLx = 0.8828125, LLy = coordEnd,  URx = 0.9921875, URy = coordStart, LRx = 0.9921875, LRy = coordEnd },
+        BackdropTop         = { setWidth = false,setHeight = true, ULx = 0.2578125, ULy = "repeatX",  LLx = 0.3671875, LLy = "repeatX", URx = 0.2578125, URy = coordStart, LRx = 0.3671875, LRy = coordStart },
+        BackdropBottom      = { setWidth = false,setHeight = true, ULx = 0.3828125, ULy = "repeatX",  LLx = 0.4921875, LLy = "repeatX", URx = 0.3828125, URy = coordStart, LRx = 0.4921875, LRy = coordStart },
+        BackdropLeft        = { setWidth = true, setHeight = false,ULx = 0.0078125, ULy = coordStart, LLx = 0.0078125, LLy = "repeatY", URx = 0.1171875, URy = coordStart, LRx = 0.1171875, LRy = "repeatY" },
+        BackdropRight       = { setWidth = true, setHeight = false,ULx = 0.1328125, ULy = coordStart, LLx = 0.1328125, LLy = "repeatY", URx = 0.2421875, URy = coordStart, LRx = 0.2421875, LRy = "repeatY" },
+        BackdropCenter      = { setWidth = false,setHeight = false,ULx = 0,         ULy = 0,          LLx = 0,         LLy = "repeatY", URx = "repeatX", URy = 0,          LRx = "repeatX", LRy = "repeatY" },
+    }
+    local defaultEdgeSize   = 39     -- the old default
+
+    for name in pairs(textureUVs) do
+        UI.Property         {
+            name            = name,
+            require         = Frame,
+            childtype       = Texture,
+        }
+    end
+
+    local backdropInfo      = setmetatable({}, META_WEAKKEY)
+    local backdropColor     = setmetatable({}, META_WEAKKEY)
+    local backdropBrdColor  = setmetatable({}, META_WEAKKEY)
+    local backdropBrdBlend  = setmetatable({}, META_WEAKKEY)
+
+    local function getCoordValue(coord, pieceSetup, repeatX, repeatY)
+        local value         = textureUVs[pieceSetup][coord]
+        if value == "repeatX" then
+            return repeatX
+        elseif value == "repeatY" then
+            return repeatY
+        else
+            return value
+        end
+    end
+
+    local function setupCoordinates(pieceSetup, repeatX, repeatY)
+        local val = RectType(nil, nil, nil, nil,
+            getCoordValue("ULx", pieceSetup, repeatX, repeatY), getCoordValue("ULy", pieceSetup, repeatX, repeatY),
+            getCoordValue("LLx", pieceSetup, repeatX, repeatY), getCoordValue("LLy", pieceSetup, repeatX, repeatY),
+            getCoordValue("URx", pieceSetup, repeatX, repeatY), getCoordValue("URy", pieceSetup, repeatX, repeatY),
+            getCoordValue("LRx", pieceSetup, repeatX, repeatY), getCoordValue("LRy", pieceSetup, repeatX, repeatY)
+        )
+
+        return val
+    end
+
+    local function applyTextureCoords(self)
+        local backdrop          = backdropInfo[self]
+        if not backdrop then return end
+
+        local width             = self:GetWidth()
+        local height            = self:GetHeight()
+        local effectiveScale    = self:GetEffectiveScale()
+        local edgeSize          = backdrop.edgeSize or defaultEdgeSize
+        local edgeRepeatX       = max(0, (width / edgeSize) * effectiveScale - 2 - coordStart)
+        local edgeRepeatY       = max(0, (height / edgeSize) * effectiveScale - 2 - coordStart)
+
+        local repeatX           = 1
+        local repeatY           = 1
+
+        if backdrop.tile then
+            local divisor       = backdrop.tileSize
+            if not divisor or divisor == 0 then
+                divisor         = edgeSize
+            end
+            if divisor ~= 0 then
+                repeatX         = (width / divisor) * effectiveScale
+                repeatY         = (height / divisor) * effectiveScale
+            end
+        end
+
+        Style[self]             = {
+            BackdropTopLeft     = {
+                texCoords       = setupCoordinates("BackdropTopLeft", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropTopRight    = {
+                texCoords       = setupCoordinates("BackdropTopRight", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropBottomLeft  = {
+                texCoords       = setupCoordinates("BackdropBottomLeft", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropBottomRight = {
+                texCoords       = setupCoordinates("BackdropBottomRight", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropTop         = {
+                texCoords       = setupCoordinates("BackdropTop", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropBottom      = {
+                texCoords       = setupCoordinates("BackdropBottom", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropLeft        = {
+                texCoords       = setupCoordinates("BackdropLeft", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropRight       = {
+                texCoords       = setupCoordinates("BackdropRight", edgeRepeatX, edgeRepeatY),
+            },
+            BackdropCenter      = {
+                texCoords       = setupCoordinates("BackdropCenter", repeatX, repeatY),
+            },
+        }
+    end
+
+    local function applyBackdrop(self)
+        local backdrop          = backdropInfo[self]
+
+        if backdrop == false then
+            backdropInfo[self] = nil
+
+            -- Clear the backdrop settings
+            if getPropertyChild(self, "BackdropTopLeft") then
+                Style[self] = {
+                    BackdropTopLeft        = NIL,
+                    BackdropTopRight       = NIL,
+                    BackdropBottomLeft     = NIL,
+                    BackdropBottomRight    = NIL,
+                    BackdropTop            = NIL,
+                    BackdropBottom         = NIL,
+                    BackdropLeft           = NIL,
+                    BackdropRight          = NIL,
+                    BackdropCenter         = NIL,
+                }
+            end
+        elseif backdrop then
+            local x, y, x1, y1      = 0, 0, 0, 0
+            local edgeSize          = backdrop.edgeSize or defaultEdgeSize
+
+            if backdrop.bgFile then
+                x                   = -edgeSize
+                y                   =  edgeSize
+                x1                  =  edgeSize
+                y1                  = -edgeSize
+
+                if backdrop.insets then
+                    x               = x  + (backdrop.insets.left   or 0)
+                    y               = y  - (backdrop.insets.top    or 0)
+                    x1              = x1 - (backdrop.insets.right  or 0)
+                    y1              = y1 + (backdrop.insets.bottom or 0)
+                end
+            end
+
+            Style[self] = {
+                BackdropTopLeft     = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropTopLeft.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropTopLeft.setHeight and edgeSize or 0,
+                    location        = { Anchor("TOPLEFT") },
+                },
+                BackdropTopRight    = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropTopRight.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropTopRight.setHeight and edgeSize or 0,
+                    location        = { Anchor("TOPRIGHT") },
+                },
+                BackdropBottomLeft  = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropBottomLeft.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropBottomLeft.setHeight and edgeSize or 0,
+                    location        = { Anchor("BOTTOMLEFT") },
+                },
+                BackdropBottomRight = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropBottomRight.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropBottomRight.setHeight and edgeSize or 0,
+                    location        = { Anchor("BOTTOMRIGHT") },
+                },
+                BackdropTop         = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropTop.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropTop.setHeight and edgeSize or 0,
+                    location        = {
+                        Anchor("TOPLEFT", 0, 0, "BackdropTopLeft", "TOPRIGHT"),
+                        Anchor("TOPRIGHT", 0, 0, "BackdropTopRight", "TOPLEFT"),
+                    },
+                },
+                BackdropBottom      = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropBottom.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropBottom.setHeight and edgeSize or 0,
+                    location        = {
+                        Anchor("BOTTOMLEFT", 0, 0, "BackdropBottomLeft", "BOTTOMRIGHT"),
+                        Anchor("BOTTOMRIGHT", 0, 0, "BackdropBottomRight", "BOTTOMLEFT"),
+                    },
+                },
+                BackdropLeft        = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropLeft.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropLeft.setHeight and edgeSize or 0,
+                    location        = {
+                        Anchor("TOPLEFT", 0, 0, "BackdropTopLeft", "BOTTOMLEFT"),
+                        Anchor("BOTTOMLEFT", 0, 0, "BackdropBottomLeft", "TOPLEFT"),
+                    },
+                },
+                BackdropRight       = {
+                    drawLayer       = "BORDER",
+                    file            = backdrop.edgeFile or NIL,
+                    horizTile       = backdrop.tileEdge ~= false,
+                    vertTile        = backdrop.tileEdge ~= false,
+                    width           = textureUVs.BackdropRight.setWidth and edgeSize or 0,
+                    height          = textureUVs.BackdropRight.setHeight and edgeSize or 0,
+                    location        = {
+                        Anchor("TOPRIGHT", 0, 0, "BackdropTopRight", "BOTTOMRIGHT"),
+                        Anchor("BOTTOMRIGHT", 0, 0, "BackdropBottomRight", "TOPRIGHT"),
+                    },
+                },
+                BackdropCenter      = {
+                    drawLayer       = "BACKGROUND",
+                    file            = backdrop.bgFile or NIL,
+                    horizTile       = backdrop.tile,
+                    vertTile        = backdrop.tile,
+                    location        = {
+                        Anchor("TOPLEFT", x, y, "BackdropTopLeft", "BOTTOMRIGHT"),
+                        Anchor("BOTTOMRIGHT", x1, y1, "BackdropBottomRight", "TOPLEFT"),
+                    }
+                },
+            }
+
+            return applyTextureCoords(self)
+        end
+    end
+
+    local function applyBackdropColor(self)
+        if backdropInfo[self] then
+            Style[self]             = {
+                BackdropCenter      = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+            }
+        end
+    end
+
+    local function applyBackdropBorderColor(self)
+        if backdropInfo[self] then
+            Style[self]             = {
+                BackdropTopLeft     = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropTopRight    = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropBottomLeft  = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropBottomRight = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropTop         = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropBottom      = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropLeft        = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+                BackdropRight       = {
+                    vertexColor     = backdropColor[self] or Color.WHITE,
+                },
+            }
+        end
+    end
+
+    local function applyBackdropBorderBlendMode(self)
+        if backdropInfo[self] then
+            Style[self]             = {
+                BackdropTopLeft     = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropTopRight    = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropBottomLeft  = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropBottomRight = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropTop         = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropBottom      = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropLeft        = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+                BackdropRight       = {
+                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                },
+            }
+        end
+    end
+
+    --- the backdrop graphic for the frame
+    UI.Property             {
+        name                = "Backdrop",
+        type                = BackdropType,
+        require             = Frame,
+        nilable             = true,
+        set                 = function(self, val)
+            self            = UI.GetWrapperUI(self)
+
+            if val and (val.edgeFile or val.bgFile) then
+                backdropInfo[self] = clone(val, true)
+                self.OnSizeChanged = self.OnSizeChanged + applyTextureCoords
+            elseif backdropInfo[self] then
+                backdropInfo[self] = false
+                self.OnSizeChanged = self.OnSizeChanged - applyTextureCoords
+            end
+
+            return applyBackdrop(self)
+        end,
+        get                 = function(self)
+            self            = UI.GetWrapperUI(self)
+            return clone(backdropInfo[self], true)
+        end,
+    }
+
+    --- the shading color for the frame's border graphic
+    UI.Property             {
+        name                = "BackdropBorderColor",
+        type                = ColorType,
+        require             = Frame,
+        default             = Color.WHITE,
+        set                 = function(self, val)
+            self            = UI.GetWrapperUI(self)
+            if backdropInfo[self] and val then
+                backdropBrdColor[self] = Color(val.r, val.g, val.b, val.a)
+            else
+                backdropBrdColor[self] = nil
+            end
+            return applyBackdropBorderColor(self)
+        end,
+        get                 = function(self)
+            local color     = backdropBrdColor[UI.GetWrapperUI(self)]
+            return color and Color(color.r, color.g, color.b, color.a)
+        end,
+        depends             = { "Backdrop" },
+    }
+
+    --- the shading color for the frame's background graphic
+    UI.Property             {
+        name                = "BackdropColor",
+        type                = ColorType,
+        require             = Frame,
+        default             = Color.WHITE,
+        set                 = function(self, val)
+            self            = UI.GetWrapperUI(self)
+            if backdropInfo[self] and val then
+                backdropColor[self] = Color(val.r, val.g, val.b, val.a)
+            else
+                backdropColor[self] = nil
+            end
+            return applyBackdropColor(self)
+        end,
+        get                 = function(self)
+            local color     = backdropColor[UI.GetWrapperUI(self)]
+            return color and Color(color.r, color.g, color.b, color.a)
+        end,
+        depends             = { "Backdrop" },
+    }
+
+    --- The blend mode of the backdrop border
+    UI.Property             {
+        name                = "BackdropBorderBlendMode",
+        type                = AlphaMode,
+        require             = Frame,
+        default             = "ADD",
+        set                 = function(self, val)
+            self            = UI.GetWrapperUI(self)
+            if backdropInfo[self] then
+                backdropBrdBlend[self] = val
+            else
+                backdropBrdBlend[self] = nil
+            end
+            return applyBackdropBorderBlendMode(self)
+        end,
+        get                 = function(self)
+            return backdropBrdBlend[UI.GetWrapperUI(self)]
+        end,
+        depends             = { "Backdrop" },
     }
 end
