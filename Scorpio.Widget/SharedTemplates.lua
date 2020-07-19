@@ -107,6 +107,10 @@ class "Resizer" (function(_ENV)
         return OnStartResizing(self)
     end
 
+    local function onParentChanged(self, parent, oldparent)
+        return self:SetResizeTarget(parent)
+    end
+
     local function onMouseDown(self)
         if self:GetResizeTarget():IsResizable() then
             _Resizing[self]     = false
@@ -137,12 +141,8 @@ class "Resizer" (function(_ENV)
         end
 
         if ui then
-             _M:SecureHook(ui, "SetResizable", function(par, flag)
-                if flag then
-                    self:Show()
-                else
-                    self:Hide()
-                end
+            _M:SecureHook(ui, "SetResizable", function(par, flag)
+                self:SetShown(flag or false)
             end)
 
             self:SetShown(ui:IsResizable())
@@ -152,7 +152,7 @@ class "Resizer" (function(_ENV)
     end
 
     function GetResizeTarget(self)
-        return self.__Resizer_Target or self:GetParent()
+        return self.__Resizer_Target
     end
 
     --- Whether the resizer is resizing
@@ -161,23 +161,18 @@ class "Resizer" (function(_ENV)
     end
 
     function __ctor(self)
-        self.OnMouseDown        = onMouseDown
-        self.OnMouseUp          = onMouseUp
+        self.OnMouseDown        = self.OnMouseDown + onMouseDown
+        self.OnMouseUp          = self.OnMouseUp + onMouseUp
+        self.OnParentChanged    = self.OnParentChanged + onParentChanged
 
         local parent            = self:GetParent()
-        if parent:IsResizable() then
-            self:Show()
-        else
-            self:Hide()
-        end
+        self:SetShown(parent:IsResizable())
 
-         _M:SecureHook(parent, "SetResizable", function(par, flag)
-            if flag then
-                self:Show()
-            else
-                self:Hide()
-            end
+        _M:SecureHook(parent, "SetResizable", function(par, flag)
+            self:SetShown(flag or false)
         end)
+
+        self.__Resizer_Target   = parent
     end
 end)
 
