@@ -50,9 +50,8 @@ do
         if not ui then
             ui                  = new(target, nil, frmtype ~= "Frame" and UI_PROTOTYPE[par or UI.Frame] or nil)
             UI_PROTOTYPE[target]= ui
+            if Class.IsSubType(target, LayoutFrame) then ui:Hide() end
         end
-
-        if Class.IsSubType(target, LayoutFrame) then ui:Hide() end
 
         -- Install Events
         if type(ui.HasScript) == "function" then
