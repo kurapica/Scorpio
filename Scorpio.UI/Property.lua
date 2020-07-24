@@ -2405,7 +2405,7 @@ else  -- For 9.0
     end
 
     local function applyTextureCoords(self)
-        local backdrop          = backdropInfo[self]
+        local backdrop          = backdropInfo[self[0]]
         if not backdrop then return end
 
         local width             = self:GetWidth()
@@ -2461,10 +2461,10 @@ else  -- For 9.0
     end
 
     local function applyBackdrop(self)
-        local backdrop          = backdropInfo[self]
+        local backdrop          = backdropInfo[self[0]]
 
         if backdrop == false then
-            backdropInfo[self] = nil
+            backdropInfo[self[0]] = nil
 
             -- Clear the backdrop settings
             if getPropertyChild(self, "BackdropTopLeft") then
@@ -2616,72 +2616,74 @@ else  -- For 9.0
     end
 
     local function applyBackdropColor(self)
-        if backdropInfo[self] then
+        if backdropInfo[self[0]] then
             Style[self]             = {
                 BackdropCenter      = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = backdropColor[self[0]] or Color.WHITE,
                 },
             }
         end
     end
 
     local function applyBackdropBorderColor(self)
-        if backdropInfo[self] then
+        if backdropInfo[self[0]] then
+            local color             = backdropBrdColor[self[0]] or Color.WHITE
             Style[self]             = {
                 BackdropTopLeft     = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropTopRight    = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropBottomLeft  = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropBottomRight = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropTop         = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropBottom      = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropLeft        = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
                 BackdropRight       = {
-                    vertexColor     = backdropColor[self] or Color.WHITE,
+                    vertexColor     = color,
                 },
             }
         end
     end
 
     local function applyBackdropBorderBlendMode(self)
-        if backdropInfo[self] then
+        if backdropInfo[self[0]] then
+            local alphaMode         = backdropBrdBlend[self[0]] or CLEAR
             Style[self]             = {
                 BackdropTopLeft     = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropTopRight    = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropBottomLeft  = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropBottomRight = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropTop         = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropBottom      = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropLeft        = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
                 BackdropRight       = {
-                    alphaMode       = backdropBrdBlend[self] or CLEAR,
+                    alphaMode       = alphaMode,
                 },
             }
         end
@@ -2694,21 +2696,18 @@ else  -- For 9.0
         require             = Frame,
         nilable             = true,
         set                 = function(self, val)
-            self            = UI.GetWrapperUI(self)
-
             if val and (val.edgeFile or val.bgFile) then
-                backdropInfo[self] = clone(val, true)
+                backdropInfo[self[0]] = clone(val, true)
                 self.OnSizeChanged = self.OnSizeChanged + applyTextureCoords
-            elseif backdropInfo[self] then
-                backdropInfo[self] = false
+            elseif backdropInfo[self[0]] then
+                backdropInfo[self[0]] = false
                 self.OnSizeChanged = self.OnSizeChanged - applyTextureCoords
             end
 
             return applyBackdrop(self)
         end,
         get                 = function(self)
-            self            = UI.GetWrapperUI(self)
-            return clone(backdropInfo[self], true)
+            return clone(backdropInfo[self[0]], true)
         end,
     }
 
@@ -2719,16 +2718,15 @@ else  -- For 9.0
         require             = Frame,
         default             = Color.WHITE,
         set                 = function(self, val)
-            self            = UI.GetWrapperUI(self)
-            if backdropInfo[self] and val then
-                backdropBrdColor[self] = Color(val.r, val.g, val.b, val.a)
+            if backdropInfo[self[0]] and val then
+                backdropBrdColor[self[0]] = Color(val.r, val.g, val.b, val.a)
             else
-                backdropBrdColor[self] = nil
+                backdropBrdColor[self[0]] = nil
             end
             return applyBackdropBorderColor(self)
         end,
         get                 = function(self)
-            local color     = backdropBrdColor[UI.GetWrapperUI(self)]
+            local color     = backdropBrdColor[self[0]]
             return color and Color(color.r, color.g, color.b, color.a)
         end,
         depends             = { "Backdrop" },
@@ -2741,16 +2739,15 @@ else  -- For 9.0
         require             = Frame,
         default             = Color.WHITE,
         set                 = function(self, val)
-            self            = UI.GetWrapperUI(self)
-            if backdropInfo[self] and val then
-                backdropColor[self] = Color(val.r, val.g, val.b, val.a)
+            if backdropInfo[self[0]] and val then
+                backdropColor[self[0]] = Color(val.r, val.g, val.b, val.a)
             else
-                backdropColor[self] = nil
+                backdropColor[self[0]] = nil
             end
             return applyBackdropColor(self)
         end,
         get                 = function(self)
-            local color     = backdropColor[UI.GetWrapperUI(self)]
+            local color     = backdropColor[self[0]]
             return color and Color(color.r, color.g, color.b, color.a)
         end,
         depends             = { "Backdrop" },
@@ -2763,16 +2760,15 @@ else  -- For 9.0
         require             = Frame,
         default             = "ADD",
         set                 = function(self, val)
-            self            = UI.GetWrapperUI(self)
-            if backdropInfo[self] then
-                backdropBrdBlend[self] = val
+            if backdropInfo[self[0]] then
+                backdropBrdBlend[self[0]] = val
             else
-                backdropBrdBlend[self] = nil
+                backdropBrdBlend[self[0]] = nil
             end
             return applyBackdropBorderBlendMode(self)
         end,
         get                 = function(self)
-            return backdropBrdBlend[UI.GetWrapperUI(self)]
+            return backdropBrdBlend[self[0]]
         end,
         depends             = { "Backdrop" },
     }
