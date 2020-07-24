@@ -185,10 +185,10 @@ local function emptyDefaultStyle(settings)
     return settings
 end
 
-local function setCustomStyle(target, pname, value, stack)
+local function setCustomStyle(target, pname, value, stack, nodirectapply)
     local custom                = gettable(_CustomStyle, target)
     local haschanges            = false
-    local directapply           = not _StyleQueue[target]
+    local directapply           = not _StyleQueue[target] and not nodirectapply
 
     local props                 = _Property[getUIPrototype(target)]
     if not props then error("The target has no property definitions", stack + 1) end
@@ -204,9 +204,9 @@ local function setCustomStyle(target, pname, value, stack)
             if value == nil or value == CLEAR or value == NIL then
                 cval            = value or CLEAR
             elseif type(value) == "table" and getmetatable(value) == nil then
-                local child     = prop.get(target)
+                local child, new= prop.get(target)
                 if child then
-                    setCustomStyle(child, nil, value, stack + 1)
+                    setCustomStyle(child, nil, value, stack + 1, new)
                 else
                     error(strformat("The target has no child element from %q", pname), stack + 1)
                 end
@@ -267,9 +267,10 @@ local function setCustomStyle(target, pname, value, stack)
                         cval    = pv
                         isclear = true
                     elseif type(pv) == "table" and getmetatable(pv) == nil then
-                        child       = prop.get(target)
+                        local new
+                        child, new = prop.get(target)
                         if child then
-                            setCustomStyle(child, nil, pv, stack + 1)
+                            setCustomStyle(child, nil, pv, stack + 1, new)
                         else
                             error(strformat("The target has no child element from %q", pn), stack + 1)
                         end
@@ -1023,7 +1024,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
 
             setting.get         = function(self, try)
                 local child     = _PropertyChildMap[setting][self]
-                if child or try then return child end
+                if child or try then return child, false end
 
                 child           = _PropertyChildRecycle[childtype]()
 
@@ -1035,7 +1036,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
                     _PropertyChildName[child]       = childname
                 end
 
-                return child
+                return child, true
             end
 
             setting.clear       = function(self)

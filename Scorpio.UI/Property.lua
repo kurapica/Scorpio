@@ -350,6 +350,8 @@ end
 ------------------------------------------------------------
 do
     local _Texture_Deps = { "Color", "Atlas", "FileID", "File" }
+    local _HorizTile    = setmetatable({}, META_WEAKKEY)
+    local _VertTile     = setmetatable({}, META_WEAKKEY)
 
     --- the atlas setting of the texture
     UI.Property         {
@@ -411,9 +413,8 @@ do
         type            = Boolean,
         require         = { Texture, Line },
         default         = false,
-        get             = function(self) return self:GetHorizTile() end,
-        set             = function(self, val) self:SetHorizTile(val) end,
-        depends         = { "Color", "Atlas", "FileID", "File", "TexCoords" },
+        get             = function(self) return _HorizTile[self] or false end,
+        set             = function(self, val) _HorizTile[self] = val or nil end,
     }
 
     --- The gradient color shading for the texture
@@ -487,7 +488,7 @@ do
         get             = function(self) local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = self:GetTexCoord() if URx then return { ULx = ULx, ULy = ULy, LLx = LLx, LLy = LLy, URx = URx, URy = URy, LRx = LRx, LRy = LRy } elseif ULx then return { left = ULx, right = ULy, top = LLx, bottom = LLy } end end,
         set             = function(self, val) if not val.ULx then self:SetTexCoord(val.left, val.right, val.top, val.bottom) else self:SetTexCoord(val.ULx, val.ULy, val.LLx, val.LLy, val.URx, val.URy, val.LRx, val.LRy) end end,
         clear           = function(self) self:SetTexCoord(0, 1, 0, 1) end,
-        depends         = _Texture_Deps,
+        depends         = { "Color", "Atlas", "FileID", "File" },
     }
 
     --- The texture file id
@@ -496,9 +497,10 @@ do
         type            = Number,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFileID() end,
-        set             = function(self, val) self:SetTexture(val) end,
+        set             = function(self, val) self:SetTexture(val, _HorizTile[self], _VertTile[self]) end,
         clear           = function(self) self:SetTexture(nil) end,
         override        = { "Atlas", "Color", "File" },
+        depends         = { "HorizTile", "VertTile" },
     }
 
     --- The texture file path
@@ -507,9 +509,10 @@ do
         type            = String,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFilePath() end,
-        set             = function(self, val) self:SetTexture(val) end,
+        set             = function(self, val) self:SetTexture(val, _HorizTile[self], _VertTile[self]) end,
         clear           = function(self) self:SetTexture(nil) end,
         override        = { "Atlas", "Color", "FileID" },
+        depends         = { "HorizTile", "VertTile" },
     }
 
     --- The mask file path
@@ -571,9 +574,8 @@ do
         name            = "VertTile",
         require         = { Texture, Line },
         default         = false,
-        get             = function(self) return self:GetVertTile() end,
-        set             = function(self, val) self:SetVertTile(val) end,
-        depends         = { "Color", "Atlas", "FileID", "File", "TexCoords" },
+        get             = function(self) return _VertTile[self] or false end,
+        set             = function(self, val) _VertTile[self] = val or nil end,
     }
 end
 
@@ -2504,6 +2506,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropTopLeft.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropTopLeft.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = { Anchor("TOPLEFT") },
                 },
                 BackdropTopRight    = {
@@ -2513,6 +2517,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropTopRight.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropTopRight.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = { Anchor("TOPRIGHT") },
                 },
                 BackdropBottomLeft  = {
@@ -2522,6 +2528,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropBottomLeft.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropBottomLeft.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = { Anchor("BOTTOMLEFT") },
                 },
                 BackdropBottomRight = {
@@ -2531,6 +2539,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropBottomRight.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropBottomRight.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = { Anchor("BOTTOMRIGHT") },
                 },
                 BackdropTop         = {
@@ -2540,6 +2550,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropTop.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropTop.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = {
                         Anchor("TOPLEFT", 0, 0, "BackdropTopLeft", "TOPRIGHT"),
                         Anchor("TOPRIGHT", 0, 0, "BackdropTopRight", "TOPLEFT"),
@@ -2552,6 +2564,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropBottom.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropBottom.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = {
                         Anchor("BOTTOMLEFT", 0, 0, "BackdropBottomLeft", "BOTTOMRIGHT"),
                         Anchor("BOTTOMRIGHT", 0, 0, "BackdropBottomRight", "BOTTOMLEFT"),
@@ -2564,6 +2578,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropLeft.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropLeft.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = {
                         Anchor("TOPLEFT", 0, 0, "BackdropTopLeft", "BOTTOMLEFT"),
                         Anchor("BOTTOMLEFT", 0, 0, "BackdropBottomLeft", "TOPLEFT"),
@@ -2576,6 +2592,8 @@ else  -- For 9.0
                     vertTile        = backdrop.tileEdge ~= false,
                     width           = textureUVs.BackdropRight.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropRight.setHeight and edgeSize or 0,
+                    snapToPixelGrid = false,
+                    texelSnappingBias = 0,
                     location        = {
                         Anchor("TOPRIGHT", 0, 0, "BackdropTopRight", "BOTTOMRIGHT"),
                         Anchor("BOTTOMRIGHT", 0, 0, "BackdropBottomRight", "TOPRIGHT"),
