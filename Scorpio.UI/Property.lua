@@ -2412,8 +2412,8 @@ else  -- For 9.0
         local height            = self:GetHeight()
         local effectiveScale    = self:GetEffectiveScale()
         local edgeSize          = backdrop.edgeSize or defaultEdgeSize
-        local edgeRepeatX       = max(0, (width / edgeSize) * effectiveScale - 2 - coordStart)
-        local edgeRepeatY       = max(0, (height / edgeSize) * effectiveScale - 2 - coordStart)
+        local edgeRepeatX       = edgeSize > 0 and max(0, (width / edgeSize) * effectiveScale - 2 - coordStart) or 1
+        local edgeRepeatY       = edgeSize > 0 and max(0, (height / edgeSize) * effectiveScale - 2 - coordStart) or 1
 
         local repeatX           = 1
         local repeatY           = 1
