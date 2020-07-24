@@ -2377,6 +2377,7 @@ else  -- For 9.0
         }
     end
 
+    local backdropHookded   = setmetatable({}, META_WEAKKEY)
     local backdropInfo      = setmetatable({}, META_WEAKKEY)
     local backdropColor     = setmetatable({}, META_WEAKKEY)
     local backdropBrdColor  = setmetatable({}, META_WEAKKEY)
@@ -2698,10 +2699,13 @@ else  -- For 9.0
         set                 = function(self, val)
             if val and (val.edgeFile or val.bgFile) then
                 backdropInfo[self[0]] = clone(val, true)
-                self.OnSizeChanged = self.OnSizeChanged + applyTextureCoords
+
+                if not backdropHookded[self[0]] then
+                    backdropHookded[self[0]] = true
+                    self:HookScript("OnSizeChanged", applyTextureCoords)
+                end
             elseif backdropInfo[self[0]] then
                 backdropInfo[self[0]] = false
-                self.OnSizeChanged = self.OnSizeChanged - applyTextureCoords
             end
 
             return applyBackdrop(self)
