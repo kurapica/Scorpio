@@ -378,13 +378,10 @@ PLoop(function(_ENV)
         ScorpioManager          = CreateFrame("Frame")
 
         _EventDistribution      = {}                                -- System Event
-        _UnitEventDistribution  = {}                                -- System Unit Event
         _SecureHookDistribution = setmetatable({}, META_WEAKKEY)    -- Secure Hook
 
         t_EventTasks            = {}                                -- Event Task
-        t_UnitEventTasks        = {}                                -- Unit Event Task
         t_WaitEventTasks        = {}                                -- Wait Event Task
-        t_UnitWaitEventTasks    = {}                                -- Unit Wait Event Task
         t_SecureHookTasks       = setmetatable({}, META_WEAKKEY)    -- Secure Hook Task
 
         -- Wait thread token
@@ -435,27 +432,6 @@ PLoop(function(_ENV)
             tinsert(cache, task)
         end
 
-        local function queueUnitEventTask(task, unit, event)
-            if not _UnitEventDistribution[event] then
-                _UnitEventDistribution[event] = {}
-                pcall(ScorpioManager.RegisterEvent, ScorpioManager, event)
-            end
-
-            local tasks         = t_UnitEventTasks[event]
-            if not tasks then
-                tasks           = {}
-                t_UnitEventTasks[event] = tasks
-            end
-
-            local cache         = tasks[unit]
-            if not cache then
-                cache           = recycleCache()
-                tasks[unit]     = cache
-            end
-
-            tinsert(cache, task)
-        end
-
         local function queueWaitTask(task, delay, ...)
             local token         = w_Token_INDEX
 
@@ -479,42 +455,6 @@ PLoop(function(_ENV)
                     cache       = recycleCache()
                     cache[0]    = GetTime() + EVENT_CLEAR_INTERVAL
                     t_WaitEventTasks[event] = cache
-                end
-
-                tinsert(cache, token)
-            end
-        end
-
-        local function queueUnitWaitTask(task, unit, delay, ...)
-            local token         = w_Token_INDEX
-
-            w_Token_INDEX       = w_Token_INDEX + 1
-            if w_Token_INDEX > 2147483647 then w_Token_INDEX = 1 end
-
-            w_Token[token]      = task
-
-            if delay then queueDelayTask(token, delay) end
-
-            for i = 1, select("#", ...) do
-                local event     = select(i, ...)
-
-                if not _UnitEventDistribution[event] then
-                    _UnitEventDistribution[event] = {}
-                    pcall(ScorpioManager.RegisterEvent, ScorpioManager, event)
-                end
-
-                local tasks     = t_UnitWaitEventTasks[event]
-                if not tasks then
-                    tasks       = {}
-                    t_UnitWaitEventTasks[event] = tasks
-                end
-
-                local cache     = tasks[unit]
-
-                if not cache then
-                    cache       = recycleCache()
-                    cache[0]    = GetTime() + EVENT_CLEAR_INTERVAL
-                    tasks[unit] = cache
                 end
 
                 tinsert(cache, token)
@@ -987,42 +927,6 @@ PLoop(function(_ENV)
                 queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, wcache, evt, ...))
             end
 
-            -- Call unit event handlers
-            if _UnitEventDistribution[evt] then
-                local unit      = ...
-                local utasks    = t_UnitEventTasks[evt]
-                local ucache    = utasks and utasks[unit]
-
-                if ucache then
-                    utasks[unit]= nil
-
-                    queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, ucache, select(2,...)))
-                end
-
-                -- Check the unit wait tasks
-                utasks          = t_UnitWaitEventTasks[evt]
-                ucache          = utasks and utasks[unit]
-
-                if ucache then
-                    utasks[unit]= nil
-                    ucache[0]   = nil
-
-                    for i, v in ipairs(ucache) do
-                        local task  = w_Token[v]
-                        if task then
-                            w_Token[v] = nil
-                            ucache[i] = task
-                        else
-                            ucache[i] = false
-                        end
-                    end
-
-                    queueTask(NORMAL_PRIORITY, ThreadCall(processQueue, HIGH_PRIORITY, ucache, evt, select(2,...)))
-                end
-
-                callAddonHandlers(_UnitEventDistribution[evt][unit], select(2, ...))
-            end
-
             -- Call direct handlers
             return callAddonHandlers(_EventDistribution[evt], ...)
         end
@@ -1239,84 +1143,6 @@ PLoop(function(_ENV)
         end
 
         ----------------------------------------------
-        --         Unit System Event Method         --
-        ----------------------------------------------
-        --- Register system event or custom event with the given unit
-        -- @param unit          the unit
-        -- @param event         string, the system|custom event name
-        -- @param handler       string|function, the event handler or its name
-        __Arguments__{ NEString, NEString, (NEString + Function)/nil }:Throwable()
-        function RegisterUnitEvent(self, unit, evt, handler)
-            local map           = _UnitEventDistribution[evt]
-            if not map then
-                pcall(ScorpioManager.RegisterEvent, ScorpioManager, evt)
-                map             = {}
-                _UnitEventDistribution[evt] = map
-            end
-
-            local unitmap       = map[unit]
-            if not unitmap then
-                unitmap         = setmetatable({}, META_WEAKKEY)
-                map[unit]       = unitmap
-            end
-
-            handler             = handler or evt
-            if type(handler) == "string" then handler = self[handler] end
-            if type(handler) ~= "function" then throw("Scorpio:RegisterUnitEvent(unit, event[, handler]) -- handler not existed.") end
-
-            unitmap[self]       = handler
-        end
-
-        --- Whether the unit system event or custom event is registered
-        -- @param unit          the unit
-        -- @param  event          string, the system|custom event name
-        -- @return boolean       true if the event is registered
-        __Arguments__{ NEString, NEString }
-        function IsUnitEventRegistered(self, unit, evt)
-            local map           = _UnitEventDistribution[evt]
-            local unitmap       = map and map[unit]
-            return unitmap and unitmap[self] and true or false
-        end
-
-        --- Get the registered handler of an unit event
-        -- @param unit          the unit
-        -- @param event         string, the system|custom event name
-        -- @return boolean       true if the event is registered
-        __Arguments__{ NEString }
-        function GetRegisteredUnitEventHandler(self, unit, evt)
-            local map           = _UnitEventDistribution[evt]
-            local unitmap       = map and map[unit]
-            return unitmap and unitmap[self]
-        end
-
-        --- Unregister unit system event or custom event
-        -- @param unit          the unit
-        -- @param event          string, the system|custom event name
-        __Arguments__{ NEString }
-        function UnregisterUnitEvent(self, unit, evt)
-            local map           = _UnitEventDistribution[evt]
-            local unitmap       = map and map[unit]
-            if unitmap then unitmap[self] = nil end
-        end
-
-        --- Unregister all the events
-        function UnregisterAllUnitEvents(self, unit)
-            if unit then
-                for evt, map in pairs(_UnitEventDistribution) do
-                    if map[unit] then
-                        map[unit][self] = nil
-                    end
-                end
-            else
-                for evt, map in pairs(_UnitEventDistribution) do
-                    for _, unitmap in pairs(map) do
-                        unitmap[self] = nil
-                    end
-                end
-            end
-        end
-
-        ----------------------------------------------
         --        Secure Hook System Method         --
         ----------------------------------------------
         --- Secure hook a table's function
@@ -1510,22 +1336,6 @@ PLoop(function(_ENV)
             return yieldReturn(yield())
         end
 
-        --- Call method|yield current thread and resume it after special unit event for given unit
-        __Arguments__{ NEString, NEString, Function, Any * 0 }
-        __Static__() function NextUnitEvent(unit, event, func, ...)
-            return queueUnitEventTask(wrapAsSystemTask(func, ...), unit, event)
-        end
-
-        __Arguments__{ NEString, NEString }
-        __Static__() function NextUnitEvent(unit, event)
-            local thread = running()
-            if not thread then error("Scorpio.NextUnitEvent(unit, event) can only be used in a thread.", 2) end
-
-            queueUnitEventTask(thread, unit, event)
-
-            return yieldReturn(yield())
-        end
-
         --- Call method|yield current thread when not in combat
         --@format [func[, ...]]
         --@param func           The function
@@ -1578,42 +1388,6 @@ PLoop(function(_ENV)
             if not thread then error("Scorpio.Wait([waitTime, ][event, ...]) can only be used in a thread.", 2) end
 
             queueWaitTask(thread, nil, ...)
-
-            return yieldReturn(yield())
-        end
-
-        --- Call method|yield current thread and resume it after special system unit events or time delay
-        --@format [func, ]unit, [waitTime, ][event, ...]
-        --@param func           The function
-        --@param unit           the unit
-        --@param waitTime       the time to wait
-        --@param event          the system event name
-        __Arguments__{ Function, NEString, Number, NEString * 0 }
-        __Static__() function WaitUnitEvent(func, unit, delay, ...)
-            return queueUnitWaitTask(wrapAsSystemTask(func), unit, delay, ...)
-        end
-
-        __Arguments__{ Function, NEString, NEString * 1 }
-        __Static__() function WaitUnitEvent(func, unit, ...)
-            return queueUnitWaitTask(wrapAsSystemTask(func), unit, nil, ...)
-        end
-
-        __Arguments__{ NEString, Number, NEString * 0 }
-        __Static__() function WaitUnitEvent(unit, delay, ...)
-            local thread = running()
-            if not thread then error("Scorpio.WaitUnitEvent(unit, [waitTime, ][event, ...]) can only be used in a thread.", 2) end
-
-            queueUnitWaitTask(thread, unit, delay, ...)
-
-            return yieldReturn(yield())
-        end
-
-        __Arguments__{ NEString, NEString * 1 }
-        __Static__() function WaitUnitEvent(unit, ...)
-            local thread = running()
-            if not thread then error("Scorpio.WaitUnitEvent(unit, [waitTime, ][event, ...]) can only be used in a thread.", 2) end
-
-            queueUnitWaitTask(thread, unit, nil, ...)
 
             return yieldReturn(yield())
         end
@@ -1813,48 +1587,6 @@ PLoop(function(_ENV)
             end
         end)
 
-
-        --- Register a system unit event with a handler, the handler's name is the event name
-        -- @usage
-        --      Scorpio "MyAddon" "v1.0.1"
-        --
-        --      __UnitEvent__("player")
-        --      function UNIT_HEALTH()
-        --      end
-        --
-        --      __UnitEvent__("player", "UNIT_HEALTH")
-        --      function PLAYER_HEALTH()
-        --      end
-        __Sealed__()
-        class "__UnitEvent__" (function(_ENV)
-            extend "IAttachAttribute"
-
-            function AttachAttribute(self, target, targettype, owner, name, stack)
-                if Class.IsObjectType(owner, Scorpio) then
-                    owner:RegisterUnitEvent(self.unit, self.event or name, target)
-                else
-                    error("__UnitEvent__ can only be applyed to objects of Scorpio.", stack + 1)
-                end
-            end
-
-            ----------------------------------------------
-            --                 Property                 --
-            ----------------------------------------------
-            property "AttributeTarget"  { default = AttributeTargets.Function }
-
-            ----------------------------------------------
-            --                Constructor               --
-            ----------------------------------------------
-            __Arguments__{ NEString, NEString/nil }
-            function __new(cls, unit, evt)
-                return { unit = unit, event = evt }, true
-            end
-
-            __Arguments__{ NEString }
-            function __call(self, evt)
-                if not self.event then self.event = evt end
-            end
-        end)
 
         --- Mark the method as a hook
         -- @usage
@@ -2164,48 +1896,6 @@ PLoop(function(_ENV)
                         -- Check if need contine
                         Continue()
                     end
-                end
-
-                Delay(EVENT_CLEAR_DELAY)
-            end
-        end)
-
-        -- Clear canceld unit event tasks
-        ThreadCall(function()
-            while true do
-                local now = GetTime()
-
-                for evt, utasks in pairs(t_UnitWaitEventTasks) do
-                    for unit, cache in pairs(utasks) do
-                        if cache[0] >= now then
-                            local cnt = 0
-
-                            for i = #cache, 1, -1 do
-                                if not w_Token[cache[i]] then
-                                    cnt = cnt + 1
-                                    tremove(cache, i)
-                                end
-                            end
-
-                            if cnt > 0 then Log(1, "Clear %d tasks for %s-%s", cnt, evt, unit) end
-
-                            if #cache == 0 then
-                                -- Only clear one cache at one time to avoid un-valid key error
-                                utasks[unit] = nil
-                                recycleCache(cache)
-
-                                Log(1, "Recycle %s-%s task cache", evt, unit)
-                                break
-                            else
-                                -- Wait to next cycle
-                                cache[0] = now + EVENT_CLEAR_INTERVAL
-                            end
-
-                        end
-                    end
-
-                    -- Check if need contine
-                    Continue()
                 end
 
                 Delay(EVENT_CLEAR_DELAY)

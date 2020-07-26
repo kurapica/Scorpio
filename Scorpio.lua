@@ -31,6 +31,10 @@ function OnLoad(self)
     Scorpio.TaskThreshold   = _SVData.TaskThreshold
     Scorpio.TaskFactor      = _SVData.TaskFactor
     Scorpio.OvertimeFactor  = _SVData.OvertimeFactor
+
+    -- Bind the SetDefault log handler
+    Logger.Default:AddHandler(errorhandler, Logger.LogLevel.Error)
+    Logger.Default:AddHandler(print, Logger.LogLevel.Info)
 end
 
 ----------------------------------------------

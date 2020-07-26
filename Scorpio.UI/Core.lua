@@ -9,12 +9,15 @@
 Scorpio           "Scorpio.UI.Core"                  "1.0.0"
 --========================================================--
 
+import "System.Reactive"
+
 --- Clear the property value of the target object
 local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL",   prototype { __tostring = function() return "nil"   end })
 
 --- Clear the property value of the settings(so other settings may be used for the property)
 local CLEAR                     = Namespace.SaveNamespace("Scorpio.UI.CLEAR", prototype { __tostring = function() return "clear" end })
 
+local isObjectType              = Class.IsObjectType
 local isTypeValidDisabled       = System.Platform.TYPE_VALIDATION_DISABLED
 local isUIObject                = UI.IsUIObject
 local isUIObjectType            = UI.IsUIObjectType
@@ -23,6 +26,7 @@ local yield                     = coroutine.yield
 local tinsert                   = table.insert
 local tremove                   = table.remove
 local strlower                  = strlower
+local isObservable              = function(val) return type(val) == "table" and isObjectType(val, IObservable) end
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
 
 local CHILD_SETTING             = 0   -- For children
@@ -56,6 +60,9 @@ local _PropertyChildRecycle     = setmetatable({}, {
         end
     end
 })
+
+-- The objservable map
+local _ObservableProp           = setmetatable({}, META_WEAKKEY)
 
 local function dispatchPropertySetting(cls, prop, setting, oldsetting, root)
     local settings              = _Property[cls]
@@ -113,10 +120,24 @@ local applyStylesOnFrame
 local function applyProperty(self, prop, value)
     --Trace("[Scorpio.UI]Apply Property:%s - %s", prop.name, tostring(value))
 
+    -- Check the observable map
+    local map                   = _ObservableProp[self]
+    if map and map[prop] then
+        map[prop]:Unsubscribe()
+    end
+
     if value == nil then
         if prop.clear then return prop.clear(self) end
         if prop.default ~= nil then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
+    elseif isObservable(value) then
+        map                     = _ObservableProp[self] or {}
+        _ObservableProp[self]   = map
+        map[prop]               = map[prop] or Observer(function(val)
+            if val and prop.set then prop.set(self, val) end
+        end)
+
+        value:Subscribe(map[prop])
     elseif prop.set then
         prop.set(self, clone(value, true))
     end
@@ -217,6 +238,8 @@ local function setCustomStyle(target, pname, value, stack, nodirectapply)
             if value == nil or value == NIL or value == CLEAR then
                 directapply     = false
                 cval            = value or CLEAR
+            elseif isObservable(value) then
+                cval            = value
             else
                 if prop.validate then
                     local ret, msg  = prop.validate(prop.type, value)
@@ -281,6 +304,8 @@ local function setCustomStyle(target, pname, value, stack, nodirectapply)
                     if pv == NIL or pv == CLEAR then
                         cval    = pv
                         isclear = true
+                    elseif isObservable(pv) then
+                        cval    = pv
                     else
                         if prop.validate then
                             local ret, msg = prop.validate(prop.type, pv)
@@ -417,6 +442,8 @@ local function saveSkinSettings(classes, paths, container, settings)
                 end
             else
                 if value == NIL or value == CLEAR then
+                    container[name]     = value
+                elseif isObservable(value) then
                     container[name]     = value
                 else
                     if prop.validate then

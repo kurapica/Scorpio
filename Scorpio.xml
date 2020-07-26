@@ -10,4 +10,7 @@
 
     <!-- Scorpio Addon -->
     <Script file="Scorpio.lua"/>
+
+    <!-- Scorpio Reactive -->
+   	<Script file="Reactive.lua"/>
 </Ui>
