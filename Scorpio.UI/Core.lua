@@ -134,7 +134,9 @@ local function applyProperty(self, prop, value)
         map                     = _ObservableProp[self] or {}
         _ObservableProp[self]   = map
         map[prop]               = map[prop] or Observer(function(val)
-            if val and prop.set then prop.set(self, val) end
+            if val and prop.set then
+                prop.set(self, val)
+            end
         end)
 
         value:Subscribe(map[prop])
@@ -1427,7 +1429,7 @@ function applyStylesOnFrame(frame, styles)
 end
 
 local function clearStylesOnFrame(frame, styles)
-    local props                             = _Property[getUIPrototype(frame)]
+    local props                 = _Property[getUIPrototype(frame)]
     if not props then return _Recycle(wipe(styles)) end
 
     local priority              = _Recycle()
@@ -1443,19 +1445,19 @@ local function clearStylesOnFrame(frame, styles)
         end
     end
 
-    -- Process property with no priority
-    for name, value in pairs(styles) do
-        if not priority[name] then
-            applyProperty(frame, props[name], nil)
-        end
-    end
-
     -- Process with priority
-    for i = 1, maxlvl do
+    for i = maxlvl, 1, -1 do
         for name, lv in pairs(priority) do
             if lv == i and styles[name] ~= nil then
                 applyProperty(frame, props[name], nil)
             end
+        end
+    end
+
+    -- Process property with no priority
+    for name, value in pairs(styles) do
+        if not priority[name] then
+            applyProperty(frame, props[name], nil)
         end
     end
 
