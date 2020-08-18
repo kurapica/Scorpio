@@ -159,8 +159,6 @@ end)
 __Sealed__() class "InputScrollFrame" (function(_ENV)
     inherit "FauxScrollFrame"
 
-    local Next                  = Scorpio.Next
-
     local function OnMouseDown(self)
         self:GetScrollChild():GetChild("EditBox"):SetFocus()
     end
@@ -221,60 +219,16 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
     local function OnCursorChanged(self, x, y, w, h)
         self.cursorOffset       = y
         self.cursorHeight       = h
-        Next(handleCursorChange, self)
+        return Next(handleCursorChange, self)
     end
 
     local function OnTextChanged(self)
-        Continue(handleCursorChange, self)
+        return Continue(handleCursorChange, self)
     end
 
     local function OnEscapePressed(self)
-        self:ClearFocus()
+        return self:ClearFocus()
     end
-
-    --- The max letters of the input scroll frame
-    property "MaxLetters" {
-        type                    = Number,
-        set                     = function(self, value)
-            self:GetScrollChild():GetChild("EditBox"):SetMaxLetters(value)
-        end,
-        get                     = function(self)
-            return self:GetScrollChild():GetChild("EditBox"):GetMaxLetters()
-        end,
-    }
-
-    --- Whether show the char count
-    property "HideCharCount"    {
-        type                    = Boolean,
-        set                     = function(self, value)
-            self:GetScrollChild():GetChild("CharCount"):SetShown(not value)
-        end,
-        get                     = function(self)
-            return not self:GetScrollChild():GetChild("CharCount"):IsShown()
-        end,
-    }
-
-    --- The font object of the input text
-    property "FontObject"       {
-        type                    = FontObject,
-        set                     = function(self, value)
-            return self:GetScrollChild():GetChild("EditBox"):SetFontObject(value)
-        end,
-        get                     = function(self)
-            return self:GetScrollChild():GetChild("EditBox"):GetFontObject()
-        end,
-    }
-
-    --- Whether count the invisible letters
-    property "CountInvisibleLetters" {
-        type                    = Boolean,
-        set                     = function(self, value)
-            return self:GetScrollChild():GetChild("EditBox"):SetCountInvisibleLetters(value)
-        end,
-        get                     = function(self)
-            return self:GetScrollChild():GetChild("EditBox"):IsCountInvisibleLetters()
-        end,
-    }
 
     --- Sets the text to the input scroll frame
     function SetText(self, text)
@@ -306,7 +260,7 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
         editbox:SetMultiLine(true)
         editbox:SetAutoFocus(false)
 
-        editbox:SetCountInvisibleLetters(true)
+        editbox:SetCountInvisibleLetters(false)
 
         self.OnMouseDown        = self.OnMouseDown          + OnMouseDown
 
@@ -922,6 +876,187 @@ __Sealed__() class "TreeView" (function(_ENV)
     end
 end)
 
+
+-----------------------------------------------------------
+--              UIPanelScrollFrame Property              --
+-----------------------------------------------------------
+do
+    --- the font settings
+    UI.Property         {
+        name            = "Font",
+        type            = FontType,
+        require         = InputScrollFrame,
+        set             = function(self, font) Style[self].ScrollChild.EditBox.font = font end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.font end,
+        override        = { "FontObject" },
+    }
+
+    --- the Font object
+    UI.Property         {
+        name            = "FontObject",
+        type            = FontObject,
+        require         = InputScrollFrame,
+        set             = function(self, font) Style[self].ScrollChild.EditBox.fontObject = font end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.fontObject end,
+        override        = { "Font" },
+    }
+
+    --- the fontstring's horizontal text alignment style
+    UI.Property         {
+        name            = "JustifyH",
+        type            = JustifyHType,
+        require         = InputScrollFrame,
+        default         = "CENTER",
+        get             = function(self) return Style[self].ScrollChild.EditBox.justifyH end,
+        set             = function(self, font) Style[self].ScrollChild.EditBox.justifyH = font end,
+    }
+
+    --- the fontstring's vertical text alignment style
+    UI.Property         {
+        name            = "JustifyV",
+        type            = JustifyVType,
+        require         = InputScrollFrame,
+        default         = "MIDDLE",
+        get             = function(self) return Style[self].ScrollChild.EditBox.justifyV end,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.justifyV = val end,
+    }
+
+    --- the color of the font's text shadow
+    UI.Property         {
+        name            = "ShadowColor",
+        type            = Color,
+        require         = InputScrollFrame,
+        default         = Color(0, 0, 0, 0),
+        get             = function(self) return Style[self].ScrollChild.EditBox.shadowColor end,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.shadowColor = val end,
+    }
+
+    --- the offset of the fontstring's text shadow from its text
+    UI.Property         {
+        name            = "ShadowOffset",
+        type            = Dimension,
+        require         = InputScrollFrame,
+        default         = Dimension(0, 0),
+        get             = function(self) return Style[self].ScrollChild.EditBox.shadowOffset end,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.shadowOffset = val end,
+    }
+
+    --- the fontstring's amount of spacing between lines
+    UI.Property         {
+        name            = "Spacing",
+        type            = Number,
+        require         = InputScrollFrame,
+        default         = 0,
+        get             = function(self) return Style[self].ScrollChild.EditBox.spacing end,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.spacing = val end,
+    }
+
+    --- the fontstring's default text color
+    UI.Property         {
+        name            = "TextColor",
+        type            = Color,
+        require         = InputScrollFrame,
+        default         = Color(1, 1, 1),
+        get             = function(self) return Style[self].ScrollChild.EditBox.textColor end,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.textColor = val end,
+    }
+
+    --- whether the text wrap will be indented
+    UI.Property         {
+        name            = "Indented",
+        type            = Boolean,
+        require         = InputScrollFrame,
+        default         = false,
+        get             = function(self) return Style[self].ScrollChild.EditBox.indented end,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.indented = val end,
+    }
+
+    UI.Property         {
+        name            = "AltArrowKeyMode",
+        type            = Boolean,
+        require         = InputScrollFrame,
+        default         = false,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.altArrowKeyMode = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.altArrowKeyMode end,
+    }
+
+    --- true if the edit box automatically acquires keyboard input focus
+    UI.Property         {
+        name            = "AutoFocus",
+        type            = Boolean,
+        require         = InputScrollFrame,
+        default         = true,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.autoFocus = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.autoFocus end,
+    }
+
+    --- the rate at which the text insertion blinks when the edit box is focused
+    UI.Property         {
+        name            = "BlinkSpeed",
+        type            = Number,
+        require         = InputScrollFrame,
+        default         = 0.5,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.blinkSpeed = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.blinkSpeed end,
+    }
+
+    --- Whether count the invisible letters for max letters
+    UI.Property         {
+        name            = "CountInvisibleLetters",
+        type            = Boolean,
+        require         = InputScrollFrame,
+        default         = false,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.countInvisibleLetters = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.countInvisibleLetters end,
+    }
+
+    UI.Property         {
+        name            = "HighlightColor",
+        type            = ColorType,
+        require         = InputScrollFrame,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.highlightColor = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.highlightColor end,
+    }
+
+    --- the maximum number of bytes of text allowed in the edit box, default is 0(Infinite)
+    UI.Property         {
+        name            = "MaxBytes",
+        type            = Integer,
+        require         = InputScrollFrame,
+        default         = 0,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.maxBytes = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.maxBytes end,
+    }
+
+    --- the maximum number of text characters allowed in the edit box
+    UI.Property         {
+        name            = "MaxLetters",
+        type            = Integer,
+        require         = InputScrollFrame,
+        default         = 0,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.maxLetters = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.maxLetters end,
+    }
+
+    --- the insets from the edit box's edges which determine its interactive text area
+    UI.Property         {
+        name            = "TextInsets",
+        type            = Inset,
+        require         = InputScrollFrame,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.textInsets = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.textInsets end,
+    }
+
+    UI.Property         {
+        name            = "HideCharCount",
+        type            = Boolean,
+        require         = InputScrollFrame,
+        default         = false,
+        set             = function(self, val) Style[self].ScrollChild.CharCount.visible = not val end,
+        get             = function(self) return not Style[self].ScrollChild.CharCount.visible end,
+    }
+end
+
 -----------------------------------------------------------
 --          UIPanelScrollFrame Style - Default           --
 -----------------------------------------------------------
@@ -999,7 +1134,7 @@ Style.UpdateSkin("Default",     {
     },
     [InputScrollFrame]          = {
         fontObject              = GameFontHighlightSmall,
-        countInvisibleLetters   = true,
+        countInvisibleLetters   = false,
         scrollBarHideable       = true,
         maxLetters              = 255,
 

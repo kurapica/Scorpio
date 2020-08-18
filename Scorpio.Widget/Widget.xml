@@ -8,5 +8,5 @@
     <Script file="UIPanelScrollFrame.lua"/>
     <Script file="ComboBox.lua"/>
     <Script file="TabControl.lua"/>
-    <!-- Script file="CodeEditor.lua"/ -->
+    <Script file="CodeEditor.lua"/>
 </Ui>

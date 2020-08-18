@@ -345,13 +345,12 @@ end
 ------------------------------------------------------------
 --                        Texture                         --
 --                                                        --
--- The hWrapMode and vWrapMode can't be created since     --
--- there is no method for them now.                       --
 ------------------------------------------------------------
 do
     local _Texture_Deps = { "Color", "Atlas", "FileID", "File" }
-    local _HorizTile    = setmetatable({}, META_WEAKKEY)
-    local _VertTile     = setmetatable({}, META_WEAKKEY)
+    local _HWrapMode    = setmetatable({}, META_WEAKKEY)
+    local _VWrapMode    = setmetatable({}, META_WEAKKEY)
+    local _FilterMode   = setmetatable({}, META_WEAKKEY)
 
     --- the atlas setting of the texture
     UI.Property         {
@@ -407,14 +406,54 @@ do
         depends         = _Texture_Deps,
     }
 
+    --- The wrap behavior specifying what should appear when sampling pixels with an x coordinate outside the (0, 1) region of the texture coordinate space.
+    UI.Property         {
+        name            = "HWrapMode",
+        type            = WrapMode,
+        require         = { Texture, Line },
+        default         = "CLAMP",
+        get             = function(self) return _HWrapMode[self] or "CLAMP" end,
+        set             = function(self, val) if val == "CLAMP" then val = nil end _HWrapMode[self] = val end,
+    }
+
+    --- Wrap behavior specifying what should appear when sampling pixels with a y coordinate outside the (0, 1) region of the texture coordinate space
+    UI.Property         {
+        name            = "VWrapMode",
+        require         = { Texture, Line },
+        type            = WrapMode,
+        default         = "CLAMP",
+        get             = function(self) return _VWrapMode[self] or "CLAMP" end,
+        set             = function(self, val) if val == "CLAMP" then val = nil end _VWrapMode[self] = val end,
+    }
+
+    --- Texture filtering mode to use
+    UI.Property         {
+        name            = "FilterMode",
+        require         = { Texture, Line },
+        type            = FilterMode,
+        default         = "LINEAR",
+        get             = function(self) return _FilterMode[self] or "LINEAR" end,
+        set             = function(self, val) if val == "LINEAR" then val = nil end _FilterMode[self] = val end,
+    }
+
     --- Whether the texture is horizontal tile
     UI.Property         {
         name            = "HorizTile",
         type            = Boolean,
         require         = { Texture, Line },
         default         = false,
-        get             = function(self) return _HorizTile[self] or false end,
-        set             = function(self, val) _HorizTile[self] = val or nil end,
+        get             = function(self) return self:GetHorizTile() end,
+        set             = function(self, val) self:SetHorizTile(val) end,
+    }
+
+    --- Whether the texture is vertical tile
+    UI.Property         {
+        name            = "VertTile",
+        require         = { Texture, Line },
+        type            = WrapMode,
+        default         = false,
+        get             = function(self) return self:GetVertTile() end,
+        set             = function(self, val) self:SetVertTile(val) end,
     }
 
     --- The gradient color shading for the texture
@@ -497,10 +536,10 @@ do
         type            = Number,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFileID() end,
-        set             = function(self, val) self:SetTexture(val, _HorizTile[self], _VertTile[self]) end,
+        set             = function(self, val) self:SetTexture(val, _HWrapMode[self], _VWrapMode[self], _FilterMode[self]) end,
         clear           = function(self) self:SetTexture(nil) end,
         override        = { "Atlas", "Color", "File" },
-        depends         = { "HorizTile", "VertTile" },
+        depends         = { "HWrapMode", "VWrapMode", "FilterMode" },
     }
 
     --- The texture file path
@@ -509,10 +548,10 @@ do
         type            = String,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFilePath() end,
-        set             = function(self, val) self:SetTexture(val, _HorizTile[self], _VertTile[self]) end,
+        set             = function(self, val) self:SetTexture(val, _HWrapMode[self], _VWrapMode[self], _FilterMode[self]) end,
         clear           = function(self) self:SetTexture(nil) end,
         override        = { "Atlas", "Color", "FileID" },
-        depends         = { "HorizTile", "VertTile" },
+        depends         = { "HWrapMode", "VWrapMode", "FilterMode" },
     }
 
     --- The mask file path
@@ -567,15 +606,6 @@ do
         set             = function(self, val) self:SetVertexOffset(VertexIndexType.LowerRight, val.x, val.y) end,
         clear           = function(self) self:SetVertexOffset(VertexIndexType.LowerRight, 0, 0) end,
         depends         = _Texture_Deps,
-    }
-
-    --- Whether the texture is vertical tile
-    UI.Property         {
-        name            = "VertTile",
-        require         = { Texture, Line },
-        default         = false,
-        get             = function(self) return _VertTile[self] or false end,
-        set             = function(self, val) _VertTile[self] = val or nil end,
     }
 end
 
@@ -2503,8 +2533,8 @@ else  -- For 9.0
                 BackdropTopLeft     = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropTopLeft.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropTopLeft.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2514,8 +2544,8 @@ else  -- For 9.0
                 BackdropTopRight    = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropTopRight.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropTopRight.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2525,8 +2555,8 @@ else  -- For 9.0
                 BackdropBottomLeft  = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropBottomLeft.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropBottomLeft.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2536,8 +2566,8 @@ else  -- For 9.0
                 BackdropBottomRight = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropBottomRight.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropBottomRight.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2547,8 +2577,8 @@ else  -- For 9.0
                 BackdropTop         = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropTop.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropTop.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2561,8 +2591,8 @@ else  -- For 9.0
                 BackdropBottom      = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropBottom.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropBottom.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2575,8 +2605,8 @@ else  -- For 9.0
                 BackdropLeft        = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropLeft.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropLeft.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2589,8 +2619,8 @@ else  -- For 9.0
                 BackdropRight       = {
                     drawLayer       = "BORDER",
                     file            = backdrop.edgeFile or NIL,
-                    horizTile       = backdrop.tileEdge ~= false,
-                    vertTile        = backdrop.tileEdge ~= false,
+                    hWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tileEdge ~= false and "REPEAT" or nil,
                     width           = textureUVs.BackdropRight.setWidth and edgeSize or 0,
                     height          = textureUVs.BackdropRight.setHeight and edgeSize or 0,
                     snapToPixelGrid = false,
@@ -2603,8 +2633,8 @@ else  -- For 9.0
                 BackdropCenter      = {
                     drawLayer       = "BACKGROUND",
                     file            = backdrop.bgFile or NIL,
-                    horizTile       = backdrop.tile,
-                    vertTile        = backdrop.tile,
+                    hWrapMode       = backdrop.tile and "REPEAT" or nil,
+                    vWrapMode       = backdrop.tile and "REPEAT" or nil,
                     location        = {
                         Anchor("TOPLEFT", x, y, "BackdropTopLeft", "BOTTOMRIGHT"),
                         Anchor("BOTTOMRIGHT", x1, y1, "BackdropBottomRight", "TOPLEFT"),

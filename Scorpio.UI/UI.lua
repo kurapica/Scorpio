@@ -229,6 +229,13 @@ do
         "MIRROR",
     }
 
+    __Sealed__()
+    enum "FilterMode" {
+        "LINEAR",
+        "TRILINEAR",
+        "NEAREST",
+    }
+
     __Sealed__() __Default__"NONE"
     enum "AnimLoopType" {
         "NONE",
