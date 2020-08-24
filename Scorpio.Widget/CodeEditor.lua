@@ -19,6 +19,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         tblconcat               = table.concat,
         strbyte                 = string.byte,
         strchar                 = string.char,
+        strrep                  = string.rep,
 
         BYTE_WORD_KIND          = 0,
         BYTE_PUNC_KIND          = 1,
@@ -1004,6 +1005,54 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end)
 
+    _IndentFunc = _IndentFunc or {}
+    _ShiftIndentFunc = _ShiftIndentFunc or {}
+
+    do
+        setmetatable(_IndentFunc, {
+            __index = function(self, key)
+                if tonumber(key) then
+                    local tab = floor(tonumber(key))
+
+                    if tab > 0 then
+                        if not rawget(self, key) then
+                            rawset(self, key, function(str)
+                                return strrep(" ", tab) .. str
+                            end)
+                        end
+
+                        return rawget(self, key)
+                    end
+                end
+            end,
+        })
+
+        setmetatable(_ShiftIndentFunc, {
+            __index = function(self, key)
+                if tonumber(key) then
+                    local tab = floor(tonumber(key))
+
+                    if tab > 0 then
+                        if not rawget(self, key) then
+                            rawset(self, key, function(str)
+                                local _, len = str:find("^%s+")
+
+                                if len and len > 0 then
+                                    return strrep(" ", len - tab) .. str:sub(len + 1, -1)
+                                end
+                            end)
+                        end
+
+                        return rawget(self, key)
+                    end
+                end
+            end,
+        })
+
+        wipe(_IndentFunc)
+        wipe(_ShiftIndentFunc)
+    end
+
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
@@ -1074,6 +1123,16 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         editor._OldCursorPosition = pos
         editor:SetCursorPosition(pos)
         return self:HighlightText(pos, pos)
+    end
+
+    --- Set The Text
+    function SetText(self, text)
+        self.__Editor:SetText(text)
+    end
+
+    --- Get the text
+    function GetText(self)
+        return self.__Editor:GetText()
     end
 
     ------------------------------------------------------
@@ -1381,7 +1440,94 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function onTabPressed(self)
+        local owner             = self.__Owner
 
+        local text              = self:GetText()
+
+        if self._HighlightStart == 0 and self._HighlightStart ~= self._HighlightEnd and self._HighlightEnd == text:len() then
+            -- just reload text
+            owner:SetText(owner:GetText())
+            return SetCursorPosition(owner, 0)
+        end
+
+        local handled           = false -- self:Fire("OnTabPressed", args)
+        if handled then return end
+
+        local startp, endp, str, lineBreak
+        local shiftDown         = IsShiftKeyDown()
+        local cursorPos         = self:GetCursorPosition()
+        local tabWidth          = owner.TabWidth
+
+        if self._HighlightStart and self._HighlightEnd and self._HighlightEnd > self._HighlightStart then
+            startp, endp        = getLines(text, self._HighlightStart, self._HighlightEnd)
+            str                 = text:sub(startp, endp)
+
+            if str:find("\n") then
+                lineBreak       = "\n"
+            elseif str:find("\r") then
+                lineBreak       = "\r"
+            else
+                lineBreak       = false
+            end
+
+            if lineBreak then
+                if shiftDown then
+                    str         = str:gsub("[^".. lineBreak .."]+", _ShiftIndentFunc[tabWidth])
+                else
+                    str         = str:gsub("[^".. lineBreak .."]+", _IndentFunc[tabWidth])
+                end
+
+                self:SetText(replaceBlock(text, startp, endp, str))
+
+                SetCursorPosition(owner, startp + str:len() - 1)
+
+                HighlightText(owner, startp - 1, startp + str:len() - 1)
+            else
+                self:SetText(replaceBlock(text, self._HighlightStart + 1, self._HighlightEnd, strrep(" ", tabWidth)))
+                SetCursorPosition(owner, self._HighlightStart + tabWidth)
+            end
+        else
+            startp, endp        = getLines(text, cursorPos)
+            str                 = text:sub(startp, endp)
+
+            if shiftDown then
+                local _, len    = str:find("^%s+")
+
+                if len and len > 0 then
+                    if startp + len - 1 >= cursorPos then
+                        str     = strrep(" ", len - tabWidth) .. str:sub(len + 1, -1)
+
+                        self:SetText(replaceBlock(text, startp, endp, str))
+
+                        if cursorPos - tabWidth >= startp - 1 then
+                            SetCursorPosition(owner, cursorPos - tabWidth)
+                        else
+                            SetCursorPosition(owner, startp - 1)
+                        end
+                    else
+                        cursorPos = startp - 1 + floor((cursorPos - startp) / tabWidth) * tabWidth
+
+                        SetCursorPosition(owner, cursorPos)
+                    end
+                end
+            else
+                local byte      = strbyte(text, cursorPos + 1)
+
+                if byte == _Byte.RIGHTBRACKET or byte == _Byte.RIGHTPAREN then
+                    SaveOperation(self)
+
+                    SetCursorPosition(owner, cursorPos + 1)
+                else
+                    local len   = tabWidth - (cursorPos - startp + 1) % tabWidth
+
+                    str         = str:sub(1, cursorPos - startp + 1) .. strrep(" ", len) .. str:sub(cursorPos - startp + 2, -1)
+
+                    self:SetText(replaceBlock(text, startp, endp, str))
+
+                    SetCursorPosition(owner, cursorPos + len)
+                end
+            end
+        end
     end
 
     ------------------------------------------------------
