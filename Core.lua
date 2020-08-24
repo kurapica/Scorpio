@@ -391,7 +391,7 @@ PLoop(function(_ENV)
         local t_DelayTasks      = nil   -- Delayed task
 
         local function queueDelayTask(task, time)
-            time                = floor((GetTime() + time) * 10)
+            time                = floor((GetTime() + time) * 100)
 
             local node, header  = t_DelayTasks
 
@@ -938,7 +938,7 @@ PLoop(function(_ENV)
             if now > g_Phase then g_InPhase = false end
 
             local cache         = t_DelayTasks
-            now                 = floor(now * 10)
+            now                 = floor(now * 100)
 
             while cache and cache[1] <= now do
                 local i         = 2

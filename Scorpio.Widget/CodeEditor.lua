@@ -25,6 +25,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         BYTE_SPACE_KIND         = 2,
 
         DOUBLE_CLICK_INTERVAL   = 0.6,
+        _FIRST_WAITTIME         = 0.3,
+        _CONTINUE_WAITTIME      = 0.05,
     }
 
     _Byte                       = setmetatable({
@@ -90,6 +92,96 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end,
     })
 
+    -- Special
+    _Special                    = {
+        -- LineBreak
+        [_Byte.LINEBREAK_N]     = 1,
+        [_Byte.LINEBREAK_R]     = 1,
+
+        -- Space
+        [_Byte.SPACE]           = 1,
+        [_Byte.TAB]             = 1,
+
+        -- String
+        [_Byte.SINGLE_QUOTE]    = 1,
+        [_Byte.DOUBLE_QUOTE]    = 1,
+
+        -- Operator
+        [_Byte.MINUS]           = 1,
+        [_Byte.PLUS]            = 1,
+        [_Byte.SLASH]           = 1,
+        [_Byte.ASTERISK]        = 1,
+        [_Byte.PERCENT]         = 1,
+
+        -- Compare
+        [_Byte.LESSTHAN]        = 1,
+        [_Byte.GREATERTHAN]     = 1,
+        [_Byte.EQUALS]          = 1,
+
+        -- Parentheses
+        [_Byte.LEFTBRACKET]     = 1,
+        [_Byte.RIGHTBRACKET]    = 1,
+        [_Byte.LEFTPAREN]       = 1,
+        [_Byte.RIGHTPAREN]      = 1,
+        [_Byte.LEFTWING]        = 1,
+        [_Byte.RIGHTWING]       = 1,
+
+        -- Punctuation
+        [_Byte.PERIOD]          = 1,
+        [_Byte.COMMA]           = 1,
+        [_Byte.SEMICOLON]       = 1,
+        [_Byte.COLON]           = 1,
+        [_Byte.TILDE]           = 1,
+        [_Byte.HASH]            = 1,
+
+        -- WOW
+        [_Byte.VERTICAL]        = 1,
+    }
+
+    -- Operation
+    _Operation                  = {
+        CHANGE_CURSOR           = 1,
+        INPUTCHAR               = 2,
+        INPUTTAB                = 3,
+        DELETE                  = 4,
+        BACKSPACE               = 5,
+        ENTER                   = 6,
+        PASTE                   = 7,
+        CUT                     = 8,
+    }
+
+    _KEY_OPER                   = {
+        PAGEUP                  = _Operation.CHANGE_CURSOR,
+        PAGEDOWN                = _Operation.CHANGE_CURSOR,
+        HOME                    = _Operation.CHANGE_CURSOR,
+        END                     = _Operation.CHANGE_CURSOR,
+        UP                      = _Operation.CHANGE_CURSOR,
+        DOWN                    = _Operation.CHANGE_CURSOR,
+        RIGHT                   = _Operation.CHANGE_CURSOR,
+        LEFT                    = _Operation.CHANGE_CURSOR,
+        TAB                     = _Operation.INPUTTAB,
+        DELETE                  = _Operation.DELETE,
+        BACKSPACE               = _Operation.BACKSPACE,
+        ENTER                   = _Operation.ENTER,
+    }
+
+    -- SkipKey
+    _SkipKey                    = {
+        -- Control keys
+        LALT                    = true,
+        LCTRL                   = true,
+        LSHIFT                  = true,
+        RALT                    = true,
+        RCTRL                   = true,
+        RSHIFT                  = true,
+        -- other nouse keys
+        ESCAPE                  = true,
+        CAPSLOCK                = true,
+        PRINTSCREEN             = true,
+        INSERT                  = true,
+        UNKNOWN                 = true,
+    }
+
     _Puncs                      = Dictionary(XList(128):Map(string.char):Filter("x=>x:match('[%p]+')"):Filter("x=>x~='_'"):Map(string.byte), true)
     _Spaces                     = Dictionary(XList(128):Map(string.char):Filter("x=>x:match('[%s]+')"):Map(string.byte), true)
     _Temp                       = {}
@@ -112,6 +204,24 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     _TestFontString             = UIParent:CreateFontString()
     _TestFontString:Hide()
     _TestFontString:SetWordWrap(true)
+
+    ------------------------------------------------------
+    -- Short Key Block
+    ------------------------------------------------------
+    _BtnBlockUp                 = CreateFrame("Button", "Scorpio_TextEditor_UpBlock", UIParent, "SecureActionButtonTemplate")
+    _BtnBlockDown               = CreateFrame("Button", "Scorpio_TextEditor_DownBlock", UIParent, "SecureActionButtonTemplate")
+    _BtnBlockUp:Hide()
+    _BtnBlockDown:Hide()
+
+    ------------------------------------------------------
+    -- Key Scanner
+    ------------------------------------------------------
+    _KeyScan                    = CreateFrame("Frame", nil, UIParent)
+    _KeyScan:Hide()
+    _KeyScan:SetPropagateKeyboardInput(true)
+    _KeyScan:EnableKeyboard(true)
+    _KeyScan:SetFrameStrata("TOOLTIP")
+    _KeyScan.ActiveKeys         = {}
 
     ------------------------------------------------------
     -- Helpers
@@ -142,23 +252,15 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         while pos > 0 do
             local byte              = strbyte(str, pos)
             if byte == _Byte.r then
-                local pbyte         = strbyte(str, pos - 1)
-                if pbyte == _Byte.VERTICAL then
-                    if strbyte(pos - 2) ~= _Byte.VERTICAL then
-                        pos         = pos - 2
-                    else
-                        return pos
-                    end
+                if pos > 1 and strbyte(str, pos - 1) == _Byte.VERTICAL and (pos == 2 or strbyte(str, pos - 2) ~= _Byte.VERTICAL) then
+                    pos             = pos - 2
                 else
                     return pos
                 end
+            elseif pos >= 10 and strbyte(str, pos - 8) == _Byte.c and strbyte(str, pos - 9) == _Byte.VERTICAL and (pos == 10 or strbyte(str, pos - 10) ~= _Byte.VERTICAL) then
+                pos             = pos - 10
             else
-                -- Check the previous
-                if strbyte(pos - 8) == _Byte.c and strbyte(pos - 9) == _Byte.VERTICAL and strbyte(pos - 10) ~= _Byte.VERTICAL then
-                    pos             = pos - 10
-                else
-                    return pos
-                end
+                return pos
             end
         end
     end
@@ -256,7 +358,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function getLines(str, startp, endp)
-        endp                    = (endp and (endp + 1)) or startp + 1
+        endp                    = endp and (endp + 1) or endp == nil and (startp + 1) or endp
 
         -- get prev LineBreak
         while startp > 0 do
@@ -270,6 +372,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
 
         startp                  = startp + 1
+
+        if not endp then return startp end
 
         -- get next LineBreak
         while true do
@@ -285,14 +389,14 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         endp                    = endp - 1
 
         -- get block
-        return startp, endp, str:sub(startp, endp)
+        return startp, endp
     end
 
     local function getByteType(byte)
         return _Puncs[byte] and BYTE_PUNC_KIND or _Spaces[byte] and BYTE_SPACE_KIND or byte and BYTE_WORD_KIND
     end
 
-    local function getWord(str, pos, notail)
+    local function getWord(str, pos, notail, nopre)
         local startp, endp      = getLines(str, pos)
         if startp > endp then return end
 
@@ -303,7 +407,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             tailtype            = getByteType(strbyte(str, skipColor(str, pos + 1))) or -1
         end
 
-        if tailtype == 0 then
+        if tailtype == 0 or nopre then
             pretype             = 0
         else
             pretype             = getByteType(strbyte(str, skipPrevColor(str, pos))) or -1
@@ -312,10 +416,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         -- Match the word
         local prev, tail        = pos + 1, pos
 
-        repeat
-            prev                = skipPrevColor(str, prev - 1)
-        until not prev or prev < startp or getByteType(strbyte(str, prev)) ~= pretype
-        prev                    = prev and (prev + 1) or 0
+        if not nopre then
+            repeat
+                prev            = skipPrevColor(str, prev - 1)
+            until not prev or prev < startp or getByteType(strbyte(str, prev)) ~= pretype
+            prev                = prev and (prev + 1) or 1
+        end
 
         if not notail then
             repeat
@@ -364,6 +470,539 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         return isString == 1 and _Byte.SINGLE_QUOTE or isString == 2 and _Byte.DOUBLE_QUOTE
     end
+
+    local function endPrevKey(self)
+        if self._SKIPCURCHGARROW then
+            self._SKIPCURCHGARROW = nil
+            self._SKIPCURCHG    = nil
+        end
+        self._InPasting         = false
+    end
+
+    local function isKeyPressed(self, key)
+        return _KeyScan.FocusEditor == self and _KeyScan.ActiveKeys[key] or false
+    end
+
+    local function getLinesByReturn(str, startp, returnCnt)
+        local byte
+        local handledReturn     = 0
+        local endp              = startp + 1
+
+        returnCnt               = returnCnt or 0
+
+        -- get prev LineBreak
+        while startp > 0 do
+            byte                = strbyte(str, startp)
+
+            if not byte or byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                break
+            end
+
+            startp              = startp - 1
+        end
+
+        startp                  = startp + 1
+
+        -- get next LineBreak
+        while true do
+            byte                = strbyte(str, endp)
+
+            if not byte then
+                break
+            elseif byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                returnCnt       = returnCnt - 1
+
+                if returnCnt < 0 then
+                    break
+                end
+
+                handledReturn   = handledReturn + 1
+            end
+
+            endp                = endp + 1
+        end
+
+        endp                    = endp - 1
+
+        -- get block
+        return startp, endp, handledReturn
+    end
+
+    local function getPrevLinesByReturn(str, startp, returnCnt)
+        local byte
+        local handledReturn     = 0
+        local endp              = startp + 1
+
+        returnCnt               = returnCnt or 0
+
+        -- get prev LineBreak
+        while true do
+            byte                = strbyte(str, endp)
+
+            if not byte or byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                break
+            end
+
+            endp                = endp + 1
+        end
+
+        endp                    = endp - 1
+
+        local prevReturn
+
+        -- get prev LineBreak
+        while startp > 0 do
+            byte                = strbyte(str, startp)
+
+            if not byte then
+                break
+            elseif byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                returnCnt       = returnCnt - 1
+
+                if returnCnt < 0 then
+                    break
+                end
+
+                prevReturn      = startp
+
+                handledReturn   = handledReturn + 1
+            end
+
+            startp              = startp - 1
+        end
+
+        if not prevReturn or prevReturn >  startp + 1 then
+            startp              = startp + 1
+        end
+
+        -- get block
+        return startp, endp, handledReturn
+    end
+
+    local function getOffsetByCursorPos(str, cursorPos)
+        if not cursorPos or cursorPos <= 0 then return 0 end
+
+        local startp            = getLines(str, cursorPos, false)
+        local byteCnt           = 0
+
+        while startp <= cursorPos do
+            startp              = skipColor(str, startp)
+
+            byteCnt             = byteCnt + 1
+            startp              = startp + 1
+        end
+
+        return byteCnt
+    end
+
+    local function getCursorPosByOffset(str, cursorPos, offset)
+        local startp, endp      = getLines(str, cursorPos)
+        startp                  = startp - 1
+
+        local byteCnt           = 0
+
+        while byteCnt < offset and startp <= endp do
+            startp              = skipColor(str, startp)
+
+            byteCnt             = byteCnt + 1
+            startp              = startp + 1
+        end
+
+        return startp
+    end
+
+    local function newOperation(editor, type)
+        editor._OperationOnLine = type
+    end
+
+    local function saveOperation(editor)
+    end
+
+    local function asyncDelete(self)
+        local first             = true
+        local str               = self:GetText()
+        local nextPos
+        local pos               = self:GetCursorPosition() + 1
+
+        while self._DELETE do
+
+            if first and self._HighlightStart ~= self._HighlightEnd then
+                pos             = self._HighlightStart + 1
+                nextPos         = self._HighlightEnd
+            else
+                nextPos         = pos
+
+                -- yap, I should do this myself
+                if IsControlKeyDown() then
+                    -- delete words
+                    local s, e  = getWord(str, nextPos, nil, true)
+                    nextPos     = e or pos
+                else
+                    -- delete char
+                    nextPos     = skipColor(str, nextPos)
+                end
+            end
+
+            if pos > str:len() then break end
+
+            str                 = replaceBlock(str, pos, nextPos, "")
+
+            self:SetText(str)
+
+            SetCursorPosition(self.__Owner, pos - 1)
+
+            -- Do for long press
+            if first then
+                Delay(_FIRST_WAITTIME)
+                first           = false
+            else
+                Delay(_CONTINUE_WAITTIME)
+            end
+        end
+
+        -- self:Fire("OnDeleteFinished")
+    end
+
+    local function asyncBackdpace(self)
+        local first             = true
+        local str               = self:GetText()
+        local prevPos
+        local pos               = self:GetCursorPosition()
+
+        while self._BACKSPACE do
+            if pos == 0 then break end
+
+            if first and self._HighlightStart ~= self._HighlightEnd then
+                pos             = self._HighlightEnd
+                prevPos         = self._HighlightStart + 1
+            else
+                prevPos         = pos
+
+                -- yap, I should do this myself
+                if IsControlKeyDown() then
+                    local s, e  = getWord(str, prevPos, true)
+                    prevPos     = s or pos
+                else
+                    prevPos     = skipPrevColor(str, prevPos)
+
+                    -- Auto pairs check
+                    local byte  = strbyte(str, prevPos)
+
+                    if _AutoPairs[byte] then
+                        local n = skipColor(str, pos + 1)
+                        if _AutoPairs[byte] == true then
+                            if strbyte(str, n) == byte then
+                                pos = n
+                            end
+                        elseif strbyte(str, n) == _AutoPairs[byte] then
+                            pos = n
+                        end
+                    end
+                end
+            end
+
+            -- Delete
+            str                 = replaceBlock(str, prevPos, pos, "")
+
+            self:SetText(str)
+
+            pos                 = prevPos - 1
+            SetCursorPosition(self.__Owner, pos)
+
+            -- Do for long press
+            if first then
+                Delay(_FIRST_WAITTIME)
+                first           = false
+            else
+                Delay(_CONTINUE_WAITTIME)
+            end
+        end
+
+        --self:Fire("OnBackspaceFinished")
+    end
+
+    _KeyScan:SetScript("OnKeyDown", function (self, key)
+        if not key or _SkipKey[key] then return end
+
+        if self.FocusEditor then
+            local editor        = self.FocusEditor
+            local owner         = editor.__Owner
+            local cursorPos     = editor:GetCursorPosition()
+
+            local oper          = _KEY_OPER[key]
+
+            if oper then
+                local text      = editor:GetText()
+
+                if oper == _Operation.CHANGE_CURSOR then
+                    local handled = nil --editor:Fire("OnDirectionKey", _DirectionKeyEventArgs)
+
+                    if handled then
+                        self.ActiveKeys[key] = true
+                        return self:SetPropagateKeyboardInput(false)
+                    end
+
+                    if key == "PAGEUP" then
+                        local bar           = owner:GetChild("ScrollBar")
+                        local skipLine      = floor(owner:GetHeight() / bar:GetValueStep())
+                        local startp, endp, line = getPrevLinesByReturn(text, cursorPos, skipLine)
+
+                        if line == 0 then return end
+
+                        endPrevKey(editor)
+
+                        saveOperation(editor)
+
+                        if IsShiftKeyDown() then
+                            editor._SKIPCURCHG = cursorPos
+                        end
+
+                        editor:SetCursorPosition(getCursorPosByOffset(text, startp, getOffsetByCursorPos(text, cursorPos)))
+                        return
+                    elseif key == "PAGEDOWN" then
+                        local bar           = owner:GetChild("ScrollBar")
+                        local skipLine      = floor(owner:GetHeight() / bar:GetValueStep())
+                        local startp, endp, line = getLinesByReturn(text, cursorPos, skipLine)
+
+                        if line == 0 then return end
+
+                        endPrevKey(editor)
+
+                        saveOperation(editor)
+
+                        if IsShiftKeyDown() then
+                            editor._SKIPCURCHG = cursorPos
+                        end
+
+                        editor:SetCursorPosition(getCursorPosByOffset(text, endp, getOffsetByCursorPos(text, cursorPos)))
+                        return
+                    elseif key == "HOME" then
+                        local startp, endp = getLines(text, cursorPos)
+                        local byte
+
+                        if startp - 1 == cursorPos then return end
+
+                        endPrevKey(editor)
+
+                        saveOperation(editor)
+
+                        if IsShiftKeyDown() then
+                            editor._SKIPCURCHG = cursorPos
+                        end
+
+                        local byte          = strbyte(text, startp)
+                        while _Spaces[byte] do
+                            startp          = startp + 1
+                            byte            = strbyte(text, startp)
+                        end
+
+                        if startp <= cursorPos then
+                            self.ActiveKeys[key] = true
+                            self:SetPropagateKeyboardInput(false)
+
+                            editor:SetCursorPosition(startp - 1)
+                        end
+                        return
+                    elseif key == "END" then
+                        local startp, endp = getLines(editor:GetText(), cursorPos)
+
+                        if endp == cursorPos then return end
+
+                        endPrevKey(editor)
+
+                        saveOperation(editor)
+
+                        if IsShiftKeyDown() then
+                            editor._SKIPCURCHG = cursorPos
+                        end
+
+                        return
+                    elseif key == "UP" then
+                        local _, _, line = getPrevLinesByReturn(editor:GetText(), cursorPos, 1)
+
+                        if line > 0 then
+                            endPrevKey(editor)
+
+                            saveOperation(editor)
+
+                            if IsShiftKeyDown() then
+                                editor._SKIPCURCHG = cursorPos
+                                editor._SKIPCURCHGARROW = true
+                            end
+                        end
+
+                        return
+                    elseif key == "DOWN" then
+                        local _, _, line = getLinesByReturn(editor:GetText(), cursorPos, 1)
+
+                        if line > 0 then
+                            endPrevKey(editor)
+
+                            saveOperation(editor)
+
+                            if IsShiftKeyDown()  then
+                                editor._SKIPCURCHG = cursorPos
+                                editor._SKIPCURCHGARROW = true
+                            end
+                        end
+
+                        return
+                    elseif key == "RIGHT" then
+                        if cursorPos < text:len() then
+                            endPrevKey(editor)
+                            saveOperation(editor)
+
+                            local skipCtrl = false
+
+                            if IsShiftKeyDown() then
+                                editor._SKIPCURCHG = cursorPos
+                                editor._SKIPCURCHGARROW = true
+                            elseif editor._HighlightStart ~= editor._HighlightEnd then
+                                editor._SKIPCURCHG = nil
+                                editor._SKIPCURCHGARROW = nil
+                                skipCtrl    = true
+                                self.ActiveKeys[key] = true
+                                self:SetPropagateKeyboardInput(false)
+
+                                SetCursorPosition(editor.__Owner, editor._HighlightEnd)
+                            end
+
+                            if not skipCtrl and IsControlKeyDown() then
+                                local text  = editor:GetText()
+                                local s, e  = getWord(text, cursorPos, nil, true)
+
+                                if s and e then
+                                    self.ActiveKeys[key] = true
+                                    self:SetPropagateKeyboardInput(false)
+
+                                    editor:SetCursorPosition(e)
+                                end
+                            end
+                        end
+
+                        return
+                    elseif key == "LEFT" then
+                        if cursorPos > 0 then
+                            endPrevKey(editor)
+                            saveOperation(editor)
+
+                            local skipCtrl = false
+
+                            if IsShiftKeyDown() then
+                                editor._SKIPCURCHG = cursorPos
+                                editor._SKIPCURCHGARROW = true
+                            elseif editor._HighlightStart ~= editor._HighlightEnd then
+                                editor._SKIPCURCHG = nil
+                                editor._SKIPCURCHGARROW = nil
+                                skipCtrl    = true
+                                self.ActiveKeys[key] = true
+                                self:SetPropagateKeyboardInput(false)
+
+                                SetCursorPosition(editor.__Owner, editor._HighlightStart)
+                            end
+
+                            if not skipCtrl and IsControlKeyDown() then
+                                local text  = editor:GetText()
+                                local s, e  = getWord(text, cursorPos, true)
+
+                                if s and e then
+                                    self.ActiveKeys[key] = true
+                                    self:SetPropagateKeyboardInput(false)
+
+                                    editor:SetCursorPosition(s - 1)
+                                end
+                            end
+                        end
+
+                        return
+                    end
+                end
+
+                if key == "TAB" then
+                    endPrevKey(editor)
+                    return newOperation(editor, _Operation.INPUTTAB)
+                end
+
+                if key == "DELETE" then
+                    if not editor._DELETE and not IsShiftKeyDown() and (editor._HighlightStart ~= editor._HighlightEnd or cursorPos < text:len()) then
+                        endPrevKey(editor)
+                        editor._DELETE      = true
+                        newOperation(editor, _Operation.DELETE)
+                        self.ActiveKeys[key]= true
+                        self:SetPropagateKeyboardInput(false)
+
+                        return Continue(asyncDelete, editor)
+                    end
+                    return
+                end
+
+                if key == "BACKSPACE" then
+                    if not editor._BACKSPACE and cursorPos > 0 then
+                        endPrevKey(editor)
+                        editor._BACKSPACE   = cursorPos
+                        newOperation(editor, _Operation.BACKSPACE)
+                        self.ActiveKeys[key]= true
+                        self:SetPropagateKeyboardInput(false)
+
+                        return Continue(asyncBackdpace, editor)
+                    end
+                    return
+                end
+
+                if key == "ENTER" then
+                    endPrevKey(editor)
+                    -- editor._SKIPCURCHG = true
+                    return newOperation(editor, _Operation.ENTER)
+                end
+            end
+
+            endPrevKey(editor)
+
+            -- Don't consider multi-modified keys
+            if IsShiftKeyDown() then
+                -- shift+
+            elseif IsAltKeyDown() then
+                return editor:Fire("OnAltKey", key)
+            elseif IsControlKeyDown() then
+                if key == "A" then
+                    owner:HighlightText()
+                    return
+                elseif key == "V" then
+                    editor._InPasting = true
+                    return newOperation(editor, _Operation.PASTE)
+                elseif key == "C" then
+                    -- do nothing
+                    return
+                elseif key == "Z" then
+                    --return editor:Undo()
+                elseif key == "Y" then
+                    --return editor:Redo()
+                elseif key == "X" then
+                    if editor._HighlightStart ~= editor._HighlightEnd then
+                        newOperation(editor, _Operation.CUT)
+                    end
+                    return
+                end
+            end
+
+            return newOperation(editor, _Operation.INPUTCHAR)
+        end
+    end)
+
+    _KeyScan:SetScript("OnKeyUp", function (self, key)
+        self:SetPropagateKeyboardInput(true)
+
+        self.ActiveKeys[key] = nil
+
+        if self.FocusEditor then
+            if key == "DELETE" then
+                self.FocusEditor._DELETE = nil
+            end
+            if key == "BACKSPACE" then
+                self.FocusEditor._BACKSPACE = nil
+            end
+        end
+    end)
 
     ------------------------------------------------------
     -- Property
@@ -414,15 +1053,17 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         if endp < startp then startp, endp = endp, startp end
 
-        self._HighlightStart    = startp
-        self._HighlightEnd      = endp
+        editor._HighlightStart  = startp
+        editor._HighlightEnd    = endp
 
         if startp ~= endp then
             text                = text or editor:GetText()
-            editor._HighlightText = removeColor(text:sub(startp + 1, endp))
+            editor._HighlightText   = text:sub(startp + 1, endp)
         else
-            editor._HighlightText = ""
+            editor._HighlightText   = ""
         end
+
+        print("Hightlight", startp, endp)
 
         return editor:HighlightText(startp, endp)
     end
@@ -430,6 +1071,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     --- Set the cursor position
     function SetCursorPosition(self, pos)
         local editor            = self.__Editor
+        editor._OldCursorPosition = pos
         editor:SetCursorPosition(pos)
         return self:HighlightText(pos, pos)
     end
@@ -498,12 +1140,18 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     ------------------------------------------------------
     -- Event Handler
     ------------------------------------------------------
-    local function onSizeChanged(self)
-        return updateLineNum(self.__Owner)
+    local function blockShortKey()
+        SetOverrideBindingClick(_BtnBlockDown, false, "DOWN", _BtnBlockDown:GetName(), "LeftButton")
+        SetOverrideBindingClick(_BtnBlockUp, false, "UP", _BtnBlockUp:GetName(), "LeftButton")
     end
 
-    local function onShow(self)
-        return self:RefreshLayout()
+    local function unBlockShortKey()
+        ClearOverrideBindings(_BtnBlockDown)
+        ClearOverrideBindings(_BtnBlockUp)
+    end
+
+    local function updateCursorAsync(self)
+        return SetCursorPosition(self.__Owner, self:GetCursorPosition())
     end
 
     local function onChar(self, char)
@@ -512,38 +1160,45 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         -- Auto Pairs
         local auto              =  char and _AutoPairs[strbyte(char)]
 
-        if auto == true then
-        elseif auto then
+        if auto then
+            -- { [ ( " '
             local cursor        = self:GetCursorPosition()
-            local inner         = self._HighlightText or ""
+            local text          = self:GetText()
+            local inner         = self._HighlightText
+            local rchar         = auto == true and char or strchar(auto)
 
             if inner ~= "" then
-                self:Insert(inner .. strchar(auto))
+                -- Has High Light Text, Just do the auto pairs
+                self:SetText(replaceBlock(text, cursor + 1, cursor, inner .. rchar))
 
                 local stop      = cursor + #inner
                 SetCursorPosition(self.__Owner, stop)
                 HighlightText(self.__Owner, cursor, stop)
             else
-                local text      = self:GetText()
+                local next      = skipColor(text, cursor + 1)
 
-                if not inString(text, cursor) then
-                    local next  = skipColor(text, cursor + 1)
+                if not inString(text, auto == true and (cursor -1) or cursor) or strbyte(text, next) == auto then
                     if strbyte(text, next) ~= strbyte(char) then
-                        self:SetText(replaceBlock(text, cursor + 1, cursor, strchar(auto)))
+                        self:SetText(replaceBlock(text, cursor + 1, cursor, rchar))
+                        SetCursorPosition(self.__Owner, cursor)
+                    end
+                elseif auto == true then
+                    if strbyte(text, next) == strbyte(char) then
+                        self:SetText(replaceBlock(text, cursor + 1, next, ""))
                         SetCursorPosition(self.__Owner, cursor)
                     end
                 end
             end
         elseif auto == false then
+            -- ) ] }
             local cursor        = self:GetCursorPosition()
             local text          = self:GetText()
             local next          = skipColor(text, cursor + 1)
 
             if strbyte(text, next) == strbyte(char) then
                 self:SetText(replaceBlock(text, cursor + 1, next, ""))
+                SetCursorPosition(self.__Owner, cursor)
             end
-
-            SetCursorPosition(self.__Owner, cursor)
         end
 
         self._InCharComposition = false
@@ -554,9 +1209,118 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         self._InCharComposition = true
     end
 
+    local function onCursorChanged(self, x, y, w, h)
+        if self._InCharComposition then return end
+
+        local cursorPos         = self:GetCursorPosition()
+
+        if cursorPos == self._OldCursorPosition and self._OperationOnLine ~= _Operation.CUT then
+            return
+        end
+
+        local owner             = self.__Owner
+        self._OldCursorPosition = cursorPos
+
+        if self._InPasting then
+            self._InPasting     = nil
+            local startp, endp  = self._HighlightStart, cursorPos
+            HighlightText(owner, cursorPos, cursorPos)
+
+            return -- self:Fire("OnPasting", startp, endp)
+        elseif self._MouseDownShf == false then
+            -- First CursorChanged after mouse down if not press shift
+            HighlightText(owner, cursorPos, cursorPos)
+
+            self._MouseDownCur  = cursorPos
+            self._MouseDownShf  = nil
+        elseif self._MouseDownCur then
+            if self._MouseDownCur ~= cursorPos then
+                -- Hightlight all
+                if self._HighlightStart and self._HighlightEnd and self._HighlightStart ~= self._HighlightEnd then
+                    if self._HighlightStart == self._MouseDownCur then
+                        HighlightText(owner, cursorPos, self._HighlightEnd)
+                    elseif self._HighlightEnd == self._MouseDownCur then
+                        HighlightText(owner, cursorPos, self._HighlightStart)
+                    else
+                        HighlightText(owner, self._MouseDownCur, cursorPos)
+                    end
+                else
+                    HighlightText(owner, self._MouseDownCur, cursorPos)
+                end
+
+                self._MouseDownCur = cursorPos
+            end
+        elseif self._BACKSPACE or self._DELETE then
+            -- Skip
+        elseif self._SKIPCURCHG then
+            if tonumber(self._SKIPCURCHG) then
+                if self._HighlightStart and self._HighlightEnd and self._HighlightStart ~= self._HighlightEnd then
+                    if self._HighlightStart == self._SKIPCURCHG then
+                        HighlightText(owner, cursorPos, self._HighlightEnd)
+                    elseif self._HighlightEnd == self._SKIPCURCHG then
+                        HighlightText(owner, cursorPos, self._HighlightStart)
+                    else
+                        HighlightText(owner, self._SKIPCURCHG, cursorPos)
+                    end
+                else
+                    HighlightText(owner, self._SKIPCURCHG, cursorPos)
+                end
+            end
+
+            if not self._SKIPCURCHGARROW then
+                self._SKIPCURCHG = nil
+            else
+                self._SKIPCURCHG = cursorPos
+            end
+        else
+            HighlightText(owner, cursorPos, cursorPos)
+        end
+
+        if self._OperationOnLine == _Operation.CUT then
+            -- self:Fire("OnCut", self.__OperationStartOnLine, self.__OperationEndOnLine, self.__OperationBackUpOnLine:sub(self.__OperationStartOnLine, self.__OperationEndOnLine))
+            saveOperation(self)
+        end
+    end
+
+    local function onEditFocusGained(self, ...)
+        if _KeyScan.FocusEditor then
+            endPrevKey(_KeyScan.FocusEditor)
+        end
+
+        _KeyScan.FocusEditor    = self
+        _KeyScan:Show()
+
+        NoCombat(blockShortKey)
+    end
+
+    local function onEditFocusLost(self, ...)
+        if _KeyScan.FocusEditor ~= self then return end
+
+        endPrevKey(self)
+        _KeyScan.FocusEditor    = nil
+        _KeyScan:Hide()
+
+        NoCombat(unBlockShortKey)
+    end
+
+    local function onEnterPressed(self)
+        if not IsControlKeyDown() then
+            self:Insert("\n")
+        else
+            local _, endp = getLines(self:GetText(), self:GetCursorPosition())
+            SetCursorPosition(self.__Owner, endp)
+            self:Insert("\n")
+        end
+
+        Next(updateCursorAsync, self)
+
+        -- On New Line
+    end
+
     local function onMouseUpAsync(self, btn)
         local prev, curr        = self._MouseDownCur, self:GetCursorPosition()
-        self._MouseDownCur      = false
+        self._MouseDownCur      = nil
+        self._MouseDownShf      = nil
 
         if self._CheckDblClk then
             -- Select the Words
@@ -567,12 +1331,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             if prev and (GetTime() - prev) < DOUBLE_CLICK_INTERVAL then
                 local startp, endp  = getWord(self:GetText(), self:GetCursorPosition())
                 if startp and endp then
+                    SetCursorPosition(self.__Owner, endp)
                     return Next(HighlightText, self.__Owner, startp - 1, endp)
                 end
             end
         end
-
-        return HighlightText(self.__Owner, prev, curr)
     end
 
     local function onMouseUp(self, btn)
@@ -581,6 +1344,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     local function onMouseDownAsync(self, btn)
         self._MouseDownCur      = self:GetCursorPosition()
+
+        --- Reset the state
+        saveOperation(self)
+        endPrevKey(self)
+        updateCursorAsync(self)
     end
 
     local function onMouseDown(self, btn)
@@ -604,6 +1372,18 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end
 
+    local function onSizeChanged(self)
+        return updateLineNum(self.__Owner)
+    end
+
+    local function onShow(self)
+        return self:RefreshLayout()
+    end
+
+    local function onTabPressed(self)
+
+    end
+
     ------------------------------------------------------
     -- Constructor
     ------------------------------------------------------
@@ -620,15 +1400,21 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local editor            = self:GetScrollChild():GetChild("EditBox")
         local linenum           = self:GetScrollChild():GetChild("LineNum")
 
+        -- Don't use the styles on the line num because there are too many changes on it
         linenum:SetJustifyV("TOP")
         linenum:SetJustifyH("CENTER")
 
-        editor.OnSizeChanged    = editor.OnSizeChanged      + onSizeChanged
-        editor.OnShow           = editor.OnShow             + onShow
         editor.OnChar           = editor.OnChar             + onChar
         editor.OnCharComposition= editor.OnCharComposition  + onCharComposition
+        editor.OnCursorChanged  = editor.OnCursorChanged    + onCursorChanged
+        editor.OnEditFocusGained= editor.OnEditFocusGained  + onEditFocusGained
+        editor.OnEditFocusLost  = editor.OnEditFocusLost    + onEditFocusLost
+        editor.OnEnterPressed   = editor.OnEnterPressed     + onEnterPressed
         editor.OnMouseDown      = editor.OnMouseDown        + onMouseDown
         editor.OnMouseUp        = editor.OnMouseUp          + onMouseUp
+        editor.OnTabPressed     = editor.OnTabPressed       + onTabPressed
+        editor.OnShow           = editor.OnShow             + onShow
+        editor.OnSizeChanged    = editor.OnSizeChanged      + onSizeChanged
 
         editor.__Owner          = self
 

@@ -28,7 +28,7 @@ _ActionType                     = {
             error("Invalid spell name|id - "..tostring(spell), 3)
         end,
         content                 = "spell",
-        tranMacro               = function transSpell2Macro(spell, with)
+        tranMacro               = function (spell, with)
             if GetSpellInfo(spell) then
                 return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell))
             end

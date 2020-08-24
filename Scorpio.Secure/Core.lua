@@ -189,7 +189,7 @@ class "__SecureTemplate__" (function(_ENV)
 
     __Static__() function GetTemplate(cls, template)
         local default           = _SecureTemplateMap[cls]
-        while cls and not default then
+        while cls and not default do
             cls                 = Class.GetSuperClass(cls)
             default             = cls and _SecureTemplateMap[cls]
         end
