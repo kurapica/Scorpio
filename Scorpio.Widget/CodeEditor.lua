@@ -16,10 +16,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     inherit "InputScrollFrame"
 
     export {
+        tinsert                 = table.insert,
+        tremove                 = table.remove,
         tblconcat               = table.concat,
         strbyte                 = string.byte,
         strchar                 = string.char,
         strrep                  = string.rep,
+        strtrim                 = Toolset.trim,
 
         BYTE_WORD_KIND          = 0,
         BYTE_PUNC_KIND          = 1,
@@ -92,52 +95,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             end
         end,
     })
-
-    -- Special
-    _Special                    = {
-        -- LineBreak
-        [_Byte.LINEBREAK_N]     = 1,
-        [_Byte.LINEBREAK_R]     = 1,
-
-        -- Space
-        [_Byte.SPACE]           = 1,
-        [_Byte.TAB]             = 1,
-
-        -- String
-        [_Byte.SINGLE_QUOTE]    = 1,
-        [_Byte.DOUBLE_QUOTE]    = 1,
-
-        -- Operator
-        [_Byte.MINUS]           = 1,
-        [_Byte.PLUS]            = 1,
-        [_Byte.SLASH]           = 1,
-        [_Byte.ASTERISK]        = 1,
-        [_Byte.PERCENT]         = 1,
-
-        -- Compare
-        [_Byte.LESSTHAN]        = 1,
-        [_Byte.GREATERTHAN]     = 1,
-        [_Byte.EQUALS]          = 1,
-
-        -- Parentheses
-        [_Byte.LEFTBRACKET]     = 1,
-        [_Byte.RIGHTBRACKET]    = 1,
-        [_Byte.LEFTPAREN]       = 1,
-        [_Byte.RIGHTPAREN]      = 1,
-        [_Byte.LEFTWING]        = 1,
-        [_Byte.RIGHTWING]       = 1,
-
-        -- Punctuation
-        [_Byte.PERIOD]          = 1,
-        [_Byte.COMMA]           = 1,
-        [_Byte.SEMICOLON]       = 1,
-        [_Byte.COLON]           = 1,
-        [_Byte.TILDE]           = 1,
-        [_Byte.HASH]            = 1,
-
-        -- WOW
-        [_Byte.VERTICAL]        = 1,
-    }
 
     -- Operation
     _Operation                  = {
@@ -225,7 +182,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     _KeyScan.ActiveKeys         = {}
 
     ------------------------------------------------------
-    -- Helpers
+    -- Inpput Helpers
     ------------------------------------------------------
     local function skipColor(str, pos)
         while true do
@@ -295,7 +252,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         return result
     end
 
-    local function updateLineNum(self)
+    local function updateLineNum(self, try)
         local editor            = self.__Editor
         local linenum           = self.__LineNum
 
@@ -306,6 +263,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local left, right       = editor:GetTextInsets()
         local lineWidth         = editor:GetWidth() - left - right
         local lineHeight        = height + spacing
+
+        -- Wait for one phase
+        if not font then return not try and Next(updateLineNum, self, true) end
 
         local endPos
 
@@ -612,11 +572,1742 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         return startp
     end
 
-    local function newOperation(editor, type)
-        editor._OperationOnLine = type
+    _IndentFunc = _IndentFunc or {}
+    _ShiftIndentFunc = _ShiftIndentFunc or {}
+
+    do
+        setmetatable(_IndentFunc, {
+            __index = function(self, key)
+                if tonumber(key) then
+                    local tab = floor(tonumber(key))
+
+                    if tab > 0 then
+                        if not rawget(self, key) then
+                            rawset(self, key, function(str)
+                                return strrep(" ", tab) .. str
+                            end)
+                        end
+
+                        return rawget(self, key)
+                    end
+                end
+            end,
+        })
+
+        setmetatable(_ShiftIndentFunc, {
+            __index = function(self, key)
+                if tonumber(key) then
+                    local tab = floor(tonumber(key))
+
+                    if tab > 0 then
+                        if not rawget(self, key) then
+                            rawset(self, key, function(str)
+                                local _, len = str:find("^%s+")
+
+                                if len and len > 0 then
+                                    return strrep(" ", len - tab) .. str:sub(len + 1, -1)
+                                end
+                            end)
+                        end
+
+                        return rawget(self, key)
+                    end
+                end
+            end,
+        })
+
+        wipe(_IndentFunc)
+        wipe(_ShiftIndentFunc)
     end
 
-    local function saveOperation(editor)
+    ------------------------------------------------------
+    -- Code Helpers
+    ------------------------------------------------------
+    _INPUTCHAR                  = _Operation.INPUTCHAR
+    _BACKSPACE                  = _Operation.BACKSPACE
+
+    _UTF8_Three_Char            = 224
+    _UTF8_Two_Char              = 192
+
+    _IndentNone                 = 0
+    _IndentRight                = 1
+    _IndentLeft                 = 2
+    _IndentBoth                 = 3
+
+    _EndColor                   = "|r"
+
+    -- Token
+    _Token                      = {
+        UNKNOWN                 = 0,
+        LINEBREAK               = 1,
+        SPACE                   = 2,
+        OPERATOR                = 3,
+        LEFTBRACKET             = 4,
+        RIGHTBRACKET            = 5,
+        LEFTPAREN               = 6,
+        RIGHTPAREN              = 7,
+        LEFTWING                = 8,
+        RIGHTWING               = 9,
+        COMMA                   = 10,
+        SEMICOLON               = 11,
+        COLON                   = 12,
+        HASH                    = 13,
+        NUMBER                  = 14,
+        COLORCODE_START         = 15,
+        COLORCODE_END           = 16,
+        COMMENT                 = 17,
+        STRING                  = 18,
+        ASSIGNMENT              = 19,
+        EQUALITY                = 20,
+        PERIOD                  = 21,
+        DOUBLEPERIOD            = 22,
+        TRIPLEPERIOD            = 23,
+        LT                      = 24,
+        LTE                     = 25,
+        GT                      = 26,
+        GTE                     = 27,
+        NOTEQUAL                = 28,
+        TILDE                   = 29,
+        IDENTIFIER              = 30,
+        VERTICAL                = 31,
+    }
+
+    _WordWrap                   = {
+        [0] = _IndentNone,      -- UNKNOWN
+        _IndentNone,            -- LINEBREAK
+        _IndentNone,            -- SPACE
+        _IndentBoth,            -- OPERATOR
+        _IndentNone,            -- LEFTBRACKET
+        _IndentNone,            -- RIGHTBRACKET
+        _IndentNone,            -- LEFTPAREN
+        _IndentNone,            -- RIGHTPAREN
+        _IndentNone,            -- LEFTWING
+        _IndentNone,            -- RIGHTWING
+        _IndentRight,           -- COMMA
+        _IndentNone,            -- SEMICOLON
+        _IndentNone,            -- COLON
+        _IndentLeft,            -- HASH
+        _IndentNone,            -- NUMBER
+        _IndentNone,            -- COLORCODE_START
+        _IndentNone,            -- COLORCODE_END
+        _IndentNone,            -- COMMENT
+        _IndentNone,            -- STRING
+        _IndentBoth,            -- ASSIGNMENT
+        _IndentBoth,            -- EQUALITY
+        _IndentNone,            -- PERIOD
+        _IndentBoth,            -- DOUBLEPERIOD
+        _IndentNone,            -- TRIPLEPERIOD
+        _IndentBoth,            -- LT
+        _IndentBoth,            -- LTE
+        _IndentBoth,            -- GT
+        _IndentBoth,            -- GTE
+        _IndentBoth,            -- NOTEQUAL
+        _IndentNone,            -- TILDE
+        _IndentNone,            -- IDENTIFIER
+        _IndentNone,            -- VERTICAL
+    }
+
+    -- Words
+    _KeyWord                    = {
+        ["and"]                 = _IndentNone,
+        ["break"]               = _IndentNone,
+        ["do"]                  = _IndentRight,
+        ["else"]                = _IndentBoth,
+        ["elseif"]              = _IndentLeft,
+        ["end"]                 = _IndentLeft,
+        ["false"]               = _IndentNone,
+        ["for"]                 = _IndentNone,
+        ["function"]            = _IndentRight,
+        ["if"]                  = _IndentNone,
+        ["in"]                  = _IndentNone,
+        ["local"]               = _IndentNone,
+        ["nil"]                 = _IndentNone,
+        ["not"]                 = _IndentNone,
+        ["or"]                  = _IndentNone,
+        ["repeat"]              = _IndentRight,
+        ["return"]              = _IndentNone,
+        ["then"]                = _IndentRight,
+        ["true"]                = _IndentNone,
+        ["until"]               = _IndentLeft,
+        ["while"]               = _IndentNone,
+        -- Loop
+        ["class"]               = _IndentRight,
+        ["inherit"]             = _IndentNone,
+        ["import"]              = _IndentNone,
+        ["endclass"]            = _IndentLeft,
+        ["event"]               = _IndentNone,
+        ["property"]            = _IndentNone,
+        ["namespace"]           = _IndentNone,
+        ["enum"]                = _IndentNone,
+        ["struct"]              = _IndentRight,
+        ["endstruct"]           = _IndentLeft,
+        ["interface"]           = _IndentRight,
+        ["endinterface"]        = _IndentLeft,
+        ["extend"]              = _IndentNone,
+    }
+
+    -- Special
+    _Special                    = {
+        -- LineBreak
+        [_Byte.LINEBREAK_N]     = _Token.LINEBREAK,
+        [_Byte.LINEBREAK_R]     = _Token.LINEBREAK,
+
+        -- Space
+        [_Byte.SPACE]           = _Token.SPACE,
+        [_Byte.TAB]             = _Token.SPACE,
+
+        -- String
+        [_Byte.SINGLE_QUOTE]    = -1,
+        [_Byte.DOUBLE_QUOTE]    = -1,
+
+        -- Operator
+        [_Byte.MINUS]           = -1, -- need check
+        [_Byte.PLUS]            = _Token.OPERATOR,
+        [_Byte.SLASH]           = _Token.OPERATOR,
+        [_Byte.ASTERISK]        = _Token.OPERATOR,
+        [_Byte.PERCENT]         = _Token.OPERATOR,
+
+        -- Compare
+        [_Byte.LESSTHAN]        = -1,
+        [_Byte.GREATERTHAN]     = -1,
+        [_Byte.EQUALS]          = -1,
+
+        -- Parentheses
+        [_Byte.LEFTBRACKET]     = -1,
+        [_Byte.RIGHTBRACKET]    = _Token.RIGHTBRACKET,
+        [_Byte.LEFTPAREN]       = _Token.LEFTPAREN,
+        [_Byte.RIGHTPAREN]      = _Token.RIGHTPAREN,
+        [_Byte.LEFTWING]        = _Token.LEFTWING,
+        [_Byte.RIGHTWING]       = _Token.RIGHTWING,
+
+        -- Punctuation
+        [_Byte.PERIOD]          = -1,
+        [_Byte.COMMA]           = _Token.COMMA,
+        [_Byte.SEMICOLON]       = _Token.SEMICOLON,
+        [_Byte.COLON]           = _Token.COLON,
+        [_Byte.TILDE]           = -1,
+        [_Byte.HASH]            = _Token.HASH,
+
+        -- WOW
+        [_Byte.VERTICAL]        = -1,
+    }
+
+    -- Code Auto Completion
+    _List                       = ListFrame("Scorpio_CodeEditor_AutoComplete", UIParent)
+    _List:SetFrameStrata("TOOLTIP")
+    _List:SetWidth(250)
+    _List:Hide()
+
+    _AutoCacheKeys              = List()
+    _AutoCacheItems             = {}
+    _AutoWordWeightCache        = {}
+    _AutoWordMap                = {}
+    _Recycle                    = {}
+    _RecycleLast                = 0
+
+    _AutoCheckKey               = ""
+    _AutoCheckWord              = ""
+
+    _BackAutoCache              = {}
+
+    _CommonAutoCompleteList     = {}
+
+    local function compare(t1, t2)
+        t1                  = t1 or ""
+        t2                  = t2 or ""
+
+        local ut1           = strupper(t1)
+        local ut2           = strupper(t2)
+
+        if ut1 == ut2 then
+            return t1 < t2
+        else
+            return ut1 < ut2
+        end
+    end
+
+    local function compareWeight(t1, t2)
+        return (_AutoWordWeightCache[t1] or 0) < (_AutoWordWeightCache[t2] or 0)
+    end
+
+    local function getIndex(list, name, sIdx, eIdx)
+        if not sIdx then
+            if not next(list) then return 0 end
+            sIdx                = 1
+            eIdx                = #list
+
+            -- Border check
+            if compare(name, list[sIdx]) then
+                return 0
+            elseif compare(list[eIdx], name) then
+                return eIdx
+            end
+        end
+
+        if sIdx == eIdx then return sIdx end
+
+        local f                 = floor((sIdx + eIdx) / 2)
+
+        if compare(name, list[f+1]) then
+            return getIndex(list, name, sIdx, f)
+        else
+            return getIndex(list, name, f+1, eIdx)
+        end
+    end
+
+    local function transMatchWord(w)
+        return "(["..w:lower()..w:upper().."])([%w_]-)"
+    end
+
+    local function applyColor(...)
+        local ret               = ""
+        local word              = ""
+        local pos               = 0
+
+        local weight            = 0
+        local n                 = select('#', ...)
+
+        for i = 1, n do
+            word                = select(i, ...)
+
+            if i % 2 == 1 then
+                pos             = floor((i+1)/2)
+                ret             = ret .. Color.WHITE .. word .. Color.CLOSE
+
+                if word ~= _AutoCheckKey:sub(pos, pos) then
+                    weight      = weight + 1
+                end
+            else
+                ret             = ret .. Color.GRAY .. word .. Color.CLOSE
+
+                if i < n then
+                    weight = weight + word:len()
+                end
+            end
+        end
+
+        _AutoWordWeightCache[_AutoCheckWord] = weight
+        _AutoWordMap[_AutoCheckWord] = ret
+
+        return ret
+    end
+
+    local function applyAutoComplete(self)
+        if true then return false end
+
+        local owner             = self.__Owner
+        _List:Hide()
+
+        if _CommonAutoCompleteList[1] or owner.AutoCompleteList[1] then
+            -- Handle the auto complete
+            local fullText      = self:GetText()
+            local startp, endp  = getWord(fullText, self:GetCursorPosition(), true)
+            local word          = startp and fullText:sub(startp, endp)
+
+            if startp then
+                local sp, ep    = getWord(fullText, startp - 1, true)
+
+                if sp and sp == ep then
+                    local byte  = strbyte(fullText, sp)
+
+                    if byte == _Byte.PERIOD or byte == _Byte.COLON then
+                        -- handle it later
+                        if true then return end
+                        local p = getWord(fullText, sp - 1, true)
+                    end
+                end
+            end
+
+            word                = word and removeColor(word)
+
+            wipe(_AutoCacheKeys)
+            wipe(_AutoWordMap)
+            wipe(_AutoWordWeightCache)
+
+            if word and word:match("^[%w_]+$") then
+                word            = word:sub(1, 16)
+                _AutoCheckKey   = word
+
+                word            = word:lower()
+
+                -- Match the auto complete list
+                local uword     = "^" .. word:gsub("[%w_]", transMatchWord) .. "$"
+                local header    = word:sub(1, 1)
+
+                if not header or #header == 0 then return end
+
+                local lst       = owner.AutoCompleteList
+                local sIdx      = getIndex(lst, header)
+
+                if sIdx == 0 then sIdx = 1 end
+
+                for i = sIdx, #lst do
+                    local value = lst[i]
+                    if #value == 0 or compare(header, value:sub(1, 1)) then break end
+
+                    _AutoCheckWord = value
+
+                    if _AutoCheckWord:match(uword) then
+                        _AutoCheckWord:gsub(uword, applyColor)
+
+                        tinsert(_AutoCacheKeys, _AutoCheckWord)
+                    end
+                end
+
+                lst             = _CommonAutoCompleteList
+                sIdx            = getIndex(lst, header)
+
+                if sIdx == 0 then sIdx = 1 end
+
+                for i = sIdx, #lst do
+                    local value = lst[i]
+                    if not _AutoWordMap[value] then
+                        if #value == 0 or compare(header, value:sub(1, 1)) then break end
+
+                        _AutoCheckWord = value
+
+                        if _AutoCheckWord:match(uword) then
+                            _AutoCheckWord:gsub(uword, applyColor)
+
+                            tinsert(_AutoCacheKeys, _AutoCheckWord)
+                        end
+                    end
+                end
+
+                _AutoCacheKeys:QuickSort(compareWeight)
+
+                if #_AutoCacheKeys == 1 and _AutoCacheKeys[1] == _AutoCheckKey then
+                    wipe(_AutoCacheKeys)
+                end
+            end
+
+            for i, v in ipairs(_AutoCacheKeys) do
+                local item  = _AutoCacheItems[i]
+                if not item then
+                    if _RecycleLast > 0 then
+                        item= _Recycle[_RecycleLast]
+                        _Recycle[_RecycleLast] = nil
+                        _RecycleLast = _RecycleLast - 1
+                    else
+                        item= {}
+                    end
+                end
+
+                item.checkvalue  = v
+                item.text        = _AutoWordMap[v]
+                --item.tiptitle  = text.tiptitle
+                --item.tiptext   = text.tiptext
+
+                _AutoCacheItems[i] = item
+            end
+
+            for i = #_AutoCacheItems, #_AutoCacheKeys + 1, -1 do
+                _RecycleLast    = _RecycleLast + 1
+                _Recycle[_RecycleLast] = _AutoCacheItems[i]
+                _AutoCacheItems[i] = nil
+            end
+
+            -- Refresh the item
+            _List.RawItems      = _AutoCacheItems
+        end
+    end
+
+    local autoCompleteEditor
+    local autoCompleteTime
+    local taskStarted
+    local autoComplete_x
+    local autoComplete_y
+    local autoComplete_w
+    local autoComplete_h
+
+    local function registerAutoComplete(self, x, y, w, h)
+        autoCompleteEditor      = self
+        autoCompleteTime        = GetTime() + self.__Owner.AutoCompleteDelay
+        autoComplete_x          = x
+        autoComplete_y          = y
+        autoComplete_w          = w
+        autoComplete_h          = h
+
+        if not taskStarted then
+            taskStarted         = true
+
+            -- Tiny cost for all editor
+            Continue(function ()
+                while autoCompleteEditor do
+                    if autoCompleteEditor and autoCompleteTime <= GetTime() then
+                        applyAutoComplete( autoCompleteEditor )
+
+                        if #_AutoCacheItems > 0 and autoCompleteEditor:HasFocus() then
+                            _List.CurrentEditor = autoCompleteEditor
+
+                            local owner     = autoCompleteEditor.__Owner
+                            local linenum   = owner.__LineNum
+                            local marginx   = linenum:IsShown() and linenum:GetWidth() or 0
+
+                            -- Handle the auto complete
+                            _List:ClearAllPoints()
+                            _List:SetPoint("TOPLEFT", owner, autoComplete_x + marginx, - autoComplete_y - autoComplete_h + Style[owner].ScrollBar.value)
+                            _List:Show()
+                            _List.SelectedIndex = 1
+                        else
+                            _List.CurrentEditor = nil
+                            _List:Hide()
+                        end
+
+                        autoCompleteEditor = nil
+                    end
+
+                    Next()
+                end
+                taskStarted     = false
+            end)
+        end
+    end
+
+    local function initDefinition(self)
+        self._IdentifierCache  = self._IdentifierCache or {}
+        wipe(self._IdentifierCache)
+
+        local owner             = self.__Owner
+
+        owner:ClearAutoCompleteList()
+
+        for k in pairs(_KeyWord) do
+            self._IdentifierCache[k] = true
+            owner:InsertAutoCompleteWord(k)
+        end
+    end
+
+    -- Token
+    local function nextNumber(str, pos, noPeriod, cursorPos, trueWord, newPos)
+        pos                     = pos or 1
+        newPos                  = newPos or 0
+        cursorPos               = cursorPos or 0
+
+        -- just match, don't care error
+        local e                 = 0
+        local startPos          = pos
+
+        local cnt               = 0
+        local isHex             = true
+
+        -- Number
+        while true do
+            local npos          = skipColor(str, pos)
+            if npos ~= pos then
+                trueWord        = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                pos             = npos
+                startPos        = pos
+            end
+
+            local byte          = strbyte(str, pos)
+            if not byte then break end
+
+            cnt                 = cnt + 1
+
+            if cnt == 1 and byte ~= _Byte.ZERO then isHex = false end
+            if isHex and cnt == 2 and byte ~= _Byte.x and byte ~= _Byte.X then isHex = false end
+
+            if isHex then
+                if cnt > 2 then
+                    if (byte >= _Byte.ZERO and byte <= _Byte.NINE) or (byte >= _Byte.a and byte <= _Byte.f) or (byte >= _Byte.A and byte <= _Byte.F) then
+                        -- continue
+                    else
+                        break
+                    end
+                end
+            else
+                if byte >= _Byte.ZERO and byte <= _Byte.NINE then
+                    if e == 1 then e = 2 end
+                elseif byte == _Byte.E or byte == _Byte.e then
+                    if e == 0 then e = 1 else break end
+                elseif not noPeriod and e == 0 and byte == _Byte.PERIOD then
+                    -- '.' only work before 'e'
+                    noPeriod = true
+                elseif e == 1 and (byte == _Byte.MINUS or byte == _Byte.PLUS) then
+                    e           = 2
+                else
+                    break
+                end
+            end
+
+            if pos <= cursorPos then
+                newPos          = newPos + 1
+            end
+
+            pos                 = pos + 1
+        end
+
+        trueWord                = trueWord and trueWord .. str:sub(startPos, pos - 1)
+
+        return pos, trueWord, newPos
+    end
+
+    local function nextComment(str, pos, cursorPos, trueWord, newPos)
+        pos                     = pos or 1
+        newPos                  = newPos or 0
+        cursorPos               = cursorPos or 0
+
+        local markLen           = 0
+        local dblBrak           = false
+        local startPos          = pos
+
+        -- Skip the color part
+        local npos              = skipColor(str, pos)
+        if npos ~= pos then
+            trueWord            = trueWord and trueWord .. str:sub(startPos, pos - 1)
+            pos                 = npos
+            startPos            = pos
+        end
+
+        local byte              = strbyte(str, pos)
+
+        if byte == _Byte.LEFTBRACKET then
+            if pos <= cursorPos then
+                newPos          = newPos + 1
+            end
+
+            pos                 = pos + 1
+
+            while true do
+                npos            = skipColor(str, pos)
+                if npos ~= pos then
+                    trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                    pos         = npos
+                    startPos    = pos
+                end
+
+                byte            = strbyte(str, pos)
+
+                if not byte then
+                    break
+                elseif byte == _Byte.EQUALS then
+                    markLen     = markLen + 1
+                elseif byte == _Byte.LEFTBRACKET then
+                    dblBrak     = true
+                else
+                    break
+                end
+
+                if pos <= cursorPos then
+                    newPos      = newPos + 1
+                end
+
+                pos             = pos + 1
+                if dblBrak then break end
+            end
+        end
+
+        if dblBrak then
+            --[==[...]==]
+            while true do
+                npos            = skipColor(str, pos)
+                if npos ~= pos then
+                    trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                    pos         = npos
+                    startPos    = pos
+                end
+
+                byte            = strbyte(str, pos)
+
+                if not byte then
+                    break
+                elseif byte == _Byte.RIGHTBRACKET then
+                    local len   = 0
+
+                    if pos <= cursorPos then
+                        newPos  = newPos + 1
+                    end
+
+                    pos         = pos + 1
+
+                    while true do
+                        npos    = skipColor(str, pos)
+                        if npos ~= pos then
+                            trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                            pos         = npos
+                            startPos    = pos
+                        end
+
+                        byte    = strbyte(str, pos)
+
+                        if byte == _Byte.EQUALS then
+                            len = len + 1
+                        else
+                            break
+                        end
+
+                        if pos <= cursorPos then
+                            newPos      = newPos + 1
+                        end
+
+                        pos     = pos + 1
+                    end
+
+                    if not byte then
+                        break
+                    elseif len == markLen and byte == _Byte.RIGHTBRACKET then
+                        if pos <= cursorPos then
+                            newPos      = newPos + 1
+                        end
+
+                        pos     = pos + 1
+                        break
+                    end
+                end
+
+                if pos <= cursorPos then
+                    newPos      = newPos + 1
+                end
+
+                pos             = pos + 1
+            end
+        else
+            --...
+            while true do
+                npos            = skipColor(str, pos)
+                if npos ~= pos then
+                    trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                    pos         = npos
+                    startPos    = pos
+                end
+
+                byte            = strbyte(str, pos)
+
+                if not byte or byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                    break
+                end
+
+                if pos <= cursorPos then
+                    newPos      = newPos + 1
+                end
+
+                pos             = pos + 1
+            end
+        end
+
+        trueWord                = trueWord and trueWord .. str:sub(startPos, pos - 1)
+
+        return pos, trueWord, newPos
+    end
+
+    local function nextString(str, pos, mark, cursorPos, trueWord, newPos)
+        pos                     = pos or 1
+        cursorPos               = cursorPos or 0
+        newPos                  = newPos or 0
+
+        local preEscape         = false
+        local startPos          = pos
+
+        if pos <= cursorPos then
+            newPos              = newPos + 1
+        end
+
+        pos                     = pos + 1
+
+        while true do
+            local npos          = skipColor(str, pos)
+            if npos ~= pos then
+                trueWord        = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                pos             = npos
+                startPos        = pos
+            end
+
+            local byte          = strbyte(str, pos)
+
+            if not byte or byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                break
+            end
+
+            if not preEscape and byte == mark then
+                if pos <= cursorPos then
+                    newPos      = newPos + 1
+                end
+
+                pos             = pos + 1
+                break
+            end
+
+            if byte == _Byte.BACKSLASH then
+                preEscape       = not preEscape
+            else
+                preEscape       = false
+            end
+
+            if pos <= cursorPos then
+                newPos          = newPos + 1
+            end
+
+            pos                 = pos + 1
+        end
+
+        trueWord                = trueWord and trueWord .. str:sub(startPos, pos - 1)
+
+        return pos, trueWord, newPos
+    end
+
+    local function nextIdentifier(str, pos, cursorPos, trueWord, newPos)
+        pos                     = pos or 1
+        cursorPos               = cursorPos or 0
+        newPos                  = newPos or 0
+
+        local startPos          = pos
+
+        if pos <= cursorPos then
+            newPos              = newPos + 1
+        end
+
+        pos                     = pos + 1
+
+        while true do
+            local npos          = skipColor(str, pos)
+            if npos ~= pos then
+                trueWord        = trueWord and trueWord .. str:sub(startPos, pos - 1)
+                pos             = npos
+                startPos        = pos
+            end
+
+            local byte          = strbyte(str, pos)
+
+            if not byte then
+                break
+            elseif byte == _Byte.SPACE or byte == _Byte.TAB then
+                break
+            elseif _Special[byte] then
+                break
+            end
+
+            if pos <= cursorPos then
+                newPos          = newPos + 1
+            end
+
+            pos                 = pos + 1
+        end
+
+        trueWord                = trueWord and trueWord .. str:sub(startPos, pos - 1)
+
+        return pos, trueWord, newPos
+    end
+
+    local function nextToken(str, pos, cursorPos, needTrueWord)
+        pos                     = pos or 1
+        cursorPos               = cursorPos or 0
+
+        if not str then return nil, pos end
+
+        local byte              = strbyte(str, pos)
+        local start             = pos
+
+        if not byte then return nil, pos end
+
+        -- Space
+        if byte == _Byte.SPACE or byte == _Byte.TAB then
+            while true do
+                pos             = pos + 1
+                byte            = strbyte(str, pos)
+
+                if not byte or (byte ~= _Byte.SPACE and byte ~= _Byte.TAB) then
+                    return _Token.SPACE, pos, needTrueWord and str:sub(start, pos - 1)
+                end
+            end
+        end
+
+        -- Special character
+        if _Special[byte] then
+            if _Special[byte] >= 0 then
+                return _Special[byte], pos + 1, needTrueWord and str:sub(start, pos)
+            elseif _Special[byte] == -1 then
+                if byte == _Byte.VERTICAL then
+                    -- '|'
+                    pos         = pos + 1
+                    byte        = strbyte(str, pos)
+
+                    if byte == _Byte.c then
+                        --[[for i = pos + 1, pos + 8 do
+                            byte = strbyte(str, i)
+
+                            if i <= pos + 2 then
+                                if byte ~= _Byte.f then
+                                    return _Token.UNKNOWN, pos
+                                end
+                            else
+                                if not ( ( byte >= _Byte.ZERO and byte <= _Byte.NINE ) or ( byte >= _Byte.a and byte <= _Byte.f ) ) then
+                                    return  _Token.UNKNOWN, pos
+                                end
+                            end
+                        end--]]
+
+                        -- mark as '|cff20ff20'
+                        return _Token.COLORCODE_START, pos + 9, ""
+                    elseif byte == _Byte.r then
+                        -- mark '|r'
+                        return _Token.COLORCODE_END, pos + 1, ""
+                    elseif byte == _Byte.VERTICAL then
+                        return _Token.VERTICAL, pos + 1
+                    else
+                        -- don't know
+                        return _Token.UNKNOWN, pos
+                    end
+                elseif byte == _Byte.MINUS then
+                    -- '-'
+                    pos         = skipColor(str, pos + 1)
+                    byte        = strbyte(str, pos)
+
+                    if byte == _Byte.MINUS then
+                        -- '--'
+                        return _Token.COMMENT, nextComment(str, pos + 1, cursorPos, needTrueWord and "--", 2)
+                    else
+                        -- '-'
+                        return _Token.OPERATOR, pos, "-", 1
+                    end
+                elseif byte == _Byte.SINGLE_QUOTE or byte == _Byte.DOUBLE_QUOTE then
+                    -- ' || "
+                    return _Token.STRING, nextString(str, pos, byte, cursorPos, needTrueWord and "")
+                elseif byte == _Byte.LEFTBRACKET then
+                    local chkPos  = pos
+                    local dblBrak = false
+
+                    -- '['
+                    pos         = pos + 1
+
+                    while true do
+                        pos     = skipColor(str, pos)
+                        byte    = strbyte(str, pos)
+
+                        if not byte then
+                            break
+                        elseif byte == _Byte.EQUALS then
+                        elseif byte == _Byte.LEFTBRACKET then
+                            dblBrak = true
+                            break
+                        else
+                            break
+                        end
+
+                        pos     = pos + 1
+                    end
+
+                    if dblBrak then
+                        return _Token.STRING, nextComment(str, chkPos, cursorPos, needTrueWord and "")
+                    else
+                        return _Token.LEFTBRACKET, chkPos + 1, "[", 1
+                    end
+                elseif byte == _Byte.EQUALS then
+                    -- '='
+                    pos         = skipColor(str, pos + 1)
+                    byte        = strbyte(str, pos)
+
+                    if byte == _Byte.EQUALS then
+                        return _Token.EQUALITY, pos + 1, "==", 2
+                    else
+                        return _Token.ASSIGNMENT, pos, "=", 1
+                    end
+                elseif byte == _Byte.PERIOD then
+                    -- '.'
+                    pos         = skipColor(str, pos + 1)
+                    byte        = strbyte(str, pos)
+
+                    if not byte then
+                        return _Token.PERIOD, pos, ".", 1
+                    elseif byte == _Byte.PERIOD then
+                        pos     = skipColor(str, pos + 1)
+                        byte    = strbyte(str, pos)
+
+                        if byte == _Byte.PERIOD then
+                            return _Token.TRIPLEPERIOD, pos + 1, "...", 3
+                        else
+                            return _Token.DOUBLEPERIOD, pos, "..", 2
+                        end
+                    elseif byte >= _Byte.ZERO and byte <= _Byte.NINE then
+                        return _Token.NUMBER, nextNumber(str, pos, true, cursorPos, needTrueWord and ".", 1)
+                    else
+                        return _Token.PERIOD, pos, ".", 1
+                    end
+                elseif byte == _Byte.LESSTHAN then
+                    -- '<'
+                    pos         = skipColor(str, pos + 1)
+                    byte        = strbyte(str, pos)
+
+                    if byte == _Byte.EQUALS then
+                        return _Token.LTE, pos + 1, "<=", 2
+                    else
+                        return _Token.LT, pos, "<", 1
+                    end
+                elseif byte == _Byte.GREATERTHAN then
+                    -- '>'
+                    pos         = skipColor(str, pos + 1)
+                    byte        = strbyte(str, pos)
+
+                    if byte == _Byte.EQUALS then
+                        return _Token.GTE, pos + 1, ">=", 2
+                    else
+                        return _Token.GT, pos, ">", 1
+                    end
+                elseif byte == _Byte.TILDE then
+                    -- '~'
+                    pos         = skipColor(str, pos + 1)
+                    byte        = strbyte(str, pos)
+
+                    if byte == _Byte.EQUALS then
+                        return _Token.NOTEQUAL, pos + 1, "~=", 2
+                    else
+                        return _Token.TILDE, pos, "~", 1
+                    end
+                else
+                    return _Token.UNKNOWN, pos
+                end
+            end
+        end
+
+        -- Number
+        if byte >= _Byte.ZERO and byte <= _Byte.NINE then
+            return _Token.NUMBER, nextNumber(str, pos, nil, cursorPos, needTrueWord and "")
+        end
+
+        -- Identifier
+        return _Token.IDENTIFIER, nextIdentifier(str, pos, cursorPos, needTrueWord and "")
+    end
+
+    -- Color
+    local function formatColor(self, str, cursorPos)
+        local pos               = 1
+
+        local token
+        local content           = {}
+        local cindex            = 0
+        local nextPos
+        local trueWord
+        local word
+        local newPos
+
+        local owner             = self.__Owner
+        local defaultColor      = tostring(owner.DefaultColor)
+        local commentColor      = tostring(owner.CommentColor)
+        local stringColor       = tostring(owner.StringColor)
+        local numberColor       = tostring(owner.NumberColor)
+        local instructionColor  = tostring(owner.InstructionColor)
+        local functionColor     = tostring(owner.FunctionColor)
+
+        cursorPos               = cursorPos or 0
+
+        local chkLength         = 0
+        local newCurPos         = 0
+        local prevIdentifier
+
+        local skipNextColorEnd  = false
+
+        while true do
+            token, nextPos, trueWord, newPos = nextToken(str, pos, cursorPos, true)
+            if not token then break end
+
+            word                = trueWord or str:sub(pos, nextPos - 1)
+            newPos              = newPos or word:len()
+            cindex              = cindex + 1
+
+            if token == _Token.COLORCODE_START or token == _Token.COLORCODE_END then
+                -- clear prev colorcode
+                content[cindex] = ""
+            elseif token == _Token.IDENTIFIER then
+                if _KeyWord[word] then
+                    prevIdentifier  = nil
+                    content[cindex] = instructionColor .. word .. _EndColor
+                else
+                    prevIdentifier  = cindex
+                    content[cindex] = defaultColor .. word .. _EndColor
+                end
+            elseif token == _Token.NUMBER then
+                prevIdentifier  = nil
+                content[cindex] = numberColor .. word .. _EndColor
+            elseif token == _Token.STRING then
+                prevIdentifier  = nil
+                content[cindex] = stringColor .. word .. _EndColor
+            elseif token == _Token.COMMENT then
+                prevIdentifier  = nil
+                content[cindex] = commentColor .. word .. _EndColor
+            else
+                content[cindex] = word
+                if token == _Token.SPACE or token == _Token.LEFTPAREN then
+                    if prevIdentifier and token == _Token.LEFTPAREN then
+                        -- Replace the function call's color
+                        content[prevIdentifier] = functionColor .. content[prevIdentifier]:sub(#defaultColor + 1, -1)
+                        prevIdentifier = nil
+                    end
+                else
+                    prevIdentifier = nil
+                end
+            end
+
+            -- Check cursor position
+            if chkLength < cursorPos then
+                chkLength       = chkLength + nextPos - pos
+
+                if chkLength >= cursorPos then
+                    if content[cindex]:len() > 0 and strbyte(content[cindex], 1) == _Byte.VERTICAL and strbyte(content[cindex], 2) ~= _Byte.VERTICAL then
+                        if chkLength == cursorPos then
+                            newCurPos = newCurPos + newPos + 12
+                        else
+                            newCurPos = newCurPos + newPos + 10
+                        end
+                    elseif token == _Token.COLORCODE_END then
+                        -- skip
+                    else
+                        newCurPos     = newCurPos + newPos
+                    end
+                else
+                    newCurPos   = newCurPos + content[cindex]:len()
+                end
+            end
+
+            pos                 = nextPos
+        end
+
+        return tblconcat(content), newCurPos
+    end
+
+    -- Indent
+    local function formatIndent(self, str)
+        local pos               = 1
+
+        local token
+        local content           = {}
+        local cindex            = 0
+        local indent            = 0
+        local nextPos
+        local word
+        local rightSpace        = false
+        local index
+        local prevIndent        = 0
+        local startIndent       = 0
+        local prevToken
+        local trueWord
+
+        local tab               = self.__Owner.TabWidth
+
+        while true do
+            prevToken           = token
+            token, nextPos, trueWord = nextToken(str, pos, nil, true)
+            if not token then break end
+
+            word                = str:sub(pos, nextPos - 1)
+            trueWord            = trueWord or word
+
+            -- Format Indent
+            if token == _Token.LEFTWING then
+                indent          = indent + 1
+                startIndent     = startIndent + 1
+
+                cindex          = cindex + 1
+                content[cindex] = word
+
+                rightSpace      = false
+            elseif token == _Token.RIGHTWING then
+                indent          = indent - 1
+                if startIndent > 0 then
+                    startIndent = startIndent - 1
+                else
+                    prevIndent  = prevIndent + 1
+                end
+                if content[cindex] == strrep(" ", tab * (indent+1)) then
+                    content[cindex] = strrep(" ", tab * indent)
+                end
+
+                cindex          = cindex + 1
+                content[cindex] = word
+
+                rightSpace      = false
+            elseif token == _Token.LINEBREAK then
+                if rightSpace then
+                    content[cindex] = content[cindex]:gsub("^(.-)%s*$", "%1")
+                    if content[cindex] == "" then
+                        content[cindex] = strrep(" ", tab * indent)
+                    end
+                end
+
+                cindex          = cindex + 1
+                content[cindex] = word
+
+                cindex          = cindex + 1
+                content[cindex] = strrep(" ", tab * indent)
+                rightSpace      = true
+            elseif token == _Token.SPACE then
+                if not rightSpace then
+                    cindex      = cindex + 1
+                    content[cindex] = " "
+                end
+                rightSpace      = true
+            elseif token == _Token.IDENTIFIER then
+                if _KeyWord[trueWord] then
+                    if _KeyWord[trueWord] == _IndentNone then
+                        indent = indent
+                    elseif _KeyWord[trueWord] == _IndentRight then
+                        indent = indent + 1
+                        startIndent = startIndent + 1
+                    elseif _KeyWord[trueWord] == _IndentLeft then
+                        indent = indent - 1
+                        if startIndent > 0 then
+                            startIndent = startIndent - 1
+                        else
+                            prevIndent = prevIndent + 1
+                        end
+
+                        if prevToken == _Token.COLORCODE_START then
+                            index = cindex - 1
+                        else
+                            index = cindex
+                        end
+
+                        if content[index] == strrep(" ", tab * (indent+1)) then
+                            content[index] = strrep(" ", tab * indent)
+                        end
+                    elseif _KeyWord[trueWord] == _IndentBoth then
+                        indent = indent
+                        if startIndent == 0 then
+                            prevIndent = prevIndent + 1
+                            startIndent = startIndent + 1
+                        end
+
+                        if prevToken == _Token.COLORCODE_START then
+                            index = cindex - 1
+                        else
+                            index = cindex
+                        end
+
+                        if content[index] == strrep(" ", tab * indent) then
+                            content[index] = strrep(" ", tab * (indent-1))
+                        end
+                    end
+
+                    cindex      = cindex + 1
+                    content[cindex] = word
+                else
+                    cindex      = cindex + 1
+                    content[cindex] = word
+
+                    if not self._IdentifierCache[word] then
+                        self._IdentifierCache[word] = true
+                        self.__Owner:InsertAutoCompleteWord(word)
+                    end
+                end
+                rightSpace      = false
+            elseif _WordWrap[token] == _IndentNone then
+                cindex          = cindex + 1
+                content[cindex] = word
+
+                rightSpace      = false
+            elseif _WordWrap[token] == _IndentRight then
+                cindex          = cindex + 1
+                content[cindex] = word .. " "
+
+                rightSpace      = true
+            elseif _WordWrap[token] == _IndentLeft then
+                if rightSpace then
+                    cindex      = cindex + 1
+                    content[cindex] = word
+                else
+                    cindex      = cindex + 1
+                    content[cindex] = " " .. word
+                end
+
+                rightSpace      = false
+            elseif _WordWrap[token] == _IndentBoth then
+                if rightSpace then
+                    cindex      = cindex + 1
+                    content[cindex] = word .. " "
+                else
+                    cindex      = cindex + 1
+                    content[cindex] = " " .. word .. " "
+                end
+
+                rightSpace      = true
+            else
+                cindex          = cindex + 1
+                content[cindex] = word
+
+                rightSpace      = false
+            end
+
+            pos                 = nextPos
+        end
+
+        return tblconcat(content), indent, prevIndent
+    end
+
+    local function formatColor4Line(self, startp, endp)
+        local cursorPos         = self:GetCursorPosition()
+        local text              = self:GetText()
+        local byte
+        local line
+
+        local owner             = self.__Owner
+        local commentColor      = tostring(owner.CommentColor)
+        local stringColor       = tostring(owner.StringColor)
+
+        startp                  = startp or cursorPos
+        endp                    = endp or cursorPos
+
+        -- Color the line
+        startp, endp            = getLines(text, startp, endp)
+
+        -- check prev comment
+        local preColorPos       = startp - 1
+        local token, nextPos
+
+        while preColorPos > 0 do
+            byte                = strbyte(text, preColorPos)
+
+            if byte == _Byte.VERTICAL then
+                -- '|'
+                byte            = strbyte(text, preColorPos + 1)
+
+                if byte == _Byte.c then
+                    if commentColor == text:sub(preColorPos, preColorPos + 9) or stringColor == text:sub(preColorPos, preColorPos + 9) then
+                        -- check multi-lines comment or string
+                        token, nextPos = nextToken(text, preColorPos + 10)
+
+                        if token == _Token.COMMENT or token == _Token.STRING then
+                            if nextPos < startp and nextPos < endp then
+                                break   -- no need to think about prev multi-lines comment and string
+                            end
+
+                            while token and (nextPos <= endp or nextPos <= startp) do
+                                token, nextPos = nextToken(text, nextPos)
+                            end
+
+                            byte = strbyte(text, nextPos)
+
+                            if not byte or (nextPos - 1 > endp and nextPos - 1 > startp) then
+                                line, cursorPos = formatColor(self, text:sub(preColorPos, nextPos - 1), cursorPos - preColorPos + 1)
+
+                                self:SetText(replaceBlock(text, preColorPos, nextPos - 1, line))
+
+                                cursorPos = preColorPos + cursorPos - 1
+
+                                return SetCursorPosition(self, cursorPos)
+                            end
+
+                            token, nextPos = nextToken(text, nextPos)
+
+                            while token do
+                                if token == _Token.COLORCODE_START or token == _Token.COLORCODE_END then
+                                    line, cursorPos = formatColor(self, text:sub(preColorPos, endp), cursorPos - preColorPos + 1)
+
+                                    self:SetText(replaceBlock(text, preColorPos, endp, line))
+
+                                    cursorPos = preColorPos + cursorPos - 1
+
+                                    return SetCursorPosition(self, cursorPos)
+                                elseif token == _Token.IDENTIFIER or token == _Token.NUMBER or token == _Token.STRING or token == _Token.COMMENT then
+                                    while token and token ~= _Token.COLORCODE_END do
+                                        token, nextPos = nextToken(text, nextPos)
+                                    end
+
+                                    line, cursorPos = formatColor(self, text:sub(preColorPos, nextPos - 1), cursorPos - preColorPos + 1)
+
+                                    self:SetText(replaceBlock(text, preColorPos, nextPos - 1, line))
+
+                                    cursorPos = preColorPos + cursorPos - 1
+
+                                    return SetCursorPosition(self, cursorPos)
+                                end
+
+                                token, nextPos = nextToken(text, nextPos)
+                            end
+                        else
+                            break
+                        end
+                    else
+                        break
+                    end
+                end
+            end
+
+            preColorPos = preColorPos - 1
+        end
+
+        nextPos                 = startp
+        token, nextPos          = nextToken(text, nextPos)
+
+        while token and (nextPos <= endp or nextPos <= startp) do
+            token, nextPos      = nextToken(text, nextPos)
+        end
+
+        if nextPos - 1 > endp and nextPos - 1 > startp then
+            line, cursorPos     = formatColor(self, text:sub(startp, nextPos - 1), cursorPos - startp + 1)
+
+            self:SetText(replaceBlock(text, startp, nextPos - 1, line))
+
+            return SetCursorPosition(self, startp + cursorPos - 1)
+        end
+
+        while true do
+            if not token then
+                line, cursorPos = formatColor(self, text:sub(startp, endp), cursorPos - startp + 1)
+
+                self:SetText(replaceBlock(text, startp, endp, line))
+
+                return SetCursorPosition(self, startp + cursorPos - 1)
+            elseif token == _Token.COLORCODE_START or token == _Token.COLORCODE_END then
+                line, cursorPos = formatColor(self, text:sub(startp, endp), cursorPos - startp + 1)
+
+                self:SetText(replaceBlock(text, startp, endp, line))
+
+                return SetCursorPosition(self, startp + cursorPos - 1)
+            elseif token == _Token.IDENTIFIER or token == _Token.NUMBER or token == _Token.STRING or token == _Token.COMMENT then
+                while token and token ~= _Token.COLORCODE_END do
+                    token, nextPos = nextToken(text, nextPos)
+                end
+
+                line, cursorPos = formatColor(self, text:sub(startp, nextPos - 1), cursorPos - startp + 1)
+
+                self:SetText(replaceBlock(text, startp, nextPos - 1, line))
+
+                return SetCursorPosition(self, startp + cursorPos - 1)
+            end
+
+            token, nextPos      = nextToken(text, nextPos)
+        end
+    end
+
+    local function formatAll(self, str)
+        local owner             = self.__Owner
+        local pos               = 1
+        local tab               = owner.TabWidth
+
+        local token
+        local content           = {}
+        local cindex            = 0
+        local nextPos
+        local trueWord
+        local word
+
+        local defaultColor      = tostring(owner.DefaultColor)
+        local commentColor      = tostring(owner.CommentColor)
+        local stringColor       = tostring(owner.StringColor)
+        local numberColor       = tostring(owner.NumberColor)
+        local instructionColor  = tostring(owner.InstructionColor)
+        local functionColor     = tostring(owner.FunctionColor)
+
+        local indent            = 0
+        local rightSpace        = false
+        local index
+        local prevIndent        = 0
+        local startIndent       = 0
+        local prevToken
+        local prevIdentifier
+
+        initDefinition(self)
+
+        while true do
+            prevToken           = token
+            token, nextPos, trueWord = nextToken(str, pos, nil, true)
+            if not token then break end
+
+            word                = trueWord or str:sub(pos, nextPos - 1)
+
+            if token == _Token.COLORCODE_START or token == _Token.COLORCODE_END then
+                -- clear prev colorcode
+                cindex          = cindex + 1
+                content[cindex] = ""
+            elseif token == _Token.LEFTWING then
+                indent          = indent + 1
+                startIndent     = startIndent + 1
+                cindex          = cindex + 1
+                content[cindex] = word
+                rightSpace      = false
+                prevIdentifier  = nil
+            elseif token == _Token.RIGHTWING then
+                indent          = indent - 1
+                if startIndent > 0 then
+                    startIndent = startIndent - 1
+                else
+                    prevIndent  = prevIndent + 1
+                end
+                if content[cindex] == strrep(" ", tab * (indent+1)) then
+                    content[cindex] = strrep(" ", tab * indent)
+                end
+                cindex          = cindex + 1
+                content[cindex] = word
+                rightSpace      = false
+                prevIdentifier  = nil
+            elseif token == _Token.LINEBREAK then
+                if rightSpace then
+                    content[cindex] = content[cindex]:gsub("^(.-)%s*$", "%1")
+                    if content[cindex] == "" then
+                        content[cindex] = strrep(" ", tab * indent)
+                    end
+                end
+                cindex          = cindex + 1
+                content[cindex] = word
+                cindex          = cindex + 1
+                content[cindex] = strrep(" ", tab * indent)
+                rightSpace      = true
+                prevIdentifier  = nil
+            elseif token == _Token.SPACE then
+                if not rightSpace then
+                    cindex      = cindex + 1
+                    content[cindex] = " "
+                end
+                rightSpace      = true
+            elseif token == _Token.IDENTIFIER then
+                if _KeyWord[word] then
+                    if _KeyWord[word] == _IndentNone then
+                        indent  = indent
+                    elseif _KeyWord[word] == _IndentRight then
+                        indent  = indent + 1
+                        startIndent = startIndent + 1
+                    elseif _KeyWord[word] == _IndentLeft then
+                        indent  = indent - 1
+                        if startIndent > 0 then
+                            startIndent = startIndent - 1
+                        else
+                            prevIndent = prevIndent + 1
+                        end
+
+                        if prevToken == _Token.COLORCODE_START then
+                            index = cindex - 1
+                        else
+                            index = cindex
+                        end
+
+                        if content[index] == strrep(" ", tab * (indent+1)) then
+                            content[index] = strrep(" ", tab * indent)
+                        end
+                    elseif _KeyWord[word] == _IndentBoth then
+                        indent  = indent
+                        if startIndent == 0 then
+                            prevIndent = prevIndent + 1
+                            startIndent = startIndent + 1
+                        end
+
+                        if prevToken == _Token.COLORCODE_START then
+                            index = cindex - 1
+                        else
+                            index = cindex
+                        end
+
+                        if content[index] == strrep(" ", tab * indent) then
+                            content[index] = strrep(" ", tab * (indent-1))
+                        end
+                    end
+                    cindex      = cindex + 1
+                    content[cindex] = instructionColor .. word .. _EndColor
+                    prevIdentifier  = nil
+                else
+                    cindex      = cindex + 1
+                    content[cindex] = defaultColor .. word .. _EndColor
+                    prevIdentifier  = cindex
+
+                    word        = removeColor(word)
+                    if not self._IdentifierCache[word] then
+                        self._IdentifierCache[word] = true
+                        owner:InsertAutoCompleteWord(word)
+                    end
+                end
+                rightSpace      = false
+            else
+                if prevIdentifier and token == _Token.LEFTPAREN then
+                    -- Replace the function call's color
+                    content[prevIdentifier] = functionColor .. content[prevIdentifier]:sub(#defaultColor + 1, -1)
+                    prevIdentifier = nil
+                else
+                    prevIdentifier = nil
+                end
+
+                if token == _Token.NUMBER then
+                    cindex      = cindex + 1
+                    content[cindex] = numberColor .. word .. _EndColor
+                elseif token == _Token.STRING then
+                    cindex      = cindex + 1
+                    content[cindex] = stringColor .. word .. _EndColor
+                elseif token == _Token.COMMENT then
+                    cindex      = cindex + 1
+                    content[cindex] = commentColor .. word .. _EndColor
+                else
+                    cindex      = cindex + 1
+                    content[cindex] = word
+                end
+
+                if _WordWrap[token] == _IndentNone then
+                    rightSpace = false
+                elseif _WordWrap[token] == _IndentRight then
+                    content[#content] = content[#content] .. " "
+                    rightSpace = true
+                elseif _WordWrap[token] == _IndentLeft then
+                    if not rightSpace then
+                        content[#content] = " " .. content[#content]
+                    end
+                    rightSpace = false
+                elseif _WordWrap[token] == _IndentBoth then
+                    if rightSpace then
+                        content[cindex] = content[cindex] .. " "
+                    else
+                        content[cindex] = " " .. content[cindex] .. " "
+                    end
+                    rightSpace  = true
+                else
+                    rightSpace  = false
+                end
+            end
+
+            pos                 = nextPos
+        end
+
+        return tblconcat(content)
+    end
+
+    local function refreshText(self)
+        self:SetText(self:GetText())
+    end
+
+    local function onOperationListChanged(self, startp, endp)
+        return startp and endp and formatColor4Line(self, startp, endp)
+    end
+
+    local function moveOnList(self, offset, key)
+        local min, max          = 1, _List.ItemCount
+        local index             = _List.SelectedIndex
+
+        local first             = true
+        self:SetAltArrowKeyMode(true)
+
+        repeat
+            index               = index + offset
+            if index >= min and index <= max then
+                _List.SelectedIndex = index
+            else
+                break
+            end
+
+            Delay(first and 0.3 or 0.1)
+            first               = false
+        until not isKeyPressed(self, key)
+
+        self:SetAltArrowKeyMode(false)
+    end
+
+    function _List:OnItemClick(key)
+        local editor            = _List.CurrentEditor
+        if not editor then return _List:Hide() end
+
+        local ct                = editor:GetText()
+        local startp, endp      = getWord(ct, editor:GetCursorPosition(), true)
+
+        wipe(_BackAutoCache)
+
+        if key then
+            for _, v in ipairs(_AutoCacheItems) do
+                tinsert(_BackAutoCache, v.checkvalue)
+            end
+
+            _BackAutoCache[0]   = _List.SelectedIndex
+
+            _List:Hide()
+
+            editor:SetText(replaceBlock(ct, startp, endp, key))
+
+            SetCursorPosition(editor.__Owner, startp + key:len() - 1)
+
+            formatColor4Line(editor, startp, startp + key:len() - 1)
+        else
+            _List:Hide()
+        end
+    end
+
+    ------------------------------------------------------
+    -- Key Scan Helper
+    ------------------------------------------------------
+    local function saveOperation(self)
+        if not self._OperationOnLine then return end
+
+        local nowText           = self:GetText()
+
+        -- check change
+        if nowText == self._OperationBackUpOnLine then
+            self._OperationOnLine       = nil
+            self._OperationBackUpOnLine = nil
+            self._OperationStartOnLine  = nil
+            self._OperationEndOnLine    = nil
+
+            return
+        end
+
+        self._OperationIndex            = self._OperationIndex + 1
+        self.__MaxOperationIndex        = self._OperationIndex
+
+        local index                     = self._OperationIndex
+
+        -- Modify some oper var
+        if self._OperationOnLine == _Operation.DELETE then
+            local _, oldLineCnt, newLineCnt
+
+            _, oldLineCnt               = self._OperationBackUpOnLine:gsub("\n", "\n")
+            _, newLineCnt               = nowText:gsub("\n", "\n")
+
+            _, self._OperationEndOnLine = getLinesByReturn(self._OperationBackUpOnLine, self._OperationStartOnLine, oldLineCnt - newLineCnt)
+        end
+
+        if self._OperationOnLine == _Operation.BACKSPACE then
+            local _, oldLineCnt, newLineCnt
+
+            _, oldLineCnt               = self._OperationBackUpOnLine:gsub("\n", "\n")
+            _, newLineCnt               = nowText:gsub("\n", "\n")
+
+            self._OperationStartOnLine  = getPrevLinesByReturn(self._OperationBackUpOnLine, self._OperationEndOnLine, oldLineCnt - newLineCnt)
+        end
+
+        -- keep operation data
+        self._Operation[index]          = self._OperationOnLine
+
+        self._OperationBackUp[index]    = self._OperationBackUpOnLine:sub(getLines(self._OperationBackUpOnLine, self._OperationStartOnLine, self._OperationEndOnLine))
+        self._OperationStart[index]     = self._OperationStartOnLine
+        self._OperationEnd[index]       = self._OperationEndOnLine
+
+        self._OperationData[index]      = nowText:sub(getLines(nowText, self._HighlightStart, self._HighlightEnd))
+        self._OperationFinalStart[index]= self._HighlightStart
+        self._OperationFinalEnd[index]  = self._HighlightEnd
+
+        -- special operation
+        if self._OperationOnLine == _Operation.ENTER then
+            local realStart             = getLines(self._OperationBackUpOnLine, self._OperationStartOnLine, self._OperationEndOnLine)
+            if realStart > self._OperationStartOnLine then
+                realStart               = self._OperationStartOnLine
+            end
+            self._OperationData[index]  = nowText:sub(getLines(nowText, realStart, self._HighlightEnd))
+            self._OperationFinalStart[index]= realStart
+            self._OperationFinalEnd[index]  = self._HighlightEnd
+        end
+
+        if self._OperationOnLine == _Operation.PASTE then
+            self._OperationData[index]  = nowText:sub(getLines(nowText, self._OperationStartOnLine, self._HighlightEnd))
+            self._OperationFinalStart[index]= self._OperationStartOnLine
+            self._OperationFinalEnd[index]  = self._HighlightEnd
+        end
+
+        if self._OperationOnLine == _Operation.CUT then
+            self._OperationData[index]  = nowText:sub(getLines(nowText, self._HighlightStart, self._HighlightStart))
+            self._OperationFinalStart[index]= self._HighlightStart
+            self._OperationFinalEnd[index]  = self._HighlightStart
+        end
+
+        self._OperationOnLine           = nil
+        self._OperationBackUpOnLine     = nil
+        self._OperationStartOnLine      = nil
+        self._OperationEndOnLine        = nil
+
+        return onOperationListChanged(self)
+    end
+
+    local function newOperation(self, oper)
+        if self._OperationOnLine == oper then return end
+
+        -- save last operation
+        saveOperation(self)
+
+        self._OperationOnLine       = oper
+
+        self._OperationBackUpOnLine = self:GetText()
+        self._OperationStartOnLine  = self._HighlightStart
+        self._OperationEndOnLine    = self._HighlightEnd
     end
 
     local function asyncDelete(self)
@@ -661,7 +2352,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             end
         end
 
-        -- self:Fire("OnDeleteFinished")
+        return formatColor4Line(self)
     end
 
     local function asyncBackdpace(self)
@@ -719,7 +2410,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             end
         end
 
-        --self:Fire("OnBackspaceFinished")
+        applyAutoComplete(self)
+        return Next(formatColor4Line, self)
     end
 
     _KeyScan:SetScript("OnKeyDown", function (self, key)
@@ -736,7 +2428,34 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 local text      = editor:GetText()
 
                 if oper == _Operation.CHANGE_CURSOR then
-                    local handled = nil --editor:Fire("OnDirectionKey", _DirectionKeyEventArgs)
+                    local handled = false --editor:Fire("OnDirectionKey", _DirectionKeyEventArgs)
+
+                    if _List.Visible then
+                        local key = args.Key
+                        local offset = 0
+
+                        handled = true
+
+                        if key == "PAGEUP" then
+                            offset = - _List.DisplayCount
+                        elseif key == "PAGEDOWN" then
+                            offset = _List.DisplayCount
+                        elseif key == "HOME" then
+                            offset = 1 - _List.SelectedIndex
+                        elseif key == "END" then
+                            offset = _List.ItemCount - _List.SelectedIndex
+                        elseif key == "UP" then
+                            offset = -1
+                        elseif key == "DOWN" then
+                            offset = 1
+                        else
+                            handled = false
+                        end
+
+                        if offset ~= 0 then
+                            Continue(moveOnList, self, offset, key)
+                        end
+                    end
 
                     if handled then
                         self.ActiveKeys[key] = true
@@ -983,6 +2702,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         newOperation(editor, _Operation.CUT)
                     end
                     return
+                elseif key == "K" then
+                    -- Format the text
+                    self.ActiveKeys[key]= true
+                    self:SetPropagateKeyboardInput(false)
+                    refreshText(editor.__Owner)
                 end
             end
 
@@ -1005,56 +2729,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end)
 
-    _IndentFunc = _IndentFunc or {}
-    _ShiftIndentFunc = _ShiftIndentFunc or {}
-
-    do
-        setmetatable(_IndentFunc, {
-            __index = function(self, key)
-                if tonumber(key) then
-                    local tab = floor(tonumber(key))
-
-                    if tab > 0 then
-                        if not rawget(self, key) then
-                            rawset(self, key, function(str)
-                                return strrep(" ", tab) .. str
-                            end)
-                        end
-
-                        return rawget(self, key)
-                    end
-                end
-            end,
-        })
-
-        setmetatable(_ShiftIndentFunc, {
-            __index = function(self, key)
-                if tonumber(key) then
-                    local tab = floor(tonumber(key))
-
-                    if tab > 0 then
-                        if not rawget(self, key) then
-                            rawset(self, key, function(str)
-                                local _, len = str:find("^%s+")
-
-                                if len and len > 0 then
-                                    return strrep(" ", len - tab) .. str:sub(len + 1, -1)
-                                end
-                            end)
-                        end
-
-                        return rawget(self, key)
-                    end
-                end
-            end,
-        })
-
-        wipe(_IndentFunc)
-        wipe(_ShiftIndentFunc)
-    end
-
     ------------------------------------------------------
-    -- Property
+    -- Method
     ------------------------------------------------------
     --- Refresh the editor layout
     __AsyncSingle__()
@@ -1112,37 +2788,100 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             editor._HighlightText   = ""
         end
 
-        print("Hightlight", startp, endp)
-
         return editor:HighlightText(startp, endp)
     end
 
     --- Set the cursor position
     function SetCursorPosition(self, pos)
-        local editor            = self.__Editor
+        local editor            = self.__Editor or self
         editor._OldCursorPosition = pos
         editor:SetCursorPosition(pos)
-        return self:HighlightText(pos, pos)
+        return editor.__Owner:HighlightText(pos, pos)
     end
 
     --- Set The Text
     function SetText(self, text)
-        self.__Editor:SetText(text)
+        text                    = text and tostring(text) or ""
+        self                    = self.__Editor
+        self:SetText(formatAll(self, text:gsub("\124", "\124\124")))
+
+        -- Clear operation history
+        wipe(self._Operation)
+
+        wipe(self._OperationStart)
+        wipe(self._OperationEnd)
+        wipe(self._OperationBackUp)
+
+        wipe(self._OperationFinalStart)
+        wipe(self._OperationFinalEnd)
+        wipe(self._OperationData)
+
+        self._OperationIndex = 0
+
+        -- Clear now operation
+        self._OperationOnLine = nil
+        self._OperationBackUpOnLine = nil
+        self._OperationStartOnLine = nil
+        self._OperationEndOnLine = nil
     end
 
     --- Get the text
     function GetText(self)
-        return self.__Editor:GetText()
+        return removeColor(self.__Editor:GetText() or ""):gsub("\124\124", "\124")
+    end
+
+    --- Clear the auto complete list
+    function ClearAutoCompleteList(self)
+        wipe(self.AutoCompleteList)
+    end
+
+    --- Insert word to the auto complete list
+    function InsertAutoCompleteWord(self, word)
+        if type(word) == "string" and strtrim(word) ~= "" then
+            word                = strtrim(word)
+            word                = removeColor(word)
+
+            local lst           = self.AutoCompleteList
+            local idx           = getIndex(lst, word)
+
+            if lst[idx] == word then return end
+
+            tinsert(lst, idx + 1, word)
+        end
     end
 
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
     --- The tab width, default 4
-    property "TabWidth"     { type = NaturalNumber, default = 4 }
+    property "TabWidth"         { type = NaturalNumber, default = 4, handler = refreshText }
 
     --- Whether show the line num
-    property "ShowLineNum"  { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; self:RefreshLayout() end }
+    property "ShowLineNum"      { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; self:RefreshLayout() end }
+
+    --- The default text color
+    property "DefaultColor"     { type = ColorType, default = Color(1, 1, 1), handler = refreshText }
+
+    --- The comment color
+    property "CommentColor"     { type = ColorType, default = Color(0.5, 0.5, 0.5), handler = refreshText }
+
+    --- The string color
+    property "StringColor"      { type = ColorType, default = Color(0, 1, 0), handler = refreshText }
+
+    --- The number color
+    property "NumberColor"      { type = ColorType, default = Color(1, 1, 0), handler = refreshText }
+
+    --- The instruction color
+    property "InstructionColor" { type = ColorType, default = Color(1, 0.39, 0.09), handler = refreshText }
+
+    --- The function
+    property "FunctionColor"    { type = ColorType, default = Color(0.33, 1, 0.9), handler = refreshText }
+
+    --- The custom auto complete list
+    property "AutoCompleteList" { type = System.Collections.List, default = function() return System.Collections.List() end, handler = function(self, value) return value and value:QuickSort(compare) end }
+
+    --- The delay to show the auto complete
+    property "AutoCompleteDelay"{ type = Number, default = 0.2 }
 
     ------------------------------------------------------
     -- UI Property
@@ -1261,6 +3000,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
 
         self._InCharComposition = false
+
+        return formatColor4Line(self)
     end
 
     local function onCharComposition(self)
@@ -1269,6 +3010,29 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function onCursorChanged(self, x, y, w, h)
+        local oper              = self._OperationOnLine
+
+        if oper == _INPUTCHAR or oper == _BACKSPACE then
+            registerAutoComplete(self, x, y, w, h)
+        end
+
+        if _List.ItemCount > 0 and self:HasFocus() then
+            _List.CurrentEditor = self
+
+            local owner         = self.__Owner
+            local linenum       = owner.__LineNum
+            local marginx       = linenum:IsShown() and linenum:GetWidth() or 0
+
+            -- Handle the auto complete
+            _List:ClearAllPoints()
+            _List:SetPoint("TOPLEFT", owner, x + marginx, - y - h + Style[owner].ScrollBar.value)
+            _List:Show()
+            _List.SelectedIndex = 1
+        else
+            _List.CurrentEditor = nil
+            _List:Hide()
+        end
+
         if self._InCharComposition then return end
 
         local cursorPos         = self:GetCursorPosition()
@@ -1285,7 +3049,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             local startp, endp  = self._HighlightStart, cursorPos
             HighlightText(owner, cursorPos, cursorPos)
 
-            return -- self:Fire("OnPasting", startp, endp)
+            return formatColor4Line(self, startp, endp)
         elseif self._MouseDownShf == false then
             -- First CursorChanged after mouse down if not press shift
             HighlightText(owner, cursorPos, cursorPos)
@@ -1336,7 +3100,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
 
         if self._OperationOnLine == _Operation.CUT then
-            -- self:Fire("OnCut", self.__OperationStartOnLine, self.__OperationEndOnLine, self.__OperationBackUpOnLine:sub(self.__OperationStartOnLine, self.__OperationEndOnLine))
+            formatColor4Line(self)
             saveOperation(self)
         end
     end
@@ -1360,13 +3124,45 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         _KeyScan:Hide()
 
         NoCombat(unBlockShortKey)
+
+        _List:Hide()
     end
 
     local function onEnterPressed(self)
+        --- Handle the auto complete list
+        if _List:IsShown() then
+            local startp, endp, str
+            local text          = self:GetText()
+
+            wipe(_BackAutoCache)
+
+            startp, endp        = getWord(text, self:GetCursorPosition(), true)
+            str                 = _List.SelectedValue
+
+            if start and str then
+                for _, item in ipairs(_List.RawItems) do
+                    tinsert(_BackAutoCache, item.checkvalue)
+                end
+
+                _BackAutoCache[0] = _List.SelectedIndex
+
+                self:SetText(replaceBlock(text, startp, endp, str))
+
+                SetCursorPosition(self.__Owner, startp + str:len() - 1)
+
+                formatColor4Line(self, startp, startp + str:len() - 1)
+
+                return
+            else
+                _List:Hide()
+            end
+        end
+
+        -- The default behavior
         if not IsControlKeyDown() then
             self:Insert("\n")
         else
-            local _, endp = getLines(self:GetText(), self:GetCursorPosition())
+            local _, endp       = getLines(self:GetText(), self:GetCursorPosition())
             SetCursorPosition(self.__Owner, endp)
             self:Insert("\n")
         end
@@ -1374,6 +3170,63 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         Next(updateCursorAsync, self)
 
         -- On New Line
+        local cursorPos         = self:GetCursorPosition()
+        local text              = self:GetText()
+        local tabWidth          = self.__Owner.TabWidth
+        local lstartp, lendp    = getLines(text, cursorPos - 1)
+        local lstr              = lstartp and text:sub(lstartp, lendp)
+        local _, len, indent, startp, endp, str, lprevIndent, oprevIndent, prevIndent, lindent, llen
+
+        lstr                    = lstr or ""
+        _, llen                 = lstr:find("^%s+")
+        llen                    = llen or 0
+
+        lstr, lindent, lprevIndent = formatIndent(self, lstr:sub(llen+1, -1))
+
+        oprevIndent             = lprevIndent
+
+        if lprevIndent == 0 then
+            if lindent == 0 then
+                self:Insert(strrep(" ", llen))
+            elseif lindent > 0 then
+                self:Insert(strrep(" ", floor(llen/tabWidth)*tabWidth + tabWidth * lindent))
+            end
+        else
+            startp, endp, str, len = lstartp, lendp, lstr, llen
+
+            while startp > 1 do
+                startp, endp      = getLines(text, startp - 2)
+                str               = startp and text:sub(startp, endp)
+
+                if startp < endp then
+                    _, len      = str:find("^%s+")
+                    len         = len or 0
+
+                    if len < str:len() then
+                        str, indent, prevIndent = formatIndent(self, str:sub(len+1, -1))
+
+                        lprevIndent = lprevIndent - indent
+
+                        if lprevIndent <= 0 then
+                            break
+                        end
+                    end
+                end
+            end
+
+            if lprevIndent <= 0 then
+                lstr            = strrep(" ", floor(len / tabWidth) * tabWidth) .. lstr
+                self:SetText(replaceBlock(text, lstartp, lendp, lstr))
+                SetCursorPosition(self.__Owner, lstartp + lstr:len())
+                self:Insert(strrep(" ", floor(len / tabWidth) * tabWidth + tabWidth * (lindent + oprevIndent)))
+            else
+                self:SetText(replaceBlock(text, lstartp, lendp, lstr))
+                SetCursorPosition(self.__Owner, lstartp + lstr:len())
+                self:Insert(strrep(" ", tabWidth * (lindent + oprevIndent)))
+            end
+        end
+
+        return formatColor4Line(self, lstartp)
     end
 
     local function onMouseUpAsync(self, btn)
@@ -1444,15 +3297,60 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         local text              = self:GetText()
 
-        if self._HighlightStart == 0 and self._HighlightStart ~= self._HighlightEnd and self._HighlightEnd == text:len() then
-            -- just reload text
-            owner:SetText(owner:GetText())
-            return SetCursorPosition(owner, 0)
+        -- Handle the auto complete
+        local startp, endp, str
+
+        if _List:IsShown() then
+            wipe(_BackAutoCache)
+
+            startp, endp        = getWord(text, self:GetCursorPosition(), true)
+            str                 = _List.SelectedValue
+
+            if str then
+                for _, item in ipairs(_List.RawItems) do
+                    tinsert(_BackAutoCache, item.checkvalue)
+                end
+
+                _BackAutoCache[0] = _List.SelectedIndex
+
+                self:SetText(replaceBlock(text, startp, endp, str))
+
+                SetCursorPosition(self.__Owner, startp + str:len() - 1)
+
+                formatColor4Line(self, startp, startp + str:len() - 1)
+
+                return true
+            else
+                _List:Hide()
+            end
+        elseif #_BackAutoCache > 0 then
+            startp, endp        = getWord(text, self:GetCursorPosition(), true)
+            str                 = startp and removeColor(text:sub(startp, endp))
+
+            if str == _BackAutoCache[_BackAutoCache[0]] then
+                _BackAutoCache[0] = _BackAutoCache[0] + 1
+
+                if _BackAutoCache[0] > #_BackAutoCache then
+                    _BackAutoCache[0] = 1
+                end
+
+                str             = _BackAutoCache[_BackAutoCache[0]]
+
+                if str then
+                    self:SetText(replaceBlock(text, startp, endp, str))
+
+                    SetCursorPosition(self.__Owner, startp + str:len() - 1)
+
+                    formatColor4Line(self, startp, startp + str:len() - 1)
+
+                    return true
+                else
+                    wipe(_BackAutoCache)
+                end
+            end
         end
 
-        local handled           = false -- self:Fire("OnTabPressed", args)
-        if handled then return end
-
+        -- Handle the default behavior
         local startp, endp, str, lineBreak
         local shiftDown         = IsShiftKeyDown()
         local cursorPos         = self:GetCursorPosition()
@@ -1530,6 +3428,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end
 
+    local function onEscapePressed(self)
+        if _List:IsShown() then
+            _List:Hide()
+            return true
+        end
+    end
+
     ------------------------------------------------------
     -- Constructor
     ------------------------------------------------------
@@ -1550,6 +3455,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         linenum:SetJustifyV("TOP")
         linenum:SetJustifyH("CENTER")
 
+        editor.OnEscapePressed:SetInitFunction(onEscapePressed)
+
         editor.OnChar           = editor.OnChar             + onChar
         editor.OnCharComposition= editor.OnCharComposition  + onCharComposition
         editor.OnCursorChanged  = editor.OnCursorChanged    + onCursorChanged
@@ -1564,8 +3471,24 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         editor.__Owner          = self
 
+        -- Operation Keep List
+        editor._Operation       = {}
+
+        editor._OperationStart  = {}
+        editor._OperationEnd    = {}
+        editor._OperationBackUp = {}
+
+        editor._OperationFinalStart = {}
+        editor._OperationFinalEnd   = {}
+        editor._OperationData   = {}
+
+        editor._OperationIndex  = 0
+        editor._MaxOperationIndex = 0
+
         self.__Editor           = editor
         self.__LineNum          = linenum
+
+        initDefinition(editor)
     end
 end)
 

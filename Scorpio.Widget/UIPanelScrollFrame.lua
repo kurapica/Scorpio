@@ -336,14 +336,14 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
     local function ItemButton_OnClick(self)
         local list              = self:GetParent():GetParent()
-        list.SelectedValue      = self.checkvalue
-        return OnItemClick(list, self.checkvalue)
+        list.SelectedIndex      = self.index
+        return OnItemClick(list, self.SelectedValue)
     end
 
     local function ItemButton_OnDoubleClick(self)
         local list              = self:GetParent():GetParent()
-        list.SelectedValue      = self.checkvalue
-        return OnItemDoubleClick(list, self.checkvalue)
+        list.SelectedIndex      = self.index
+        return OnItemDoubleClick(list, self.SelectedValue)
     end
 
     local function refreshItems(self)
@@ -354,6 +354,8 @@ __Sealed__() class "ListFrame" (function(_ENV)
         if not scrollChild then return end
 
         GameTooltip:Hide()
+
+        local selectIndex       = self.SelectedIndex
 
         for i = 1, self.DisplayCount do
             local item          = items and items[offset + i]
@@ -366,13 +368,15 @@ __Sealed__() class "ListFrame" (function(_ENV)
                 btn.TooltipTitle= item.tiptitle
                 btn.TooltipText = item.tiptext
                 btn.checkvalue  = item.checkvalue
+                btn.index       = offset + i
+
                 btn:SetEnabled(true)
 
                 if item.tiptitle and item:IsMouseOver() then
                     btn:OnEnter()
                 end
 
-                if self.SelectedValue == item.checkvalue then
+                if selectIndex == offset + i then
                     local color = self.SelectHightlightColor
                     btn:LockHighlight()
                     btn:GetPropertyChild("HighlightTexture"):SetVertexColor(color.r, color.g, color.b)
@@ -387,6 +391,8 @@ __Sealed__() class "ListFrame" (function(_ENV)
                 btn.TooltipTitle= nil
                 btn.TooltipText = nil
                 btn.checkvalue  = nil
+                btn.index       = nil
+
                 btn:SetEnabled(false)
             end
         end
@@ -449,7 +455,7 @@ __Sealed__() class "ListFrame" (function(_ENV)
     end
 
     local function refreshList(self)
-        if self.__InRefresh then return end
+        if self.__InRefresh or not self:IsShown() then return end
         self.__InRefresh        = true
         Next(processRefreshList, self)
     end
@@ -467,7 +473,34 @@ __Sealed__() class "ListFrame" (function(_ENV)
     property "UnselectHightlightColor"  { type = Color, default = Color(.196, .388, .8) }
 
     --- The selected value of the list frame
-    property "SelectedValue"    { handler = refreshItems }
+    property "SelectedValue"            { field = "__SelectedValue", handler = function(self, value)
+            if self.__ListItems and value ~= nil then
+                for i, v in ipairs(self.__ListItems) do
+                    if v.checkvalue == value then
+                        rawset(self, "__SelectedIndex", i)
+                        break
+                    end
+                end
+            else
+                rawset(self, "__SelectedIndex", 0)
+            end
+
+            return refreshItems(self)
+        end
+    }
+
+    --- The selected index of the list frame
+    property "SelectedIndex"            { type = NaturalNumber, field = "__SelectedIndex", handler = function(self, index)
+            if self.__ListItems and index and index > 0 and self.__ListItems[index] then
+                rawset(self, "__SelectedValue", self.__ListItems[index].checkvalue)
+            else
+                rawset(self, "__SelectedIndex", 0)
+                rawset(self, "__SelectedValue", nil)
+            end
+
+            return refreshItems(self)
+        end
+    }
 
     --- The items to be selected
     __Indexer__()
@@ -529,6 +562,11 @@ __Sealed__() class "ListFrame" (function(_ENV)
         end,
     }
 
+    --- The item count
+    property "ItemCount"        {
+        get                     = function(self) return self.__ListItems and #self.__ListItems or 0 end
+    }
+
     --- The raw items to be set, normally only be used by the ComboBox
     -- or you know what you are doing
     property "RawItems"         {
@@ -536,6 +574,9 @@ __Sealed__() class "ListFrame" (function(_ENV)
         set                     = function(self, items)
             self.__ListItems    = items
             return refreshList(self)
+        end,
+        get                     = function(self)
+            return self.__ListItems
         end
     }
 
@@ -559,6 +600,7 @@ __Sealed__() class "ListFrame" (function(_ENV)
         super(self)
 
         self:InstantApplyStyle()
+        self.OnShow             = self.OnShow + refreshList
         return refreshList(self)
     end
 end)
