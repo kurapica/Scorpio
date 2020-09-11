@@ -573,6 +573,29 @@ __Sealed__() class "ListFrame" (function(_ENV)
         type                    = Table,
         set                     = function(self, items)
             self.__ListItems    = items
+            local value         = self.__SelectedValue
+            if value ~= nil then
+                local index     = self.__SelectedIndex
+                local matched   = false
+                if not (index and items[index] == value) then
+                    for i, v in ipairs(items) do
+                        if v.checkvalue == value then
+                            rawset(self, "__SelectedIndex", i)
+                            mathed = true
+                            break
+                        end
+                    end
+
+                    if not athed then
+                        rawset(self, "__SelectedIndex", 0)
+                        rawset(self, "__SelectedValue", nil)
+                    end
+                end
+            else
+                rawset(self, "__SelectedIndex", 0)
+                rawset(self, "__SelectedValue", nil)
+            end
+
             return refreshList(self)
         end,
         get                     = function(self)
@@ -588,12 +611,27 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
     --- The methods used to clear all items
     function ClearItems(self)
-        if self.__ListItems then wipe(self.__ListItems) end
+        if self.__ListItems then wipe(self.__ListItems) return refreshList(self) end
     end
 
+    --- Set the vertical scroll
     function SetVerticalScroll(self, value)
         self.__ListOffset       = math.floor(value)
         return refreshItems(self)
+    end
+
+    --- Scroll the view port near the selected index
+    function RefreshScrollView(self)
+        local index             = self.SelectedIndex
+        local offset            = self.__ListOffset or 0
+        local scrollBar         = self:GetChild("ScrollBar")
+        local scrollChild       = self:GetChild("ScrollChild")
+
+        if offset + 1 > index then
+            scrollBar:SetValue(index - 1)
+        elseif offset + self.DisplayCount < index then
+            scrollBar:SetValue(index - self.DisplayCount)
+        end
     end
 
     function __ctor(self)

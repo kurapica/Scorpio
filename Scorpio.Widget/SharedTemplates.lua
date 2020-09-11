@@ -10,7 +10,7 @@ Scorpio           "Scorpio.Widget.SharedUIPanel"     "1.0.0"
 --========================================================--
 
 local _M                        = _M    -- to be used inside the class
-local START_MOVE_RESIZE_DELAY   = 0.15  -- A delay to start moving/resizing to reduce the cost
+local START_MOVE_RESIZE_DELAY   = 0.05  -- A delay to start moving/resizing to reduce the cost
 
 -----------------------------------------------------------
 --                   Draggable Widget                    --

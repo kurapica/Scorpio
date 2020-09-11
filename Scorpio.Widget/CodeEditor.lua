@@ -106,6 +106,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         ENTER                   = 6,
         PASTE                   = 7,
         CUT                     = 8,
+        INDENTFORMAT            = 9,
     }
 
     _KEY_OPER                   = {
@@ -315,7 +316,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function replaceBlock(str, startp, endp, replace)
-        return str:sub(1, startp - 1) .. replace .. str:sub(endp + 1, -1)
+        return startp and (str:sub(1, startp - 1) .. replace .. str:sub(endp + 1, -1)) or str
     end
 
     local function getLines(str, startp, endp)
@@ -892,9 +893,30 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         return ret
     end
 
-    local function applyAutoComplete(self)
-        if true then return false end
+    local function initCommonList()
+        local index             = 0
 
+        for i, v in ipairs{ "math", "string", "bit", "table", "coroutine" } do
+            index               = i
+            _CommonAutoCompleteList[i] = v
+        end
+
+        for k, v in pairs(_G) do
+            if type(k) == "string" and (type(v) == "function" and not k:find("_") or type(v) == "table" and k:match("^C_")) then
+                index           = index + 1
+                _CommonAutoCompleteList[index] = k
+
+                if index % 10 == 0 then
+                    Continue()
+                end
+            end
+        end
+
+        Continue()
+        List(_CommonAutoCompleteList):QuickSort(compare)
+    end
+
+    local function applyAutoComplete(self)
         local owner             = self.__Owner
         _List:Hide()
 
@@ -1020,6 +1042,36 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     local autoComplete_w
     local autoComplete_h
 
+    local function processAutoComplete()
+        while autoCompleteEditor do
+            if autoCompleteEditor and autoCompleteTime <= GetTime() then
+                applyAutoComplete( autoCompleteEditor )
+
+                if #_AutoCacheItems > 0 and autoCompleteEditor:HasFocus() then
+                    _List.CurrentEditor = autoCompleteEditor
+
+                    local owner     = autoCompleteEditor.__Owner
+                    local linenum   = owner.__LineNum
+                    local marginx   = linenum:IsShown() and linenum:GetWidth() or 0
+
+                    -- Handle the auto complete
+                    _List:ClearAllPoints()
+                    _List:SetPoint("TOPLEFT", owner, autoComplete_x + marginx, autoComplete_y - autoComplete_h + Style[owner].ScrollBar.value)
+                    _List:Show()
+                    _List.SelectedIndex = 1
+                else
+                    _List.CurrentEditor = nil
+                    _List:Hide()
+                end
+
+                autoCompleteEditor = nil
+            end
+
+            Next()
+        end
+        taskStarted     = false
+    end
+
     local function registerAutoComplete(self, x, y, w, h)
         autoCompleteEditor      = self
         autoCompleteTime        = GetTime() + self.__Owner.AutoCompleteDelay
@@ -1030,37 +1082,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         if not taskStarted then
             taskStarted         = true
-
             -- Tiny cost for all editor
-            Continue(function ()
-                while autoCompleteEditor do
-                    if autoCompleteEditor and autoCompleteTime <= GetTime() then
-                        applyAutoComplete( autoCompleteEditor )
-
-                        if #_AutoCacheItems > 0 and autoCompleteEditor:HasFocus() then
-                            _List.CurrentEditor = autoCompleteEditor
-
-                            local owner     = autoCompleteEditor.__Owner
-                            local linenum   = owner.__LineNum
-                            local marginx   = linenum:IsShown() and linenum:GetWidth() or 0
-
-                            -- Handle the auto complete
-                            _List:ClearAllPoints()
-                            _List:SetPoint("TOPLEFT", owner, autoComplete_x + marginx, - autoComplete_y - autoComplete_h + Style[owner].ScrollBar.value)
-                            _List:Show()
-                            _List.SelectedIndex = 1
-                        else
-                            _List.CurrentEditor = nil
-                            _List:Hide()
-                        end
-
-                        autoCompleteEditor = nil
-                    end
-
-                    Next()
-                end
-                taskStarted     = false
-            end)
+            Continue(processAutoComplete)
         end
     end
 
@@ -1601,7 +1624,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             if not token then break end
 
             word                = trueWord or str:sub(pos, nextPos - 1)
-            newPos              = newPos or word:len()
+            newPos              = newPos   or word:len()
             cindex              = cindex + 1
 
             if token == _Token.COLORCODE_START or token == _Token.COLORCODE_END then
@@ -1665,7 +1688,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     -- Indent
-    local function formatIndent(self, str)
+    local function formatIndent(self, str, cursorPos)
         local pos               = 1
 
         local token
@@ -1680,16 +1703,19 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local startIndent       = 0
         local prevToken
         local trueWord
+        local oposQueue         = cursorPos and Queue()
 
         local tab               = self.__Owner.TabWidth
 
         while true do
             prevToken           = token
-            token, nextPos, trueWord = nextToken(str, pos, nil, true)
+            token, nextPos, trueWord, newPos = nextToken(str, pos, cursorPos, true)
             if not token then break end
 
             word                = str:sub(pos, nextPos - 1)
             trueWord            = trueWord or word
+
+            if cursorPos then oposQueue:Enqueue(pos, nextPos - 1) end
 
             -- Format Indent
             if token == _Token.LEFTWING then
@@ -1698,6 +1724,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                 cindex          = cindex + 1
                 content[cindex] = word
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = false
             elseif token == _Token.RIGHTWING then
@@ -1713,6 +1740,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                 cindex          = cindex + 1
                 content[cindex] = word
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = false
             elseif token == _Token.LINEBREAK then
@@ -1725,6 +1753,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                 cindex          = cindex + 1
                 content[cindex] = word
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 cindex          = cindex + 1
                 content[cindex] = strrep(" ", tab * indent)
@@ -1733,6 +1762,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 if not rightSpace then
                     cindex      = cindex + 1
                     content[cindex] = " "
+                    if cursorPos then oposQueue:Enqueue(cindex) end
+                else
+                    if cursorPos then oposQueue:Enqueue(0) end
                 end
                 rightSpace      = true
             elseif token == _Token.IDENTIFIER then
@@ -1779,9 +1811,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                     cindex      = cindex + 1
                     content[cindex] = word
+                    if cursorPos then oposQueue:Enqueue(cindex) end
                 else
                     cindex      = cindex + 1
                     content[cindex] = word
+                    if cursorPos then oposQueue:Enqueue(cindex) end
 
                     if not self._IdentifierCache[word] then
                         self._IdentifierCache[word] = true
@@ -1792,11 +1826,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             elseif _WordWrap[token] == _IndentNone then
                 cindex          = cindex + 1
                 content[cindex] = word
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = false
             elseif _WordWrap[token] == _IndentRight then
                 cindex          = cindex + 1
                 content[cindex] = word .. " "
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = true
             elseif _WordWrap[token] == _IndentLeft then
@@ -1807,6 +1843,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     cindex      = cindex + 1
                     content[cindex] = " " .. word
                 end
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = false
             elseif _WordWrap[token] == _IndentBoth then
@@ -1817,11 +1854,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     cindex      = cindex + 1
                     content[cindex] = " " .. word .. " "
                 end
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = true
             else
                 cindex          = cindex + 1
                 content[cindex] = word
+                if cursorPos then oposQueue:Enqueue(cindex) end
 
                 rightSpace      = false
             end
@@ -1829,7 +1868,28 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             pos                 = nextPos
         end
 
-        return tblconcat(content), indent, prevIndent
+        -- Get the new cursor pos
+        pos                     = 0
+        local previdx           = 0
+        while cursorPos do
+            local s, e, idx     = oposQueue:Dequeue(3)
+
+            if e <= cursorPos then
+                while previdx < idx do
+                    previdx     = previdx + 1
+                    pos         = pos + #content[previdx]
+                end
+            else
+                if idx > 0 then
+                    pos         = pos + cursorPos - s + 1
+                end
+
+                cursorPos       = pos
+                break
+            end
+        end
+
+        return tblconcat(content), indent, prevIndent, cursorPos
     end
 
     local function formatColor4Line(self, startp, endp)
@@ -2174,6 +2234,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             index               = index + offset
             if index >= min and index <= max then
                 _List.SelectedIndex = index
+                _List:RefreshScrollView()
             else
                 break
             end
@@ -2414,6 +2475,15 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         return Next(formatColor4Line, self)
     end
 
+    local function formatAllIndent(self)
+        -- format all codes for indent and keep the cursor position
+        saveOperation(self, _Operation.INDENTFORMAT)
+
+        local str, _, _, cursor = formatIndent(self, self:GetText(), self:GetCursorPosition())
+        self:SetText(str)
+        SetCursorPosition(self.__Owner, cursor)
+    end
+
     _KeyScan:SetScript("OnKeyDown", function (self, key)
         if not key or _SkipKey[key] then return end
 
@@ -2430,8 +2500,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 if oper == _Operation.CHANGE_CURSOR then
                     local handled = false --editor:Fire("OnDirectionKey", _DirectionKeyEventArgs)
 
-                    if _List.Visible then
-                        local key = args.Key
+                    if _List:IsShown() then
                         local offset = 0
 
                         handled = true
@@ -2453,7 +2522,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         end
 
                         if offset ~= 0 then
-                            Continue(moveOnList, self, offset, key)
+                            Continue(moveOnList, editor, offset, key)
                         end
                     end
 
@@ -2706,7 +2775,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     -- Format the text
                     self.ActiveKeys[key]= true
                     self:SetPropagateKeyboardInput(false)
-                    refreshText(editor.__Owner)
+                    return formatAllIndent(editor)
                 end
             end
 
@@ -2742,6 +2811,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         local font, height, flag= editor:GetFont()
         local spacing           = editor:GetSpacing()
+
+        while not font do
+            Next()
+            font, height, flag  = editor:GetFont()
+            spacing             = editor:GetSpacing()
+        end
 
         linenum:SetFont(font, height, flag)
         linenum:SetSpacing(spacing)
@@ -2780,7 +2855,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         editor._HighlightStart  = startp
         editor._HighlightEnd    = endp
-
+print("[HIGHLIGHT", startp, endp)
         if startp ~= endp then
             text                = text or editor:GetText()
             editor._HighlightText   = text:sub(startp + 1, endp)
@@ -2881,7 +2956,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     property "AutoCompleteList" { type = System.Collections.List, default = function() return System.Collections.List() end, handler = function(self, value) return value and value:QuickSort(compare) end }
 
     --- The delay to show the auto complete
-    property "AutoCompleteDelay"{ type = Number, default = 0.2 }
+    property "AutoCompleteDelay"{ type = Number, default = 0.5 }
 
     ------------------------------------------------------
     -- UI Property
@@ -2957,6 +3032,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         -- Auto Pairs
         local auto              =  char and _AutoPairs[strbyte(char)]
+        local startp, endp
 
         if auto then
             -- { [ ( " '
@@ -2971,7 +3047,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                 local stop      = cursor + #inner
                 SetCursorPosition(self.__Owner, stop)
-                HighlightText(self.__Owner, cursor, stop)
+                -- HighlightText(self.__Owner, cursor, stop)
+                startp, endp    = cursor, stop
             else
                 local next      = skipColor(text, cursor + 1)
 
@@ -3001,7 +3078,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         self._InCharComposition = false
 
-        return formatColor4Line(self)
+        return formatColor4Line(self, startp, endp)
     end
 
     local function onCharComposition(self)
@@ -3012,28 +3089,14 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     local function onCursorChanged(self, x, y, w, h)
         local oper              = self._OperationOnLine
 
-        if oper == _INPUTCHAR or oper == _BACKSPACE then
-            registerAutoComplete(self, x, y, w, h)
-        end
-
-        if _List.ItemCount > 0 and self:HasFocus() then
-            _List.CurrentEditor = self
-
-            local owner         = self.__Owner
-            local linenum       = owner.__LineNum
-            local marginx       = linenum:IsShown() and linenum:GetWidth() or 0
-
-            -- Handle the auto complete
-            _List:ClearAllPoints()
-            _List:SetPoint("TOPLEFT", owner, x + marginx, - y - h + Style[owner].ScrollBar.value)
-            _List:Show()
-            _List.SelectedIndex = 1
-        else
-            _List.CurrentEditor = nil
-            _List:Hide()
-        end
+        _List:Hide()
 
         if self._InCharComposition then return end
+
+        if oper == _INPUTCHAR or oper == _BACKSPACE then
+            -- Prepare the auto complete but with a delay
+            registerAutoComplete(self, x, y, w, h)
+        end
 
         local cursorPos         = self:GetCursorPosition()
 
@@ -3139,7 +3202,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             startp, endp        = getWord(text, self:GetCursorPosition(), true)
             str                 = _List.SelectedValue
 
-            if start and str then
+            if not IsControlKeyDown() and startp and str then
                 for _, item in ipairs(_List.RawItems) do
                     tinsert(_BackAutoCache, item.checkvalue)
                 end
@@ -3306,7 +3369,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             startp, endp        = getWord(text, self:GetCursorPosition(), true)
             str                 = _List.SelectedValue
 
-            if str then
+            if startp and str then
                 for _, item in ipairs(_List.RawItems) do
                     tinsert(_BackAutoCache, item.checkvalue)
                 end
@@ -3412,7 +3475,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 local byte      = strbyte(text, cursorPos + 1)
 
                 if byte == _Byte.RIGHTBRACKET or byte == _Byte.RIGHTPAREN then
-                    SaveOperation(self)
+                    saveOperation(self)
 
                     SetCursorPosition(owner, cursorPos + 1)
                 else
@@ -3489,6 +3552,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         self.__LineNum          = linenum
 
         initDefinition(editor)
+
+        if not _CommonAutoCompleteList[1] then
+            Next(initCommonList)
+        end
     end
 end)
 
