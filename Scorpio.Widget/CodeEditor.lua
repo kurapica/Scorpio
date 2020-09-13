@@ -732,18 +732,15 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         ["until"]               = _IndentLeft,
         ["while"]               = _IndentNone,
         -- Loop
-        ["class"]               = _IndentRight,
+        ["class"]               = _IndentNone,
         ["inherit"]             = _IndentNone,
         ["import"]              = _IndentNone,
-        ["endclass"]            = _IndentLeft,
         ["event"]               = _IndentNone,
         ["property"]            = _IndentNone,
         ["namespace"]           = _IndentNone,
         ["enum"]                = _IndentNone,
-        ["struct"]              = _IndentRight,
-        ["endstruct"]           = _IndentLeft,
-        ["interface"]           = _IndentRight,
-        ["endinterface"]        = _IndentLeft,
+        ["struct"]              = _IndentNone,
+        ["interface"]           = _IndentNone,
         ["extend"]              = _IndentNone,
     }
 
@@ -1099,6 +1096,26 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             self._IdentifierCache[k] = true
             owner:InsertAutoCompleteWord(k)
         end
+
+        -- Operation Keep List
+        self._Operation         = {}
+
+        self._OperationStart    = {}
+        self._OperationEnd      = {}
+        self._OperationBackUp   = {}
+
+        self._OperationFinalStart = {}
+        self._OperationFinalEnd = {}
+        self._OperationData     = {}
+
+        self._OperationIndex    = 0
+        self._MaxOperationIndex = 0
+
+        -- Clear now operation
+        self._OperationOnLine   = nil
+        self._OperationBackUpOnLine = nil
+        self._OperationStartOnLine = nil
+        self._OperationEndOnLine = nil
     end
 
     -- Token
@@ -1610,6 +1627,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local numberColor       = tostring(owner.NumberColor)
         local instructionColor  = tostring(owner.InstructionColor)
         local functionColor     = tostring(owner.FunctionColor)
+        local attrcolor         = tostring(owner.AttributeColor)
 
         cursorPos               = cursorPos or 0
 
@@ -1652,7 +1670,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 if token == _Token.SPACE or token == _Token.LEFTPAREN then
                     if prevIdentifier and token == _Token.LEFTPAREN then
                         -- Replace the function call's color
-                        content[prevIdentifier] = functionColor .. content[prevIdentifier]:sub(#defaultColor + 1, -1)
+                        local c = content[prevIdentifier]:sub(#defaultColor + 1, -3)
+                        if c:match("^__.*__$") then
+                            content[prevIdentifier] = attrcolor .. c .. _EndColor
+                        else
+                            content[prevIdentifier] = functionColor .. c .. _EndColor
+                        end
                         prevIdentifier = nil
                     end
                 else
@@ -1874,6 +1897,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         while cursorPos do
             local s, e, idx     = oposQueue:Dequeue(3)
 
+            if not s then
+                -- Meet the last position
+                cursorPos       = pos
+                break
+            end
+
             if e <= cursorPos then
                 while previdx < idx do
                     previdx     = previdx + 1
@@ -2046,6 +2075,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local numberColor       = tostring(owner.NumberColor)
         local instructionColor  = tostring(owner.InstructionColor)
         local functionColor     = tostring(owner.FunctionColor)
+        local attrColor         = tostring(owner.AttributeColor)
 
         local indent            = 0
         local rightSpace        = false
@@ -2167,7 +2197,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             else
                 if prevIdentifier and token == _Token.LEFTPAREN then
                     -- Replace the function call's color
-                    content[prevIdentifier] = functionColor .. content[prevIdentifier]:sub(#defaultColor + 1, -1)
+                    local c     = content[prevIdentifier]:sub(#defaultColor + 1, -3)
+                    if c:match("^__.*__$") then
+                        content[prevIdentifier] = attrcolor .. c .. _EndColor
+                    else
+                        content[prevIdentifier] = functionColor .. c .. _EndColor
+                    end
                     prevIdentifier = nil
                 else
                     prevIdentifier = nil
@@ -2369,6 +2404,53 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         self._OperationBackUpOnLine = self:GetText()
         self._OperationStartOnLine  = self._HighlightStart
         self._OperationEndOnLine    = self._HighlightEnd
+    end
+
+    local function undo(self)
+        saveOperation(self)
+
+        if self._OperationIndex > 0 then
+            local idx           = self._OperationIndex
+            local text          = self:GetText()
+            local startp, endp  = getLines(text, self._OperationFinalStart[idx], self._OperationFinalEnd[idx])
+
+            self:SetText(replaceBlock(text, startp, endp, self._OperationBackUp[idx]))
+            startp, endp        = self._OperationStart[idx], self._OperationEnd[idx]
+
+            if self._Operation[idx] == _Operation.DELETE then
+                SetCursorPosition(self.__Owner, self._OperationStart[idx])
+                HighlightText(self.__Owner, self._OperationStart[idx], self._OperationStart[idx])
+            elseif self._Operation[idx] == _Operation.BACKSPACE then
+                SetCursorPosition(self.__Owner, self._OperationEnd[idx])
+                HighlightText(self.__Owner, self._OperationEnd[idx], self._OperationEnd[idx])
+            else
+                SetCursorPosition(self.__Owner, self._OperationEnd[idx])
+                HighlightText(self.__Owner, self._OperationStart[idx], self._OperationEnd[idx])
+            end
+
+            self._OperationIndex = self._OperationIndex - 1
+
+            return formatColor4Line(self, startp, endp)
+        end
+    end
+
+    function redo(self)
+        if self._OperationIndex < self.__MaxOperationIndex then
+            local idx           = self._OperationIndex + 1
+            local text          = self:GetText()
+
+            local startp, endp  = getLines(text, self._OperationStart[idx], self._OperationEnd[idx])
+            self:SetText(replaceBlock(text, startp, endp, self._OperationData[idx]))
+
+            startp, endp        = self._OperationFinalStart[idx], self._OperationFinalEnd[idx]
+
+            SetCursorPosition(self.__Owner, self._OperationFinalEnd[idx])
+            HighlightText(self.__Owner, self._OperationFinalEnd[idx], self._OperationFinalEnd[idx])
+
+            self._OperationIndex = self._OperationIndex + 1
+
+            return formatColor4Line(self, startp, endp)
+        end
     end
 
     local function asyncDelete(self)
@@ -2751,11 +2833,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             if IsShiftKeyDown() then
                 -- shift+
             elseif IsAltKeyDown() then
-                return editor:Fire("OnAltKey", key)
+                return OnAltKey(editor.__Owner, key)
             elseif IsControlKeyDown() then
                 if key == "A" then
-                    owner:HighlightText()
-                    return
+                    return owner:HighlightText()
                 elseif key == "V" then
                     editor._InPasting = true
                     return newOperation(editor, _Operation.PASTE)
@@ -2763,9 +2844,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     -- do nothing
                     return
                 elseif key == "Z" then
-                    --return editor:Undo()
+                    return undo(editor)
                 elseif key == "Y" then
-                    --return editor:Redo()
+                    return redo(editor)
                 elseif key == "X" then
                     if editor._HighlightStart ~= editor._HighlightEnd then
                         newOperation(editor, _Operation.CUT)
@@ -2776,6 +2857,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     self.ActiveKeys[key]= true
                     self:SetPropagateKeyboardInput(false)
                     return formatAllIndent(editor)
+                else
+                    return OnControlKey(editor.__Owner, key)
                 end
             end
 
@@ -2797,6 +2880,15 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             end
         end
     end)
+
+    ------------------------------------------------------
+    -- event
+    ------------------------------------------------------
+    --- Fired when alt + key is pressed
+    event "OnAltKey"
+
+    --- Fired when ctrl + key is pressed
+    event "OnControlKey"
 
     ------------------------------------------------------
     -- Method
@@ -2855,7 +2947,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         editor._HighlightStart  = startp
         editor._HighlightEnd    = endp
-print("[HIGHLIGHT", startp, endp)
+
         if startp ~= endp then
             text                = text or editor:GetText()
             editor._HighlightText   = text:sub(startp + 1, endp)
@@ -2879,25 +2971,6 @@ print("[HIGHLIGHT", startp, endp)
         text                    = text and tostring(text) or ""
         self                    = self.__Editor
         self:SetText(formatAll(self, text:gsub("\124", "\124\124")))
-
-        -- Clear operation history
-        wipe(self._Operation)
-
-        wipe(self._OperationStart)
-        wipe(self._OperationEnd)
-        wipe(self._OperationBackUp)
-
-        wipe(self._OperationFinalStart)
-        wipe(self._OperationFinalEnd)
-        wipe(self._OperationData)
-
-        self._OperationIndex = 0
-
-        -- Clear now operation
-        self._OperationOnLine = nil
-        self._OperationBackUpOnLine = nil
-        self._OperationStartOnLine = nil
-        self._OperationEndOnLine = nil
     end
 
     --- Get the text
@@ -2951,6 +3024,9 @@ print("[HIGHLIGHT", startp, endp)
 
     --- The function
     property "FunctionColor"    { type = ColorType, default = Color(0.33, 1, 0.9), handler = refreshText }
+
+    --- The attribute color
+    property "AttributeColor"   { type = ColorType, default = Color(0.52, 0.12, 0.47), handler = refreshText }
 
     --- The custom auto complete list
     property "AutoCompleteList" { type = System.Collections.List, default = function() return System.Collections.List() end, handler = function(self, value) return value and value:QuickSort(compare) end }
@@ -3317,17 +3393,12 @@ print("[HIGHLIGHT", startp, endp)
         return Next(onMouseUpAsync, self, btn)
     end
 
-    local function onMouseDownAsync(self, btn)
+    local function onMouseDown(self, btn)
         self._MouseDownCur      = self:GetCursorPosition()
 
         --- Reset the state
         saveOperation(self)
         endPrevKey(self)
-        updateCursorAsync(self)
-    end
-
-    local function onMouseDown(self, btn)
-        Next(onMouseDownAsync, self, btn)
 
         -- Check Double Click to select word
         if IsShiftKeyDown() then
@@ -3533,20 +3604,6 @@ print("[HIGHLIGHT", startp, endp)
         editor.OnSizeChanged    = editor.OnSizeChanged      + onSizeChanged
 
         editor.__Owner          = self
-
-        -- Operation Keep List
-        editor._Operation       = {}
-
-        editor._OperationStart  = {}
-        editor._OperationEnd    = {}
-        editor._OperationBackUp = {}
-
-        editor._OperationFinalStart = {}
-        editor._OperationFinalEnd   = {}
-        editor._OperationData   = {}
-
-        editor._OperationIndex  = 0
-        editor._MaxOperationIndex = 0
 
         self.__Editor           = editor
         self.__LineNum          = linenum
