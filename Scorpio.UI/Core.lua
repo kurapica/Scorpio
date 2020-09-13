@@ -101,14 +101,16 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
             if _Prop.Validate(feature) and not _Prop.IsStatic(feature) and _Prop.IsWritable(feature) then
                 Trace("[Scorpio.UI]Define Property %s for %s", name, tostring(cls))
 
+                local ptype     = _Prop.GetType(feature)
                 UI.Property     {
                     name        = name,
-                    type        = _Prop.GetType(feature),
+                    type        = ptype,
                     require     = cls,
                     set         = function(self, val) self[name] = val end,
                     get         = _Prop.IsReadable(feature) and function(self) return self[name] end or nil,
                     default     = _Prop.GetDefault(feature),
                     nilable     = not _Prop.IsValueRequired(feature),
+                    childtype   = ptype and IsUIObjectType(ptype) and ptype or nil,
                 }
             end
         end

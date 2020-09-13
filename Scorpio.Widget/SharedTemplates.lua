@@ -497,10 +497,13 @@ class "UIPanelLabel" { FontString }
 --                 UIPanelButton Widget                  --
 -----------------------------------------------------------
 __Sealed__()
-class "UIPanelButton" { Button }
+class "UIPanelButton"       { Button }
 
 __Sealed__()
-class "UIPanelCloseButton" { Button, function(self) self.OnClick = function(self) self:GetParent():Hide() end end }
+class "UIPanelCloseButton"  { Button, function(self) self.OnClick = function(self) self:GetParent():Hide() end end }
+
+__Sealed__()
+class "UIToggleButton"      { Button, ToggleTexture = { type = Texture, set = function(self, texture) return texture and texture:SetShown(self.ToggleState) end }, ToggleState = { type = Boolean, default = false, handler = function(self, val) self:GetPropertyChild("ToggleTexture"):SetShown(val) self:GetPropertyChild("NormalTexture"):SetShown(not val) end }}
 
 -----------------------------------------------------------
 --                    InputBox Widget                    --
@@ -802,6 +805,23 @@ Style.UpdateSkin("Default",     {
             setAllPoints        = true,
             alphamode           = "ADD",
         },
+    },
+    [UIToggleButton]            = {
+            size                = Size(14, 14),
+
+            NormalTexture       = {
+                file            = [[Interface\Buttons\UI-PlusButton-UP]],
+                setAllPoints    = true,
+            },
+            ToggleTexture       = {
+                file            = [[Interface\Buttons\UI-MinusButton-Up]],
+                setAllPoints    = true,
+            },
+            HighlightTexture    = {
+                file            = [[Interface\Buttons\UI-PlusButton-Hilight]],
+                setAllPoints    = true,
+                alphaMode       = "ADD",
+            },
     },
     [InputBox]                  = {
         fontObject              = ChatFontNormal,

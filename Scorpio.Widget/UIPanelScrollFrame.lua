@@ -765,9 +765,7 @@ __Sealed__() class "TreeView" (function(_ENV)
                 if _TempCount > 0 then
                     local toggle= buttons[_TempCount]:GetChild("Toggle")
                     toggle:Show()
-
-                    toggle:GetPropertyChild("UnfoldTexture"):Show()
-                    toggle:GetPropertyChild("NormalTexture"):Hide()
+                    toggle.ToggleState = true
                 end
 
                 for i = 1, #node do
@@ -818,9 +816,7 @@ __Sealed__() class "TreeView" (function(_ENV)
                 if _TempCount > 0 then
                     local toggle= buttons[_TempCount]:GetChild("Toggle")
                     toggle:Show()
-
-                    toggle:GetPropertyChild("UnfoldTexture"):Hide()
-                    toggle:GetPropertyChild("NormalTexture"):Show()
+                    toggle.ToggleState = false
                 end
             end
         else
@@ -853,20 +849,8 @@ __Sealed__() class "TreeView" (function(_ENV)
         Next(processRefreshTreeView, self)
     end
 
-
-    --- The toggle button on the tree node
-    __Sealed__()
-    class "TreeNodeToggle"      { Button }
-
-    --- The unfold texture of the toggle button
-    UI.Property         {
-        name            = "UnfoldTexture",
-        require         = TreeNodeToggle,
-        childtype       = Texture,
-    }
-
     __Sealed__() __Template__(Button)
-    class "TreeNode"            { Toggle   = TreeNodeToggle }
+    class "TreeNode"            { Toggle   = UIToggleButton }
 
     --- Fired when click on the tree node, the path of the tree node will be send out
     event "OnNodeClick"
@@ -1402,22 +1386,7 @@ Style.UpdateSkin("Default",     {
         highlightFont           = GameFontHighlight,
 
         Toggle                  = {
-            size                = Size(14, 14),
             location            = { Anchor("TOPRIGHT", -6, -1) },
-
-            NormalTexture       = {
-                file            = [[Interface\Buttons\UI-PlusButton-UP]],
-                setAllPoints    = true,
-            },
-            UnfoldTexture       = {
-                file            = [[Interface\Buttons\UI-MinusButton-Up]],
-                setAllPoints    = true,
-            },
-            HighlightTexture    = {
-                file            = [[Interface\Buttons\UI-PlusButton-Hilight]],
-                setAllPoints    = true,
-                alphaMode       = "ADD",
-            },
         },
 
         ButtonText              = {
@@ -1439,22 +1408,7 @@ Style.UpdateSkin("Default",     {
         highlightFont           = GameFontHighlight,
 
         Toggle                  = {
-            size                = Size(14, 14),
             location            = { Anchor("TOPRIGHT", -6, -1) },
-
-            NormalTexture       = {
-                file            = [[Interface\Buttons\UI-PlusButton-UP]],
-                setAllPoints    = true,
-            },
-            UnfoldTexture       = {
-                file            = [[Interface\Buttons\UI-MinusButton-Up]],
-                setAllPoints    = true,
-            },
-            HighlightTexture    = {
-                file            = [[Interface\Buttons\UI-PlusButton-Hilight]],
-                setAllPoints    = true,
-                alphaMode       = "ADD",
-            },
         },
 
         ButtonText              = {
@@ -1477,22 +1431,7 @@ Style.UpdateSkin("Default",     {
         highlightFont           = GameFontHighlight,
 
         Toggle                  = {
-            size                = Size(14, 14),
             location            = { Anchor("TOPRIGHT", -6, -1) },
-
-            NormalTexture       = {
-                file            = [[Interface\Buttons\UI-PlusButton-UP]],
-                setAllPoints    = true,
-            },
-            UnfoldTexture       = {
-                file            = [[Interface\Buttons\UI-MinusButton-Up]],
-                setAllPoints    = true,
-            },
-            HighlightTexture    = {
-                file            = [[Interface\Buttons\UI-PlusButton-Hilight]],
-                setAllPoints    = true,
-                alphaMode       = "ADD",
-            },
         },
 
         ButtonText              = {
