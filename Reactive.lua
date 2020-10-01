@@ -93,6 +93,14 @@ do
             end)
         end)
     end
+
+    --- Block the sequence for a frame phase, useful for some events that trigger
+    -- multiple-times in one phase. the last values will be kept
+    function IObservable:Next()
+        return Operator(self, function(observer, ...)
+            return delayResume(observer, delay, ...)
+        end)
+    end
 end
 
 ------------------------------------------------------------
@@ -120,7 +128,6 @@ interface "Scorpio.Wow" (function(_ENV)
 
         return subject
     end
-
 
     __Static__() __AutoCache__() __Arguments__{ NEString }
     function UnitHealth(unit)

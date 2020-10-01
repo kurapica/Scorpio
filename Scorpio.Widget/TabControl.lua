@@ -212,7 +212,8 @@ class "TabControl" (function(_ENV)
     end
 
     --- Add a tab page and return the tab button
-    function AddTabPage(self, name)
+    __Arguments__{ NEString, UI/nil }
+    function AddTabPage(self, name, frame)
         local header            = self:GetChild("Header"):GetChild("Container")
         local index             = 0
 

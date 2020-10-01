@@ -986,6 +986,8 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_LOGIN()
+            if _Logined then return end
+
             Log(2, "[START TASK MANAGER]")
 
             r_InLoadingScreen   = false

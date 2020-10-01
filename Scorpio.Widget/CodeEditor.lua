@@ -2860,6 +2860,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 else
                     return OnControlKey(editor.__Owner, key)
                 end
+            elseif key:find("^F%d+") == 1 then
+                return OnFunctionKey(editor.__Owner, key)
             end
 
             return newOperation(editor, _Operation.INPUTCHAR)
@@ -2889,6 +2891,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     --- Fired when ctrl + key is pressed
     event "OnControlKey"
+
+    --- Fired when function key is pressed
+    event "OnFunctionKey"
 
     ------------------------------------------------------
     -- Method
