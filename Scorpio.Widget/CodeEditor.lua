@@ -2075,7 +2075,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local numberColor       = tostring(owner.NumberColor)
         local instructionColor  = tostring(owner.InstructionColor)
         local functionColor     = tostring(owner.FunctionColor)
-        local attrColor         = tostring(owner.AttributeColor)
+        local attrcolor         = tostring(owner.AttributeColor)
 
         local indent            = 0
         local rightSpace        = false
@@ -2926,6 +2926,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         local l, r, t, b        = editor:GetTextInsets()
         l                       = (linenum:IsShown() and linenum:GetWidth() or 0) + 5
+        print("TextInsets", l, r, t, b)
         Style[editor].textInsets= Inset(l, r, t, b)
 
         linenum:ClearAllPoints()
@@ -2976,6 +2977,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         text                    = text and tostring(text) or ""
         self                    = self.__Editor
         self:SetText(formatAll(self, text:gsub("\124", "\124\124")))
+        SetCursorPosition(self, 0)
     end
 
     --- Get the text
@@ -3046,7 +3048,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     UI.Property         {
         name            = "Font",
         type            = FontType,
-        require         = InputScrollFrame,
+        require         = CodeEditor,
         get             = function(self) return Style[self].ScrollChild.EditBox.font end,
         set             = function(self, font) Style[self].ScrollChild.EditBox.font = font; self:RefreshLayout() end,
         override        = { "FontObject" },
@@ -3056,7 +3058,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     UI.Property         {
         name            = "FontObject",
         type            = FontObject,
-        require         = InputScrollFrame,
+        require         = CodeEditor,
         get             = function(self) return Style[self].ScrollChild.EditBox.fontObject end,
         set             = function(self, font) Style[self].ScrollChild.EditBox.fontObject = font; self:RefreshLayout() end,
         override        = { "Font" },
@@ -3066,7 +3068,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     UI.Property         {
         name            = "Indented",
         type            = Boolean,
-        require         = InputScrollFrame,
+        require         = CodeEditor,
         default         = false,
         get             = function(self) return Style[self].ScrollChild.EditBox.indented end,
         set             = function(self, val) Style[self].ScrollChild.EditBox.indented = val; self:RefreshLayout() end,
@@ -3076,7 +3078,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     UI.Property         {
         name            = "Spacing",
         type            = Number,
-        require         = InputScrollFrame,
+        require         = CodeEditor,
         default         = 0,
         get             = function(self) return Style[self].ScrollChild.EditBox.spacing end,
         set             = function(self, val) Style[self].ScrollChild.EditBox.spacing = val; self:RefreshLayout() end,
@@ -3086,7 +3088,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     UI.Property         {
         name            = "TextInsets",
         type            = Inset,
-        require         = InputScrollFrame,
+        require         = CodeEditor,
         get             = function(self) return Style[self].ScrollChild.EditBox.textInsets end,
         set             = function(self, val) Style[self].ScrollChild.EditBox.textInsets = val; self:RefreshLayout() end,
     }
@@ -3428,7 +3430,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function onShow(self)
-        return self:RefreshLayout()
+        return self.__Owner:RefreshLayout()
     end
 
     local function onTabPressed(self)
@@ -3589,6 +3591,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     function __ctor(self)
         local editor            = self:GetScrollChild():GetChild("EditBox")
         local linenum           = self:GetScrollChild():GetChild("LineNum")
+        local lineHolder        = self:GetChild("LineHolder")
+
+        lineHolder:SetPoint("TOPLEFT")
+        lineHolder:SetPoint("BOTTOMLEFT")
+        lineHolder:SetPoint("RIGHT", linenum, "RIGHT")
 
         -- Don't use the styles on the line num because there are too many changes on it
         linenum:SetJustifyV("TOP")
@@ -3632,12 +3639,6 @@ Style.UpdateSkin("Default",     {
         textInsets              = Inset(5, 5, 3, 3),
 
         LineHolder              = {
-            location            = {
-                Anchor("TOPLEFT", 5, -5),
-                Anchor("BOTTOMLEFT", 5, 5),
-                Anchor("RIGHT", 0, 0, "ScrollChild.LineNum"),
-            },
-            width               = 5,
             enableMouse         = true,
             frameStrata         = "FULLSCREEN",
 

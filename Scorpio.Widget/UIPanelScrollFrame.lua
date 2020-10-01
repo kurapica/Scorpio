@@ -337,13 +337,13 @@ __Sealed__() class "ListFrame" (function(_ENV)
     local function ItemButton_OnClick(self)
         local list              = self:GetParent():GetParent()
         list.SelectedIndex      = self.index
-        return OnItemClick(list, self.SelectedValue)
+        return OnItemClick(list, list.SelectedValue)
     end
 
     local function ItemButton_OnDoubleClick(self)
         local list              = self:GetParent():GetParent()
         list.SelectedIndex      = self.index
-        return OnItemDoubleClick(list, self.SelectedValue)
+        return OnItemDoubleClick(list, list.SelectedValue)
     end
 
     local function refreshItems(self)
