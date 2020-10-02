@@ -1116,8 +1116,8 @@ do
         type            = Boolean,
         require         = InputScrollFrame,
         default         = false,
-        set             = function(self, val) Style[self].ScrollChild.CharCount.visible = not val end,
-        get             = function(self) return not Style[self].ScrollChild.CharCount.visible end,
+        set             = function(self, val) Style[self].CharCount.visible = not val end,
+        get             = function(self) return not Style[self].CharCount.visible end,
     }
 end
 

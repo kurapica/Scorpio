@@ -2926,7 +2926,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         local l, r, t, b        = editor:GetTextInsets()
         l                       = (linenum:IsShown() and linenum:GetWidth() or 0) + 5
-        print("TextInsets", l, r, t, b)
         Style[editor].textInsets= Inset(l, r, t, b)
 
         linenum:ClearAllPoints()
@@ -3639,7 +3638,7 @@ Style.UpdateSkin("Default",     {
         textInsets              = Inset(5, 5, 3, 3),
 
         LineHolder              = {
-            enableMouse         = true,
+            enableMouse         = false,
             frameStrata         = "FULLSCREEN",
 
             MiddleBGTexture     = {

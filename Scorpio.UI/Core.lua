@@ -143,6 +143,8 @@ local function applyProperty(self, prop, value)
 
         value:Subscribe(map[prop])
     elseif prop.set then
+        -- Check for the child type
+        if value == true and prop.childtype then return end
         prop.set(self, clone(value, true))
     end
 end

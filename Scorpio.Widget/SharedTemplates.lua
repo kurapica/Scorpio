@@ -34,7 +34,7 @@ class "Mover" (function(_ENV)
         repeat Next() until _Moving[self] == nil or (GetTime() - start) >= START_MOVE_RESIZE_DELAY
 
         if _Moving[self] == nil then return end
-        local parent            = self:GetMoveTarget()
+        local parent            = self.MoveTarget
 
         _Moving[self]           = LayoutFrame.GetLocation(parent)
         parent:StartMoving()
@@ -42,7 +42,7 @@ class "Mover" (function(_ENV)
     end
 
     local function onMouseDown(self)
-        if self:GetMoveTarget():IsMovable() then
+        if self.MoveTarget:IsMovable() then
             _Moving[self]       = false
             return Scorpio.Continue(checkMoving, self)
         end
@@ -52,7 +52,7 @@ class "Mover" (function(_ENV)
         local loc               = _Moving[self]
         _Moving[self]           = nil
         if loc then
-            local parent        = self:GetMoveTarget()
+            local parent        = self.MoveTarget
             parent:StopMovingOrSizing()
 
             LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
@@ -61,14 +61,16 @@ class "Mover" (function(_ENV)
         end
     end
 
-    __Arguments__{ UI/nil }
-    function SetMoveTarget(self, ui)
+    local function setMoveTarget(self, ui)
         self.__Mover_Target     = ui
     end
 
-    function GetMoveTarget(self)
+    local function getMoveTarget(self)
         return self.__Mover_Target or self:GetParent()
     end
+
+    --- The Move target
+    property "MoveTarget"       { type = UI, set = setMoveTarget, get = getMoveTarget }
 
     -- Whether the mover is moving
     function IsMoving(self)
@@ -86,6 +88,7 @@ __Sealed__() __ChildProperty__(Frame, "Resizer")
 class "Resizer" (function(_ENV)
     inherit "Button"
 
+    local _ResizingHook         = setmetatable({}, META_WEAKKEY)
     local _Resizing             = {}
 
     -- Fired when start resizing
@@ -94,25 +97,47 @@ class "Resizer" (function(_ENV)
     -- Fired when stop resizing
     event "OnStopResizing"
 
+    local function addHook(frame, resizer)
+        if not _ResizingHook[frame] then
+            _ResizingHook[frame] = _ResizingHook[frame] or {}
+
+            _M:SecureHook(frame, "SetResizable", function(par, flag)
+                for hooker in pairs(_ResizingHook[frame]) do
+                    hooker:SetShown(flag or false)
+                end
+            end)
+        end
+
+        _ResizingHook[frame][resizer] = true
+        resizer:SetShown(frame:IsResizable())
+    end
+
+    local function removeHook(frame, resizer)
+        if _ResizingHook[frame] then
+            _ResizingHook[frame][resizer] = nil
+        end
+        resizer:SetShown(false)
+    end
+
     local function checkResizing(self)
         local start             = GetTime()
 
         repeat Next() until _Resizing[self] == nil or (GetTime() - start) >= START_MOVE_RESIZE_DELAY
 
         if _Resizing[self] == nil then return end
-        local parent            = self:GetResizeTarget()
+        local parent            = self.ResizeTarget
 
         _Resizing[self]         = LayoutFrame.GetLocation(parent)
-        parent:StartSizing("BOTTOMRIGHT")
+        parent:StartSizing(self.Direction)
         return OnStartResizing(self)
     end
 
     local function onParentChanged(self, parent, oldparent)
-        return self:SetResizeTarget(parent)
+        self.ResizeTarget       = parent
     end
 
     local function onMouseDown(self)
-        if self:GetResizeTarget():IsResizable() then
+        if self.ResizeTarget:IsResizable() then
             _Resizing[self]     = false
             return Scorpio.Continue(checkResizing, self)
         end
@@ -122,7 +147,7 @@ class "Resizer" (function(_ENV)
         local loc               = _Resizing[self]
         _Resizing[self]         = nil
         if loc then
-            local parent        = self:GetResizeTarget()
+            local parent        = self.ResizeTarget
             parent:StopMovingOrSizing()
 
             LayoutFrame.SetLocation(parent, LayoutFrame.GetLocation(parent, loc))
@@ -131,27 +156,22 @@ class "Resizer" (function(_ENV)
         end
     end
 
-    __Arguments__{ UI/nil }
-    function SetResizeTarget(self, ui)
-        local old               = self:GetResizeTarget()
+    local function setResizeTarget(self, ui)
+        local old               = self.__Resizer_Target
         if old and ui and UI.IsSameUI(old, ui) then return end
 
         if old then
-            _M:SecureUnHook(old, "SetResizable")
+            removeHook(old, self)
         end
 
         if ui then
-            _M:SecureHook(ui, "SetResizable", function(par, flag)
-                self:SetShown(flag or false)
-            end)
-
-            self:SetShown(ui:IsResizable())
+            addHook(ui, self)
         end
 
         self.__Resizer_Target   = ui
     end
 
-    function GetResizeTarget(self)
+    local function getResizeTarget(self)
         return self.__Resizer_Target
     end
 
@@ -160,17 +180,19 @@ class "Resizer" (function(_ENV)
         return _Resizing[self] and true or false
     end
 
+    --- The Resize target
+    property "ResizeTarget"     { type = UI, set = setResizeTarget, get = getResizeTarget }
+
+    -- The resizer direction
+    property "Direction"        { type = FramePoint, default = "BOTTOMRIGHT" }
+
     function __ctor(self)
         self.OnMouseDown        = self.OnMouseDown + onMouseDown
         self.OnMouseUp          = self.OnMouseUp + onMouseUp
         self.OnParentChanged    = self.OnParentChanged + onParentChanged
 
         local parent            = self:GetParent()
-        self:SetShown(parent:IsResizable())
-
-        _M:SecureHook(parent, "SetResizable", function(par, flag)
-            self:SetShown(flag or false)
-        end)
+        addHook(parent, self)
 
         self.__Resizer_Target   = parent
     end
@@ -372,7 +394,7 @@ class "Mask" (function(_ENV)
             self:ClearAllPoints()
             self:SetAllPoints(parent)
 
-            self:GetChild("Resizer"):SetResizeTarget(self:GetParent())
+            self:GetChild("Resizer").ResizeTarget = self:GetParent()
         else
             self:ClearAllPoints()
             self:Hide()
@@ -476,7 +498,7 @@ class "Mask" (function(_ENV)
 
         self:RegisterForClicks("AnyUp")
 
-        self:GetChild("Resizer"):SetResizeTarget(self:GetParent())
+        self:GetChild("Resizer").ResizeTarget = self:GetParent()
 
         -- For Key Bindings
         self:EnableMouse(true)
@@ -653,7 +675,7 @@ class "GroupBoxHeader" {
 --                 UICheckButton Widget                  --
 -----------------------------------------------------------
 __Sealed__()
-class "UICheckButton" {CheckButton }
+class "UICheckButton" { CheckButton }
 
 __Sealed__()
 class "UIRadioButton" (function(_ENV)
