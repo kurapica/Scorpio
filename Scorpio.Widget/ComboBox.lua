@@ -52,7 +52,7 @@ class "ComboBox" (function(_ENV)
     function ShareListFrame:OnItemClick(value)
         if ShareListFrameOwner then
             ShareListFrameOwner.SelectedValue = value
-            OnSelectedChange(ShareListFrameOwner, value)
+            OnSelectChanged(ShareListFrameOwner, value)
         end
 
         self:Hide()
@@ -68,7 +68,7 @@ class "ComboBox" (function(_ENV)
             set                 = function(value)
                 if DropDownListOwner then
                     DropDownListOwner.SelectedValue = value
-                    OnSelectedChange(DropDownListOwner, value)
+                    OnSelectChanged(DropDownListOwner, value)
                 end
             end,
         },
@@ -131,7 +131,7 @@ class "ComboBox" (function(_ENV)
     end
 
     --- Fired when the selected value changed
-    event "OnSelectedChange"
+    event "OnSelectChanged"
 
     --- The icon texture file or id
     property "Icon"             {
