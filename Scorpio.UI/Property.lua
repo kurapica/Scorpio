@@ -704,7 +704,7 @@ do
     UI.Property         {
         name            = "Text",
         type            = String,
-        require         = { FontString, Button, EditBox },
+        require         = { FontString, Button, EditBox, SimpleHTML },
         default         = "",
         set             = function(self, val) self:SetText(val) end,
         get             = function(self) return self:GetText() end,
