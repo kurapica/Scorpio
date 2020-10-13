@@ -167,21 +167,41 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
     __Final__() __Arguments__{ Anchors }:Throwable()
     function SetLocation(self, loc)
         if #loc > 0 then
-            local parent = self:GetParent()
-
             self:ClearAllPoints()
+
             for _, anchor in ipairs(loc) do
-                local relativeTo = anchor.relativeTo
+                local relativeTo= anchor.relativeTo
 
                 if relativeTo then
-                    relativeTo = parent and (UIObject.GetChild(parent, relativeTo) or UIObject.GetPropertyChild(parent, relativeTo)) or UIObject.FromName(relativeTo)
+                    local rtar
 
-                    if not relativeTo then
-                        print("Failed location", parent:GetName(true), anchor.relativeTo)
-                        throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo frame")
+                    -- $parent.xxx.xxx
+                    if relativeTo:find(".", 1, true) then
+                        for pattern in relativeTo:gmatch("[^%.]+") do
+                            if pattern:lower() == "$parent" then
+                                rtar    = (rtar or self):GetParent()
+                            else
+                                local p = rtar or self:GetParent()
+                                rtar    = UIObject.GetChild(p, pattern) or UIObject.GetPropertyChild(p, pattern)
+                            end
+                            if not rtar then break end
+                        end
+                    else
+                        local p = self:GetParent()
+                        rtar    = p and (UIObject.GetChild(p, relativeTo) or UIObject.GetPropertyChild(p, relativeTo))
                     end
+
+                    if not rtar then
+                        rtar    = UIObject.FromName(relativeTo)
+                    end
+
+                    if not rtar then
+                        throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo - " .. relativeTo)
+                    end
+
+                    relativeTo  = rtar
                 else
-                    relativeTo = parent
+                    relativeTo  = self:GetParent()
                 end
 
                 if relativeTo then

@@ -252,21 +252,137 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
         }
     }
     function __ctor(self)
-        local child             = self:GetScrollChild()
-
-        local editbox           = child:GetChild("EditBox")
-        editbox:SetPoint("TOPLEFT")
-        editbox:SetPoint("RIGHT", self:GetChild("ScrollBar"), "LEFT", -4, 0)
-        editbox:SetMultiLine(true)
-        editbox:SetAutoFocus(false)
-
-        editbox:SetCountInvisibleLetters(false)
-
         self.OnMouseDown        = self.OnMouseDown          + OnMouseDown
+
+        local editbox           = self:GetScrollChild():GetChild("EditBox")
 
         editbox.OnTextChanged   = editbox.OnTextChanged     + OnTextChanged
         editbox.OnCursorChanged = editbox.OnCursorChanged   + OnCursorChanged
         editbox.OnEscapePressed = editbox.OnEscapePressed   + OnEscapePressed
+    end
+end)
+
+__Sealed__() class "HTMLViewer" (function(_ENV)
+    inherit "FauxScrollFrame"
+
+    export { tremove = table.remove, Color }
+
+
+    ------------------------------------------------------
+    -- Translate
+    ------------------------------------------------------
+    local _HTML_Color_Stack     = {}
+
+    local function parseColorToken(token, isEnd, args)
+        if isEnd then
+            local last
+            for i = #_HTML_Color_Stack, 1, -1 do
+                last            = tremove(_HTML_Color_Stack)
+                if last == token then
+                    if i > 1 then
+                        return tostring(Color[_HTML_Color_Stack[i-1]] or Color.NORMAL)
+                    else
+                        return Color.CLOSE
+                    end
+                end
+            end
+            return ""
+        else
+            tinsert(_HTML_Color_Stack, token)
+            return tostring(Color[token] or Color.NORMAL)
+        end
+    end
+
+    ------------------------------------------------------
+    -- Tokens
+    ------------------------------------------------------
+    local _HTML_TOKEN_MAP       = {}
+
+    ------------------------------------------------------
+    --- Colors : <red>some text</red>
+    ------------------------------------------------------
+    for name, feature in Class.GetFeatures(Color) do
+        if Property.Validate(feature) and feature:IsStatic() and feature:IsReadable() then
+            local val           = Color[name]
+
+            if getmetatable(val) == Color then
+                _HTML_TOKEN_MAP[name:lower()] = name
+            end
+        end
+    end
+
+    ------------------------------------------------------
+    -- Parse Html
+    ------------------------------------------------------
+    local function parseToken(set)
+        if set and set:len() >= 3 then
+            if set:sub(2, 2) == "/" then
+                local token     = set:match("</(%w+)")
+
+                if token and _HTML_TOKEN_MAP[token:lower()] then
+                    return parseColorToken(_HTML_TOKEN_MAP[token:lower()], true)
+                end
+            else
+                local token, args = set:match("<(%w+)%s*(.*)>")
+
+                if token and _HTML_TOKEN_MAP[token:lower()] then
+                    return parseColorToken(_HTML_TOKEN_MAP[token:lower()], false, args)
+                end
+            end
+        end
+    end
+
+    local function parseHTML(text)
+        wipe(_HTML_Color_Stack)
+
+        if type(text) == "string" and text ~= "" then
+            return (text:gsub("%b<>", parseToken))
+        else
+            return ""
+        end
+    end
+
+    local function OnHyperlinkClick(self, ...)
+        return OnHyperlinkClick(self.__Owner, ...)
+    end
+
+    local function OnHyperlinkEnter(self, ...)
+        return OnHyperlinkEnter(self.__Owner, ...)
+    end
+
+    local function OnHyperlinkLeave(self, ...)
+        return OnHyperlinkLeave(self.__Owner, ...)
+    end
+
+    ---Run when the mouse clicks a hyperlink in the SimpleHTML fram=
+    event "OnHyperlinkClick"
+
+    ---Run when the mouse moves over a hyperlink in the SimpleHTML frame=
+    event "OnHyperlinkEnter"
+
+    ---Run when the mouse moves away from a hyperlink in the SimpleHTML frame<
+    event "OnHyperlinkLeave"
+
+    --- Set the html content
+    function SetText(self, text)
+        return self.__Browser:SetText(parseHTML(text))
+    end
+
+    __Template__{
+        {
+            ScrollChild         = {
+                Browser         = SimpleHTML,
+            }
+        }
+    }
+    function __ctor(self)
+        local browser           = self:GetScrollChild():GetChild("Browser")
+        browser.__Owner         = self
+        self.__Browser          = browser
+
+        browser.OnHyperlinkClick= browser.OnHyperlinkClick  + OnHyperlinkClick
+        browser.OnHyperlinkEnter= browser.OnHyperlinkEnter  + OnHyperlinkEnter
+        browser.OnHyperlinkLeave= browser.OnHyperlinkLeave  + OnHyperlinkLeave
     end
 end)
 
@@ -940,7 +1056,6 @@ __Sealed__() class "TreeView" (function(_ENV)
     end
 end)
 
-
 -----------------------------------------------------------
 --              UIPanelScrollFrame Property              --
 -----------------------------------------------------------
@@ -1215,6 +1330,14 @@ Style.UpdateSkin("Default",     {
                 location        = { Anchor("TOP", 0, 4, nil, "BOTTOM") },
             },
         },
+        ScrollChild             = {
+            EditBox             = {
+                location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
+                multiLine       = true,
+                autoFocus       = false,
+                countInvisibleLetters = false,
+            }
+        },
         TopLeftBGTexture        = {
             file                = [[Interface\Common\Common-Input-Border-TL]],
             size                = Size(8, 8),
@@ -1279,6 +1402,18 @@ Style.UpdateSkin("Default",     {
             drawLayer           = "OVERLAY",
             fontObject          = GameFontDisableLarge,
             location            = { Anchor("BOTTOMRIGHT", -6, 0) },
+        },
+    },
+    [HTMLViewer]                = {
+        ScrollChild             = {
+            Browser             = {
+                location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
+
+                fontObject      = GameFontNormal,
+                hyperlinksEnabled = true,
+                hyperlinkFormat = "|cff00FF00|H%s|h%s|h|r",
+                textColor       = Color.NORMAL,
+            }
         },
     },
     [ListFrameItemButton]       = {
