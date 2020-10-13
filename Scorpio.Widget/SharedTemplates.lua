@@ -847,6 +847,7 @@ Style.UpdateSkin("Default",     {
     },
     [InputBox]                  = {
         fontObject              = ChatFontNormal,
+        autoFocus               = false,
 
         LeftBGTexture           = {
             atlas               = {
