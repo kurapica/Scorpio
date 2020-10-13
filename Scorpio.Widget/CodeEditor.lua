@@ -15,6 +15,83 @@ Scorpio           "Scorpio.Widget.CodeEditor"        "1.0.0"
 __Sealed__() class "CodeEditor" (function(_ENV)
     inherit "InputScrollFrame"
 
+    __Sealed__()
+    class "OperationStack" (function(_ENV)
+        export { yield = coroutine.yield }
+
+        local FIELD_BASE        = -1
+        local FIELD_CURSOR      = -2
+        local FIELD_COUNT       = -3
+        local FIELD_MAX         = -4
+
+        -----------------------------------------------------------
+        --                       property                        --
+        -----------------------------------------------------------
+        --- The max count of the stack
+        property "MaxCount"     { field = FIELD_MAX, type = Number, default = -1 }
+
+        -----------------------------------------------------------
+        --                        method                         --
+        -----------------------------------------------------------
+        function Push(self, oper, text, start, stop)
+            local max           = self.MaxCount
+            if max == 0 then return end
+
+            local base          = self[FIELD_BASE]
+
+            self[FIELD_CURSOR]  = self[FIELD_CURSOR] + 1
+            self[FIELD_COUNT]   = self[FIELD_CURSOR]
+
+            base                = base + (self[FIELD_COUNT] - 1) * 4 + 1
+
+            self[base + 0]      = oper
+            self[base + 1]      = text
+            self[base + 2]      = start
+            self[base + 3]      = stop
+
+            -- Reduce the stack
+            if max > 0 and self[FIELD_COUNT] > max then
+                local last      = base + (self[FIELD_COUNT] - max) * 4
+                for i = base + 1, last do
+                    self[i]     = nil
+                end
+                self[FIELD_BASE]= last
+                self[FIELD_COUNT] = max
+                self[FIELD_CURSOR]= max
+            end
+        end
+
+        function Undo(self)
+            if self[FIELD_CURSOR] > 1 then
+                self[FIELD_CURSOR] = self[FIELD_CURSOR] - 1
+
+                local base      = self[FIELD_BASE] + (self[FIELD_CURSOR] - 1) * 4 + 1
+                return self[base], self[base + 1], self[base + 2], self[base + 3]
+            end
+        end
+
+        function Redo(self)
+            if self[FIELD_CURSOR] < self[FIELD_COUNT] then
+                self[FIELD_CURSOR] = self[FIELD_CURSOR] + 1
+
+                local base      = self[FIELD_BASE] + (self[FIELD_CURSOR] - 1) * 4 + 1
+                return self[base], self[base + 1], self[base + 2], self[base + 3]
+            end
+        end
+
+        -----------------------------------------------------------
+        --                      constructor                      --
+        -----------------------------------------------------------
+        function __new(_, maxcount)
+            return {
+                [FIELD_BASE]    = 0,
+                [FIELD_COUNT]   = 0,
+                [FIELD_CURSOR]  = 0,
+                [FIELD_MAX]     = maxcount or -1,
+            }, true
+        end
+    end)
+
     export {
         tinsert                 = table.insert,
         tremove                 = table.remove,
@@ -107,6 +184,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         PASTE                   = 7,
         CUT                     = 8,
         INDENTFORMAT            = 9,
+        DELETE_LINE             = 10,
+        DUPLICATE_LINE          = 11,
     }
 
     _KEY_OPER                   = {
@@ -1098,18 +1177,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
 
         -- Operation Keep List
-        self._Operation         = {}
-
-        self._OperationStart    = {}
-        self._OperationEnd      = {}
-        self._OperationBackUp   = {}
-
-        self._OperationFinalStart = {}
-        self._OperationFinalEnd = {}
-        self._OperationData     = {}
-
-        self._OperationIndex    = 0
-        self._MaxOperationIndex = 0
+        self._OperationStack    = OperationStack(owner.MaxOperationCount)
 
         -- Clear now operation
         self._OperationOnLine   = nil
@@ -2254,10 +2322,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         self:SetText(self:GetText())
     end
 
-    local function onOperationListChanged(self, startp, endp)
-        return startp and endp and formatColor4Line(self, startp, endp)
-    end
-
     local function moveOnList(self, offset, key)
         local min, max          = 1, _List.ItemCount
         local index             = _List.SelectedIndex
@@ -2315,82 +2379,15 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     local function saveOperation(self)
         if not self._OperationOnLine then return end
 
-        local nowText           = self:GetText()
-
         -- check change
-        if nowText == self._OperationBackUpOnLine then
-            self._OperationOnLine       = nil
-            self._OperationBackUpOnLine = nil
-            self._OperationStartOnLine  = nil
-            self._OperationEndOnLine    = nil
-
-            return
-        end
-
-        self._OperationIndex            = self._OperationIndex + 1
-        self.__MaxOperationIndex        = self._OperationIndex
-
-        local index                     = self._OperationIndex
-
-        -- Modify some oper var
-        if self._OperationOnLine == _Operation.DELETE then
-            local _, oldLineCnt, newLineCnt
-
-            _, oldLineCnt               = self._OperationBackUpOnLine:gsub("\n", "\n")
-            _, newLineCnt               = nowText:gsub("\n", "\n")
-
-            _, self._OperationEndOnLine = getLinesByReturn(self._OperationBackUpOnLine, self._OperationStartOnLine, oldLineCnt - newLineCnt)
-        end
-
-        if self._OperationOnLine == _Operation.BACKSPACE then
-            local _, oldLineCnt, newLineCnt
-
-            _, oldLineCnt               = self._OperationBackUpOnLine:gsub("\n", "\n")
-            _, newLineCnt               = nowText:gsub("\n", "\n")
-
-            self._OperationStartOnLine  = getPrevLinesByReturn(self._OperationBackUpOnLine, self._OperationEndOnLine, oldLineCnt - newLineCnt)
-        end
-
-        -- keep operation data
-        self._Operation[index]          = self._OperationOnLine
-
-        self._OperationBackUp[index]    = self._OperationBackUpOnLine:sub(getLines(self._OperationBackUpOnLine, self._OperationStartOnLine, self._OperationEndOnLine))
-        self._OperationStart[index]     = self._OperationStartOnLine
-        self._OperationEnd[index]       = self._OperationEndOnLine
-
-        self._OperationData[index]      = nowText:sub(getLines(nowText, self._HighlightStart, self._HighlightEnd))
-        self._OperationFinalStart[index]= self._HighlightStart
-        self._OperationFinalEnd[index]  = self._HighlightEnd
-
-        -- special operation
-        if self._OperationOnLine == _Operation.ENTER then
-            local realStart             = getLines(self._OperationBackUpOnLine, self._OperationStartOnLine, self._OperationEndOnLine)
-            if realStart > self._OperationStartOnLine then
-                realStart               = self._OperationStartOnLine
-            end
-            self._OperationData[index]  = nowText:sub(getLines(nowText, realStart, self._HighlightEnd))
-            self._OperationFinalStart[index]= realStart
-            self._OperationFinalEnd[index]  = self._HighlightEnd
-        end
-
-        if self._OperationOnLine == _Operation.PASTE then
-            self._OperationData[index]  = nowText:sub(getLines(nowText, self._OperationStartOnLine, self._HighlightEnd))
-            self._OperationFinalStart[index]= self._OperationStartOnLine
-            self._OperationFinalEnd[index]  = self._HighlightEnd
-        end
-
-        if self._OperationOnLine == _Operation.CUT then
-            self._OperationData[index]  = nowText:sub(getLines(nowText, self._HighlightStart, self._HighlightStart))
-            self._OperationFinalStart[index]= self._HighlightStart
-            self._OperationFinalEnd[index]  = self._HighlightStart
+        if self:GetText() ~= self._OperationBackUpOnLine then
+            self._OperationStack:Push(self._OperationOnLine, self._OperationBackUpOnLine, self._OperationStartOnLine, self._OperationEndOnLine)
         end
 
         self._OperationOnLine           = nil
         self._OperationBackUpOnLine     = nil
         self._OperationStartOnLine      = nil
         self._OperationEndOnLine        = nil
-
-        return onOperationListChanged(self)
     end
 
     local function newOperation(self, oper)
@@ -2409,47 +2406,22 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     local function undo(self)
         saveOperation(self)
 
-        if self._OperationIndex > 0 then
-            local idx           = self._OperationIndex
-            local text          = self:GetText()
-            local startp, endp  = getLines(text, self._OperationFinalStart[idx], self._OperationFinalEnd[idx])
+        local oper, text, start, stop = self._OperationStack:Undo()
+        if oper then
+            self:SetText(text)
+            HighlightText(self.__Owner, start, stop)
 
-            self:SetText(replaceBlock(text, startp, endp, self._OperationBackUp[idx]))
-            startp, endp        = self._OperationStart[idx], self._OperationEnd[idx]
-
-            if self._Operation[idx] == _Operation.DELETE then
-                SetCursorPosition(self.__Owner, self._OperationStart[idx])
-                HighlightText(self.__Owner, self._OperationStart[idx], self._OperationStart[idx])
-            elseif self._Operation[idx] == _Operation.BACKSPACE then
-                SetCursorPosition(self.__Owner, self._OperationEnd[idx])
-                HighlightText(self.__Owner, self._OperationEnd[idx], self._OperationEnd[idx])
-            else
-                SetCursorPosition(self.__Owner, self._OperationEnd[idx])
-                HighlightText(self.__Owner, self._OperationStart[idx], self._OperationEnd[idx])
-            end
-
-            self._OperationIndex = self._OperationIndex - 1
-
-            return formatColor4Line(self, startp, endp)
+            return formatColor4Line(self, start, stop)
         end
     end
 
     function redo(self)
-        if self._OperationIndex < self.__MaxOperationIndex then
-            local idx           = self._OperationIndex + 1
-            local text          = self:GetText()
+        local oper, text, start, stop = self._OperationStack:Redo()
+        if oper then
+            self:SetText(text)
+            HighlightText(self.__Owner, start, stop)
 
-            local startp, endp  = getLines(text, self._OperationStart[idx], self._OperationEnd[idx])
-            self:SetText(replaceBlock(text, startp, endp, self._OperationData[idx]))
-
-            startp, endp        = self._OperationFinalStart[idx], self._OperationFinalEnd[idx]
-
-            SetCursorPosition(self.__Owner, self._OperationFinalEnd[idx])
-            HighlightText(self.__Owner, self._OperationFinalEnd[idx], self._OperationFinalEnd[idx])
-
-            self._OperationIndex = self._OperationIndex + 1
-
-            return formatColor4Line(self, startp, endp)
+            return formatColor4Line(self, start, stop)
         end
     end
 
@@ -2832,6 +2804,51 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             -- Don't consider multi-modified keys
             if IsShiftKeyDown() then
                 -- shift+
+                if IsControlKeyDown() then
+                    self:SetPropagateKeyboardInput(false)
+
+                    if key == "D" then
+                        -- duplicate line
+                        local text          = editor:GetText()
+                        local startp, endp  = getLines(text, editor._HighlightStart, editor._HighlightEnd)
+                        local line          = text:sub(startp, endp + 1)
+
+                        newOperation(editor, _Operation.DUPLICATE_LINE)
+                        editor:SetText(replaceBlock(text, endp + 2, endp, line))
+                        saveOperation(editor)
+
+                        return formatColor4Line(editor, endp + 1, endp + 1 + #line)
+                    elseif key == "K" then
+                        -- Delete line
+                        local text          = editor:GetText()
+                        local startp, endp  = getLines(text, editor._HighlightStart, editor._HighlightEnd)
+
+                        if startp and endp then
+                            if startp == 1 and startp > endp then return end
+
+                            newOperation(editor, _Operation.DELETE_LINE)
+                            if endp >= startp then
+                                -- Delete the current line
+                                editor:SetText(replaceBlock(text, startp, endp + 1, ""))
+                                HighlightText(editor.__Owner, startp - 1, startp - 1)
+
+                                saveOperation(editor)
+
+                                return formatColor4Line(editor, startp - 1)
+                            else
+                                -- Delete the line break
+                                editor:SetText(replaceBlock(text, startp - 1, startp - 1, ""))
+                                HighlightText(editor.__Owner, startp - 2, startp - 2)
+
+                                saveOperation(editor)
+
+                                return formatColor4Line(editor, startp - 2)
+                            end
+                        end
+                    end
+
+                    return
+                end
             elseif IsAltKeyDown() then
                 return OnAltKey(editor.__Owner, key)
             elseif IsControlKeyDown() then
@@ -3039,6 +3056,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     --- The delay to show the auto complete
     property "AutoCompleteDelay"{ type = Number, default = 0.5 }
+
+    --- The max count of the undo list, -1 means no limit, 0 mean no undo/redo operation
+    property "MaxOperationCount"{ type = Number, default = -1 }
 
     ------------------------------------------------------
     -- UI Property
