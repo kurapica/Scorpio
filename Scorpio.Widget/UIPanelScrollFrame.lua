@@ -262,7 +262,7 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
     end
 end)
 
-__Sealed__() class "HTMLViewer" (function(_ENV)
+__Sealed__() class "HtmlViewer" (function(_ENV)
     inherit "FauxScrollFrame"
 
     export { tremove = table.remove, Color }
@@ -342,15 +342,15 @@ __Sealed__() class "HTMLViewer" (function(_ENV)
         end
     end
 
-    local function OnHyperlinkClick(self, ...)
+    local function onHyperlinkClick(self, ...)
         return OnHyperlinkClick(self.__Owner, ...)
     end
 
-    local function OnHyperlinkEnter(self, ...)
+    local function onHyperlinkEnter(self, ...)
         return OnHyperlinkEnter(self.__Owner, ...)
     end
 
-    local function OnHyperlinkLeave(self, ...)
+    local function onHyperlinkLeave(self, ...)
         return OnHyperlinkLeave(self.__Owner, ...)
     end
 
@@ -380,9 +380,9 @@ __Sealed__() class "HTMLViewer" (function(_ENV)
         browser.__Owner         = self
         self.__Browser          = browser
 
-        browser.OnHyperlinkClick= browser.OnHyperlinkClick  + OnHyperlinkClick
-        browser.OnHyperlinkEnter= browser.OnHyperlinkEnter  + OnHyperlinkEnter
-        browser.OnHyperlinkLeave= browser.OnHyperlinkLeave  + OnHyperlinkLeave
+        browser.OnHyperlinkClick= browser.OnHyperlinkClick  + onHyperlinkClick
+        browser.OnHyperlinkEnter= browser.OnHyperlinkEnter  + onHyperlinkEnter
+        browser.OnHyperlinkLeave= browser.OnHyperlinkLeave  + onHyperlinkLeave
     end
 end)
 
@@ -1335,7 +1335,6 @@ Style.UpdateSkin("Default",     {
                 location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
                 multiLine       = true,
                 autoFocus       = false,
-                countInvisibleLetters = false,
             }
         },
         TopLeftBGTexture        = {
@@ -1404,7 +1403,7 @@ Style.UpdateSkin("Default",     {
             location            = { Anchor("BOTTOMRIGHT", -6, 0) },
         },
     },
-    [HTMLViewer]                = {
+    [HtmlViewer]                = {
         ScrollChild             = {
             Browser             = {
                 location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
