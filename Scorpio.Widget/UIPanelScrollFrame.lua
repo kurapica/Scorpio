@@ -365,7 +365,8 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
 
     --- Set the html content
     function SetText(self, text)
-        return self.__Browser:SetText(parseHTML(text))
+        self.__Browser:SetText(parseHTML(text))
+        self:SetVerticalScroll(0)
     end
 
     __Template__{
@@ -1224,6 +1225,15 @@ do
         require         = InputScrollFrame,
         set             = function(self, val) Style[self].ScrollChild.EditBox.textInsets = val end,
         get             = function(self) return Style[self].ScrollChild.EditBox.textInsets end,
+    }
+
+    UI.Property         {
+        name            = "MultiLine",
+        type            = Boolean,
+        require         = InputScrollFrame,
+        default         = true,
+        set             = function(self, val) Style[self].ScrollChild.EditBox.multiline = val end,
+        get             = function(self) return Style[self].ScrollChild.EditBox.multiline end,
     }
 
     UI.Property         {

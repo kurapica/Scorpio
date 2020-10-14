@@ -2912,6 +2912,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     --- Fired when function key is pressed
     event "OnFunctionKey"
 
+    --- Fired when the enter is pressed(only works when the multiline is turn off)
+    event "OnEnterPressed"
+
     ------------------------------------------------------
     -- Method
     ------------------------------------------------------
@@ -3028,7 +3031,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     property "TabWidth"         { type = NaturalNumber, default = 4, handler = refreshText }
 
     --- Whether show the line num
-    property "ShowLineNum"      { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; self:RefreshLayout() end }
+    property "ShowLineNum"      { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; Style[self].LineHolder.visible = flag; self:RefreshLayout() end }
 
     --- The default text color
     property "DefaultColor"     { type = ColorType, default = Color(1, 1, 1), handler = refreshText }
@@ -3322,6 +3325,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 _List:Hide()
             end
         end
+
+        if not self:IsMultiLine() then return OnEnterPressed(self.__Owner) end
 
         -- The default behavior
         if not IsControlKeyDown() then
@@ -3646,7 +3651,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end
 end)
-
 
 -----------------------------------------------------------
 --              CodeEditor Style - Default               --

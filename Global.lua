@@ -389,6 +389,22 @@ class "Color" (function(_ENV)
         return { r = r, g = g, b = b, a = a }, true
     end
 
+    __Arguments__{ String }
+    function __new(_, str)
+        local r, g, b, a        = str:match("|c(%w%w)(%w%w)(%w%w)(%w%w)")
+        if r and g and b and a then
+            r                   = tonumber(r, 16)
+            g                   = tonumber(g, 16)
+            b                   = tonumber(b, 16)
+            a                   = tonumber(a, 16)
+
+            if r and g and b and a then
+                return { r = r / 255, g = g / 255, b = b / 255, a = a / 255 }, true
+            end
+        end
+        throw("The color string is not valid")
+    end
+
     ----------------------------------------------
     ----------------- Meta-Method ----------------
     ----------------------------------------------
@@ -415,6 +431,9 @@ class "Color" (function(_ENV)
     ----------------------------------------------
     --- The close tag to close color text
     __Static__() property "CLOSE"           { set = false, default = "|r" }
+
+    --- The player's default color
+    __Static__() property "PLAYER"          { type = Color }
 
     ------------------ Classes ------------------
     --- The Hunter class's default color
@@ -560,8 +579,23 @@ class "Color" (function(_ENV)
     --- The normal font color
     __Static__() property "NORMAL"          { set = false, default = Color(1.0, 0.82, 0.0) }
 
+    --- The transparent color
+    __Static__() property "TRANSPARENT"     { set = false, default = Color(0.00, 0.00, 0.00, 0.00) }
+
     --- The high light font color
     __Static__() property "HIGHLIGHT"       { set = false, default = Color(1.0, 1.0, 1.0) }
+
+    --- The passive spell color
+    __Static__() property "PASSIVESPELL"    { set = false, default = Color(0.77, 0.64, 0.0) }
+
+    --- The battle net font color
+    __Static__() property "BATTLENET"       { set = false, default = Color(0.510, 0.773, 1.0) }
+
+    --- The transmogrify font color
+    __Static__() property "TRANSMOGRIFY"    { set = false, default = Color(1, 0.5, 1) }
+
+    --- The disabled font color
+    __Static__() property "DISABLED"        { set = false, default = Color(0.498, 0.498, 0.498) }
 
     --- The red color
     __Static__() property "RED"             { set = false, default = Color(1.00, 0.10, 0.10) }
@@ -587,18 +621,6 @@ class "Color" (function(_ENV)
     --- The orange color
     __Static__() property "ORANGE"          { set = false, default = Color(1.00, 0.50, 0.25) }
 
-    --- The passive spell color
-    __Static__() property "PASSIVESPELL"    { set = false, default = Color(0.77, 0.64, 0.0) }
-
-    --- The battle net font color
-    __Static__() property "BATTLENET"       { set = false, default = Color(0.510, 0.773, 1.0) }
-
-    --- The transmogrify font color
-    __Static__() property "TRANSMOGRIFY"    { set = false, default = Color(1, 0.5, 1) }
-
-    --- The disabled font color
-    __Static__() property "DISABLED"        { set = false, default = Color(0.498, 0.498, 0.498) }
-
     --- The light blue color
     __Static__() property "LIGHTBLUE"       { set = false, default = Color(0.53, 0.67, 1.0) }
 
@@ -608,11 +630,395 @@ class "Color" (function(_ENV)
     --- The black color
     __Static__() property "BLACK"           { set = false, default = Color(0.00, 0.00, 0.00) }
 
-    --- The transparent color
-    __Static__() property "TRANSPARENT"     { set = false, default = Color(0.00, 0.00, 0.00, 0.00) }
+    --- the aliceblue color
+    __Static__() property "ALICEBLUE"       { set = false, default = Color("|cfff0f8ff") }
 
-    --- The player's default color
-    __Static__() property "PLAYER"          { type = Color }
+    --- the antiquewhite color
+    __Static__() property "ANTIQUEWHITE"    { set = false, default = Color("|cfffaebd7") }
+
+    --- the aqua color
+    __Static__() property "AQUA"            { set = false, default = Color("|cff00ffff") }
+
+    --- the aquamarine color
+    __Static__() property "AQUAMARINE"      { set = false, default = Color("|cff7fffd4") }
+
+    --- the azure color
+    __Static__() property "AZURE"           { set = false, default = Color("|cfff0ffff") }
+
+    --- the beige color
+    __Static__() property "BEIGE"           { set = false, default = Color("|cfff5f5dc") }
+
+    --- the bisque color
+    __Static__() property "BISQUE"          { set = false, default = Color("|cffffe4c4") }
+
+    --- the blanchedalmond color
+    __Static__() property "BLANCHEDALMOND"  { set = false, default = Color("|cffffebcd") }
+
+    --- the blueviolet color
+    __Static__() property "BLUEVIOLET"      { set = false, default = Color("|cff8a2be2") }
+
+    --- the brown color
+    __Static__() property "BROWN"           { set = false, default = Color("|cffa52a2a") }
+
+    --- the burlywood color
+    __Static__() property "BURLYWOOD"       { set = false, default = Color("|cffdeb887") }
+
+    --- the cadetblue color
+    __Static__() property "CADETBLUE"       { set = false, default = Color("|cff5f9ea0") }
+
+    --- the chartreuse color
+    __Static__() property "CHARTREUSE"      { set = false, default = Color("|cff7fff00") }
+
+    --- the chocolate color
+    __Static__() property "CHOCOLATE"       { set = false, default = Color("|cffd2691e") }
+
+    --- the coral color
+    __Static__() property "CORAL"           { set = false, default = Color("|cffff7f50") }
+
+    --- the cornflowerblue color
+    __Static__() property "CORNFLOWERBLUE"  { set = false, default = Color("|cff6495ed") }
+
+    --- the cornsilk color
+    __Static__() property "CORNSILK"        { set = false, default = Color("|cfffff8dc") }
+
+    --- the crimson color
+    __Static__() property "CRIMSON"         { set = false, default = Color("|cffdc143c") }
+
+    --- the cyan color
+    __Static__() property "CYAN"            { set = false, default = Color("|cff00ffff") }
+
+    --- the darkblue color
+    __Static__() property "DARKBLUE"        { set = false, default = Color("|cff00008b") }
+
+    --- the darkcyan color
+    __Static__() property "DARKCYAN"        { set = false, default = Color("|cff008b8b") }
+
+    --- the darkgoldenrod color
+    __Static__() property "DARKGOLDENROD"   { set = false, default = Color("|cffb8860b") }
+
+    --- the darkgray color
+    __Static__() property "DARKGRAY"        { set = false, default = Color("|cffa9a9a9") }
+
+    --- the darkgreen color
+    __Static__() property "DARKGREEN"       { set = false, default = Color("|cff006400") }
+
+    --- the darkkhaki color
+    __Static__() property "DARKKHAKI"       { set = false, default = Color("|cffbdb76b") }
+
+    --- the darkmagenta color
+    __Static__() property "DARKMAGENTA"     { set = false, default = Color("|cff8b008b") }
+
+    --- the darkolivegreen color
+    __Static__() property "DARKOLIVEGREEN"  { set = false, default = Color("|cff556b2f") }
+
+    --- the darkorange color
+    __Static__() property "DARKORANGE"      { set = false, default = Color("|cffff8c00") }
+
+    --- the darkorchid color
+    __Static__() property "DARKORCHID"      { set = false, default = Color("|cff9932cc") }
+
+    --- the darkred color
+    __Static__() property "DARKRED"         { set = false, default = Color("|cff8b0000") }
+
+    --- the darksalmon color
+    __Static__() property "DARKSALMON"      { set = false, default = Color("|cffe9967a") }
+
+    --- the darkseagreen color
+    __Static__() property "DARKSEAGREEN"    { set = false, default = Color("|cff8fbc8f") }
+
+    --- the darkslateblue color
+    __Static__() property "DARKSLATEBLUE"   { set = false, default = Color("|cff483d8b") }
+
+    --- the darkslategray color
+    __Static__() property "DARKSLATEGRAY"   { set = false, default = Color("|cff2f4f4f") }
+
+    --- the darkturquoise color
+    __Static__() property "DARKTURQUOISE"   { set = false, default = Color("|cff00ced1") }
+
+    --- the darkviolet color
+    __Static__() property "DARKVIOLET"      { set = false, default = Color("|cff9400d3") }
+
+    --- the deeppink color
+    __Static__() property "DEEPPINK"        { set = false, default = Color("|cffff1493") }
+
+    --- the deepskyblue color
+    __Static__() property "DEEPSKYBLUE"     { set = false, default = Color("|cff00bfff") }
+
+    --- the dimgray color
+    __Static__() property "DIMGRAY"         { set = false, default = Color("|cff696969") }
+
+    --- the dodgerblue color
+    __Static__() property "DODGERBLUE"      { set = false, default = Color("|cff1e90ff") }
+
+    --- the firebrick color
+    __Static__() property "FIREBRICK"       { set = false, default = Color("|cffb22222") }
+
+    --- the floralwhite color
+    __Static__() property "FLORALWHITE"     { set = false, default = Color("|cfffffaf0") }
+
+    --- the forestgreen color
+    __Static__() property "FORESTGREEN"     { set = false, default = Color("|cff228b22") }
+
+    --- the fuchsia color
+    __Static__() property "FUCHSIA"         { set = false, default = Color("|cffff00ff") }
+
+    --- the gainsboro color
+    __Static__() property "GAINSBORO"       { set = false, default = Color("|cffdcdcdc") }
+
+    --- the ghostwhite color
+    __Static__() property "GHOSTWHITE"      { set = false, default = Color("|cfff8f8ff") }
+
+    --- the gold color
+    __Static__() property "GOLD"            { set = false, default = Color("|cffffd700") }
+
+    --- the goldenrod color
+    __Static__() property "GOLDENROD"       { set = false, default = Color("|cffdaa520") }
+
+    --- the greenyellow color
+    __Static__() property "GREENYELLOW"     { set = false, default = Color("|cffadff2f") }
+
+    --- the honeydew color
+    __Static__() property "HONEYDEW"        { set = false, default = Color("|cfff0fff0") }
+
+    --- the hotpink color
+    __Static__() property "HOTPINK"         { set = false, default = Color("|cffff69b4") }
+
+    --- the indianred color
+    __Static__() property "INDIANRED"       { set = false, default = Color("|cffcd5c5c") }
+
+    --- the indigo color
+    __Static__() property "INDIGO"          { set = false, default = Color("|cff4b0082") }
+
+    --- the ivory color
+    __Static__() property "IVORY"           { set = false, default = Color("|cfffffff0") }
+
+    --- the khaki color
+    __Static__() property "KHAKI"           { set = false, default = Color("|cfff0e68c") }
+
+    --- the lavender color
+    __Static__() property "LAVENDER"        { set = false, default = Color("|cffe6e6fa") }
+
+    --- the lavenderblush color
+    __Static__() property "LAVENDERBLUSH"   { set = false, default = Color("|cfffff0f5") }
+
+    --- the lawngreen color
+    __Static__() property "LAWNGREEN"       { set = false, default = Color("|cff7cfc00") }
+
+    --- the lemonchiffon color
+    __Static__() property "LEMONCHIFFON"    { set = false, default = Color("|cfffffacd") }
+
+    --- the lightcoral color
+    __Static__() property "LIGHTCORAL"      { set = false, default = Color("|cfff08080") }
+
+    --- the lightcyan color
+    __Static__() property "LIGHTCYAN"       { set = false, default = Color("|cffe0ffff") }
+
+    --- the lightgoldenrodyellow color
+    __Static__() property "LIGHTGOLDENRODYELLOW" { set = false, default = Color("|cfffafad2") }
+
+    --- the lightgray color
+    __Static__() property "LIGHTGRAY"       { set = false, default = Color("|cffd3d3d3") }
+
+    --- the lightgreen color
+    __Static__() property "LIGHTGREEN"      { set = false, default = Color("|cff90ee90") }
+
+    --- the lightpink color
+    __Static__() property "LIGHTPINK"       { set = false, default = Color("|cffffb6c1") }
+
+    --- the lightsalmon color
+    __Static__() property "LIGHTSALMON"     { set = false, default = Color("|cffffa07a") }
+
+    --- the lightseagreen color
+    __Static__() property "LIGHTSEAGREEN"   { set = false, default = Color("|cff20b2aa") }
+
+    --- the lightskyblue color
+    __Static__() property "LIGHTSKYBLUE"    { set = false, default = Color("|cff87cefa") }
+
+    --- the lightslategray color
+    __Static__() property "LIGHTSLATEGRAY"  { set = false, default = Color("|cff778899") }
+
+    --- the lightsteelblue color
+    __Static__() property "LIGHTSTEELBLUE"  { set = false, default = Color("|cffb0c4de") }
+
+    --- the lime color
+    __Static__() property "LIME"            { set = false, default = Color("|cff00ff00") }
+
+    --- the limegreen color
+    __Static__() property "LIMEGREEN"       { set = false, default = Color("|cff32cd32") }
+
+    --- the linen color
+    __Static__() property "LINEN"           { set = false, default = Color("|cfffaf0e6") }
+
+    --- the magenta color
+    __Static__() property "MAGENTA"         { set = false, default = Color("|cffff00ff") }
+
+    --- the maroon color
+    __Static__() property "MAROON"          { set = false, default = Color("|cff800000") }
+
+    --- the mediumaquamarine color
+    __Static__() property "MEDIUMAQUAMARINE" { set = false, default = Color("|cff66cdaa") }
+
+    --- the mediumblue color
+    __Static__() property "MEDIUMBLUE"      { set = false, default = Color("|cff0000cd") }
+
+    --- the mediumorchid color
+    __Static__() property "MEDIUMORCHID"    { set = false, default = Color("|cffba55d3") }
+
+    --- the mediumpurple color
+    __Static__() property "MEDIUMPURPLE"    { set = false, default = Color("|cff9370db") }
+
+    --- the mediumseagreen color
+    __Static__() property "MEDIUMSEAGREEN"  { set = false, default = Color("|cff3cb371") }
+
+    --- the mediumslateblue color
+    __Static__() property "MEDIUMSLATEBLUE" { set = false, default = Color("|cff7b68ee") }
+
+    --- the mediumspringgreen color
+    __Static__() property "MEDIUMSPRINGGREEN" { set = false, default = Color("|cff00fa9a") }
+
+    --- the mediumturquoise color
+    __Static__() property "MEDIUMTURQUOISE" { set = false, default = Color("|cff48d1cc") }
+
+    --- the mediumvioletred color
+    __Static__() property "MEDIUMVIOLETRED" { set = false, default = Color("|cffc71585") }
+
+    --- the midnightblue color
+    __Static__() property "MIDNIGHTBLUE"    { set = false, default = Color("|cff191970") }
+
+    --- the mintcream color
+    __Static__() property "MINTCREAM"       { set = false, default = Color("|cfff5fffa") }
+
+    --- the mistyrose color
+    __Static__() property "MISTYROSE"       { set = false, default = Color("|cffffe4e1") }
+
+    --- the moccasin color
+    __Static__() property "MOCCASIN"        { set = false, default = Color("|cffffe4b5") }
+
+    --- the navajowhite color
+    __Static__() property "NAVAJOWHITE"     { set = false, default = Color("|cffffdead") }
+
+    --- the navy color
+    __Static__() property "NAVY"            { set = false, default = Color("|cff000080") }
+
+    --- the oldlace color
+    __Static__() property "OLDLACE"         { set = false, default = Color("|cfffdf5e6") }
+
+    --- the olive color
+    __Static__() property "OLIVE"           { set = false, default = Color("|cff808000") }
+
+    --- the olivedrab color
+    __Static__() property "OLIVEDRAB"       { set = false, default = Color("|cff6b8e23") }
+
+    --- the orangered color
+    __Static__() property "ORANGERED"       { set = false, default = Color("|cffff4500") }
+
+    --- the orchid color
+    __Static__() property "ORCHID"          { set = false, default = Color("|cffda70d6") }
+
+    --- the palegoldenrod color
+    __Static__() property "PALEGOLDENROD"   { set = false, default = Color("|cffeee8aa") }
+
+    --- the palegreen color
+    __Static__() property "PALEGREEN"       { set = false, default = Color("|cff98fb98") }
+
+    --- the paleturquoise color
+    __Static__() property "PALETURQUOISE"   { set = false, default = Color("|cffafeeee") }
+
+    --- the palevioletred color
+    __Static__() property "PALEVIOLETRED"   { set = false, default = Color("|cffdb7093") }
+
+    --- the papayawhip color
+    __Static__() property "PAPAYAWHIP"      { set = false, default = Color("|cffffefd5") }
+
+    --- the peachpuff color
+    __Static__() property "PEACHPUFF"       { set = false, default = Color("|cffffdab9") }
+
+    --- the peru color
+    __Static__() property "PERU"            { set = false, default = Color("|cffcd853f") }
+
+    --- the pink color
+    __Static__() property "PINK"            { set = false, default = Color("|cffffc0cb") }
+
+    --- the plum color
+    __Static__() property "PLUM"            { set = false, default = Color("|cffdda0dd") }
+
+    --- the powderblue color
+    __Static__() property "POWDERBLUE"      { set = false, default = Color("|cffb0e0e6") }
+
+    --- the purple color
+    __Static__() property "PURPLE"          { set = false, default = Color("|cff800080") }
+
+    --- the rosybrown color
+    __Static__() property "ROSYBROWN"       { set = false, default = Color("|cffbc8f8f") }
+
+    --- the royalblue color
+    __Static__() property "ROYALBLUE"       { set = false, default = Color("|cff4169e1") }
+
+    --- the saddlebrown color
+    __Static__() property "SADDLEBROWN"     { set = false, default = Color("|cff8b4513") }
+
+    --- the salmon color
+    __Static__() property "SALMON"          { set = false, default = Color("|cfffa8072") }
+
+    --- the sandybrown color
+    __Static__() property "SANDYBROWN"      { set = false, default = Color("|cfff4a460") }
+
+    --- the seagreen color
+    __Static__() property "SEAGREEN"        { set = false, default = Color("|cff2e8b57") }
+
+    --- the seashell color
+    __Static__() property "SEASHELL"        { set = false, default = Color("|cfffff5ee") }
+
+    --- the sienna color
+    __Static__() property "SIENNA"          { set = false, default = Color("|cffa0522d") }
+
+    --- the silver color
+    __Static__() property "SILVER"          { set = false, default = Color("|cffc0c0c0") }
+
+    --- the skyblue color
+    __Static__() property "SKYBLUE"         { set = false, default = Color("|cff87ceeb") }
+
+    --- the slateblue color
+    __Static__() property "SLATEBLUE"       { set = false, default = Color("|cff6a5acd") }
+
+    --- the slategray color
+    __Static__() property "SLATEGRAY"       { set = false, default = Color("|cff708090") }
+
+    --- the snow color
+    __Static__() property "SNOW"            { set = false, default = Color("|cfffffafa") }
+
+    --- the springgreen color
+    __Static__() property "SPRINGGREEN"     { set = false, default = Color("|cff00ff7f") }
+
+    --- the steelblue color
+    __Static__() property "STEELBLUE"       { set = false, default = Color("|cff4682b4") }
+
+    --- the tan color
+    __Static__() property "TAN"             { set = false, default = Color("|cffd2b48c") }
+
+    --- the teal color
+    __Static__() property "TEAL"            { set = false, default = Color("|cff008080") }
+
+    --- the thistle color
+    __Static__() property "THISTLE"         { set = false, default = Color("|cffd8bfd8") }
+
+    --- the tomato color
+    __Static__() property "TOMATO"          { set = false, default = Color("|cffff6347") }
+
+    --- the turquoise color
+    __Static__() property "TURQUOISE"       { set = false, default = Color("|cff40e0d0") }
+
+    --- the violet color
+    __Static__() property "VIOLET"          { set = false, default = Color("|cffee82ee") }
+
+    --- the wheat color
+    __Static__() property "WHEAT"           { set = false, default = Color("|cfff5deb3") }
+
+    --- the whitesmoke color
+    __Static__() property "WHITESMOKE"      { set = false, default = Color("|cfff5f5f5") }
+
+    --- the yellowgreen color
+    __Static__() property "YELLOWGREEN"     { set = false, default = Color("|cff9acd32") }
 end)
 
 Color.PLAYER = Color[(select(2, UnitClass("player")))]
