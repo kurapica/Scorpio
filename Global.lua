@@ -42,11 +42,26 @@ strsub                          = string.sub
 strbyte                         = string.byte
 strchar                         = string.char
 strrep                          = string.rep
-strsub                          = string.gsub
+strgsub                         = string.gsub
 strupper                        = string.upper
 strlower                        = string.lower
 strtrim                         = strtrim or function(s) return (s:gsub("^%s*(.-)%s*$", "%1")) or "" end
 strmatch                        = string.match
+
+__Iterator__() __Arguments__{ String, String, Boolean/nil }
+function strsplit(self, delimiter, plain)
+    local i                     = 1
+    local s, e                  = strfind(self, delimiter, i, plain)
+
+    while s do
+        if i <= s then yield(i, strsub(self, i, s - 1), strsub(self, s, e)) end
+        i                       = e + 1
+        s, e                    = strfind(self, delimiter, i, plain)
+    end
+
+    yield(i, strsub(self, i, -1), "")
+end
+
 
 ------------------- Error --------------------
 geterrorhandler                 = geterrorhandler or function() return print end

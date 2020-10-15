@@ -347,8 +347,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         -- Wait for one phase
         if not font then return not try and Next(updateLineNum, self, true) end
 
-        local endPos
-
         local text              = editor:GetText()
         local index             = 0
         local count             = 0
@@ -357,35 +355,32 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local lines             = linenum.Lines or {}
         linenum.Lines           = lines
 
-        linenum:SetHeight(editor:GetHeight())
+        linenum:SetHeight(editor:GetHeight() + 10)
 
         _TestFontString:SetFont(font, height, flag)
         _TestFontString:SetSpacing(spacing)
         _TestFontString:SetIndentedWordWrap(editor:GetIndentedWordWrap())
         _TestFontString:SetWidth(lineWidth)
 
-        for line, endp in text:gmatch( "([^\r\n]*)()" ) do
-            if endp ~= endPos then
-                -- skip empty match
-                endPos          = endp
+        print(GetTime())
+        for _, line in strsplit(text, "\n") do
+            print(_, line .. "--")
+            index               = index + 1
+            count               = count + 1
 
-                index           = index + 1
+            lines[count]        = index
+
+            _TestFontString:SetText(line)
+
+            extra               = _TestFontString:GetStringHeight() / lineHeight
+            extra               = floor(extra) - 1
+
+            for i = 1, extra do
                 count           = count + 1
-
-                lines[count]    = index
-
-                _TestFontString:SetText(line)
-
-                extra           = _TestFontString:GetStringHeight() / lineHeight
-
-                extra           = floor(extra) - 1
-
-                for i = 1, extra do
-                    count       = count + 1
-                    lines[count]= ""
-                end
+                lines[count]    = ""
             end
         end
+        print("-----------------------------")
 
         for i = #lines, count + 1, -1 do
             lines[i]            = nil
@@ -2475,11 +2470,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local str               = self:GetText()
         local prevPos
         local pos               = self:GetCursorPosition()
+        local isDelteLine       = false
 
         while self._BACKSPACE do
             if pos == 0 then break end
 
-            if first and self._HighlightStart ~= self._HighlightEnd then
+            if first then
                 pos             = self._HighlightEnd
                 prevPos         = self._HighlightStart + 1
             else
@@ -2504,6 +2500,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         elseif strbyte(str, n) == _AutoPairs[byte] then
                             pos = n
                         end
+                    elseif byte == _Byte.LINEBREAK_N or byte == _Byte.LINEBREAK_R then
+                        isDelteLine = true
                     end
                 end
             end
@@ -2515,6 +2513,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
             pos                 = prevPos - 1
             SetCursorPosition(self.__Owner, pos)
+
+            if isDelteLine then
+                isDelteLine     = false
+                updateLineNum(self.__Owner)
+            end
 
             -- Do for long press
             if first then
@@ -3396,7 +3399,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             end
         end
 
-        return formatColor4Line(self, lstartp)
+        formatColor4Line(self, lstartp)
+        return updateLineNum(self.__Owner)
     end
 
     local function onMouseUpAsync(self, btn)
