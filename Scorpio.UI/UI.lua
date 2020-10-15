@@ -323,11 +323,14 @@ do
         "OnMouseDown",
         "OnMouseUp",
         "OnMouseWheel",
-        "OnJoystickStickMotion",
-        "OnJoystickAxisMotion",
-        "OnJoystickButtonDown",
-        "OnJoystickButtonUp",
-        "OnJoystickHatMotion",
+        "OnJoystickStickMotion",    -- deprecated in 9.0
+        "OnJoystickAxisMotion",     -- deprecated in 9.0
+        "OnJoystickButtonDown",     -- deprecated in 9.0
+        "OnJoystickButtonUp",       -- deprecated in 9.0
+        "OnJoystickHatMotion",      -- deprecated in 9.0
+        "OnGamePadButtonDown",
+        "OnGamePadButtonUp",
+        "OnGamePadStick",
         "OnDragStart",
         "OnDragStop",
         "OnReceiveDrag",
