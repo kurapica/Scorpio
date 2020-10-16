@@ -351,6 +351,7 @@ class "UIDropDownMenuButton" (function(_ENV)
     property "CheckValue"       { type = Any }
 
     --- The color property used to hold the color value
+    __Set__(PropertySet.Clone)
     property "Color"            {
         type                    = ColorType,
         handler                 = function(self, color)
