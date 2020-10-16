@@ -362,9 +362,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         _TestFontString:SetIndentedWordWrap(editor:GetIndentedWordWrap())
         _TestFontString:SetWidth(lineWidth)
 
-        print(GetTime())
         for _, line in strsplit(text, "\n") do
-            print(_, line .. "--")
             index               = index + 1
             count               = count + 1
 
@@ -380,7 +378,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 lines[count]    = ""
             end
         end
-        print("-----------------------------")
 
         for i = #lines, count + 1, -1 do
             lines[i]            = nil
@@ -2475,7 +2472,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         while self._BACKSPACE do
             if pos == 0 then break end
 
-            if first then
+            if first and self._HighlightStart ~= self._HighlightEnd then
                 pos             = self._HighlightEnd
                 prevPos         = self._HighlightStart + 1
             else
