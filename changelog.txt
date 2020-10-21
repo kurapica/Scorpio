@@ -1,3 +1,6 @@
+2020/10/22 v55
+	1. The CodeEditor is improved, undo/redo is now all functional.
+
 2020/07/12 v38
 	1. The `__AsyncSingle__` can works for the class method and static method, for object method, each object can only have one coroutine running for the same method, for static method, for all objects, only on running coroutine is allowed.
 

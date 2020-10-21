@@ -175,6 +175,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     -- Operation
     _Operation                  = {
+        INIT                    = 0,
         CHANGE_CURSOR           = 1,
         INPUTCHAR               = 2,
         INPUTTAB                = 3,
@@ -186,6 +187,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         INDENTFORMAT            = 9,
         DELETE_LINE             = 10,
         DUPLICATE_LINE          = 11,
+        UNDO_SAVE               = 12,
     }
 
     _KEY_OPER                   = {
@@ -510,6 +512,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             self._SKIPCURCHG    = nil
         end
         self._InPasting         = false
+        self._DownOffset        = false
     end
 
     local function isKeyPressed(self, key)
@@ -2145,8 +2148,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local prevToken
         local prevIdentifier
 
-        initDefinition(self)
-
         while true do
             prevToken           = token
             token, nextPos, trueWord = nextToken(str, pos, nil, true)
@@ -2368,12 +2369,16 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     ------------------------------------------------------
     -- Key Scan Helper
     ------------------------------------------------------
-    local function saveOperation(self)
+    local function saveOperation(self, isundo)
         if not self._OperationOnLine then return end
 
         -- check change
         if self:GetText() ~= self._OperationBackUpOnLine then
             self._OperationStack:Push(self._OperationOnLine, self._OperationBackUpOnLine, self._OperationStartOnLine, self._OperationEndOnLine)
+
+            if isundo then
+                self._OperationStack:Push(_Operation.UNDO_SAVE, self:GetText(), self._HighlightStart, self._HighlightEnd)
+            end
         end
 
         self._OperationOnLine           = nil
@@ -2396,24 +2401,22 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function undo(self)
-        saveOperation(self)
+        saveOperation(self, true)
 
         local oper, text, start, stop = self._OperationStack:Undo()
         if oper then
             self:SetText(text)
+            SetCursorPosition(self.__Owner, stop)
             HighlightText(self.__Owner, start, stop)
-
-            return formatColor4Line(self, start, stop)
         end
     end
 
-    function redo(self)
+    local function redo(self)
         local oper, text, start, stop = self._OperationStack:Redo()
         if oper then
             self:SetText(text)
+            SetCursorPosition(self.__Owner, stop)
             HighlightText(self.__Owner, start, stop)
-
-            return formatColor4Line(self, start, stop)
         end
     end
 
@@ -2531,7 +2534,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     local function formatAllIndent(self)
         -- format all codes for indent and keep the cursor position
-        saveOperation(self, _Operation.INDENTFORMAT)
+        newOperation(self, _Operation.INDENTFORMAT)
 
         local str, _, _, cursor = formatIndent(self, self:GetText(), self:GetCursorPosition())
         self:SetText(str)
@@ -2593,7 +2596,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         if line == 0 then return end
 
                         endPrevKey(editor)
-
                         saveOperation(editor)
 
                         if IsShiftKeyDown() then
@@ -2610,7 +2612,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         if line == 0 then return end
 
                         endPrevKey(editor)
-
                         saveOperation(editor)
 
                         if IsShiftKeyDown() then
@@ -2626,7 +2627,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         if startp - 1 == cursorPos then return end
 
                         endPrevKey(editor)
-
                         saveOperation(editor)
 
                         if IsShiftKeyDown() then
@@ -2652,7 +2652,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         if endp == cursorPos then return end
 
                         endPrevKey(editor)
-
                         saveOperation(editor)
 
                         if IsShiftKeyDown() then
@@ -2665,7 +2664,6 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                         if line > 0 then
                             endPrevKey(editor)
-
                             saveOperation(editor)
 
                             if IsShiftKeyDown() then
@@ -2676,16 +2674,31 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
                         return
                     elseif key == "DOWN" then
-                        local _, _, line = getLinesByReturn(editor:GetText(), cursorPos, 1)
+                        local text      = editor:GetText()
+                        local _, _, line= getLinesByReturn(text, cursorPos, 2)
 
                         if line > 0 then
                             endPrevKey(editor)
-
                             saveOperation(editor)
 
                             if IsShiftKeyDown()  then
-                                editor._SKIPCURCHG = cursorPos
+                                editor._SKIPCURCHG      = cursorPos
                                 editor._SKIPCURCHGARROW = true
+                            end
+
+                            if line == 1 then
+                                -- Check a special error
+                                local startp, endp      = getLines(text, cursorPos)
+                                local offset            = 0
+
+                                startp                  = skipColor(text, startp)
+
+                                while startp <= cursorPos do
+                                    offset              = offset + 1
+                                    startp              = skipColor(text, startp + 1)
+                                end
+
+                                editor._DownOffset      = offset
                             end
                         end
 
@@ -2811,13 +2824,14 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         -- duplicate line
                         local text          = editor:GetText()
                         local startp, endp  = getLines(text, editor._HighlightStart, editor._HighlightEnd)
-                        local line          = text:sub(startp, endp + 1)
+                        local line          = "\n" .. text:sub(startp, endp)
 
                         newOperation(editor, _Operation.DUPLICATE_LINE)
-                        editor:SetText(replaceBlock(text, endp + 2, endp, line))
-                        saveOperation(editor)
+                        editor:SetText(replaceBlock(text, endp + 1, endp, line))
+                        SetCursorPosition(editor.__Owner, endp + #line)
 
-                        return formatColor4Line(editor, endp + 1, endp + 1 + #line)
+                        formatColor4Line(editor)
+                        return saveOperation(editor)
                     elseif key == "K" then
                         -- Delete line
                         local text          = editor:GetText()
@@ -2830,19 +2844,17 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                             if endp >= startp then
                                 -- Delete the current line
                                 editor:SetText(replaceBlock(text, startp, endp + 1, ""))
-                                HighlightText(editor.__Owner, startp - 1, startp - 1)
+                                SetCursorPosition(editor.__Owner, startp - 1)
 
-                                saveOperation(editor)
-
-                                return formatColor4Line(editor, startp - 1)
+                                formatColor4Line(editor)
+                                return saveOperation(editor)
                             else
                                 -- Delete the line break
                                 editor:SetText(replaceBlock(text, startp - 1, startp - 1, ""))
-                                HighlightText(editor.__Owner, startp - 2, startp - 2)
+                                SetCursorPosition(editor.__Owner, startp - 2)
 
-                                saveOperation(editor)
-
-                                return formatColor4Line(editor, startp - 2)
+                                formatColor4Line(editor)
+                                return saveOperation(editor)
                             end
                         end
                     end
@@ -2995,8 +3007,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     function SetText(self, text)
         text                    = text and tostring(text) or ""
         self                    = self.__Editor
+
+        initDefinition(self)
+
         self:SetText(formatAll(self, text:gsub("\124", "\124\124")))
         SetCursorPosition(self, 0)
+
+        newOperation(self, _Operation.INIT)
     end
 
     --- Get the text
@@ -3263,6 +3280,27 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             else
                 self._SKIPCURCHG = cursorPos
             end
+        elseif self._DownOffset then
+            local text          = self:GetText()
+            local startp, endp  = getLines(text, cursorPos)
+
+            local offset        = 0
+
+            startp              = skipColor(text, startp)
+
+            while startp < endp and offset < self._DownOffset do
+                offset          = offset + 1
+                if offset == self._DownOffset then break end
+                startp          = skipColor(text, startp + 1)
+            end
+
+            self._DownOffset    = false
+
+            if startp ~= cursorPos then
+                return SetCursorPosition(owner, startp)
+            end
+
+            HighlightText(owner, cursorPos, cursorPos)
         else
             HighlightText(owner, cursorPos, cursorPos)
         end
