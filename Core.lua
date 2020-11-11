@@ -14,6 +14,8 @@ PLoop(function(_ENV)
     _G.Scorpio = class "Scorpio" (function (_ENV)
         inherit "Module"
 
+        import "System.Reactive"
+
         ----------------------------------------------
         --                  Prepare                 --
         ----------------------------------------------
@@ -89,6 +91,8 @@ PLoop(function(_ENV)
         local _SingleAsync      = setmetatable({}, META_WEAKVAL)
         local _RunSingleAsync   = setmetatable({}, META_WEAKKEY)
         local _CancelSingleAsync= setmetatable({}, META_WEAKKEY)
+
+        local _ObservableMap    = setmetatable({}, META_WEAKKEY)
 
         -- For diagnosis
         g_CacheGenerated        = 0
@@ -1288,9 +1292,40 @@ PLoop(function(_ENV)
             return queueTask(NORMAL_PRIORITY, wrapAsSimpleTask(func, ...))
         end
 
+        __Arguments__{ IObservable }
+        __Static__() function Next(observable)
+            local thread        = running()
+            if not thread then error("Scorpio.Next(observable) can only be used in a thread.", 2) end
+
+            local observer      = _ObservableMap[observable]
+            if not observer then
+                observer        = Observer(function(...)
+                    for i = #observer, 1, -1 do
+                        local thread= observer[i]
+                        observer[i] = nil
+
+                        resume(thread, ...)
+                        queueTask(HIGH_PRIORITY, thread)
+                    end
+
+                    observer:Unsubscribe()
+                end)
+                _ObservableMap[observable] = observer
+            end
+
+            if #observer == 0 then
+                observer:Resubscribe()
+                observable:Subscribe(observer)
+            end
+
+            tinsert(observer, thread)
+
+            return yieldReturn(yield())
+        end
+
         __Arguments__{ }
         __Static__() function Next()
-            local thread = running()
+            local thread        = running()
             if not thread then error("Scorpio.Next() can only be used in a thread.", 2) end
 
             queueTask(NORMAL_PRIORITY, thread)

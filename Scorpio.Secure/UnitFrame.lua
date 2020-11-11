@@ -76,7 +76,7 @@ _ActionType                     = {
             end
         end
     },
-    Menu                        = { type =  "menu" },
+    Menu                        = { type = "menu" },
     Target                      = { type = "target" },
     Focus                       = { type = "focus" },
     Assist                      = { type = "assist" },
@@ -116,9 +116,9 @@ _Key2Name                       = setmetatable(
         ["LSHIFT"]              = false,
         ["RSHIFT"]              = false,
         ["LCTRL"]               = false,
+        ["RCTRL"]               = false,
         ["LALT"]                = false,
         ["RALT"]                = false,
-        ["RCTRL"]               = false,
         ["UNKNOWN"]             = false,
     },{
         __index = function (self, key)
@@ -167,7 +167,7 @@ function parseBindKey(key)
         end
     end
 
-    if not ret then error("Invalid binding key", 3) end
+    if not ret then error("Invalid binding key - " .. key, 3) end
     return ret
 end
 
@@ -188,7 +188,6 @@ function getBindingDB4Key(group, key, harmful)
 
     if db then
         local prev              = harmful and "Harm" or "Help"
-
         return db[prev.."Action"], db[prev.."Content"], db[prev.."With"]
     end
 end
@@ -301,16 +300,16 @@ function getSnippet(group)
     local enter                 = List()
     local leave                 = List()
 
-    local isMouseClk, prev, keyName, virtualKey, useVirtual, connect
+    local isMouseClk, prev, kname, virtualKey, useVirtual, connect
     local actionSet, tranType, tranContent
 
     for key, set in pairs(_UnitFrameHoverSpellGroup[group]) do
         useVirtual              = false
 
-        isMouseClk, prev, keyName = mapKey(key)
+        isMouseClk, prev, kname = mapKey(key)
 
         if not isMouseClk then
-            enter:Insert(_EnterTemplate:format(key, keyName))
+            enter:Insert(_EnterTemplate:format(key, kname))
             leave:Insert(_LeaveTemplate:format(key))
         end
 
@@ -322,13 +321,13 @@ function getSnippet(group)
 
         if set.HarmAction then
             if useVirtual then
-                virtualKey      = "enemy" .. keyName
-                setup:Insert(_SetupTemplate:format("harmbutton" .. connect .. keyName, virtualKey))
-                clear:Insert(_ClearTemplate:format("harmbutton" .. connect .. keyName))
+                virtualKey      = "enemy" .. kname
+                setup:Insert(_SetupTemplate:format("harmbutton" .. connect .. kname, virtualKey))
+                clear:Insert(_ClearTemplate:format("harmbutton" .. connect .. kname))
 
                 virtualKey      = "-" .. virtualKey
             else
-                virtualKey      = connect .. keyName
+                virtualKey      = connect .. kname
             end
 
             tranType, tranContent = mapAction(set.HarmAction, set.HarmContent, set.HarmWith)
@@ -348,13 +347,13 @@ function getSnippet(group)
 
         if set.HelpAction then
             if useVirtual then
-                virtualKey      = "friend" .. keyName
-                setup:Insert(_SetupTemplate:format("helpbutton" .. connect .. keyName, virtualKey))
-                clear:Insert(_ClearTemplate:format("helpbutton" .. connect .. keyName))
+                virtualKey      = "friend" .. kname
+                setup:Insert(_SetupTemplate:format("helpbutton" .. connect .. kname, virtualKey))
+                clear:Insert(_ClearTemplate:format("helpbutton" .. connect .. kname))
 
                 virtualKey      = "-" .. virtualKey
             else
-                virtualKey      = connect .. keyName
+                virtualKey      = connect .. kname
             end
 
             tranType, tranContent = mapAction(set.HelpAction, set.HelpContent, set.HelpWith)
@@ -380,6 +379,7 @@ end
 ------------------------------------------------------
 -- Manager Frame
 _ManagerFrame                   = SecureFrame("Scorpio_UnitFrame_HoverSpellManager")
+_ManagerFrame:Hide()
 
 -- Init manger frame's enviroment
 NoCombat(function ()
@@ -686,8 +686,9 @@ class "UnitFrame" (function(_ENV)
     -- The secure snippet for the unit attribute changes
     local _onattributechanged   = [[
         if name == "unit" then
-            if self:GetAttribute("deactivated") and value then
-                return self:SetAttribute("unit", nil)
+            if self:GetAttribute("deactivated") then
+                if value then self:SetAttribute("unit", nil) end
+                return
             end
 
             if type(value) == "string" then
@@ -734,14 +735,14 @@ class "UnitFrame" (function(_ENV)
         local unit              = self.Unit
 
         if unit and unit:match("%w+target") then
-            return Scorpio.Continue(function()
+            return Continue(function()
                 local token     = (_unitProcessToken[self] or 0) + 1
                 _unitProcessToken[self] = token
 
                 repeat
                     OnUnitRefresh(self, unit)
                     Delay(self.Interval)
-                until not (_unitProcessToken[self] == token and self:IsShown())
+                until not (unit == self.Unit and _unitProcessToken[self] == token and self:IsShown())
             end)
         end
     end
@@ -764,7 +765,7 @@ class "UnitFrame" (function(_ENV)
         --                      method                      --
         ------------------------------------------------------
         function Reset(self)
-            return clearBindingDB4Key(self.Group)
+            return self.Group and clearBindingDB4Key(self.Group)
         end
 
         ------------------------------------------------------
@@ -924,19 +925,21 @@ class "UnitFrame" (function(_ENV)
         set                     = function(self, active)
             if self.Activated == active then return end
 
-            if active then
-                local unit      = self:GetAttribute("deactivated")
-                if unit then
-                    self:SetAttribute("deactivated", nil)
+            NoCombat(function()
+                if active then
+                    local unit  = self:GetAttribute("deactivated")
+                    if unit then
+                        self:SetAttribute("deactivated", nil)
 
-                    if type(unit) == "string" then
-                        self:SetAttribute("unit", unit)
+                        if type(unit) == "string" then
+                            self:SetAttribute("unit", unit)
+                        end
                     end
+                else
+                    self:SetAttribute("deactivated", self:GetAttribute("unit") or true)
+                    self:SetAttribute("unit", nil)
                 end
-            else
-                self:SetAttribute("deactivated", self:GetAttribute("unit") or true)
-                self:SetAttribute("unit", nil)
-            end
+            end)
         end,
         get                     = function(self)
             return not self:GetAttribute("deactivated")
@@ -949,7 +952,7 @@ class "UnitFrame" (function(_ENV)
         type                    = Boolean,
         set                     = function(self, enabled)
             if self.UnitWatchEnabled == enabled then return end
-            self:SetAttribute("nounitwatch", not enabled)
+            NoCombat(function() self:SetAttribute("nounitwatch", not enabled) end)
         end,
         get                     = function(self)
             return not self:GetAttribute("nounitwatch")
@@ -969,6 +972,8 @@ class "UnitFrame" (function(_ENV)
     function ProcessUnitChange(self, unit)
         local token             = (_unitProcessToken[self] or 0) + 1
         _unitProcessToken[self] = token
+
+        self.OnShow             = self.OnShow - OnShow
 
         -- Some unit need force refreshing
         if unit == "target" then
@@ -990,7 +995,7 @@ class "UnitFrame" (function(_ENV)
             if unit:match("^party%d") or unit:match("^raid%d") then
                 repeat
                     OnUnitRefresh(self, unit)
-                    NextUnitEvent(unit, "UNIT_NAME_UPDATE")
+                    Next(Wow.UnitName(unit))
                 until _unitProcessToken[self] ~= token
             elseif unit:match("pet") then
                 local owner     = unit:match("^(%w*)pet")
@@ -998,7 +1003,7 @@ class "UnitFrame" (function(_ENV)
 
                 repeat
                     OnUnitRefresh(self, unit)
-                    NextUnitEvent(owner, "UNIT_PET")
+                    Next(Wow.UnitPet(owner))
                 until _unitProcessToken[self] ~= token
             elseif unit:match("%w+target") then
                 self.OnShow     = self.OnShow + OnShow
@@ -1037,5 +1042,11 @@ class "UnitFrame" (function(_ENV)
 
         -- Prepare for secure handler
         self:SetAttribute("_onattributechanged", _onattributechanged)
+
+        -- The group maybe set by child class
+        -- normally should be done by the style system
+        if self.HoverSpellGroup then
+            initUnitFrame(self)
+        end
     end
 end)

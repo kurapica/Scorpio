@@ -45,7 +45,7 @@ strrep                          = string.rep
 strgsub                         = string.gsub
 strupper                        = string.upper
 strlower                        = string.lower
-strtrim                         = strtrim or function(s) return (s:gsub("^%s*(.-)%s*$", "%1")) or "" end
+strtrim                         = strtrim or Toolset.trim
 strmatch                        = string.match
 
 __Iterator__() __Arguments__{ String, String, Boolean/nil }
