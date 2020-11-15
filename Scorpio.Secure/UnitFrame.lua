@@ -51,7 +51,7 @@ _ActionType                     = {
     },
     MacroText                   = {
         type                    = "macro",
-        parse                   = function parseMacroText(macroText)
+        parse                   = function (macroText)
             if type(macroText) == "string" and strtrim(macroText) ~= "" then
                 return strtrim(macroText)
             end
@@ -62,7 +62,7 @@ _ActionType                     = {
     },
     Item                        = {
         type                    = "item",
-        parse                   = function parseItem(item)
+        parse                   = function (item)
             if (type(item) == "string" or type(item) == "number") and GetItemInfo(item) then
                 return tonumber(select(GetItemInfo(item), 2):match('item:(%d+)'))
             end
@@ -70,7 +70,7 @@ _ActionType                     = {
             error("Invalid item|id|link", 3)
         end,
         content                 = "item",
-        tranMacro               = function transItem2Macro(item, with)
+        tranMacro               = function (item, with)
             if GetItemInfo(item) then
                 return ("/%s %%unit\n/use %s"):format(with, GetItemInfo(item))
             end
@@ -678,11 +678,11 @@ __Sealed__() __SecureTemplate__"SecureUnitButtonTemplate, SecureHandlerAttribute
 class "UnitFrame" (function(_ENV)
     inherit "SecureButton"
 
+    import "System.Reactive"
+
     ------------------------------------------------------
     --                      Helper                      --
     ------------------------------------------------------
-    local _unitProcessToken     = setmetatable({}, META_WEAKKEY)
-
     -- The secure snippet for the unit attribute changes
     local _onattributechanged   = [[
         if name == "unit" then
@@ -730,22 +730,6 @@ class "UnitFrame" (function(_ENV)
             end
         end
     ]]
-
-    local function OnShow(self)
-        local unit              = self.Unit
-
-        if unit and unit:match("%w+target") then
-            return Continue(function()
-                local token     = (_unitProcessToken[self] or 0) + 1
-                _unitProcessToken[self] = token
-
-                repeat
-                    OnUnitRefresh(self, unit)
-                    Delay(self.Interval)
-                until not (unit == self.Unit and _unitProcessToken[self] == token and self:IsShown())
-            end)
-        end
-    end
 
     local function OnEnter(self)
         return self:UpdateTooltip()
@@ -850,12 +834,12 @@ class "UnitFrame" (function(_ENV)
                     return clearBindingDB(self.Group, type, ct)
                 else
                     value       = parseBindKey(value)
-                    if not value
+                    if not value then
                         throw("Usage: UnitFrame.HoverSpellGroups[group].Action[content].Key = value - the key value not valid")
                     end
 
                     local otype, oct, owith = getBindingDB4Key(value)
-                    if type == otype and ct = oct and self.Data.With == owith then
+                    if type == otype and ct == oct and self.Data.With == owith then
                         return
                     end
 
@@ -968,46 +952,48 @@ class "UnitFrame" (function(_ENV)
     ------------------------------------------------------
     --                      Method                      --
     ------------------------------------------------------
-    __SecureMethod__() __Async__()
+    __SecureMethod__() __AsyncSingle__(true)
     function ProcessUnitChange(self, unit)
-        local token             = (_unitProcessToken[self] or 0) + 1
-        _unitProcessToken[self] = token
-
-        self.OnShow             = self.OnShow - OnShow
-
         -- Some unit need force refreshing
         if unit == "target" then
-            repeat
+            while true do
                 OnUnitRefresh(self, unit)
                 NextEvent("PLAYER_TARGET_CHANGED")
-            until _unitProcessToken[self] ~= token
+            end
         elseif unit == "mouseover" then
-            repeat
+            while true do
                 OnUnitRefresh(self, unit)
                 NextEvent("UPDATE_MOUSEOVER_UNIT")
-            until _unitProcessToken[self] ~= token
+            end
         elseif unit == "focus" then
-            repeat
+            while true do
                 OnUnitRefresh(self, unit)
                 NextEvent("PLAYER_FOCUS_CHANGED")
-            until _unitProcessToken[self] ~= token
+            end
         elseif unit then
             if unit:match("^party%d") or unit:match("^raid%d") then
-                repeat
+                while true do
                     OnUnitRefresh(self, unit)
-                    Next(Wow.UnitName(unit))
-                until _unitProcessToken[self] ~= token
+                    Next(Wow.FromEvent("UNIT_NAME_UPDATE"):FirstMatch(unit))
+                end
             elseif unit:match("pet") then
                 local owner     = unit:match("^(%w*)pet")
                 if not owner or owner:match("^%s*$") then owner = "player" end
 
-                repeat
+                while true do
                     OnUnitRefresh(self, unit)
-                    Next(Wow.UnitPet(owner))
-                until _unitProcessToken[self] ~= token
+                    Next(Wow.FromEvent("UNIT_PET"):FirstMatch(owner))
+                end
             elseif unit:match("%w+target") then
-                self.OnShow     = self.OnShow + OnShow
-                if self:IsShown() then return OnShow(self) end
+                while true do
+                    while self:IsShown() do
+                        OnUnitRefresh(self, unit)
+                        Delay(self.Interval)
+                    end
+
+                    -- Wait the unit frame re-show
+                    Next(Observable.From(self.OnShow))
+                end
             end
         end
     end
@@ -1025,7 +1011,9 @@ class "UnitFrame" (function(_ENV)
     ------------------------------------------------------
     --                   Constructor                    --
     ------------------------------------------------------
-    function __ctor(self, name, parent)
+    function __ctor(self, ...)
+        super(self, ...)
+
         -- Use * so those are default actions that can be overridden
         self:SetAttribute("*type1", "target")
         self:SetAttribute("shift-type1", "focus")

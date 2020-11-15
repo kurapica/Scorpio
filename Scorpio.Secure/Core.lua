@@ -189,7 +189,7 @@ class "__SecureTemplate__" (function(_ENV)
 
     __Static__() function GetTemplate(cls, template)
         local default           = _SecureTemplateMap[cls]
-        while cls and not default do
+        while cls and default == nil do
             cls                 = Class.GetSuperClass(cls)
             default             = cls and _SecureTemplateMap[cls]
         end
@@ -217,9 +217,9 @@ class "__SecureTemplate__" (function(_ENV)
     -----------------------------------------------------------
     --                      constructor                      --
     -----------------------------------------------------------
-    __Arguments__{ String }
-    function __new(self, template)
-        self.template = template
+    __Arguments__{ String/nil }
+    function __ctor(self, template)
+        self.template           = template or false
     end
 end)
 
@@ -235,14 +235,14 @@ class "SecureFrame" {
         UI.RegisterRawUI(ui)
         return self
     end
-end)
+}
 
 --- SecureButton is used as the root widget class for secure buttons
 __Sealed__() __SecureTemplate__"SecureActionButtonTemplate"
 class "SecureButton"  {
     Button, ISecureHandler,
 
-    __new                       = function(_, name, parent, inherits, ...)
+    __new                       = function(cls, name, parent, inherits)
         local ui                = CreateFrame("Button", name, parent, __SecureTemplate__.GetTemplate(cls, inherits))
         local self              = { [0] = ui[0] }
         UI.RegisterProxyUI(self)
@@ -256,7 +256,7 @@ __Sealed__()  __SecureTemplate__"SecureActionButtonTemplate"
 class "SecureCheckButton" {
     CheckButton, ISecureHandler,
 
-    __new                       = function(_, name, parent, inherits, ...)
+    __new                       = function(cls, name, parent, inherits)
         local ui                = CreateFrame("CheckButton", name, parent, __SecureTemplate__.GetTemplate(cls, inherits))
         local self              = { [0] = ui[0] }
         UI.RegisterProxyUI(self)

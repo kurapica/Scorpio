@@ -9,4 +9,7 @@
     <Script file="ComboBox.lua"/>
     <Script file="TabControl.lua"/>
     <Script file="CodeEditor.lua"/>
+
+    <!-- Element Panel -->
+    <Script file="ElementPanel.lua"/>
 </Ui>
