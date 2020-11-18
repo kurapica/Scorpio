@@ -100,6 +100,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         strchar                 = string.char,
         strrep                  = string.rep,
         strtrim                 = Toolset.trim,
+        decode                  = Text.UTF8Encoding.Decode,
 
         BYTE_WORD_KIND          = 0,
         BYTE_PUNC_KIND          = 1,
@@ -288,6 +289,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end
 
+    local function checkUTF8(str, pos)
+        local code, len         = decode(str, pos)
+        return pos + len - 1
+    end
+
     local function skipPrevColor(str, pos)
         while pos > 0 do
             local byte              = strbyte(str, pos)
@@ -302,6 +308,19 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             else
                 return pos
             end
+        end
+    end
+
+    local function checkPrevUTF8(str, pos)
+        while pos > 0 do
+            local byte          = strbyte(str, pos)
+            if byte < 0x80 then
+                return pos -- 1-byte
+            elseif byte >= 0xC0 then
+                return pos
+            end
+
+            pos                 = pos - 1
         end
     end
 
@@ -2441,7 +2460,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     nextPos     = e or pos
                 else
                     -- delete char
-                    nextPos     = skipColor(str, nextPos)
+                    nextPos     = checkUTF8(str, skipColor(str, nextPos))
                 end
             end
 
@@ -2486,7 +2505,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     local s, e  = getWord(str, prevPos, true)
                     prevPos     = s or pos
                 else
-                    prevPos     = skipPrevColor(str, prevPos)
+                    prevPos     = checkPrevUTF8(str, skipPrevColor(str, prevPos))
 
                     -- Auto pairs check
                     local byte  = strbyte(str, prevPos)
