@@ -192,10 +192,6 @@ end
 __Sealed__() __Final__()
 interface "Scorpio.Wow" (function(_ENV)
 
-    local function GetUnitNameWithServer(unit)
-        return GetUnitName(unit, true)
-    end
-
     --- The data sequences from the wow event
     __Static__() __AutoCache__() __Arguments__{ NEString }
     function FromEvent(event)
@@ -211,20 +207,5 @@ interface "Scorpio.Wow" (function(_ENV)
                 return observer:OnNext(first, ...)
             end
         end)
-    end
-
-    __Static__() __AutoCache__() __Arguments__{ NEString }
-    function UnitHealth(unit)
-        return FromEvent("UNIT_HEALTH"):FirstMatch(unit):Map(_G.UnitHealth)
-    end
-
-    __Static__() __AutoCache__() __Arguments__{ NEString, Boolean/nil }
-    function UnitName(unit, withserver)
-        return FromEvent("UNIT_NAME_UPDATE"):FirstMatch(unit):Map(withserver and GetUnitNameWithServer or GetUnitName)
-    end
-
-    __Static__() __AutoCache__() __Arguments__{ NEString }
-    function UnitPet(unit)
-        return FromEvent("UNIT_PET"):FirstMatch(unit)
     end
 end)

@@ -1,4 +1,4 @@
-## Interface: 90001
+## Interface: 90002
 ## Title: [Lib] Scorpio.UI
 ## Author: kurapica125@outlook.com
 ## Version: v003

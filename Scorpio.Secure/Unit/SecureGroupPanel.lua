@@ -582,7 +582,7 @@ class "SecureGroupPanel" (function(_ENV)
     function __ctor(self, ...)
         super(self, ...)
 
-        self.OnElementAdd = self.OnElementAdd + OnElementAdd
+        self.OnElementAdd       = self.OnElementAdd + OnElementAdd
 
         self:InstantApplyStyle() -- Fix for classic version
         setupGroupFilter(self)
