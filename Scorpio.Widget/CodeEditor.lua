@@ -267,6 +267,19 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     ------------------------------------------------------
     -- Inpput Helpers
     ------------------------------------------------------
+    local function getPrevVerticalCount(str, pos)
+        local sum               = 0
+
+        while pos > 0 do
+            local byte          = strbyte(str, pos)
+            if byte ~= _Byte.VERTICAL then break end
+            sum                 = sum + 1
+            pos                 = pos - 1
+        end
+
+        return sum
+    end
+
     local function skipColor(str, pos)
         while true do
             local byte          = strbyte(str, pos)
@@ -281,7 +294,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     pos         = pos + 2
                 else
                     -- must be ||
-                    return pos
+                    return pos, true
                 end
             else
                 return pos
@@ -291,19 +304,19 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     local function checkUTF8(str, pos)
         local code, len         = decode(str, pos)
-        return pos + len - 1
+        return len and (pos + len - 1) or pos
     end
 
     local function skipPrevColor(str, pos)
         while pos > 0 do
-            local byte              = strbyte(str, pos)
+            local byte          = strbyte(str, pos)
             if byte == _Byte.r then
-                if pos > 1 and strbyte(str, pos - 1) == _Byte.VERTICAL and (pos == 2 or strbyte(str, pos - 2) ~= _Byte.VERTICAL) then
-                    pos             = pos - 2
+                if getPrevVerticalCount(str, pos - 1) % 2 == 1 then
+                    pos         = pos - 2
                 else
                     return pos
                 end
-            elseif pos >= 10 and strbyte(str, pos - 8) == _Byte.c and strbyte(str, pos - 9) == _Byte.VERTICAL and (pos == 10 or strbyte(str, pos - 10) ~= _Byte.VERTICAL) then
+            elseif pos >= 10 and strbyte(str, pos - 8) == _Byte.c and getPrevVerticalCount(str, pos - 9) % 2 == 1 then
                 pos             = pos - 10
             else
                 return pos
@@ -315,6 +328,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         while pos > 0 do
             local byte          = strbyte(str, pos)
             if byte < 0x80 then
+                if byte == _Byte.VERTICAL then
+                    return pos  - 1
+                end
                 return pos -- 1-byte
             elseif byte >= 0xC0 then
                 return pos
@@ -327,13 +343,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     local function removeColor(str)
         local start             = 1
         local pos               = 1
-        local npos
+        local npos, isv
         local count             = 0
 
         wipe(_Temp)
 
         while pos <= #str do
-            npos                = skipColor(str, pos)
+            npos, isv           = skipColor(str, pos)
 
             if npos ~= pos then
                 count           = count + 1
@@ -341,7 +357,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 start           = npos
             end
 
-            pos                 = npos + 1
+            pos                 = npos + (isv and 2 or 1)
         end
 
         count                   = count + 1
@@ -458,7 +474,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
         -- Check the match type
         if not notail then
-            tailtype            = getByteType(strbyte(str, skipColor(str, pos + 1))) or -1
+            tailtype            = getByteType(strbyte(str, (skipColor(str, pos + 1)))) or -1
         end
 
         if tailtype == 0 or nopre then
@@ -478,8 +494,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
 
         if not notail then
+            local isv
             repeat
-                tail            = skipColor(str, tail + 1)
+                tail, isv       = skipColor(str, tail + (isv and 2 or 1))
             until not tail or tail > endp or getByteType(strbyte(str, tail)) ~= tailtype
             tail                = tail - 1
         end
@@ -638,13 +655,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         if not cursorPos or cursorPos <= 0 then return 0 end
 
         local startp            = getLines(str, cursorPos, false)
-        local byteCnt           = 0
+        local byteCnt, isv      = 0
 
         while startp <= cursorPos do
-            startp              = skipColor(str, startp)
+            startp, isv         = skipColor(str, startp)
 
             byteCnt             = byteCnt + 1
-            startp              = startp + 1
+            startp              = startp + (isv and 2 or 1)
         end
 
         return byteCnt
@@ -654,13 +671,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local startp, endp      = getLines(str, cursorPos)
         startp                  = startp - 1
 
-        local byteCnt           = 0
+        local byteCnt, isv      = 0
 
         while byteCnt < offset and startp <= endp do
-            startp              = skipColor(str, startp)
+            startp, isv         = skipColor(str, startp)
 
             byteCnt             = byteCnt + 1
-            startp              = startp + 1
+            startp              = startp + (isv and 2 or 1)
         end
 
         return startp
@@ -1275,7 +1292,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local startPos          = pos
 
         -- Skip the color part
-        local npos              = skipColor(str, pos)
+        local npos, isv         = skipColor(str, pos)
         if npos ~= pos then
             trueWord            = trueWord and trueWord .. str:sub(startPos, pos - 1)
             pos                 = npos
@@ -1292,7 +1309,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             pos                 = pos + 1
 
             while true do
-                npos            = skipColor(str, pos)
+                npos, isv       = skipColor(str, pos)
                 if npos ~= pos then
                     trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
                     pos         = npos
@@ -1323,7 +1340,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         if dblBrak then
             --[==[...]==]
             while true do
-                npos            = skipColor(str, pos)
+                npos, isv       = skipColor(str, pos)
                 if npos ~= pos then
                     trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
                     pos         = npos
@@ -1344,7 +1361,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     pos         = pos + 1
 
                     while true do
-                        npos    = skipColor(str, pos)
+                        npos, isv       = skipColor(str, pos)
                         if npos ~= pos then
                             trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
                             pos         = npos
@@ -1379,15 +1396,15 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 end
 
                 if pos <= cursorPos then
-                    newPos      = newPos + 1
+                    newPos      = newPos + (isv and 2 or 1)
                 end
 
-                pos             = pos + 1
+                pos             = pos + (isv and 2 or 1)
             end
         else
             --...
             while true do
-                npos            = skipColor(str, pos)
+                npos, isv       = skipColor(str, pos)
                 if npos ~= pos then
                     trueWord    = trueWord and trueWord .. str:sub(startPos, pos - 1)
                     pos         = npos
@@ -1401,10 +1418,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 end
 
                 if pos <= cursorPos then
-                    newPos      = newPos + 1
+                    newPos      = newPos + (isv and 2 or 1)
                 end
 
-                pos             = pos + 1
+                pos             = pos + (isv and 2 or 1)
             end
         end
 
@@ -1428,7 +1445,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         pos                     = pos + 1
 
         while true do
-            local npos          = skipColor(str, pos)
+            local npos, isv     = skipColor(str, pos)
             if npos ~= pos then
                 trueWord        = trueWord and trueWord .. str:sub(startPos, pos - 1)
                 pos             = npos
@@ -1457,10 +1474,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             end
 
             if pos <= cursorPos then
-                newPos          = newPos + 1
+                newPos          = newPos + (isv and 2 or 1)
             end
 
-            pos                 = pos + 1
+            pos                 = pos + (isv and 2 or 1)
         end
 
         trueWord                = trueWord and trueWord .. str:sub(startPos, pos - 1)
@@ -1482,7 +1499,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         pos                     = pos + 1
 
         while true do
-            local npos          = skipColor(str, pos)
+            local npos, isv     = skipColor(str, pos)
             if npos ~= pos then
                 trueWord        = trueWord and trueWord .. str:sub(startPos, pos - 1)
                 pos             = npos
@@ -1503,7 +1520,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 newPos          = newPos + 1
             end
 
-            pos                 = pos + 1
+            pos                 = pos + (isv and 2 or 1)
         end
 
         trueWord                = trueWord and trueWord .. str:sub(startPos, pos - 1)
@@ -2026,7 +2043,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         while preColorPos > 0 do
             byte                = strbyte(text, preColorPos)
 
-            if byte == _Byte.VERTICAL then
+            if byte == _Byte.VERTICAL and strbyte(text, preColorPos - 1) ~= _Byte.VERTICAL then
                 -- '|'
                 byte            = strbyte(text, preColorPos + 1)
 
@@ -2092,7 +2109,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 end
             end
 
-            preColorPos = preColorPos - 1
+            preColorPos         = preColorPos - 1
         end
 
         nextPos                 = startp
@@ -2442,7 +2459,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     local function asyncDelete(self)
         local first             = true
         local str               = self:GetText()
-        local nextPos
+        local nextPos, isv
         local pos               = self:GetCursorPosition() + 1
 
         while self._DELETE do
@@ -2460,7 +2477,12 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     nextPos     = e or pos
                 else
                     -- delete char
-                    nextPos     = checkUTF8(str, skipColor(str, nextPos))
+                    nextPos, isv= skipColor(str, nextPos)
+                    if isv then
+                        nextPos = nextPos + 1
+                    else
+                        nextPos = checkUTF8(str, nextPos)
+                    end
                 end
             end
 
@@ -2708,13 +2730,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                             if line == 1 then
                                 -- Check a special error
                                 local startp, endp      = getLines(text, cursorPos)
-                                local offset            = 0
+                                local offset, isv       = 0
 
-                                startp                  = skipColor(text, startp)
+                                startp, isv             = skipColor(text, startp)
 
                                 while startp <= cursorPos do
                                     offset              = offset + 1
-                                    startp              = skipColor(text, startp + 1)
+                                    startp, isv         = skipColor(text, startp + (isv and 2 or 1))
                                 end
 
                                 editor._DownOffset      = offset
@@ -3303,14 +3325,14 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             local text          = self:GetText()
             local startp, endp  = getLines(text, cursorPos)
 
-            local offset        = 0
+            local offset, isv   = 0
 
-            startp              = skipColor(text, startp)
+            startp, isv         = skipColor(text, startp)
 
             while startp < endp and offset < self._DownOffset do
                 offset          = offset + 1
                 if offset == self._DownOffset then break end
-                startp          = skipColor(text, startp + 1)
+                startp          = skipColor(text, startp + (isv and 2 or 1))
             end
 
             self._DownOffset    = false

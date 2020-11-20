@@ -1,3 +1,6 @@
+2020/11/20 v057
+	1. Fix the code editor with "|".
+
 2020/11/19 v056
 	1. The code editor support UTF-8 now.
 
