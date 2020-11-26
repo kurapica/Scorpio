@@ -13,7 +13,7 @@ Scorpio            "Scorpio"                         "1.0.0"
 --           Addon Event Handler            --
 ----------------------------------------------
 function OnLoad(self)
-    _SVData = SVManager( "Scorpio_DB" ,"Scorpio_DB_Char" )
+    _SVData                 = SVManager( "Scorpio_DB" ,"Scorpio_DB_Char" )
 
     _SVData:SetDefault {
         -- The log level

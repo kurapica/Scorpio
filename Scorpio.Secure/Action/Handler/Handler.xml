@@ -1,0 +1,21 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+	<!-- Action Type handler -->
+	<Script file="ActionHandler.lua"/>
+	<Script file="PetActionHandler.lua"/>
+	<Script file="SpellHandler.lua"/>
+	<Script file="FlyoutHandler.lua"/>
+	<Script file="ItemHandler.lua"/>
+	<Script file="MacroHandler.lua"/>
+	<Script file="MacroTextHandler.lua"/>
+	<Script file="EquipSetHandler.lua"/>
+	<Script file="BattlePetHandler.lua"/>
+	<Script file="MountHandler.lua"/>
+	<Script file="WorldMarkerHandler.lua"/>
+	<Script file="EmptyHandler.lua"/>
+	<Script file="CustomHandler.lua"/>
+
+	<Script file="BagHandler.lua"/>
+	<!--Script file="InventoryHandler.lua"/ -->
+	<Script file="BagSlotHandler.lua"/>
+	<Script file="RaidTargetHandler.lua"/>
+</Ui>

@@ -5,7 +5,10 @@
 	<Script file="Unit/UnitFrame.lua"/>
 	<Script file="Unit/SecurePanel.lua"/>
 	<Script file="Unit/SecureGroupPanel.lua"/>
+	<Script file="Unit/Reactive.lua"/>
+	<Script file="Unit/Indicators.lua"/>
 
-	<!-- Action Framework -->
+	<!-- Action Framework >
 	<Script file="Action/SecureActionButton.lua"/>
+	<Include file="Action/Handler/Handler.xml"/ -->
 </Ui>

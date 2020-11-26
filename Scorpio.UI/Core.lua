@@ -62,7 +62,7 @@ local _PropertyChildRecycle     = setmetatable({}, {
 })
 
 -- The objservable map
-local _ObservableProp           = setmetatable({}, META_WEAKKEY)
+local _ObsProp           = setmetatable({}, META_WEAKKEY)
 
 local function dispatchPropertySetting(cls, prop, setting, oldsetting, root)
     local settings              = _Property[cls]
@@ -123,29 +123,31 @@ local function applyProperty(self, prop, value)
     --Trace("[Scorpio.UI]Apply Property:%s - %s", prop.name, tostring(value))
 
     -- Check the observable map
-    local map                   = _ObservableProp[self]
+    local map                   = _ObsProp[self]
     if map and map[prop] then
         map[prop]:Unsubscribe()
+        map[prop]:Resubscribe()
     end
 
     if value == nil then
         if prop.clear then return prop.clear(self) end
         if prop.default ~= nil then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
-    elseif isObservable(value) then
-        map                     = _ObservableProp[self] or {}
-        _ObservableProp[self]   = map
-        map[prop]               = map[prop] or Observer(function(val)
-            if val and prop.set then
-                prop.set(self, val)
-            end
-        end)
-
-        value:Subscribe(map[prop])
     elseif prop.set then
-        -- Check for the child type
-        if value == true and prop.childtype then return end
-        prop.set(self, clone(value, true))
+        local pset              = prop.set
+        if isObservable(value) then
+            if not map then
+                map             = {}
+                _ObsProp[self]  = map
+            end
+            map[prop]           = map[prop] or Observer(function(val) pset(self, val) end)
+
+            value:Subscribe(map[prop])
+        else
+            -- Check for the child type
+            if value == true and prop.childtype then return end
+            pset(self, clone(value, true))
+        end
     end
 end
 
@@ -169,6 +171,8 @@ local _Recycle                  = Recycle()
 local _DefaultStyle             = {}
 local _CustomStyle              = setmetatable({}, META_WEAKKEY)
 local _ClassFrames              = {}
+
+local _CurrentStyleTarget       -- The current style target could be used in other systems(ex. Reactive)
 
 local function collectPropertyChild(frame)
     if _ClearQueue[frame] then return end
@@ -1371,6 +1375,10 @@ function Style.GetProperty(class, name)
     if prop then return prop.childtype or prop.type end
 end
 
+function Style.GetCurrentTarget()
+    return _CurrentStyleTarget
+end
+
 Style.RegisterSkin("Default")
 
 export { Scorpio.UI.Property }
@@ -1702,8 +1710,10 @@ function ApplyStyleService()
                     _StyleQueue[frame]      = nil
 
                     -- Apply the style settings
+                    _CurrentStyleTarget     = frame
                     local ok, err           = pcall(applyStylesOnFrame, frame, styles)
                     if not ok then Error("[Scorpio.UI]Apply Style: %s - Failed: %s", debugname, tostring(err)) end
+                    _CurrentStyleTarget     = nil
 
                     Continue() -- Smoothing the process
                 else

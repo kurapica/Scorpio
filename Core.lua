@@ -92,8 +92,6 @@ PLoop(function(_ENV)
         local _RunSingleAsync   = setmetatable({}, META_WEAKKEY)
         local _CancelSingleAsync= setmetatable({}, META_WEAKKEY)
 
-        local _ObservableMap    = setmetatable({}, META_WEAKKEY)
-
         -- For diagnosis
         g_CacheGenerated        = 0
         g_CacheRamain           = 1
@@ -1297,28 +1295,10 @@ PLoop(function(_ENV)
             local thread        = running()
             if not thread then error("Scorpio.Next(observable) can only be used in a thread.", 2) end
 
-            local observer      = _ObservableMap[observable]
-            if not observer then
-                observer        = Observer(function(...)
-                    for i = #observer, 1, -1 do
-                        local thread= observer[i]
-                        observer[i] = nil
-
-                        resume(thread, ...)
-                        queueTask(HIGH_PRIORITY, thread)
-                    end
-
-                    observer:Unsubscribe()
-                end)
-                _ObservableMap[observable] = observer
-            end
-
-            if #observer == 0 then
-                observer:Resubscribe()
-                observable:Subscribe(observer)
-            end
-
-            tinsert(observer, thread)
+            observable:Take(1):Subscribe(function(...)
+                resume(thread, ...)
+                queueTask(HIGH_PRIORITY, thread)
+            end)
 
             return yieldReturn(yield())
         end

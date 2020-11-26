@@ -189,23 +189,48 @@ end
 ------------------------------------------------------------
 --                     Wow Observable                     --
 ------------------------------------------------------------
-__Sealed__() __Final__()
-interface "Scorpio.Wow" (function(_ENV)
+__Final__() interface "Scorpio.Wow" (function(_ENV)
+
+    local _EventMap             = setmetatable({}, {
+        __index                 = function(self, event)
+            local map           = {}
+
+            rawset(self, event, map)
+
+            _M:RegisterEvent(event, function(...)
+                local obs       = map[0]
+                if obs then obs:OnNext(...) end
+
+                -- For mutli-events observable
+                for i = 1, #map do
+                    map[i]:OnNext(...)
+                end
+            end)
+
+            return map
+        end
+    })
 
     --- The data sequences from the wow event
     __Static__() __AutoCache__() __Arguments__{ NEString }
     function FromEvent(event)
         local subject           = Subject()
-        _M:RegisterEvent(event, function(...) return subject:OnNext(...) end)
+        _EventMap[event][0]     = subject
         return subject
     end
 
-    __AutoCache__() __Arguments__{ Any } __Observable__()
-    function IObservable:FirstMatch(unit)
-        return Operator(self, function(observer, first, ...)
-            if first == unit then
-                return observer:OnNext(first, ...)
-            end
-        end)
+    __Static__() __AutoCache__() __Arguments__{ NEString * 2 }
+    function FromEvents(...)
+        local subject           = Subject()
+        for i = 1, select("#", ...) do
+            tinsert(_EventMap[select(i, ...)], subject)
+        end
+        return subject
+    end
+
+    --- Returns a publish subject to be used by all observers
+    __AutoCache__() __Arguments__{ Any * 1 }
+    function IObservable:FirstMatch(...)
+        return self:MatchPrefix(...):Publish():Connect()
     end
 end)

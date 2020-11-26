@@ -504,7 +504,7 @@ class "SecureGroupPanel" (function(_ENV)
             if value and not next(value) then self.GroupFilter = nil return end
             setupGroupFilter(self)
             if self.GroupBy == "GROUP" then setupGroupingOrder(self) end
-        end
+        end,
         type                    = GroupFilter,
     }
 
@@ -646,4 +646,4 @@ Style.UpdateSkin("Default",     {
         showSolo                = true,
         showPlayer              = true,
     },
-}
+})

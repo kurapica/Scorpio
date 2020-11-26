@@ -604,6 +604,7 @@ do
             local group         = _UpdateGroupQueue:Dequeue()
 
             while group do
+                Continue()
                 NoCombat()
 
                 if _UpdateGroupQueue[group] then
@@ -954,50 +955,9 @@ class "UnitFrame" (function(_ENV)
     ------------------------------------------------------
     --                      Method                      --
     ------------------------------------------------------
-    __SecureMethod__() __AsyncSingle__(true)
+    __SecureMethod__()
     function ProcessUnitChange(self, unit)
-        -- Some unit need force refreshing
-        if unit == "target" then
-            while true do
-                OnUnitRefresh(self, unit)
-                NextEvent("PLAYER_TARGET_CHANGED")
-            end
-        elseif unit == "mouseover" then
-            while true do
-                OnUnitRefresh(self, unit)
-                NextEvent("UPDATE_MOUSEOVER_UNIT")
-            end
-        elseif unit == "focus" then
-            while true do
-                OnUnitRefresh(self, unit)
-                NextEvent("PLAYER_FOCUS_CHANGED")
-            end
-        elseif unit then
-            if unit:match("^party%d") or unit:match("^raid%d") then
-                while true do
-                    OnUnitRefresh(self, unit)
-                    Next(Wow.FromEvent("UNIT_NAME_UPDATE"):FirstMatch(unit))
-                end
-            elseif unit:match("pet") then
-                local owner     = unit:match("^(%w*)pet")
-                if not owner or owner:match("^%s*$") then owner = "player" end
-
-                while true do
-                    OnUnitRefresh(self, unit)
-                    Next(Wow.FromEvent("UNIT_PET"):FirstMatch(owner))
-                end
-            elseif unit:match("%w+target") then
-                while true do
-                    while self:IsShown() do
-                        OnUnitRefresh(self, unit)
-                        Delay(self.Interval)
-                    end
-
-                    -- Wait the unit frame re-show
-                    Next(Observable.From(self.OnShow))
-                end
-            end
-        end
+        return OnUnitRefresh(self, unit)
     end
 
     function UpdateTooltip(self)
@@ -1014,8 +974,6 @@ class "UnitFrame" (function(_ENV)
     --                   Constructor                    --
     ------------------------------------------------------
     function __ctor(self, ...)
-        super(self, ...)
-
         -- Use * so those are default actions that can be overridden
         self:SetAttribute("*type1", "target")
         self:SetAttribute("shift-type1", "focus")
