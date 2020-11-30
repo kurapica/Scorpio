@@ -2343,6 +2343,13 @@ do
         require         = Frame,
         childtype       = Texture,
     }
+
+    -- The background texture
+    UI.Property         {
+        name            = "BackgroundTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
 end
 
 ------------------------------------------------------------

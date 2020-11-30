@@ -99,14 +99,14 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [AlertDialog]               = {
-        size                    = Size(320, 100),
+        size                    = Size(320, 120),
         resizable               = false,
         frameStrata             = "FULLSCREEN_DIALOG",
         location                = { Anchor("CENTER") },
 
         -- Childs
         Message                 = {
-            location            = { Anchor("TOP", 0, -16) },
+            location            = { Anchor("TOP", 0, -28) },
             width               = 290,
             drawLayer           = "ARTWORK",
             fontObject          = GameFontHighlight,
@@ -312,7 +312,7 @@ function showPopup()
         _CurrentPopup:Show()
     elseif qtype == POPUP_TYPE_COLORPICKER then
         _CurrentPopup           = ColorPickerFrame
-        local color             = Color(message)
+        local color             = ColorType(message)
 
         while ColorPickerFrame:IsShown() or InCombatLockdown() do
             Next()
@@ -334,7 +334,7 @@ function showPopup()
                     local r,g,b = ColorPickerFrame:GetColorRGB()
                     local a     = 1 - OpacitySliderFrame:GetValue()
 
-                    return resume(thread, Color(r, g, b, a))
+                    return resume(thread, ColorType(r, g, b, a))
                 end,
                 cancelFunc      = function()
                     Next(showPopup) _CurrentPopup = nil

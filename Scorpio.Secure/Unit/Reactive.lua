@@ -59,7 +59,7 @@ interface "Scorpio.Wow" (function(_ENV)
                 if unit:match("^party%d") or unit:match("^raid%d") then
                     while true do
                         self:OnNext(unit)
-                        Next(Wow.FromEvent("UNIT_NAME_UPDATE"):FirstMatch(unit))
+                        Next(Wow.FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
                     end
                 elseif unit:match("pet") then
                     local owner     = unit:match("^(%w*)pet")
@@ -67,7 +67,7 @@ interface "Scorpio.Wow" (function(_ENV)
 
                     while true do
                         self:OnNext(unit)
-                        Next(Wow.FromEvent("UNIT_PET"):FirstMatch(owner))
+                        Next(Wow.FromEvent("UNIT_PET"):MatchUnit(owner))
                     end
                 elseif unit:match("%w+target") then
                     local frm       = self.UnitFrame
@@ -150,7 +150,7 @@ interface "Scorpio.Wow" (function(_ENV)
                     currUnit    = unit
 
                     if not noevent then
-                        unitEvent:FirstMatch(unit):Subscribe(obsEvent)
+                        unitEvent:MatchUnit(unit):Subscribe(obsEvent)
                     end
                 end
 
@@ -185,5 +185,11 @@ interface "Scorpio.Wow" (function(_ENV)
     __Static__() __Arguments__{ NEString * 2 } __AutoCache__()
     function FromUnitEvents(...)
         return genUnitFrameObservable(FromEvents(...))
+    end
+
+    --- Filter the unit event with eunit
+    __AutoCache__() __Arguments__{ String }
+    function IObservable:MatchUnit(unit)
+        return self:MatchPrefix(unit):Publish():Connect()
     end
 end)

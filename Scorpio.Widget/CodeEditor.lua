@@ -3092,86 +3092,34 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     property "ShowLineNum"      { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; Style[self].LineHolder.visible = flag; self:RefreshLayout() end }
 
     --- The default text color
-    property "DefaultColor"     { type = ColorType, default = Color(1, 1, 1), handler = refreshText }
+    property "DefaultColor"     { type = ColorType, field = "_CodeEditor_DefaultColor",     default = Color(1, 1, 1),           handler = function(self, value) rawset(self, "_CodeEditor_DefaultColor",     value and Color(value)) return refreshText(self) end }
 
     --- The comment color
-    property "CommentColor"     { type = ColorType, default = Color(0.5, 0.5, 0.5), handler = refreshText }
+    property "CommentColor"     { type = ColorType, field = "_CodeEditor_CommentColor",     default = Color(0.5, 0.5, 0.5),     handler = function(self, value) rawset(self, "_CodeEditor_CommentColor",     value and Color(value)) return refreshText(self) end }
 
     --- The string color
-    property "StringColor"      { type = ColorType, default = Color(0, 1, 0), handler = refreshText }
+    property "StringColor"      { type = ColorType, field = "_CodeEditor_StringColor",      default = Color(0, 1, 0),           handler = function(self, value) rawset(self, "_CodeEditor_StringColor",      value and Color(value)) return refreshText(self) end }
 
     --- The number color
-    property "NumberColor"      { type = ColorType, default = Color(1, 1, 0), handler = refreshText }
+    property "NumberColor"      { type = ColorType, field = "_CodeEditor_NumberColor",      default = Color(1, 1, 0),           handler = function(self, value) rawset(self, "_CodeEditor_NumberColor",      value and Color(value)) return refreshText(self) end }
 
     --- The instruction color
-    property "InstructionColor" { type = ColorType, default = Color(1, 0.39, 0.09), handler = refreshText }
+    property "InstructionColor" { type = ColorType, field = "_CodeEditor_InstructionColor", default = Color(1, 0.39, 0.09),     handler = function(self, value) rawset(self, "_CodeEditor_InstructionColor", value and Color(value)) return refreshText(self) end }
 
     --- The function
-    property "FunctionColor"    { type = ColorType, default = Color(0.33, 1, 0.9), handler = refreshText }
+    property "FunctionColor"    { type = ColorType, field = "_CodeEditor_FunctionColor",    default = Color(0.33, 1, 0.9),      handler = function(self, value) rawset(self, "_CodeEditor_FunctionColor",    value and Color(value)) return refreshText(self) end }
 
     --- The attribute color
-    property "AttributeColor"   { type = ColorType, default = Color(0.52, 0.12, 0.47), handler = refreshText }
+    property "AttributeColor"   { type = ColorType, field = "_CodeEditor_AttributeColor",   default = Color(0.52, 0.12, 0.47),  handler = function(self, value) rawset(self, "_CodeEditor_AttributeColor",   value and Color(value)) return refreshText(self) end }
 
     --- The custom auto complete list
-    property "AutoCompleteList" { type = System.Collections.List, default = function() return System.Collections.List() end, handler = function(self, value) return value and value:QuickSort(compare) end }
+    property "AutoCompleteList" { type = System.Collections.List, default = function() return System.Collections.List() end,    handler = function(self, value) return value and value:QuickSort(compare) end }
 
     --- The delay to show the auto complete
     property "AutoCompleteDelay"{ type = Number, default = 0.5 }
 
     --- The max count of the undo list, -1 means no limit, 0 mean no undo/redo operation
     property "MaxOperationCount"{ type = Number, default = -1 }
-
-    ------------------------------------------------------
-    -- UI Property
-    ------------------------------------------------------
-    --- the font settings
-    UI.Property         {
-        name            = "Font",
-        type            = FontType,
-        require         = CodeEditor,
-        get             = function(self) return Style[self].ScrollChild.EditBox.font end,
-        set             = function(self, font) Style[self].ScrollChild.EditBox.font = font; self:RefreshLayout() end,
-        override        = { "FontObject" },
-    }
-
-    --- the Font object
-    UI.Property         {
-        name            = "FontObject",
-        type            = FontObject,
-        require         = CodeEditor,
-        get             = function(self) return Style[self].ScrollChild.EditBox.fontObject end,
-        set             = function(self, font) Style[self].ScrollChild.EditBox.fontObject = font; self:RefreshLayout() end,
-        override        = { "Font" },
-    }
-
-    --- whether the text wrap will be indented
-    UI.Property         {
-        name            = "Indented",
-        type            = Boolean,
-        require         = CodeEditor,
-        default         = false,
-        get             = function(self) return Style[self].ScrollChild.EditBox.indented end,
-        set             = function(self, val) Style[self].ScrollChild.EditBox.indented = val; self:RefreshLayout() end,
-    }
-
-    --- the fontstring's amount of spacing between lines
-    UI.Property         {
-        name            = "Spacing",
-        type            = Number,
-        require         = CodeEditor,
-        default         = 0,
-        get             = function(self) return Style[self].ScrollChild.EditBox.spacing end,
-        set             = function(self, val) Style[self].ScrollChild.EditBox.spacing = val; self:RefreshLayout() end,
-    }
-
-    --- the insets from the edit box's edges which determine its interactive text area
-    UI.Property         {
-        name            = "TextInsets",
-        type            = Inset,
-        require         = CodeEditor,
-        get             = function(self) return Style[self].ScrollChild.EditBox.textInsets end,
-        set             = function(self, val) Style[self].ScrollChild.EditBox.textInsets = val; self:RefreshLayout() end,
-    }
 
     ------------------------------------------------------
     -- Event Handler
@@ -3731,6 +3679,58 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         end
     end
 end)
+
+-----------------------------------------------------------
+--                      UI Property                      --
+-----------------------------------------------------------
+--- the font settings
+UI.Property                     {
+    name                        = "Font",
+    type                        = FontType,
+    require                     = CodeEditor,
+    get                         = function(self) return Style[self].ScrollChild.EditBox.font end,
+    set                         = function(self, font) Style[self].ScrollChild.EditBox.font = font; self:RefreshLayout() end,
+    override                    = { "FontObject" },
+}
+
+--- the Font object
+UI.Property                     {
+    name                        = "FontObject",
+    type                        = FontObject,
+    require                     = CodeEditor,
+    get                         = function(self) return Style[self].ScrollChild.EditBox.fontObject end,
+    set                         = function(self, font) Style[self].ScrollChild.EditBox.fontObject = font; self:RefreshLayout() end,
+    override                    = { "Font" },
+}
+
+--- whether the text wrap will be indented
+UI.Property                     {
+    name                        = "Indented",
+    type                        = Boolean,
+    require                     = CodeEditor,
+    default                     = false,
+    get                         = function(self) return Style[self].ScrollChild.EditBox.indented end,
+    set                         = function(self, val) Style[self].ScrollChild.EditBox.indented = val; self:RefreshLayout() end,
+}
+
+--- the fontstring's amount of spacing between lines
+UI.Property                     {
+    name                        = "Spacing",
+    type                        = Number,
+    require                     = CodeEditor,
+    default                     = 0,
+    get                         = function(self) return Style[self].ScrollChild.EditBox.spacing end,
+    set                         = function(self, val) Style[self].ScrollChild.EditBox.spacing = val; self:RefreshLayout() end,
+}
+
+--- the insets from the edit box's edges which determine its interactive text area
+UI.Property                     {
+    name                        = "TextInsets",
+    type                        = Inset,
+    require                     = CodeEditor,
+    get                         = function(self) return Style[self].ScrollChild.EditBox.textInsets end,
+    set                         = function(self, val) Style[self].ScrollChild.EditBox.textInsets = val; self:RefreshLayout() end,
+}
 
 -----------------------------------------------------------
 --              CodeEditor Style - Default               --

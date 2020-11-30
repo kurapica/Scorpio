@@ -20,6 +20,12 @@ class "NameLabel"   { FontString }
 __Sealed__() __ChildProperty__(UnitFrame, "LevelLabel")
 class "LevelLabel"  { FontString }
 
+__Sealed__() __ChildProperty__(UnitFrame, "HealthLabel")
+class "HealthLabel" { FontString }
+
+__Sealed__() __ChildProperty__(UnitFrame, "PowerLabel")
+class "PowerLabel"  { FontString }
+
 __Sealed__() __ChildProperty__(UnitFrame, "HealthBar")
 class "HealthBar"   { StatusBar }
 
@@ -37,6 +43,12 @@ interface "Scorpio.Wow" (function(_ENV)
         GetUnitLevel            = UnitLevel,
         GetUnitHealth           = UnitHealth,
         GetUnitHealthMax        = UnitHealthMax,
+        GetUnitAura             = UnitAura,
+        GetUnitAuraSlots        = UnitAuraSlots,
+        GetUnitAuraBySlot       = UnitAuraBySlot,
+
+        ceil                    = math.ceil,
+        floor                   = math.floor,
     }
 
     __Static__() __AutoCache__()
@@ -115,6 +127,21 @@ interface "Scorpio.Wow" (function(_ENV)
                 return minMax
             end)
     end
+
+    __Static__() __AutoCache__()
+    function UnitHealthPercent()
+        return FromUnitEvents("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(function(unit)
+                local health    = GetUnitHealth(unit)
+                local max       = GetUnitHealthMax(unit)
+
+                return floor(0.5 + (health and max and health / max * 100) or 0)
+            end)
+    end
+
+    __Static__() __AutoCache__()
+    function UnitAura(filter)
+        return FromUnitEvents("UNIT_AURA"):
+    end
 end)
 
 ------------------------------------------------------------
@@ -132,6 +159,11 @@ Style.UpdateSkin("Default",     {
         fontObject              = GameFontNormalSmall,
         text                    = Wow.UnitLevel("Lv. %s"),
         vertexColor             = Wow.UnitLevelColor(),
+    },
+    [HealthLabel]               = {
+        drawLayer               = "BORDER",
+        fontObject              = GameFontNormalSmall,
+        text                    = Wow.UnitHealth(),
     },
     [HealthBar]                 = {
         frameStrata             = "LOW",

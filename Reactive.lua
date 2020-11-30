@@ -184,6 +184,11 @@ do
 
         IObservable.Debounce    = IObservable.Throttle
     end
+
+    __Arguments__{ NEString }
+    function IObservable:ToString(format)
+        return self:Map(function(...) return (select(2, pcall(strformat, format, ...))) end)
+    end
 end
 
 ------------------------------------------------------------
@@ -226,11 +231,5 @@ __Final__() interface "Scorpio.Wow" (function(_ENV)
             tinsert(_EventMap[select(i, ...)], subject)
         end
         return subject
-    end
-
-    --- Returns a publish subject to be used by all observers
-    __AutoCache__() __Arguments__{ Any * 1 }
-    function IObservable:FirstMatch(...)
-        return self:MatchPrefix(...):Publish():Connect()
     end
 end)
