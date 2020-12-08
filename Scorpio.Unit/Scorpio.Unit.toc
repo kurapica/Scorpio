@@ -1,0 +1,11 @@
+## Interface: 90002
+## Title: [Lib] Scorpio.Secure
+## Author: kurapica125@outlook.com
+## Version: v001
+## Notes: Scorpio Unit FrameWork
+## URL: http://github.com/kurapica/Scorpio
+## Dependencies: Scorpio.Secure
+## DefaultState: Enabled
+## LoadOnDemand: 1
+
+Unit.xml

@@ -190,7 +190,7 @@ end
 
 ------------------------------------------------------------
 --                      LayeredFrame                      --
-------------------------------------C------------------------
+------------------------------------------------------------
 do
     --- the layer at which the LayeredFrame's graphics are drawn relative to others in its frame
     UI.Property         {
@@ -2349,6 +2349,20 @@ do
         name            = "BackgroundTexture",
         require         = Frame,
         childtype       = Texture,
+    }
+
+    -- The icon texture
+    UI.Property         {
+        name            = "IconTexture",
+        require         = Frame,
+        childtype       = Texture,
+    }
+
+    -- The background frame
+    UI.Property         {
+        name            = "BackgroundFrame",
+        require         = Frame,
+        childtype       = Frame,
     }
 end
 

@@ -557,8 +557,8 @@ Style.UpdateSkin("Default",     {
             tile                = true, tileSize = 16, edgeSize = 16,
             insets              = { left = 5, right = 4, top = 4, bottom = 4 }
         },
-        backdropBorderColor     = ColorType(1, 1, 1),
-        backdropColor           = ColorType(0.09, 0.09, 0.19),
+        backdropBorderColor     = Color(1, 1, 1),
+        backdropColor           = Color(0.09, 0.09, 0.19),
         containerInsets         = Inset(8, 8, 8, 8),
     },
     [UIDropDownList]            = {

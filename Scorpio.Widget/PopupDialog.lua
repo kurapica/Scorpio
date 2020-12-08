@@ -334,7 +334,7 @@ function showPopup()
                     local r,g,b = ColorPickerFrame:GetColorRGB()
                     local a     = 1 - OpacitySliderFrame:GetValue()
 
-                    return resume(thread, ColorType(r, g, b, a))
+                    return resume(thread, Color(r, g, b, a))
                 end,
                 cancelFunc      = function()
                     Next(showPopup) _CurrentPopup = nil
@@ -447,7 +447,7 @@ function Scorpio.Confirm(message, func)
     return value
 end
 
-__Static__() __Arguments__{ ColorType/ColorType(1, 1, 1, 1), Function/nil }
+__Static__() __Arguments__{ ColorType/Color(1, 1, 1, 1), Function/nil }
 function Scorpio.PickColor(color, func)
     local value                 = queuePopup(POPUP_TYPE_COLORPICKER, color, func)
     return value

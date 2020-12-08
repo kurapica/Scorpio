@@ -38,7 +38,7 @@ class "SecurePanel" (function(_ENV)
 
             if not noForce then
                 _Queue[panel] = false
-            else _Queue[panel] == nil then
+            elseif _Queue[panel] == nil then
                 _Queue[panel] = true
             end
 
@@ -383,7 +383,7 @@ class "SecurePanel" (function(_ENV)
     property "TopToBottom"      { type = Boolean, default = true, handler = onPropertyChanged }
 
     -- The element's type
-    property "ElementType"      { type = Class }
+    property "ElementType"      { type = ClassType }
 
     -- The horizontal spacing
     property "HSpacing"         { type = Number, handler = onPropertyChanged }
@@ -432,3 +432,13 @@ class "SecurePanel" (function(_ENV)
         registerPanel(self)
     end
 end)
+
+-----------------------------------------------------------
+--                     Default Style                     --
+-----------------------------------------------------------
+Style.UpdateSkin("Default",     {
+    [SecurePanel]               = {
+        autoPosition            = true,
+        autoSize                = true,
+    }
+})

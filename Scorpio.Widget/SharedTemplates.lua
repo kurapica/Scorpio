@@ -201,7 +201,7 @@ end)
 --- The widget used as mask to move, resize, toggle, key binding for the target widget
 __Sealed__()  __ChildProperty__(Frame, "Mask")
 class "Mask" (function(_ENV)
-    inherit "Mover"
+    inherit "Button"
 
     ---------------------------------------------------
     --                     Event                     --
@@ -213,6 +213,12 @@ class "Mask" (function(_ENV)
     --- Fired when the mask stop resizing
     __Bubbling__{ Resizer = "OnStopResizing" }
     event "OnStopResizing"
+
+    -- Fired when start moving
+    event "OnStartMoving"
+
+    -- Fired when stop moving
+    event "OnStopMoving"
 
     --- Fired when set the binding key on the mask
     event "OnKeySet"
@@ -513,19 +519,19 @@ end)
 --                     Label Widget                      --
 -----------------------------------------------------------
 __Sealed__() __ChildProperty__(Frame, "Label")
-class "UIPanelLabel" { FontString }
+class "UIPanelLabel"            { FontString }
 
 -----------------------------------------------------------
 --                 UIPanelButton Widget                  --
 -----------------------------------------------------------
 __Sealed__()
-class "UIPanelButton"       { Button }
+class "UIPanelButton"           { Button }
 
 __Sealed__()
-class "UIPanelCloseButton"  { Button, function(self) self.OnClick = function(self) self:GetParent():Hide() end end }
+class "UIPanelCloseButton"      { Button, function(self) self.OnClick = function(self) self:GetParent():Hide() end end }
 
 __Sealed__()
-class "UIToggleButton"      { Button, ToggleTexture = { type = Texture, set = function(self, texture) return texture and texture:SetShown(self.ToggleState) end }, ToggleState = { type = Boolean, default = false, handler = function(self, val) self:GetPropertyChild("ToggleTexture"):SetShown(val) self:GetPropertyChild("NormalTexture"):SetShown(not val) end }}
+class "UIToggleButton"          { Button, ToggleTexture = { type = Texture, set = function(self, texture) return texture and texture:SetShown(self.ToggleState) end }, ToggleState = { type = Boolean, default = false, handler = function(self, val) self:GetPropertyChild("ToggleTexture"):SetShown(val) self:GetPropertyChild("NormalTexture"):SetShown(not val) end }}
 
 -----------------------------------------------------------
 --                    InputBox Widget                    --
@@ -763,7 +769,7 @@ Style.UpdateSkin("Default",     {
             tile                = true, tileSize = 16, edgeSize = 8,
             insets              = { left = 3, right = 3, top = 3, bottom = 3 }
         },
-        backdropColor           = ColorType(0, 1, 0, 0.4),
+        backdropColor           = Color(0, 1, 0, 0.4),
 
         KeyBindText             = {
             location            = { Anchor("CENTER") },
@@ -929,7 +935,7 @@ Style.UpdateSkin("Default",     {
             tile                = true, tileSize = 32, edgeSize = 32,
             insets              = { left = 11, right = 12, top = 12, bottom = 11 }
         },
-        backdropBorderColor     = ColorType(1, 1, 1),
+        backdropBorderColor     = Color(1, 1, 1),
 
         CloseButton             = {
             location            = { Anchor("TOPRIGHT", -4, -4)},
@@ -988,7 +994,7 @@ Style.UpdateSkin("Default",     {
             tile                = true, tileSize = 16, edgeSize = 16,
             insets              = { left = 5, right = 5, top = 5, bottom = 5 }
         },
-        backdropBorderColor     = ColorType(0.6, 0.6, 0.6),
+        backdropBorderColor     = Color(0.6, 0.6, 0.6),
     },
     [GroupBoxHeader]            = {
         location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
@@ -1001,7 +1007,7 @@ Style.UpdateSkin("Default",     {
 
         UnderLine               = {
             height              = 1,
-            color               = ColorType(1, 1, 1, 0.2),
+            color               = Color(1, 1, 1, 0.2),
             location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
         },
     },

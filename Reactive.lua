@@ -186,7 +186,7 @@ do
     end
 
     __Arguments__{ NEString }
-    function IObservable:ToString(format)
+    function IObservable:ToFormatString(format)
         return self:Map(function(...) return (select(2, pcall(strformat, format, ...))) end)
     end
 end
@@ -194,22 +194,20 @@ end
 ------------------------------------------------------------
 --                     Wow Observable                     --
 ------------------------------------------------------------
-__Final__() interface "Scorpio.Wow" (function(_ENV)
-
+__Final__() __Sealed__()
+interface "Scorpio.Wow" (function(_ENV)
     local _EventMap             = setmetatable({}, {
         __index                 = function(self, event)
             local map           = {}
-
             rawset(self, event, map)
 
+            -- Keep register since if the event is used, it should be used frequently
             _M:RegisterEvent(event, function(...)
                 local obs       = map[0]
                 if obs then obs:OnNext(...) end
 
                 -- For mutli-events observable
-                for i = 1, #map do
-                    map[i]:OnNext(...)
-                end
+                for i = 1, #map do map[i]:OnNext(...) end
             end)
 
             return map
@@ -227,9 +225,7 @@ __Final__() interface "Scorpio.Wow" (function(_ENV)
     __Static__() __AutoCache__() __Arguments__{ NEString * 2 }
     function FromEvents(...)
         local subject           = Subject()
-        for i = 1, select("#", ...) do
-            tinsert(_EventMap[select(i, ...)], subject)
-        end
+        for i = 1, select("#", ...) do tinsert(_EventMap[select(i, ...)], subject) end
         return subject
     end
 end)

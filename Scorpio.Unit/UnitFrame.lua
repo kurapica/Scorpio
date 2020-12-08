@@ -662,9 +662,11 @@ do
         end
 
         function OnQuit(self)
-            for grp, db in pairs(_UnitFrameHoverSpellGroup) do
-                if not next(db) then
-                    _UnitFrameHoverSpellGroup[grp] = nil
+            if _UnitFrameHoverSpellGroup then
+                for grp, db in pairs(_UnitFrameHoverSpellGroup) do
+                    if not next(db) then
+                        _UnitFrameHoverSpellGroup[grp] = nil
+                    end
                 end
             end
         end
@@ -674,7 +676,7 @@ end
 --- The root Unit frame widget class with hover spell casting
 -- We can bind short keys to the hover spell group, each unit frame can have a group
 --
--- UnitFrame.HoverSpellGroups["Default"].Spell["Holy Light"].WithTarget.Key = "ctrl-f"
+-- UnitFrame.HoverSpellGroups["Default"].Spell["Holy Light"].With["target'].Key = "ctrl-f"
 -- UnitFrame.HoverSpellGroups["Default"].MacroText["/cast Holy Light"].Key = "ctrl-f"
 --
 __Sealed__() __SecureTemplate__"SecureUnitButtonTemplate, SecureHandlerAttributeTemplate"
@@ -781,6 +783,16 @@ class "UnitFrame" (function(_ENV)
                 }
             end
         end
+
+        --- Get the with settings from the binding
+        property "With"         {
+            get                 = function(self)
+                local type, ct  = self.Data.Type, self.Data.Content
+                if type then
+                    return (select(2, getBindingDB(self.Group, type, ct)))
+                end
+            end
+        }
 
         --- Whether combine a 'target' action
         property "WithTarget"   {

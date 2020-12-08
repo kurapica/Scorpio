@@ -6,12 +6,9 @@
 --========================================================--
 
 --========================================================--
-Scorpio           "Scorpio.Widget.ElementPanel"      "1.0.0"
+Scorpio           "Scorpio.UI.ElementPanel"          "1.0.0"
 --========================================================--
 
------------------------------------------------------------
---                 Element Panel Widget                  --
------------------------------------------------------------
 __Sealed__() class "ElementPanel" (function(_ENV)
     inherit "Frame" extend "ICountable"
 
@@ -227,7 +224,7 @@ __Sealed__() class "ElementPanel" (function(_ENV)
     property "TopToBottom"      { type = Boolean, default = true, handler = Refresh }
 
     -- The element's type
-    property "ElementType"      { type = Class }
+    property "ElementType"      { type = ClassType }
 
     -- The horizontal spacing
     property "HSpacing"         { type = Number, handler = Refresh }

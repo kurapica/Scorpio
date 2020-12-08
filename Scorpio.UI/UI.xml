@@ -10,4 +10,8 @@
 
     <!-- UI Widget Properties -->
     <Script file="Property.lua"/>
+
+    <!-- Share Templates -->
+    <Script file="ElementPanel.lua"/>
+    <Script file="CooldownTemplate.lua"/>
 </Ui>

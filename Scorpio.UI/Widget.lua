@@ -287,7 +287,8 @@ __Sealed__() class "CheckButton"            (function(_ENV) inherit(Button) Inst
 __Sealed__() class "ColorSelect"            (function(_ENV) inherit(Frame) InstallPrototype(_ENV, nil, _G.ColorPickerFrame) end)
 
 --- Cooldown is a specialized variety of Frame that displays the little "clock" effect over abilities and buffs. It can be set with its running time, whether it should appear to "fill up" or "empty out", and whether or not there should be a bright edge where it's changing between dim and bright.
-__Sealed__() class "Cooldown"               (function(_ENV) inherit(Frame) InstallPrototype(_ENV, nil, _G.ActionButton1Cooldown) end)
+__ChildProperty__(Frame, "Cooldown")
+__Sealed__() class "Cooldown"               (function(_ENV) inherit(Frame) __new = function(_, name, parent, template, ...) return CreateFrame("Cooldown", nil, parent, template or "CooldownFrameTemplate", ...) end InstallPrototype(_ENV, nil, _G.ActionButton1Cooldown) end)
 
 --- EditBoxes are used to allow the player to type text into a UI component.
 __Sealed__() class "EditBox"                (function(_ENV) inherit(Frame) InstallPrototype(_ENV, nil, _G.BagItemSearchBox) end)

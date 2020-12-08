@@ -5,10 +5,11 @@ required-dependencies:
   - ploop
 
 move-folders:
-  Scorpio/Scorpio.MVC     : Scorpio.MVC
   Scorpio/Scorpio.UI      : Scorpio.UI
-  Scorpio/Scorpio.Secure  : Scorpio.Secure
   Scorpio/Scorpio.Widget  : Scorpio.Widget
+  Scorpio/Scorpio.Secure  : Scorpio.Secure
+  Scorpio/Scorpio.Action  : Scorpio.Action
+  Scorpio/Scorpio.Unit    : Scorpio.Unit
 
 manual-changelog: changelog.txt
 

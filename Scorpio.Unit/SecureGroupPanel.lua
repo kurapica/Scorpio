@@ -428,10 +428,6 @@ class "SecureGroupPanel" (function(_ENV)
     end
 
     ------------------------------------------------------
-    -- Event
-    ------------------------------------------------------
-
-    ------------------------------------------------------
     -- Method
     ------------------------------------------------------
     -- The default refresh method
@@ -570,7 +566,7 @@ class "SecureGroupPanel" (function(_ENV)
     -- Event Handler
     ------------------------------------------------------
     local function OnElementAdd(self, element)
-        element.NoUnitWatch = true
+        element.UnitWatchEnabled = false
         element:SetAttribute("unit", nil)
 
         self.GroupHeader:RegisterUnitFrame(element)
@@ -583,8 +579,6 @@ class "SecureGroupPanel" (function(_ENV)
         super(self, ...)
 
         self.OnElementAdd       = self.OnElementAdd + OnElementAdd
-
-        self:InstantApplyStyle() -- Fix for classic version
         setupGroupFilter(self)
     end
 end)
@@ -619,8 +613,6 @@ Style.UpdateSkin("Default",     {
         elementType             = UnitFrame,
         rowCount                = _G.MEMBERS_PER_RAID_GROUP or 5,
         columnCount             = _G.NUM_RAID_GROUPS or 8,
-
-        AutoSize                = true,
 
         elementWidth            = 80,
         elementHeight           = 32,

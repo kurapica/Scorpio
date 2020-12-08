@@ -788,17 +788,7 @@ __Sealed__() class "__Bubbling__" (function(_ENV)
                     end
 
                     for event in events:gmatch("%w+") do
-                        if not child:HasScript(event) then
-                            if child == owner then
-                                error(("The object of %s doesn't have an event named %q"):format(tostring(getmetatable(owner)), event))
-                            else
-                                error(("The child named %q in object of %s doesn't have an event named %q"):format(name, tostring(getmetatable(owner)), event))
-                            end
-                        end
-
-                        child:HookScript(event, function(self, ...)
-                            return delegate(owner, ...)
-                        end)
+                        child[event]    = child[event] + function(self, ...) return delegate(owner, ...) end
                     end
                 end
             end
@@ -1836,3 +1826,43 @@ function UIObject:GetPropertyChild(name)
 
     return prop and prop.childtype and prop.get(self, true)
 end
+
+----------------------------------------------
+--              Tool Attribute              --
+----------------------------------------------
+--- Define a child property based on the target ui class
+__Sealed__() class "__ChildProperty__" (function(_ENV)
+    extend "IAttachAttribute"
+
+    -----------------------------------------------------------
+    --                       property                        --
+    -----------------------------------------------------------
+    property "AttributeTarget"  { set = false, default = AttributeTargets.Class }
+
+    -----------------------------------------------------------
+    --                        method                         --
+    -----------------------------------------------------------
+    --- attach data on the target
+    -- @param   target                      the target
+    -- @param   targettype                  the target type
+    -- @param   owner                       the target's owner
+    -- @param   name                        the target's name in the owner
+    -- @param   stack                       the stack level
+    -- @return  data                        the attribute data to be attached
+    function AttachAttribute(self, target, targettype, owner, name, stack)
+        UI.Property             {
+            name                = self.Name or Namespace.GetNamespaceName(target, true),
+            require             = self.Require,
+            childtype           = target,
+        }
+    end
+
+    -----------------------------------------------------------
+    --                      constructor                      --
+    -----------------------------------------------------------
+    __Arguments__{ - UIObject/Frame, NEString/nil }
+    function __ctor(self, reqframe, name)
+        self.Require            = reqframe
+        self.Name               = name
+    end
+end)

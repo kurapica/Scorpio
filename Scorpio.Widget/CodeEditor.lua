@@ -3092,25 +3092,25 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     property "ShowLineNum"      { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; Style[self].LineHolder.visible = flag; self:RefreshLayout() end }
 
     --- The default text color
-    property "DefaultColor"     { type = ColorType, field = "_CodeEditor_DefaultColor",     default = Color(1, 1, 1),           handler = function(self, value) rawset(self, "_CodeEditor_DefaultColor",     value and Color(value)) return refreshText(self) end }
+    property "DefaultColor"     { type = ColorType, handler = refreshText, default = Color(1, 1, 1) }
 
     --- The comment color
-    property "CommentColor"     { type = ColorType, field = "_CodeEditor_CommentColor",     default = Color(0.5, 0.5, 0.5),     handler = function(self, value) rawset(self, "_CodeEditor_CommentColor",     value and Color(value)) return refreshText(self) end }
+    property "CommentColor"     { type = ColorType, handler = refreshText, default = Color(0.5, 0.5, 0.5) }
 
     --- The string color
-    property "StringColor"      { type = ColorType, field = "_CodeEditor_StringColor",      default = Color(0, 1, 0),           handler = function(self, value) rawset(self, "_CodeEditor_StringColor",      value and Color(value)) return refreshText(self) end }
+    property "StringColor"      { type = ColorType, handler = refreshText, default = Color(0, 1, 0) }
 
     --- The number color
-    property "NumberColor"      { type = ColorType, field = "_CodeEditor_NumberColor",      default = Color(1, 1, 0),           handler = function(self, value) rawset(self, "_CodeEditor_NumberColor",      value and Color(value)) return refreshText(self) end }
+    property "NumberColor"      { type = ColorType, handler = refreshText, default = Color(1, 1, 0) }
 
     --- The instruction color
-    property "InstructionColor" { type = ColorType, field = "_CodeEditor_InstructionColor", default = Color(1, 0.39, 0.09),     handler = function(self, value) rawset(self, "_CodeEditor_InstructionColor", value and Color(value)) return refreshText(self) end }
+    property "InstructionColor" { type = ColorType, handler = refreshText, default = Color(1, 0.39, 0.09) }
 
     --- The function
-    property "FunctionColor"    { type = ColorType, field = "_CodeEditor_FunctionColor",    default = Color(0.33, 1, 0.9),      handler = function(self, value) rawset(self, "_CodeEditor_FunctionColor",    value and Color(value)) return refreshText(self) end }
+    property "FunctionColor"    { type = ColorType, handler = refreshText, default = Color(0.33, 1, 0.9) }
 
     --- The attribute color
-    property "AttributeColor"   { type = ColorType, field = "_CodeEditor_AttributeColor",   default = Color(0.52, 0.12, 0.47),  handler = function(self, value) rawset(self, "_CodeEditor_AttributeColor",   value and Color(value)) return refreshText(self) end }
+    property "AttributeColor"   { type = ColorType, handler = refreshText, default = Color(0.52, 0.12, 0.47) }
 
     --- The custom auto complete list
     property "AutoCompleteList" { type = System.Collections.List, default = function() return System.Collections.List() end,    handler = function(self, value) return value and value:QuickSort(compare) end }

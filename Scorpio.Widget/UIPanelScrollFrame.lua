@@ -1455,7 +1455,7 @@ Style.UpdateSkin("Default",     {
             tile                = true, tileSize = 16, edgeSize = 16,
             insets              = { left = 5, right = 5, top = 5, bottom = 5 }
         },
-        backdropBorderColor     = ColorType(0.6, 0.6, 0.6),
+        backdropBorderColor     = Color(0.6, 0.6, 0.6),
 
         ScrollBar               = {
             scrollStep          = 1,
@@ -1493,7 +1493,7 @@ Style.UpdateSkin("Default",     {
             tile                = true, tileSize = 16, edgeSize = 16,
             insets              = { left = 5, right = 5, top = 5, bottom = 5 }
         },
-        backdropBorderColor     = ColorType(0.6, 0.6, 0.6),
+        backdropBorderColor     = Color(0.6, 0.6, 0.6),
 
         ScrollBar               = {
             scrollStep          = 1,

@@ -22,14 +22,15 @@ import "Scorpio.UI"
 -- can be called in the secure snippets, we should use __SecureMethod__ attribute
 -- to bind the class object method or the obect method to the secure ui objects
 -- so the system can keep those functions defined in the wrapper/origin at the same time
-local _SecureCallMap            = {}
+_SecureCallMap                          = {}
 
 --- The interface that provide the basic features for secure widgets
-__Sealed__() __ObjFuncAttr__{ Inheritable = true }
+__Sealed__()__ObjFuncAttr__{ Inheritable= true }
 interface "ISecureHandler" (function(_ENV)
 
     local GetRawUI                      = Scorpio.UI.GetRawUI
     local GetProxyUI                    = Scorpio.UI.GetProxyUI
+    local GetSuperClass                 = Class.GetSuperClass
 
     local _RegisterAttributeDriver      = RegisterAttributeDriver
     local _UnregisterAttributeDriver    = UnregisterAttributeDriver
@@ -107,13 +108,17 @@ interface "ISecureHandler" (function(_ENV)
     end
 
     function __init(self)
-        local map               = _SecureCallMap[getmetatable(self)]
-        if map then
-            self                = GetRawUI(self)
+        local cls               = getmetatable(self)
+        self                    = GetRawUI(self)
+        while cls do
+            local map           = _SecureCallMap[cls]
+            if map then
 
-            for name, func in pairs(map) do
-                self[name]      = func
+                for name, func in pairs(map) do
+                    self[name]  = self[name] or func
+                end
             end
+            cls                 = GetSuperClass(cls)
         end
     end
 end)

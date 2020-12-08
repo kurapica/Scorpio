@@ -172,6 +172,8 @@ struct "ColorType" {
     { name = "g",   type = ColorFloat, require = true },
     { name = "b",   type = ColorFloat, require = true },
     { name = "a",   type = ColorFloat, default = 1 },
+
+    __init = function(val) return Color(val) end,
 }
 
 __Sealed__()
@@ -197,6 +199,14 @@ class "Color" (function(_ENV)
     extend "ICloneable"
 
     export { maxv = math.max, minv = math.min, floor = math.floor }
+
+    local InnerColorType     = struct {
+        { name = "r",   type = ColorFloat, require = true },
+        { name = "g",   type = ColorFloat, require = true },
+        { name = "b",   type = ColorFloat, require = true },
+        { name = "a",   type = ColorFloat, default = 1 },
+    }
+
 
     local function clamp(v) return minv(1, maxv(0, v)) end
 
@@ -389,9 +399,17 @@ class "Color" (function(_ENV)
     ----------------------------------------------
     --               Constructor                --
     ----------------------------------------------
-    __Arguments__{ ColorType }
+    __Arguments__{ Color }
+    function __exist(_, color)
+        return color, true
+    end
+
+    __Arguments__{ Any * 0 }
+    function __exist() end
+
+    __Arguments__{ InnerColorType }
     function __new(_, color)
-        return { r = color.r, g = color.g, b = color.b, a = color.a or 1}, true
+        return color, true
     end
 
     __Arguments__{

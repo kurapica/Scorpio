@@ -52,6 +52,7 @@ __Sealed__() struct "Scorpio.UI" (function(_ENV)
     end
 
     --- Whether the two UI is the same
+    __Static__()
     function IsSameUI(self, target)
         return type(self) == "table" and type(target) == "table" and type(self[0]) == "userdata" and self[0] == target[0]
     end
@@ -460,8 +461,8 @@ do
     __Sealed__()
     struct "GradientType" {
         { name = "orientation", type = Orientation },
-        { name = "mincolor",    type = Color + ColorType },
-        { name = "maxcolor",    type = Color + ColorType },
+        { name = "mincolor",    type = ColorType },
+        { name = "maxcolor",    type = ColorType },
     }
 
     __Sealed__()
@@ -534,9 +535,9 @@ do
         { name = "omni",        type = Boolean },
         { name = "dir",         type = Position },
         { name = "ambIntensity",type = ColorFloat },
-        { name = "ambColor",    type = Color + ColorType },
+        { name = "ambColor",    type = ColorType },
         { name = "dirIntensity",type = ColorFloat },
-        { name = "dirColor",    type = Color + ColorType },
+        { name = "dirColor",    type = ColorType },
     }
 
     __Sealed__()
