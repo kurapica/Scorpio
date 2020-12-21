@@ -1055,3 +1055,59 @@ class "Color" (function(_ENV)
 end)
 
 Color.PLAYER = Color[(select(2, UnitClass("player")))]
+
+
+----------------------------------------------
+--          Share Scan GameTooltip          --
+----------------------------------------------
+do
+    ScanGameTooltip             = CreateFrame("GameTooltip", "Scorpio_Scan_GameTooltip", UIParent, "GameTooltipTemplate")
+    SCAN_TIP_PREFIX_LEFT        = "Scorpio_Scan_GameTooltipTextLeft"
+    SCAN_TIP_PREFIX_RIGHT       = "Scorpio_Scan_GameTooltipTextRight"
+
+    local autoTipHiding         = false
+
+    local function hideScanGameTooltip()
+        autoTipHiding           = false
+        ScanGameTooltip:Hide()
+    end
+
+    local function getTipLines(_, i)
+        i                       = (i or 0) + 1
+        if i > ScanGameTooltip:NumLines() then return ScanGameTooltip:Hide() end
+
+        local left              = _G[SCAN_TIP_PREFIX_LEFT .. i]
+        local right             = _G[SCAN_TIP_PREFIX_RIGHT .. i]
+
+        if type(left) == "table" and left.GetText then
+            left                = left:GetText()
+        end
+
+        if type(right) == "table" and right.GetText then
+            right               = right:GetText()
+        end
+
+        return i, left, right
+    end
+
+    __Static__()
+    function Scorpio.GetGameTooltipLines(type, ...)
+        local method            = ScanGameTooltip["Set" .. type:lower():gsub("^%w", strupper)]
+        if method then
+            ScanGameTooltip:Hide()
+
+            ScanGameTooltip:SetOwner(WorldFrame, 'ANCHOR_NONE')
+            method(ScanGameTooltip, ...)
+
+            -- Normally the iterator won't go down to the end, we need Hide the tip automatically
+            if not autoTipHiding then
+                autoTipHiding   = true
+                Next(hideScanGameTooltip)
+            end
+
+            return getTipLines, ScanGameTooltip, 0
+        else
+            return Toolset.fakefunc, ScanGameTooltip, 0
+        end
+    end
+end
