@@ -62,7 +62,7 @@ local _PropertyChildRecycle     = setmetatable({}, {
 })
 
 -- The objservable map
-local _ObsProp           = setmetatable({}, META_WEAKKEY)
+local _ObsProp                  = setmetatable({}, META_WEAKKEY)
 
 local function dispatchPropertySetting(cls, prop, setting, oldsetting, root)
     local settings              = _Property[cls]
@@ -174,6 +174,43 @@ local _ClassFrames              = {}
 
 local _CurrentStyleTarget       -- The current style target could be used in other systems(ex. Reactive)
 
+local function prepareSettings(settings)
+    -- Check the share features provided with N-th index
+    local count                 = #settings
+    if count > 0 then
+        local shares            = _Recycle()
+        local cache             = _Recycle()
+
+        for i = count, 1, -1 do
+            if type(settings[i]) == "table" and getmetatable(settings[i]) == nil then
+                tinsert(shares, settings[i])
+            end
+            settings[i]         = nil
+        end
+
+        for k, v in pairs(settings) do
+            if type(k) == "string" then
+                cache[strlower[k]]  = true
+            end
+        end
+
+        for i = 1, #shares do
+            for k, v in pairs(shares[i]) do
+                if type(k) == "string" then
+                    local lk    = strlower(lk)
+                    if not cache[lk] then
+                        cache[lk]   = true
+                        settings[k] = v
+                    end
+                end
+            end
+        end
+
+        _Recycle(wipe(shares))
+        _Recycle(wipe(cache))
+    end
+end
+
 local function collectPropertyChild(frame)
     if _ClearQueue[frame] then return end
     if _ClearQueue.Count == 0 then FireSystemEvent("SCORPIO_UI_COLLECT_PROPERTY_CHILD") end
@@ -273,6 +310,8 @@ local function setCustomStyle(target, pname, value, stack, nodirectapply)
         if type(value) ~= "table" then
             error("The style settings must be property key value pair or a table contains the key-value pairs", stack + 1)
         end
+
+        prepareSettings(value) -- Copy and remove the share settings
 
         directapply             = directapply and _Recycle()
 
@@ -387,6 +426,8 @@ local function copyBaseSkinSettings(container, base)
 end
 
 local function saveSkinSettings(classes, paths, container, settings)
+    prepareSettings(settings) -- Copy and remove the share settings
+
     if type(settings) ~= "table" then throw("The skin settings for " .. class ..  "must be table") end
 
     local pathIdx               = #classes
