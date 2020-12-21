@@ -28,7 +28,7 @@ class "CooldownLabel" (function(_ENV)
     property "AutoColor"        { type = Boolean,   default = true }
 
     --- The alert second that used to notify the user
-    property "AlertSecond"      { type = Number,    default = 10 },
+    property "AlertSecond"      { type = Number,    default = 10 }
 
     --- The color for duration over 1 day
     property "DayColor"         { type = ColorType, default = Color(0.4, 0.4, 0.4) }
@@ -178,4 +178,4 @@ Style.UpdateSkin("Default",     {
         fontObject              = CombatTextFont,
         textColor               = Color.WHITE,
     }
-}
+})
