@@ -6,19 +6,35 @@
 --========================================================--
 
 --========================================================--
-Scorpio         "Scorpio.Secure.UnitFrame.UnitEvent" "1.0.0"
+Scorpio         "Scorpio.Secure.UnitReactive"        "1.0.0"
 --========================================================--
 
-namespace "Scorpio.Secure.UnitFrame"
-
 import "System.Reactive"
-
 
 local getCurrentTarget          = Scorpio.UI.Style.GetCurrentTarget
 local isUIObject                = UI.IsUIObject
 local isObjectType              = Class.IsObjectType
 local FromEvent                 = Scorpio.Wow.FromEvent
 local FromEvents                = Scorpio.Wow.FromEvents
+
+--- The interface should be extended by all unit frame types(include secure and non-secure)
+__Sealed__()
+interface "IUnitFrame" (function(_ENV)
+    ------------------------------------------------------
+    --                      Event                       --
+    ------------------------------------------------------
+    --- Fired when the unit frame need refreshing
+    __Abstract__()
+    event "OnUnitRefresh"
+
+    --- The current unit
+    __Abstract__()
+    property "Unit"             { type = String, event = OnUnitRefresh }
+end)
+
+--- The unsecure unit frame that'd be used as nameplates
+__Sealed__()
+class "InSecureUnitFrame" { Frame, IUnitFrame }
 
 __Sealed__()
 class "UnitFrameSubject" (function(_ENV)
@@ -94,7 +110,7 @@ class "UnitFrameSubject" (function(_ENV)
     -- Property
     ----------------------------------------------------
     --- the unit frame
-    property "UnitFrame"    { type = UnitFrame }
+    property "UnitFrame"    { type = IUnitFrame }
 
     --- The current unit
     property "Unit"         { type = String, handler = RefreshUnit }
@@ -105,7 +121,7 @@ class "UnitFrameSubject" (function(_ENV)
     ----------------------------------------------------
     -- Constructor
     ----------------------------------------------------
-    __Arguments__{ UnitFrame }
+    __Arguments__{ IUnitFrame }
     function __ctor(self, unitfrm)
         self.UnitFrame          = unitfrm
         _UnitFrameMap[unitfrm]  = self
@@ -124,7 +140,7 @@ local function getUnitFrameSubject()
 
     if indicator and isUIObject(indicator) then
         local unitfrm           = indicator
-        while unitfrm and not isObjectType(unitfrm, UnitFrame) do
+        while unitfrm and not isObjectType(unitfrm, IUnitFrame) do
             unitfrm             = unitfrm:GetParent()
         end
 

@@ -14,50 +14,66 @@ namespace "Scorpio.Secure.UnitFrame"
 ------------------------------------------------------------
 --                       Indicator                        --
 ------------------------------------------------------------
-__Sealed__() __ChildProperty__(UnitFrame, "NameLabel")
-class "NameLabel"       { FontString }
+__ChildProperty__(UnitFrame,         "NameLabel")
+__ChildProperty__(InSecureUnitFrame, "NameLabel")
+__Sealed__() class "NameLabel"       { FontString }
 
-__Sealed__() __ChildProperty__(UnitFrame, "LevelLabel")
-class "LevelLabel"      { FontString }
+__ChildProperty__(UnitFrame,         "LevelLabel")
+__ChildProperty__(InSecureUnitFrame, "LevelLabel")
+__Sealed__() class "LevelLabel"      { FontString }
 
-__Sealed__() __ChildProperty__(UnitFrame, "HealthLabel")
-class "HealthLabel"     { FontString }
+__ChildProperty__(UnitFrame,         "HealthLabel")
+__ChildProperty__(InSecureUnitFrame, "HealthLabel")
+__Sealed__() class "HealthLabel"     { FontString }
 
-__Sealed__() __ChildProperty__(UnitFrame, "PowerLabel")
-class "PowerLabel"      { FontString }
+__ChildProperty__(UnitFrame,         "PowerLabel")
+__ChildProperty__(InSecureUnitFrame, "PowerLabel")
+__Sealed__() class "PowerLabel"      { FontString }
 
-__Sealed__() __ChildProperty__(UnitFrame, "HealthBar")
-class "HealthBar"       { StatusBar }
+__ChildProperty__(UnitFrame,         "HealthBar")
+__ChildProperty__(InSecureUnitFrame, "HealthBar")
+__Sealed__() class "HealthBar"       { StatusBar }
 
-__Sealed__() __ChildProperty__(UnitFrame, "PowerBar")
-class "PowerBar"        { StatusBar }
+__ChildProperty__(UnitFrame,         "PowerBar")
+__ChildProperty__(InSecureUnitFrame, "PowerBar")
+__Sealed__() class "PowerBar"        { StatusBar }
 
-__Sealed__() __ChildProperty__(UnitFrame, "ClassPowerBar")
-class "ClassPowerBar"   { StatusBar }
+__ChildProperty__(UnitFrame,         "ClassPowerBar")
+__ChildProperty__(InSecureUnitFrame, "ClassPowerBar")
+__Sealed__() class "ClassPowerBar"   { StatusBar }
 
-__Sealed__() __ChildProperty__(UnitFrame, "HiddenManaBar")
-class "HiddenManaBar"   { StatusBar }
+__ChildProperty__(UnitFrame,         "HiddenManaBar")
+__ChildProperty__(InSecureUnitFrame, "HiddenManaBar")
+__Sealed__() class "HiddenManaBar"   { StatusBar }
 
-__Sealed__() __ChildProperty__(UnitFrame, "BuffPanel")
-class "BuffPanel"       { ElementPanel }
+__ChildProperty__(UnitFrame,         "BuffPanel")
+__ChildProperty__(InSecureUnitFrame, "BuffPanel")
+__Sealed__() class "BuffPanel"       { ElementPanel }
 
-__Sealed__() __ChildProperty__(UnitFrame, "DebuffPanel")
-class "DebuffPanel"     { ElementPanel }
+__ChildProperty__(UnitFrame,         "DebuffPanel")
+__ChildProperty__(InSecureUnitFrame, "DebuffPanel")
+__Sealed__() class "DebuffPanel"     { ElementPanel }
 
-__Sealed__() __ChildProperty__(UnitFrame, "ClassBuffPanel")
-class "ClassBuffPanel"  { ElementPanel }
+__ChildProperty__(UnitFrame,         "ClassBuffPanel")
+__ChildProperty__(InSecureUnitFrame, "ClassBuffPanel")
+__Sealed__() class "ClassBuffPanel"  { ElementPanel }
 
-__Sealed__() __ChildProperty__(UnitFrame, "DisconnectIcon")
-class "DisconnectIcon"  { Texture }
+__ChildProperty__(UnitFrame,         "DisconnectIcon")
+__ChildProperty__(InSecureUnitFrame, "DisconnectIcon")
+__Sealed__() class "DisconnectIcon"  { Texture }
 
-__Sealed__() __ChildProperty__(UnitFrame, "CombatIcon")
-class "CombatIcon"      { Texture }
+__ChildProperty__(UnitFrame,         "CombatIcon")
+__ChildProperty__(InSecureUnitFrame, "CombatIcon")
+__Sealed__() class "CombatIcon"      { Texture }
 
-__Sealed__() __ChildProperty__(UnitFrame, "ResurrectIcon")
-class "ResurrectIcon"   { Texture }
+__ChildProperty__(UnitFrame,         "ResurrectIcon")
+__ChildProperty__(InSecureUnitFrame, "ResurrectIcon")
+__Sealed__() class "ResurrectIcon"   { Texture }
 
-__Sealed__() __ChildProperty__(UnitFrame, "CastBar")
-class "CastBar"         { CooldownStatusBar }
+__ChildProperty__(UnitFrame,         "CastBar")
+__ChildProperty__(InSecureUnitFrame, "CastBar")
+__Sealed__() class "CastBar"         { CooldownStatusBar }
+
 
 ------------------------------------------------------------
 --                     Default Style                      --
@@ -67,7 +83,7 @@ Style.UpdateSkin("Default",     {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
         text                    = Wow.UnitName(true),
-        textColor               = Wow.UnitNameColor(true),
+        textColor               = Wow.UnitColor(),
     },
     [LevelLabel]                = {
         drawLayer               = "BORDER",
@@ -132,7 +148,6 @@ Style.UpdateSkin("Default",     {
         visible                 = Wow.ClassPowerUsable(),
     },
     [CastBar]                   = {
-        cooldown                = Wow.
     },
     [DisconnectIcon]            = {
         file                    = [[Interface\CharacterFrame\Disconnect-Icon]],

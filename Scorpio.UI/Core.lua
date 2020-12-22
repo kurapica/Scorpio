@@ -190,14 +190,14 @@ local function prepareSettings(settings)
 
         for k, v in pairs(settings) do
             if type(k) == "string" then
-                cache[strlower[k]]  = true
+                cache[strlower(k)]  = true
             end
         end
 
         for i = 1, #shares do
             for k, v in pairs(shares[i]) do
                 if type(k) == "string" then
-                    local lk    = strlower(lk)
+                    local lk    = strlower(k)
                     if not cache[lk] then
                         cache[lk]   = true
                         settings[k] = v

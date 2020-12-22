@@ -673,7 +673,7 @@ do
     end
 end
 
---- The root Unit frame widget class with hover spell casting
+--- The root unit frame widget class with hover spell casting
 -- We can bind short keys to the hover spell group, each unit frame can have a group
 --
 -- UnitFrame.HoverSpellGroups["Default"].Spell["Holy Light"].With["target'].Key = "ctrl-f"
@@ -682,6 +682,7 @@ end
 __Sealed__() __SecureTemplate__"SecureUnitButtonTemplate, SecureHandlerAttributeTemplate"
 class "UnitFrame" (function(_ENV)
     inherit "SecureButton"
+    extend "IUnitFrame"
 
     import "System.Reactive"
 
@@ -884,12 +885,6 @@ class "UnitFrame" (function(_ENV)
             end
         end
     end)
-
-    ------------------------------------------------------
-    --                      Event                       --
-    ------------------------------------------------------
-    --- Fired when the unit frame need refreshing
-    event "OnUnitRefresh"
 
     ------------------------------------------------------
     --                 Static Proeprty                  --

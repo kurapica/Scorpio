@@ -21,39 +21,42 @@ __Sealed__() enum "AuraFilter" { "HELPFUL", "HARMFUL", "PLAYER", "RAID", "CANCEL
 ------------------------------------------------------------
 local MANA                      = _G.Enum.PowerType.Mana
 
--- Unit Name API
 __Static__() __AutoCache__()
 function Wow.UnitName(withServer)
     return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(withServer and function(unit) return GetUnitName(unit, true) end or GetUnitName)
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitNameColor(useSelectionColor)
-    if useSelectionColor then
-        local scolor            = { r = 1, g = 1, b = 1 }
+function Wow.UnitColor()
+    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit)
+        local _, cls            = UnitClass(unit)
+        return Color[cls or "PALADIN"]
+    end)
+end
 
-        return Wow.FromUnitEvent("UNIT_FACTION"):Map(function(unit)
-            if not UnitIsPlayer(unit) then
-                if useSelectionColor then
-                    if UnitIsTapDenied(unit) then return Color.RUNES end
+__Static__() __AutoCache__()
+function Wow.UnitExtendColor(withThreat)
+    local scolor                = { r = 1, g = 1, b = 1 }
+    return Wow.FromUnitEvents("UNIT_FACTION", "UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
+        if not UnitIsPlayer(unit) then
+            if UnitIsTapDenied(unit) then return Color.RUNES end
 
-                    local r,g,b = UnitSelectionColor(unit, true)
-                    scolor.r    = r or 1
-                    scolor.g    = g or 1
-                    scolor.b    = b or 1
-                    return scolor
+            if withThreat and UnitCanAttack("player", unit) then
+                local threat    = UnitThreatSituation("player", unit)
+                if threat and threat > 0 then
+                    return GetThreatStatusColor(threat)
                 end
-            else
-                return Color[select(2, UnitClass(unit))]
             end
-            return Color.PALADIN
-        end)
-    else
-        return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit)
-            local _, cls        = UnitClass(unit)
-            return cls and Color[cls] or Color.PALADIN
-        end)
-    end
+
+            local r,g,b         = UnitSelectionColor(unit, true)
+            scolor.r            = r or 1
+            scolor.g            = g or 1
+            scolor.b            = b or 1
+            return scolor
+        end
+        local _, cls            = UnitClass(unit)
+        return Color[cls or "PALADIN"]
+    end)
 end
 
 -- Unit Level API
@@ -456,59 +459,110 @@ end
 --                     Unit Cast API                      --
 ------------------------------------------------------------
 local _CurrentCastID            = {}
-local _UnitCastCooldown         = Subject()
-local _UnitCastSpellID          = Subject()
+local _CurrentCastEndTime       = {}
+local _CurrentCastDelay         = {}
+local _UnitCastSubject          = Subject()
 local _UnitCastDelay            = Subject()
+local _UnitCastInterruptible    = Subject()
+local _UnitCastChannel          = Subject()
 
 __SystemEvent__()
 function UNIT_SPELLCAST_START(unit, castID, spellID)
+    local _, _, _, s, e, _, _, i= UnitCastingInfo(unit)
+    _CurrentCastID[unit]        = castID
+    _CurrentCastDelay[unit]     = 0
+    _CurrentCastEndTime[unit]   = e
+
+    s, e                        = s / 1000, e / 1000
+
+
+    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
+    _UnitCastDelay:OnNext(unit, 0)
+    _UnitCastInterruptible:OnNext(unit, i)
+    _UnitCastChannel:OnNext(unit, false)
 end
 
-__SystemEvent__()
+__SystemEvent__ "UNIT_SPELLCAST_FAILED" "UNIT_SPELLCAST_STOP" "UNIT_SPELLCAST_INTERRUPTED"
 function UNIT_SPELLCAST_FAILED(unit, castID, spellID)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_FAILED_QUIET(unit, castID, spellID)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_STOP(unit, castID, spellID)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_SUCCEEDED(unit, castID, spellID)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_INTERRUPTED(unit, castID, spellID)
+    if not castID or castID == _CurrentCastID[unit] then
+        _UnitCastSubject:OnNext(unit, spellID, 0, 0)
+        _UnitCastDelay:Only(unit, 0)
+        _UnitCastInterruptible:OnNext(unit, nil)
+    end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_INTERRUPTIBLE(unit)
+    _UnitCastInterruptible:OnNext(unit, true)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_NOT_INTERRUPTIBLE(unit)
+    _UnitCastInterruptible:OnNext(unit, false)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_DELAYED(unit, castID, spellID)
+    local _, _, _, s, e, _, _, i= UnitCastingInfo(unit)
+    s, e                        = s / 1000, e / 1000
+
+    local delay                 = e - _CurrentCastEndTime[unit]
+    _CurrentCastEndTime[unit]   = e
+
+    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
+
+    if delay > 0 then
+        _CurrentCastDelay[unit] = _CurrentCastDelay[unit] + delay
+        _UnitCastDelay:OnNext(unit, _CurrentCastDelay[unit])
+    end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_START(unit, castID, spellID)
+    local _, _, _, s, e, _, i   = UnitChannelInfo(unit)
+    _CurrentCastID[unit]        = castID
+    _CurrentCastDelay[unit]     = 0
+    _CurrentCastEndTime[unit]   = e
+
+    s, e                        = s / 1000, e / 1000
+
+
+    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
+    _UnitCastDelay:OnNext(unit, 0)
+    _UnitCastInterruptible:OnNext(unit, i)
+    _UnitCastChannel:OnNext(unit, true)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_UPDATE(unit, castID, spellID)
+    local _, _, _, s, e         = UnitChannelInfo(unit)
+    s, e                        = s / 1000, e / 1000
+
+    local delay                 = e - _CurrentCastEndTime[unit]
+    _CurrentCastEndTime[unit]   = e
+
+    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
+
+    if delay > 0 then
+        _CurrentCastDelay[unit] = _CurrentCastDelay[unit] + delay
+        _UnitCastDelay:OnNext(unit, _CurrentCastDelay[unit])
+    end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_STOP(unit, castID, spellID)
+    _UnitCastSubject:OnNext(unit, spellID, 0, 0)
+    _UnitCastDelay:Only(unit, 0)
+    _UnitCastInterruptible:OnNext(unit, nil)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitCastCooldown()
-
+    local status                = { start = 0, duration = 0 }
+    return FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, start, stop)
+        status.start            = start
+        status.stop             = stop
+        return status
+    end)
 end
+
