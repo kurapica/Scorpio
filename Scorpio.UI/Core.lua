@@ -26,6 +26,7 @@ local yield                     = coroutine.yield
 local tinsert                   = table.insert
 local tremove                   = table.remove
 local strlower                  = strlower
+local tsort                     = table.sort
 local isObservable              = function(val) return type(val) == "table" and isObjectType(val, IObservable) end
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
 
@@ -140,7 +141,7 @@ local function applyProperty(self, prop, value)
                 map             = {}
                 _ObsProp[self]  = map
             end
-            map[prop]           = map[prop] or Observer(function(val) pset(self, val) end)
+            map[prop]           = map[prop] or Observer(function(val) return pset(self, val) end)
 
             value:Subscribe(map[prop])
         else
@@ -174,41 +175,126 @@ local _ClassFrames              = {}
 
 local _CurrentStyleTarget       -- The current style target could be used in other systems(ex. Reactive)
 
-local function prepareSettings(settings)
+-- Combine the sharable settings
+local function prepareSettings(settings, target, final, cache, paths)
+    -- Simple Check
+    if #settings == 0 and not final then return settings end
+
+    local isClassSkin           = getmetatable(target) == nil
+    local props                 = _Property[isClassSkin and target[#target] or getUIPrototype(target)]
+    if not props then return final or settings end -- No more operations
+
+    local needRecycle           = not cache
+    cache                       = cache or _Recycle()
+    if needRecycle and final then for k in pairs(final) do cache[strlower(k)] = k end end
+    final                       = final or {}
+
+    local classCnt
+
+    if isClassSkin then
+        paths                   = paths or {}
+        classCnt                = #target
+    end
+
     -- Check the share features provided with N-th index
-    local count                 = #settings
-    if count > 0 then
-        local shares            = _Recycle()
-        local cache             = _Recycle()
+    local shares                = _Recycle()
 
-        for i = count, 1, -1 do
-            if type(settings[i]) == "table" and getmetatable(settings[i]) == nil then
-                tinsert(shares, settings[i])
-            end
-            settings[i]         = nil
-        end
+    for k, v in pairs(settings) do
+        local tk                = type(k)
 
-        for k, v in pairs(settings) do
-            if type(k) == "string" then
-                cache[strlower(k)]  = true
-            end
-        end
+        if tk == "number" then
+            tinsert(shares, k)
+        elseif tk == "string" then
+            local lk            = strlower(k)
+            local ek            = cache[lk]
+            local prop          = props[lk]
 
-        for i = 1, #shares do
-            for k, v in pairs(shares[i]) do
-                if type(k) == "string" then
-                    local lk    = strlower(k)
-                    if not cache[lk] then
-                        cache[lk]   = true
-                        settings[k] = v
+            if isClassSkin then
+                local element
+
+                paths[classCnt] = k
+
+                for i = 1, #target do
+                    element     = __Template__.GetElementType(target[i], unpack(paths, i))
+                    if element then break end
+                end
+
+                paths[classCnt] = nil
+
+                if element then
+                    tinsert(target, element)
+                    tinsert(paths, k)
+
+                    if not ek then
+                        cache[lk] = k
+                        if type(v) == "table" and getmetatable(v) == nil then
+                            final[k] = prepareSettings(v, target, nil, nil, paths)
+                        else
+                            -- Error but will be checked later
+                            final[k] = v
+                        end
+                    elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
+                        -- Combine the share settings
+                        final[ek]   = prepareSettings(v, target, final[ek], nil, paths)
                     end
+
+                    tremove(target)
+                    tremove(paths)
+                elseif prop and prop.childtype then
+                    if not ek then
+                        cache[lk]   = k
+                        if type(v) == "table" and getmetatable(v) == nil then
+                            final[k]= prepareSettings(v, { prop.childtype} )
+                        else
+                            -- Error but will be checked later
+                            final[k]= v
+                        end
+                    elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
+                        -- Combine the share settings
+                        final[ek]   = prepareSettings(v, { prop.childtype }, final[ek])
+                    end
+                elseif not ek then
+                    -- No property check here, the error would be raised by the caller
+                    cache[lk]       = k
+                    final[k]        = v
+                end
+            else
+                local element       = UIObject.GetChild(target, k) or prop and prop.childtype and { prop.childtype }
+
+                if element then
+                    if not ek then
+                        cache[lk]   = k
+                        if type(v) == "table" and getmetatable(v) == nil then
+                            final[k]= prepareSettings(v, element)
+                        else
+                            -- Error but will be checked later
+                            final[k]= v
+                        end
+                    elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
+                        -- Combine the share settings
+                        final[ek]   = prepareSettings(v, element, final[ek])
+                    end
+                elseif not ek then
+                    -- No property check here, the error would be raised by the caller
+                    cache[lk]   = k
+                    final[k]    = v
                 end
             end
         end
-
-        _Recycle(wipe(shares))
-        _Recycle(wipe(cache))
     end
+
+    if #shares > 0 then
+        tsort(shares)
+
+        for i = #shares, 1, -1 do
+            -- Could have its own share skins
+            prepareSettings(settings[shares[i]], target, final, cache, paths)
+        end
+    end
+
+    _Recycle(wipe(shares))
+    if needRecycle then _Recycle(wipe(cache)) end
+    return final
 end
 
 local function collectPropertyChild(frame)
@@ -311,7 +397,7 @@ local function setCustomStyle(target, pname, value, stack, nodirectapply)
             error("The style settings must be property key value pair or a table contains the key-value pairs", stack + 1)
         end
 
-        prepareSettings(value) -- Copy and remove the share settings
+        value                   = prepareSettings(value, target) -- Copy and remove the share settings
 
         directapply             = directapply and _Recycle()
 
@@ -426,13 +512,13 @@ local function copyBaseSkinSettings(container, base)
 end
 
 local function saveSkinSettings(classes, paths, container, settings)
-    prepareSettings(settings) -- Copy and remove the share settings
-
     if type(settings) ~= "table" then throw("The skin settings for " .. class ..  "must be table") end
 
     local pathIdx               = #classes
     local class                 = classes[pathIdx]
     local props                 = _Property[class]
+
+    settings                    = prepareSettings(settings, classes) -- Copy and remove the share settings
 
     -- Check inherit
     for name, value in pairs(settings) do
@@ -1858,14 +1944,14 @@ function UIObject:GetChildPropertyName()
 end
 
 -- Get the child generated from the given property name
-__Arguments__{ String }
-function UIObject:GetPropertyChild(name)
+__Arguments__{ String, Boolean/nil }
+function UIObject:GetPropertyChild(name, create)
     self                        = GetProxyUI(self)
 
     local props                 = _Property[getUIPrototype(self)]
     local prop                  = props and props[strlower(name)]
 
-    return prop and prop.childtype and prop.get(self, true)
+    return prop and prop.childtype and prop.get(self, not create)
 end
 
 ----------------------------------------------

@@ -12,6 +12,12 @@ Scorpio           "Scorpio.UI.ElementPanel"          "1.0.0"
 __Sealed__() class "ElementPanel" (function(_ENV)
     inherit "Frame" extend "ICountable"
 
+    export{ max = math.max }
+
+    local function onSizeChanged(self)
+        return self:Refresh()
+    end
+
     local function adjustElement(element, self)
         local id                = element.ID
         if not id then return end
@@ -38,11 +44,14 @@ __Sealed__() class "ElementPanel" (function(_ENV)
 
     local function adjustPanel(self)
         if self.KeepMaxSize then
-            self:SetSize(
-                self.ColumnCount * self.ElementWidth  + (self.ColumnCount - 1) * self.HSpacing + self.MarginLeft + self.MarginRight,
-                self.RowCount    * self.ElementHeight + (self.RowCount    - 1) * self.VSpacing + self.MarginTop  + self.MarginBottom
-            )
-        elseif self.AutoSize then
+            if not self.FixedWidth then
+                self:SetWidth(self.ColumnCount * self.ElementWidth  + (self.ColumnCount - 1) * self.HSpacing + self.MarginLeft + self.MarginRight)
+            end
+
+            if not self.FixedHeight then
+                self:SetHeight(self.RowCount * self.ElementHeight + (self.RowCount    - 1) * self.VSpacing + self.MarginTop  + self.MarginBottom)
+            end
+        else
             local i             = self.Count
 
             while i > 0 do
@@ -73,12 +82,21 @@ __Sealed__() class "ElementPanel" (function(_ENV)
             end
 
             if row > 0 and column > 0 then
-                self:SetSize(
-                    column * self.ElementWidth + (column - 1) * self.HSpacing + self.MarginLeft + self.MarginRight,
-                    row * self.ElementHeight + (row - 1) * self.VSpacing + self.MarginTop + self.MarginBottom
-                )
+                if not self.FixedWidth then
+                    self:SetWidth(column * self.ElementWidth + (column - 1) * self.HSpacing + self.MarginLeft + self.MarginRight)
+                end
+
+                if not self.FixedHeight then
+                    self:SetHeight(row * self.ElementHeight + (row - 1) * self.VSpacing + self.MarginTop + self.MarginBottom)
+                end
             else
-                self:SetSize(1, 1)
+                if not self.FixedWidth then
+                    self:SetWidth(1)
+                end
+
+                if not self.FixedHeight then
+                    self:SetHeight(1)
+                end
             end
         end
     end
@@ -99,7 +117,11 @@ __Sealed__() class "ElementPanel" (function(_ENV)
                 self.__ElementPanel_Count = i - 1
             end
 
-            return adjustPanel(self)
+            if self.FixedHeight or self.FixedWidth then
+                return self:Refresh()
+            else
+                return adjustPanel(self)
+            end
         end
     end
 
@@ -118,7 +140,11 @@ __Sealed__() class "ElementPanel" (function(_ENV)
                 self.__ElementPanel_Count = i
             end
 
-            return adjustPanel(self)
+            if self.FixedHeight or self.FixedWidth then
+                return self:Refresh()
+            else
+                return adjustPanel(self)
+            end
         end
     end
 
@@ -147,13 +173,41 @@ __Sealed__() class "ElementPanel" (function(_ENV)
     __AsyncSingle__()
     function Refresh(self)
         Next()
+
         reduce(self)
+
+        if self.FixedHeight or self.FixedWidth then
+            self:SetAttribute("__ElementPanel_FixedSize", true)
+            self.OnSizeChanged  = self.OnSizeChanged + onSizeChanged
+
+            local row
+            local column
+
+            if self.Orientation == Orientation.HORIZONTAL then
+                row             = ceil(self.Count / self.ColumnCount)
+                column          = row == 1 and self.Count or self.ColumnCount
+            else
+                column          = ceil(self.Count / self.RowCount)
+                row             = column == 1 and self.Count or self.RowCount
+            end
+
+            if self.FixedWidth then
+                local total     = self:GetWidth()
+                self.ElementWidth = max(1, (total - self.MarginLeft - self.MarginRight - (column - 1) * self.HSpacing) / column)
+            end
+
+            if self.FixedHeight then
+                local total     = self:GetHeight()
+                self.ElementHeight = max(1, (total - self.MarginTop - self.MarginBottom - (row - 1) * self.VSpacing) / row)
+            end
+        elseif self:GetAttribute("__ElementPanel_FixedSize") then
+            self:SetAttribute("__ElementPanel_FixedSize", nil)
+            self.OnSizeChanged  = self.OnSizeChanged - onSizeChanged
+        end
+
         self:Each(adjustElement, self)
 
-        local autoSize          = self.AutoSize
-        self.AutoSize           = true
         adjustPanel(self)
-        self.AutoSize           = autoSize
     end
 
     ------------------------------------------------------
@@ -212,6 +266,7 @@ __Sealed__() class "ElementPanel" (function(_ENV)
                 reduce(self, cnt)
             end
         end,
+        default                 = 0,
     }
 
     -- The orientation for elements
@@ -227,25 +282,22 @@ __Sealed__() class "ElementPanel" (function(_ENV)
     property "ElementType"      { type = ClassType }
 
     -- The horizontal spacing
-    property "HSpacing"         { type = Number, handler = Refresh }
+    property "HSpacing"         { type = Number, default = 0, handler = Refresh }
 
     -- The vertical spacing
-    property "VSpacing"         { type = Number, handler = Refresh }
-
-    -- Whether the elementPanel is autosize
-    property "AutoSize"         { type = Boolean }
+    property "VSpacing"         { type = Number, default = 0, handler = Refresh }
 
     -- The top margin
-    property "MarginTop"        { type = Number, handler = Refresh }
+    property "MarginTop"        { type = Number, default = 0, handler = Refresh }
 
     -- The bottom margin
-    property "MarginBottom"     { type = Number, handler = Refresh }
+    property "MarginBottom"     { type = Number, default = 0, handler = Refresh }
 
     -- The left margin
-    property "MarginLeft"       { type = Number, handler = Refresh }
+    property "MarginLeft"       { type = Number, default = 0, handler = Refresh }
 
     -- The right margin
-    property "MarginRight"      { type = Number, handler = Refresh }
+    property "MarginRight"      { type = Number, default = 0, handler = Refresh }
 
     -- The prefix for the element's name
     property "ElementPrefix"    { type = String, default = "Element" }
@@ -258,4 +310,10 @@ __Sealed__() class "ElementPanel" (function(_ENV)
 
     -- Whether keep the max size for rows
     property "KeepRowSize"      { type = Boolean, handler = Refresh }
+
+    -- Whether the panel's height is fixed, so the element height will be modified
+    property "FixedHeight"      { type = Boolean, handler = Refresh }
+
+    -- Whether the panel's width is fixed, so the element width will be modified
+    property "FixedWidth"       { type = Boolean, handler = Refresh }
 end)

@@ -964,7 +964,7 @@ class "UnitFrame" (function(_ENV)
     ------------------------------------------------------
     __SecureMethod__()
     function ProcessUnitChange(self, unit)
-        return OnUnitRefresh(self, unit)
+        return self:OnUnitRefresh(unit)
     end
 
     function UpdateTooltip(self)

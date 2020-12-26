@@ -195,6 +195,11 @@ function Wow.UnitIsTarget()
 end
 
 __Static__() __AutoCache__()
+function Wow.UnitIsPlayer()
+    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return UnitIsUnit(unit, "player") end)
+end
+
+__Static__() __AutoCache__()
 function Wow.PlayerInCombat()
     return Wow.FromUnitEvent(Wow.FromEvents("PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT"):Map("=>'player'")):Map(function(unit) return UnitAffectingCombat("player") end)
 end
@@ -348,8 +353,8 @@ function RefreshClassPower()
             _ClassPowerMaxSubject:Resubscribe()
 
             if _ClassPowerType == SOULFRAGMENT then
-                -- Use aura to track
-                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
+                -- Use aura to track, keep using Next() for throttling
+                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Next():Subscribe(_ClassPowerSubject)
             elseif _ClassPowerType == STAGGER then
                 Wow.FromEvent("UNIT_HEALTH"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
                 Wow.FromEvent("UNIT_MAXHEALTH"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
@@ -367,8 +372,8 @@ function RefreshClassPower()
     end
 
     -- Publish the changes
-    _ClassPowerRefresh:OnNext("player")
-    _ClassPowerSubject:OnNext("player")
+    _ClassPowerRefresh:OnNext("any")        -- For all, but other unit's indicator will be disabled and hide
+    _ClassPowerSubject:OnNext("player")     -- For player only
     _ClassPowerMaxSubject:OnNext("player")
 end
 
@@ -376,13 +381,13 @@ __Static__() __AutoCache__()
 function Wow.ClassPower()
     if _PlayerClass == "DEATHKNIGHT" then
         -- A simple total rune as basic features
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) local count = 0 if unit == "player" then for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end end return count end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
     elseif _PlayerClass == "DEMONHUNTER" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return unit == "player" and _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
     elseif _PlayerClass == "MONK" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return unit == "player" and (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
     else
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return unit == "player" and _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
     end
 end
 
@@ -402,12 +407,12 @@ function Wow.ClassPowerMax()
         end)
     elseif _PlayerClass == "MONK" then
         return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
-            minMax.max          = unit == "player" and (_ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType)) or 100
+            minMax.max          = _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
             return minMax
         end)
     else
         return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
-            minMax.max          = unit == "player" and _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
+            minMax.max          = _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
             return minMax
         end)
     end
@@ -420,7 +425,7 @@ function Wow.ClassPowerColor()
         local STAGGER_RED_TRANSITION    = _G.STAGGER_RED_TRANSITION
 
         return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit)
-            if unit == "player" and _ClassPowerType then
+            if _ClassPowerType and UnitIsUnit(unit, "player") then
                 if _ClassPowerType == STAGGER then
                     local curr          = UnitStagger(unit)
                     local maxs          = UnitHealthMax(unit)
@@ -444,14 +449,14 @@ function Wow.ClassPowerColor()
         end)
     else
         return Wow.FromUnitEvent(_ClassPowerRefresh):Map(function(unit)
-            return unit == "player" and _ClassPowerType and Color[_ClassPowerToken] or Color.DISABLED
+            return UnitIsUnit(unit, "player") and _ClassPowerType and Color[_ClassPowerToken] or Color.DISABLED
         end)
     end
 end
 
 __Static__() __AutoCache__()
 function Wow.ClassPowerUsable()
-    return Wow.FromUnitEvent(_ClassPowerRefresh):Map(function(unit) return unit == "player" and _ClassPowerType and true or false end)
+    return Wow.FromUnitEvent(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
 end
 
 

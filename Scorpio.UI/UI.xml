@@ -14,4 +14,7 @@
     <!-- Share Templates -->
     <Script file="ElementPanel.lua"/>
     <Script file="CooldownTemplate.lua"/>
+
+    <!-- UI Property Observable -->
+    <Script file="Reactive.lua"/>
 </Ui>
