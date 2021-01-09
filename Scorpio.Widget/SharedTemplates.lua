@@ -516,12 +516,6 @@ class "Mask" (function(_ENV)
 end)
 
 -----------------------------------------------------------
---                     Label Widget                      --
------------------------------------------------------------
-__Sealed__() __ChildProperty__(Frame, "Label")
-class "UIPanelLabel"            { FontString }
-
------------------------------------------------------------
 --                 UIPanelButton Widget                  --
 -----------------------------------------------------------
 __Sealed__()
@@ -775,12 +769,6 @@ Style.UpdateSkin("Default",     {
             location            = { Anchor("CENTER") },
             fontObject          = GameFontNormal,
         }
-    },
-    [UIPanelLabel]              = {
-        drawLayer               = "BACKGROUND",
-        fontObject              = GameFontHighlight,
-        location                = { Anchor("RIGHT", -24, 0, nil, "LEFT") },
-        justifyH                = "RIGHT",
     },
     [UIPanelButton]             = {
         size                    = Size(80, 22),

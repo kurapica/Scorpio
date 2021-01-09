@@ -2462,6 +2462,23 @@ do
     }
 end
 
+-----------------------------------------------------------
+--                     Label Widget                      --
+-----------------------------------------------------------
+__Sealed__()
+__ChildProperty__(Frame, "Label")
+__ChildProperty__(Frame, "Label2")
+__ChildProperty__(Frame, "Label3")
+class "UIPanelLabel"    { FontString }
+
+Style.UpdateSkin("Default", {
+    [UIPanelLabel]      = {
+        drawLayer       = "BACKGROUND",
+        fontObject      = GameFontHighlight,
+        justifyH        = "RIGHT",
+    },
+})
+
 ------------------------------------------------------------
 --                  Backdrop Properties                   --
 ------------------------------------------------------------

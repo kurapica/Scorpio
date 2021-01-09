@@ -1423,8 +1423,6 @@ Style.UpdateSkin("Default",     {
     },
     [HtmlViewer]                = {
         ScrollChild             = {
-            --location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "ScrollBar", "LEFT") },
-
             fontObject          = GameFontNormal,
             hyperlinksEnabled   = true,
             hyperlinkFormat     = "|cff00FF00|H%s|h%s|h|r",

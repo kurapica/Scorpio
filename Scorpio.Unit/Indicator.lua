@@ -70,6 +70,10 @@ __ChildProperty__(UnitFrame,         "ResurrectIcon")
 __ChildProperty__(InSecureUnitFrame, "ResurrectIcon")
 __Sealed__() class "ResurrectIcon"   { Texture }
 
+__ChildProperty__(UnitFrame,         "RaidTargetIcon")
+__ChildProperty__(InSecureUnitFrame, "RaidTargetIcon")
+__Sealed__() class "RaidTargetIcon"  { Texture }
+
 __ChildProperty__(UnitFrame,         "CastBar")
 __ChildProperty__(InSecureUnitFrame, "CastBar")
 __Sealed__() class "CastBar"         { CooldownStatusBar }
@@ -78,6 +82,8 @@ __Sealed__() class "CastBar"         { CooldownStatusBar }
 ------------------------------------------------------------
 --                     Default Style                      --
 ------------------------------------------------------------
+local shareRect                 = RectType()
+
 Style.UpdateSkin("Default",     {
     [NameLabel]                 = {
         drawLayer               = "BORDER",
@@ -88,7 +94,7 @@ Style.UpdateSkin("Default",     {
     [LevelLabel]                = {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
-        text                    = Wow.UnitLevel("Lv. %s"),
+        text                    = Wow.UnitLevel(),
         vertexColor             = Wow.UnitLevelColor(),
     },
     [HealthLabel]               = {
@@ -147,8 +153,6 @@ Style.UpdateSkin("Default",     {
         statusBarColor          = Wow.ClassPowerColor(),
         visible                 = Wow.ClassPowerUsable(),
     },
-    [CastBar]                   = {
-    },
     [DisconnectIcon]            = {
         file                    = [[Interface\CharacterFrame\Disconnect-Icon]],
         size                    = Size(16, 16),
@@ -164,6 +168,27 @@ Style.UpdateSkin("Default",     {
         file                    = [[Interface\RaidFrame\Raid-Icon-Rez]],
         size                    = Size(16, 16),
         visible                 = Wow.UnitIsResurrect(),
+    },
+    [RaidTargetIcon]            = {
+        file                    = [[Interface\TargetingFrame\UI-RaidTargetingIcons]],
+        size                    = Size(16, 16),
+        texCoords               = Wow.UnitRaidTargetIndex():Map(function(index)
+            if index then
+                index               = index - 1
+                local left, right, top, bottom
+                local cIncr         = RAID_TARGET_ICON_DIMENSION / RAID_TARGET_TEXTURE_DIMENSION
+                left                = mod(index , RAID_TARGET_TEXTURE_COLUMNS) * cIncr
+                right               = left + cIncr
+                top                 = floor(index / RAID_TARGET_TEXTURE_ROWS) * cIncr
+                bottom              = top + cIncr
+                shareRect.left      = left
+                shareRect.right     = right
+                shareRect.top       = top
+                shareRect.bottom    = bottom
+            end
+            return shareRect
+        end),
+        visible                 = Wow.UnitRaidTargetIndex():Map(function(val) return val and true or false end),
     },
     [CastBar]                   = {
         cooldown                = Wow.UnitCastCooldown(),

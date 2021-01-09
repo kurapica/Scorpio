@@ -24,6 +24,8 @@ __Sealed__() __ChildProperty__(Frame, "CooldownLabel")
 class "CooldownLabel" (function(_ENV)
     inherit "FontString"
 
+    event "OnCooldownFinished"
+
     --- Whether use auto color on the label based on the duration
     property "AutoColor"        { type = Boolean,   default = true }
 
@@ -65,8 +67,10 @@ class "CooldownLabel" (function(_ENV)
         local total             = start and duration and (start + duration) or 0
         local now               = GetTime()
         local task              = self.TaskID
+        local processed         = false
 
         while total > now do
+            processed           = true
             local remain        = total - now
 
             if remain < self.AlertSecond then
@@ -115,6 +119,10 @@ class "CooldownLabel" (function(_ENV)
         end
 
         self:SetText("")
+
+        if processed then
+            OnCooldownFinished(self)
+        end
     end
 end)
 
@@ -122,14 +130,17 @@ __Sealed__() __ChildProperty__(Frame, "CooldownStatusBar")
 class "CooldownStatusBar" (function(_ENV)
     inherit "StatusBar"
 
+    event "OnCooldownFinished"
+
     local function processCooldown(self, start, duration)
-        if self.AutoHide then self:Show() end
+       self:Show()
 
         local task              = self.TaskID
 
         local now               = GetTime()
         local fin               = start and duration and (start + duration) or 0
         local reversed          = self.Reverse
+        local processed         = false
 
         if duration > 0 and self.ShowSafeZone then
             local safeZone      = self:GetChild("SafeZone")
@@ -144,6 +155,8 @@ class "CooldownStatusBar" (function(_ENV)
         end
 
         if fin > now then
+            processed           = true
+
             self:SetMinMaxValues(0, duration)
 
             while fin > now do
@@ -167,18 +180,25 @@ class "CooldownStatusBar" (function(_ENV)
             self:Hide()
         else
             self:SetMinMaxValues(0, 100)
-            self:SetValue(reversed and 100 or 0)
+            self:SetValue(self.AutoFullValue and 100 or 0)
+        end
+
+        if processed then
+            OnCooldownFinished(self)
         end
     end
 
     --- Whether the status bar is reversed
-    property "Reverse"      { type = Boolean }
+    property "Reverse"          { type = Boolean }
 
     --- Whether show the safe zone
-    property "ShowSafeZone" { type = Boolean, handler = function(self, val) self:GetChild("SafeZone"):SetShown(val or false) end }
+    property "ShowSafeZone"     { type = Boolean, handler = function(self, val) self:GetChild("SafeZone"):SetShown(val or false) end }
 
     --- Whether auto hide the status bar when cooldown finished
-    property "AutoHide"     { type = Boolean, default = true }
+    property "AutoHide"         { type = Boolean, default = true }
+
+    --- Whether set to full value if not in cooldown
+    property "AutoFullValue"    { type = Boolean, default = false }
 
     function SetCooldown(self, start, duration)
         self.TaskID             = (self.TaskID or 0) + 1

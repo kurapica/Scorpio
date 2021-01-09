@@ -79,6 +79,28 @@ function Wow.UnitLevel(format)
         end)
 end
 
+__Static__() __AutoCache__()
+function Wow.UnitClassification()
+    return Wow.FromUnitEvent("UNIT_CLASSIFICATION_CHANGED"):Map(UnitClassification)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitClassificationColor()
+    return Wow.UnitClassification():Map(function(class)
+        if class == "elite" then
+            return Color.YELLOW
+        elseif class == "rare" then
+            return Color.WHITE
+        elseif class == "rareelite" then
+            return Color.CYAN
+        elseif class == "worldboss" then
+            return Color.RAGE
+        else
+            return Color.NORMAL
+        end
+    end)
+end
+
 __Static__() __Arguments__{ ColorType/nil }
 function Wow.UnitLevelColor(default)
     return Wow.FromUnitEvent(Wow.FromEvent("PLAYER_LEVEL_UP"):Map(function(level) return "player", level end))
@@ -141,7 +163,7 @@ function Wow.UnitPowerColor()
                 scolor.b        = 0.5
             else
                 local ptype, ptoken, r, g, b = UnitPowerType(unit)
-                local color     = Color[ptoken]
+                local color     = ptoken and Color[ptoken]
                 if color then return color end
 
                 if r then
@@ -230,6 +252,11 @@ function Wow.UnitIsResurrect()
     end)
 
     return Wow.FromUnitEvent(subject):Map(function(unit) return UnitHasIncomingResurrection(unit) end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitRaidTargetIndex()
+    return Wow.FromUnitEvent(Wow.FromEvent("RAID_TARGET_UPDATE"):Map("=>'any'")):Map(GetRaidTargetIndex)
 end
 
 
@@ -363,11 +390,11 @@ function RefreshClassPower()
 
             if _ClassPowerType == SOULFRAGMENT then
                 -- Use aura to track, keep using Next() for throttling
-                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Next():Subscribe(_ClassPowerSubject)
+                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
             elseif _ClassPowerType == STAGGER then
                 Wow.FromEvent("UNIT_HEALTH"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
                 Wow.FromEvent("UNIT_MAXHEALTH"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
-            elseif _ClassPowerType == PowerType.RUNES then
+            elseif _ClassPowerType == PowerType.Runes then
                 Wow.FromEvent("RUNE_POWER_UPDATE"):Map("=>'player'"):Subscribe(_ClassPowerSubject)
             else
                 Wow.FromEvent("UNIT_POWER_FREQUENT"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
@@ -390,13 +417,13 @@ __Static__() __AutoCache__()
 function Wow.ClassPower()
     if _PlayerClass == "DEATHKNIGHT" then
         -- A simple total rune as basic features
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
     elseif _PlayerClass == "DEMONHUNTER" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
     elseif _PlayerClass == "MONK" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
     else
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
     end
 end
 
@@ -482,18 +509,16 @@ local _UnitCastChannel          = Subject()
 
 __SystemEvent__()
 function UNIT_SPELLCAST_START(unit, castID, spellID)
-    if not _CurrentCastID[unit] then return end
-
     local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
     s, e                        = s / 1000, e / 1000
 
     _CurrentCastID[unit]        = castID
     _CurrentCastEndTime[unit]   = e
 
+    _UnitCastChannel:OnNext(unit, false)
     _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
     _UnitCastInterruptible:OnNext(unit, not i)
-    _UnitCastChannel:OnNext(unit, false)
 end
 
 __SystemEvent__ "UNIT_SPELLCAST_FAILED" "UNIT_SPELLCAST_STOP" "UNIT_SPELLCAST_INTERRUPTED"
@@ -529,38 +554,31 @@ end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_START(unit, castID, spellID)
-    if not _CurrentCastID[unit] then return end
-
     local n, _, t, s, e, _, i   = UnitChannelInfo(unit)
     s, e                        = s / 1000, e / 1000
 
-    _CurrentCastID[unit]        = castID
+    _CurrentCastID[unit]        = nil
     _CurrentCastEndTime[unit]   = e
 
-
+    _UnitCastChannel:OnNext(unit, true)
     _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
     _UnitCastInterruptible:OnNext(unit, i)
-    _UnitCastChannel:OnNext(unit, true)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_UPDATE(unit, castID, spellID)
-    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
-        local n, _, t, s, e     = UnitChannelInfo(unit)
-        s, e                    = s / 1000, e / 1000
+    local n, _, t, s, e         = UnitChannelInfo(unit)
+    s, e                        = s / 1000, e / 1000
 
-        _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
-        _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
-    end
+    _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
+    _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_STOP(unit, castID, spellID)
-    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
-        _UnitCastSubject:OnNext(unit, spellID, nil, nil, 0, 0)
-        _UnitCastDelay:OnNext(unit, 0)
-    end
+    _UnitCastSubject:OnNext(unit, spellID, nil, nil, 0, 0)
+    _UnitCastDelay:OnNext(unit, 0)
 end
 
 __Static__() __AutoCache__()
