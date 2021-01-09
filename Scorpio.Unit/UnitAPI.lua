@@ -19,7 +19,10 @@ __Sealed__() enum "AuraFilter" { "HELPFUL", "HARMFUL", "PLAYER", "RAID", "CANCEL
 ------------------------------------------------------------
 --                    Simple Unit API                     --
 ------------------------------------------------------------
-local MANA                      = _G.Enum.PowerType.Mana
+__Static__()
+function Wow.Unit()
+    return Wow.FromUnitEvent()
+end
 
 __Static__() __AutoCache__()
 function Wow.UnitName(withServer)
@@ -36,22 +39,20 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitExtendColor(withThreat)
-    local scolor                = { r = 1, g = 1, b = 1 }
-    return Wow.FromUnitEvents("UNIT_FACTION", "UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
+    local scolor                = Color(1, 1, 1)
+    return Wow.FromUnitEvent("UNIT_FACTION", "UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
         if not UnitIsPlayer(unit) then
             if UnitIsTapDenied(unit) then return Color.RUNES end
 
             if withThreat and UnitCanAttack("player", unit) then
                 local threat    = UnitThreatSituation("player", unit)
                 if threat and threat > 0 then
-                    return GetThreatStatusColor(threat)
+                    scolor.r, scolor.g, scolor.b = GetThreatStatusColor(threat)
+                    return scolor
                 end
             end
 
-            local r,g,b         = UnitSelectionColor(unit, true)
-            scolor.r            = r or 1
-            scolor.g            = g or 1
-            scolor.b            = b or 1
+            scolor.r, scolor.g, scolor.b = UnitSelectionColor(unit, true)
             return scolor
         end
         local _, cls            = UnitClass(unit)
@@ -92,7 +93,8 @@ end
 -- Unit Health API
 __Static__() __AutoCache__()
 function Wow.UnitHealth()
-    return Wow.FromUnitEvents("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(UnitHealth)
+    -- Use the Next for a tiny delay after the UnitHealthMax
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(UnitHealth)
 end
 
 __Static__() __AutoCache__()
@@ -106,7 +108,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitHealthPercent()
-    return Wow.FromUnitEvents("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(function(unit)
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(function(unit)
             local health        = UnitHealth(unit)
             local max           = UnitHealthMax(unit)
 
@@ -117,21 +119,21 @@ end
 -- Unit Power API
 __Static__() __AutoCache__()
 function Wow.UnitPower(frequent)
-    return Wow.FromUnitEvents(frequent and "UNIT_POWER_FREQUENT" or "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
+    return Wow.FromUnitEvent(frequent and "UNIT_POWER_FREQUENT" or "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Next():Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitPowerMax()
     local minMax                = { min = 0 }
-    return Wow.FromUnitEvents("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
         :Map(function(unit) minMax.max =  UnitPowerMax(unit, (UnitPowerType(unit))) return minMax end)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitPowerColor()
-    local scolor                = { r = 1, g = 1, b = 1, a = 1 }
-    return Wow.FromUnitEvents("UNIT_CONNECTION", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+    local scolor                = Color(1, 1, 1)
+    return Wow.FromUnitEvent("UNIT_CONNECTION", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
         :Map(function(unit)
             if not UnitIsConnected(unit) then
                 scolor.r        = 0.5
@@ -157,20 +159,23 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitMana()
-    return Wow.FromUnitEvents("UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+    local MANA                  = _G.Enum.PowerType.Mana
+    return Wow.FromUnitEvent("UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
         :Map(function(unit) return UnitPower(unit, MANA) end)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitManaMax()
+    local MANA                  = _G.Enum.PowerType.Mana
     local minMax                = { min = 0 }
-    return Wow.FromUnitEvents("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
         :Map(function(unit) minMax.max =  UnitPowerMax(unit, MANA) return minMax end)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitManaVisible()
-    return Wow.FromUnitEvents("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+    local MANA                  = _G.Enum.PowerType.Mana
+    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
         :Map(function(unit) return UnitPowerType(unit) ~= MANA and (UnitPowerMax(unit, MANA) or 0) > 0 end)
 end
 
@@ -178,7 +183,7 @@ end
 __Static__() __Arguments__{ AuraFilter * 0 }
 function Wow.UnitAura(...)
     local filter            = select("#", ...) > 0 and List{ ... }:Join("|") or "HELPFUL"
-    return Wow.FromUnitEvents("UNIT_AURA"):Map(function(unit)
+    return Wow.FromUnitEvent("UNIT_AURA"):Next():Map(function(unit)
 
     end)
 end
@@ -186,7 +191,7 @@ end
 -- Unit State API
 __Static__() __AutoCache__()
 function Wow.UnitIsDisconnected()
-    return Wow.FromUnitEvents("UNIT_HEALTH", "UNIT_CONNECTION"):Map(function(unit) return not UnitIsConnected(unit) end)
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_CONNECTION"):Map(function(unit) return not UnitIsConnected(unit) end)
 end
 
 __Static__() __AutoCache__()
@@ -195,13 +200,17 @@ function Wow.UnitIsTarget()
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitIsPlayer()
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return UnitIsUnit(unit, "player") end)
+function Wow.UnitIsPlayer(isPlayer)
+    if isPlayer == false then
+        return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return not UnitIsUnit(unit, "player") end)
+    else
+        return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return UnitIsUnit(unit, "player") end)
+    end
 end
 
 __Static__() __AutoCache__()
 function Wow.PlayerInCombat()
-    return Wow.FromUnitEvent(Wow.FromEvents("PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT"):Map("=>'player'")):Map(function(unit) return UnitAffectingCombat("player") end)
+    return Wow.FromUnitEvent(Wow.FromEvent("PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT"):Map("=>'player'")):Map(function(unit) return UnitAffectingCombat("player") end)
 end
 
 __Static__() __AutoCache__()
@@ -465,7 +474,7 @@ end
 ------------------------------------------------------------
 local _CurrentCastID            = {}
 local _CurrentCastEndTime       = {}
-local _CurrentCastDelay         = {}
+
 local _UnitCastSubject          = Subject()
 local _UnitCastDelay            = Subject()
 local _UnitCastInterruptible    = Subject()
@@ -473,66 +482,63 @@ local _UnitCastChannel          = Subject()
 
 __SystemEvent__()
 function UNIT_SPELLCAST_START(unit, castID, spellID)
-    local _, _, _, s, e, _, _, i= UnitCastingInfo(unit)
-    _CurrentCastID[unit]        = castID
-    _CurrentCastDelay[unit]     = 0
-    _CurrentCastEndTime[unit]   = e
+    if not _CurrentCastID[unit] then return end
 
+    local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
     s, e                        = s / 1000, e / 1000
 
+    _CurrentCastID[unit]        = castID
+    _CurrentCastEndTime[unit]   = e
 
-    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
+    _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, i)
+    _UnitCastInterruptible:OnNext(unit, not i)
     _UnitCastChannel:OnNext(unit, false)
 end
 
 __SystemEvent__ "UNIT_SPELLCAST_FAILED" "UNIT_SPELLCAST_STOP" "UNIT_SPELLCAST_INTERRUPTED"
 function UNIT_SPELLCAST_FAILED(unit, castID, spellID)
-    if not castID or castID == _CurrentCastID[unit] then
-        _UnitCastSubject:OnNext(unit, spellID, 0, 0)
-        _UnitCastDelay:Only(unit, 0)
-        _UnitCastInterruptible:OnNext(unit, nil)
+    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+        _UnitCastSubject:OnNext(unit, spellID, nil, nil, 0, 0)
+        _UnitCastDelay:OnNext(unit, 0)
     end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_INTERRUPTIBLE(unit)
+    if not _CurrentCastID[unit] then return end
     _UnitCastInterruptible:OnNext(unit, true)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_NOT_INTERRUPTIBLE(unit)
+    if not _CurrentCastID[unit] then return end
     _UnitCastInterruptible:OnNext(unit, false)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_DELAYED(unit, castID, spellID)
-    local _, _, _, s, e, _, _, i= UnitCastingInfo(unit)
-    s, e                        = s / 1000, e / 1000
+    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+        local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
+        s, e                        = s / 1000, e / 1000
 
-    local delay                 = e - _CurrentCastEndTime[unit]
-    _CurrentCastEndTime[unit]   = e
-
-    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
-
-    if delay > 0 then
-        _CurrentCastDelay[unit] = _CurrentCastDelay[unit] + delay
-        _UnitCastDelay:OnNext(unit, _CurrentCastDelay[unit])
+        _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
+        _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
     end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_START(unit, castID, spellID)
-    local _, _, _, s, e, _, i   = UnitChannelInfo(unit)
-    _CurrentCastID[unit]        = castID
-    _CurrentCastDelay[unit]     = 0
-    _CurrentCastEndTime[unit]   = e
+    if not _CurrentCastID[unit] then return end
 
+    local n, _, t, s, e, _, i   = UnitChannelInfo(unit)
     s, e                        = s / 1000, e / 1000
 
+    _CurrentCastID[unit]        = castID
+    _CurrentCastEndTime[unit]   = e
 
-    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
+
+    _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
     _UnitCastInterruptible:OnNext(unit, i)
     _UnitCastChannel:OnNext(unit, true)
@@ -540,34 +546,61 @@ end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_UPDATE(unit, castID, spellID)
-    local _, _, _, s, e         = UnitChannelInfo(unit)
-    s, e                        = s / 1000, e / 1000
+    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+        local n, _, t, s, e     = UnitChannelInfo(unit)
+        s, e                    = s / 1000, e / 1000
 
-    local delay                 = e - _CurrentCastEndTime[unit]
-    _CurrentCastEndTime[unit]   = e
-
-    _UnitCastSubject:OnNext(unit, spellID, s, e - s)
-
-    if delay > 0 then
-        _CurrentCastDelay[unit] = _CurrentCastDelay[unit] + delay
-        _UnitCastDelay:OnNext(unit, _CurrentCastDelay[unit])
+        _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
+        _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
     end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_STOP(unit, castID, spellID)
-    _UnitCastSubject:OnNext(unit, spellID, 0, 0)
-    _UnitCastDelay:Only(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, nil)
+    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+        _UnitCastSubject:OnNext(unit, spellID, nil, nil, 0, 0)
+        _UnitCastDelay:OnNext(unit, 0)
+    end
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitCastCooldown()
     local status                = { start = 0, duration = 0 }
-    return FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, start, stop)
-        status.start            = start
-        status.stop             = stop
+    return Wow.FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, name, icon, start, duration)
+        if spellID then
+            status.start        = start
+            status.duration     = duration
+        else
+            -- Register the Unit Here
+            _CurrentCastID[unit]= 0
+            status.start        = 0
+            status.duration     = 0
+        end
         return status
     end)
 end
 
+__Static__() __AutoCache__()
+function Wow.UnitCastChannel()
+    return Wow.FromUnitEvent(_UnitCastChannel):Map(function(unit, val) return val or false end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitCastInterruptible()
+    return Wow.FromUnitEvent(_UnitCastInterruptible):Map(function(unit, val) return val or false end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitCastName()
+    return Wow.FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, name) return name end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitCastIcon()
+    return Wow.FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, name, icon) return icon end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitCastDelay()
+    return Wow.FromUnitEvent(_UnitCastDelay):Map(function(unit, delay) return delay end)
+end

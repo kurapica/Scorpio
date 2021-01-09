@@ -142,7 +142,6 @@ do
             index               = index + count + 1
         end
 
-        index                   = #cache
         cache[index]            = ncnt
 
         for i = 1, ncnt do
@@ -162,7 +161,6 @@ do
                 currTime        = now
                 Next(onNextProcess, observer, cache)
             end
-
             distinctCache(cache, ...)
         end)
     end
@@ -185,9 +183,14 @@ do
         IObservable.Debounce    = IObservable.Throttle
     end
 
-    __Arguments__{ NEString }
-    function IObservable:ToFormatString(format)
-        return self:Map(function(...) return (select(2, pcall(strformat, format, ...))) end)
+    function IObservable:ColorString()
+        return self:Map(function(color)
+            if type(color) == "table" then
+                return strformat("\124c%.2x%.2x%.2x%.2x", (color.a or 1) * 255, (color.r or 1) * 255, (color.g or 1) * 255, (color.b or 1) * 255)
+            else
+                return ""
+            end
+        end):ToSubject(LiteralSubject)
     end
 end
 
@@ -198,34 +201,33 @@ __Final__() __Sealed__()
 interface "Scorpio.Wow" (function(_ENV)
     local _EventMap             = setmetatable({}, {
         __index                 = function(self, event)
-            local map           = {}
-            rawset(self, event, map)
+            local subject       = Subject()
+            rawset(self, event, subject)
 
             -- Keep register since if the event is used, it should be used frequently
-            _M:RegisterEvent(event, function(...)
-                local obs       = map[0]
-                if obs then obs:OnNext(...) end
+            _M:RegisterEvent(event, function(...) subject:OnNext(...) end)
 
-                -- For mutli-events observable
-                for i = 1, #map do map[i]:OnNext(...) end
-            end)
-
-            return map
+            return subject
         end
     })
 
-    --- The data sequences from the wow event
-    __Static__() __AutoCache__() __Arguments__{ NEString }
-    function FromEvent(event)
-        local subject           = Subject()
-        _EventMap[event][0]     = subject
-        return subject
-    end
+    local _MultiEventMap        = {}
 
-    __Static__() __AutoCache__() __Arguments__{ NEString * 2 }
-    function FromEvents(...)
-        local subject           = Subject()
-        for i = 1, select("#", ...) do tinsert(_EventMap[select(i, ...)], subject) end
-        return subject
+    --- The data sequences from the wow event
+    __Static__() __Arguments__{ NEString * 1 }
+    function FromEvent(...)
+        if select("#", ...) == 1 then
+            return _EventMap[(...)]
+        else
+            local token         = List{ ... }:Join("|")
+            local ob            = _MultiEventMap[token]
+            if not ob then
+                ob              = Observable(function(observer) for i = 1, #ob do _EventMap[ob[i]]:Subscribe(observer) end end)
+                for i = 1, select("#", ...) do ob[i] = select(i, ...) end
+                _MultiEventMap[token] = ob
+            end
+
+            return ob
+        end
     end
 end)

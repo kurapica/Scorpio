@@ -141,7 +141,17 @@ local function applyProperty(self, prop, value)
                 map             = {}
                 _ObsProp[self]  = map
             end
-            map[prop]           = map[prop] or Observer(function(val) return pset(self, val) end)
+
+            if not map[prop] then
+                if prop.nilable then
+                    map[prop]   = Observer(function(val) return pset(self, val) end)
+                elseif prop.default ~= nil then
+                    local dft   = prop.default
+                    map[prop]   = Observer(function(val) if val ~= nil then return pset(self, val) else return pset(self, dft) end end)
+                else
+                    map[prop]   = Observer(function(val) if val ~= nil then return pset(self,val) end end )
+                end
+            end
 
             value:Subscribe(map[prop])
         else
@@ -746,7 +756,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
             end
         end
 
-        if parent == nil then return setParent(self, nil) end
+        if parent == nil then return pcall(setParent, self, nil) end
 
         local pui               = parent[0]
         local children          = _ChildMap[pui]

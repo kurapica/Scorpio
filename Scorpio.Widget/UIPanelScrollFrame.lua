@@ -263,7 +263,7 @@ __Sealed__() class "InputScrollFrame" (function(_ENV)
 end)
 
 __Sealed__() class "HtmlViewer" (function(_ENV)
-    inherit "FauxScrollFrame"
+    inherit "UIPanelScrollFrame"
 
     export { tremove = table.remove, Color }
 
@@ -343,15 +343,23 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
     end
 
     local function onHyperlinkClick(self, ...)
-        return OnHyperlinkClick(self.__Owner, ...)
+        return OnHyperlinkClick(self:GetParent(), ...)
     end
 
     local function onHyperlinkEnter(self, ...)
-        return OnHyperlinkEnter(self.__Owner, ...)
+        return OnHyperlinkEnter(self:GetParent(), ...)
     end
 
     local function onHyperlinkLeave(self, ...)
-        return OnHyperlinkLeave(self.__Owner, ...)
+        return OnHyperlinkLeave(self:GetParent(), ...)
+    end
+
+    local function onSizeChanged(self)
+        local child             = self:GetScrollChild("ScrollChild")
+        child:SetWidth(self:GetWidth() - self:GetChild("ScrollBar"):GetWidth())
+        if(child:GetHeight() <= 0) then child:SetHeight(self:GetHeight()) end
+
+        child:SetText(child.RawText)
     end
 
     ---Run when the mouse clicks a hyperlink in the SimpleHTML fram=
@@ -365,25 +373,26 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
 
     --- Set the html content
     function SetText(self, text)
-        self.__Browser:SetText(parseHTML(text))
+        local child             = self:GetScrollChild()
+        child.RawText           = parseHTML(text)
+        child:SetText(child.RawText)
         self:SetVerticalScroll(0)
     end
 
     __Template__{
-        {
-            ScrollChild         = {
-                Browser         = SimpleHTML,
-            }
-        }
+        ScrollChild             = SimpleHTML
     }
     function __ctor(self)
-        local browser           = self:GetScrollChild():GetChild("Browser")
-        browser.__Owner         = self
-        self.__Browser          = browser
+        local child             = self:GetChild("ScrollChild")
+        self:SetScrollChild(child)
+        self:InstantApplyStyle()
 
-        browser.OnHyperlinkClick= browser.OnHyperlinkClick  + onHyperlinkClick
-        browser.OnHyperlinkEnter= browser.OnHyperlinkEnter  + onHyperlinkEnter
-        browser.OnHyperlinkLeave= browser.OnHyperlinkLeave  + onHyperlinkLeave
+        self.OnSizeChanged      = self.OnSizeChanged + onSizeChanged
+        Next(onSizeChanged, self)
+
+        child.OnHyperlinkClick  = child.OnHyperlinkClick  + onHyperlinkClick
+        child.OnHyperlinkEnter  = child.OnHyperlinkEnter  + onHyperlinkEnter
+        child.OnHyperlinkLeave  = child.OnHyperlinkLeave  + onHyperlinkLeave
     end
 end)
 
@@ -522,14 +531,12 @@ __Sealed__() class "ListFrame" (function(_ENV)
         local scrollChild       = self:GetChild("ScrollChild")
         local count             = self.__ListItems and #self.__ListItems or 0
         local totalheight       = 0
-        local init              = false
 
         for i = 1, self.DisplayCount do
             local btn           = scrollChild:GetChild("ItemButton" .. i)
             if not btn then
-                btn             = ListFrameItemButton("ItemButton" .. i, scrollChild)
+                btn             = self.ListItemButtonType("ItemButton" .. i, scrollChild)
                 btn:InstantApplyStyle()
-                init            = true
 
                 btn:ClearAllPoints()
                 if i == 1 then
@@ -553,10 +560,8 @@ __Sealed__() class "ListFrame" (function(_ENV)
             disidx              = disidx + 1
         end
 
-        if init then
-            local diff          = self:GetHeight() - scrollChild:GetHeight()
-            self:SetHeight(totalheight + diff)
-        end
+        local diff              = self:GetHeight() - scrollChild:GetHeight()
+        self:SetHeight(totalheight + diff)
 
         local yrange            = count - self.DisplayCount
 
@@ -698,12 +703,12 @@ __Sealed__() class "ListFrame" (function(_ENV)
                     for i, v in ipairs(items) do
                         if v.checkvalue == value then
                             rawset(self, "__SelectedIndex", i)
-                            mathed = true
+                            matched = true
                             break
                         end
                     end
 
-                    if not athed then
+                    if not matched then
                         rawset(self, "__SelectedIndex", 0)
                         rawset(self, "__SelectedValue", nil)
                     end
@@ -721,10 +726,13 @@ __Sealed__() class "ListFrame" (function(_ENV)
     }
 
     --- The display item count
-    property "DisplayCount"     { type = Number, default = 5, handler = refreshList }
+    property "DisplayCount"             { type = Number, default = 5, handler = refreshList }
 
     --- Whether don't automatically adjust the scroll range
-    property "NoAutoAdjustScrollRange" { default = true, set = false }
+    property "NoAutoAdjustScrollRange"  { default = true, set = false }
+
+    --- The list item button type
+    property "ListItemButtonType"       { type = -ListFrameItemButton, default = ListFrameItemButton }
 
     --- The methods used to clear all items
     function ClearItems(self)
@@ -1415,14 +1423,12 @@ Style.UpdateSkin("Default",     {
     },
     [HtmlViewer]                = {
         ScrollChild             = {
-            Browser             = {
-                location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
+            --location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "ScrollBar", "LEFT") },
 
-                fontObject      = GameFontNormal,
-                hyperlinksEnabled = true,
-                hyperlinkFormat = "|cff00FF00|H%s|h%s|h|r",
-                textColor       = Color.NORMAL,
-            }
+            fontObject          = GameFontNormal,
+            hyperlinksEnabled   = true,
+            hyperlinkFormat     = "|cff00FF00|H%s|h%s|h|r",
+            textColor           = Color.NORMAL,
         },
     },
     [ListFrameItemButton]       = {
@@ -1440,6 +1446,8 @@ Style.UpdateSkin("Default",     {
 
         ButtonText              = {
             fontObject          = GameFontNormal,
+            location            = { Anchor("LEFT") },
+            justifyH            = "LEFT",
         },
 
         DisplayIcon             = {

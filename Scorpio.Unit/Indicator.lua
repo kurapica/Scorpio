@@ -165,4 +165,9 @@ Style.UpdateSkin("Default",     {
         size                    = Size(16, 16),
         visible                 = Wow.UnitIsResurrect(),
     },
+    [CastBar]                   = {
+        cooldown                = Wow.UnitCastCooldown(),
+        reverse                 = Wow.UnitCastChannel(),
+        showSafeZone            = Wow.UnitIsPlayer(),
+    },
 })

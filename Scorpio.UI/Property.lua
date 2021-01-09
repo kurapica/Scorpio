@@ -35,7 +35,7 @@ do
             end
         end
 
-        local current           = start
+        local current           = target
 
         target                  = target + duration
 
@@ -723,7 +723,7 @@ do
     --- the height of the text displayed in the font string
     UI.Property         {
         name            = "TextHeight",
-        type            = Boolean,
+        type            = Number,
         require         = FontString,
         set             = function(self, val) self:SetTextHeight(val) end,
         get             = function(self) return self:GetLineHeight() end,
@@ -1425,7 +1425,7 @@ do
         name            = "BlingTexture",
         type            = TextureType,
         require         = Cooldown,
-        set             = function(self, val) if val.color then self:SetBlingTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetBlingTexture(val) end end,
+        set             = function(self, val) if val.color then self:SetBlingTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetBlingTexture(val.file) end end,
     }
 
     --- the duration currently shown by the cooldown frame in milliseconds
@@ -1483,7 +1483,7 @@ do
         name            = "EdgeTexture",
         type            = TextureType,
         require         = Cooldown,
-        set             = function(self, val) if val.color then self:SetEdgeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetEdgeTexture(val) end end,
+        set             = function(self, val) if val.color then self:SetEdgeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetEdgeTexture(val.file) end end,
     }
 
     --- Whether hide count down numbers
@@ -1510,7 +1510,8 @@ do
         name            = "SwipeColor",
         type            = ColorType,
         require         = Cooldown,
-        set             = function(self, val) self:SetSwipeColor(val) end,
+        set             = function(self, val) self:SetSwipeColor(val.r, val.g, val.b) end,
+        depends         = { "SwipeTexture" },
     }
 
     --- the swipe texture
@@ -1518,7 +1519,7 @@ do
         name            = "SwipeTexture",
         type            = TextureType,
         require         = Cooldown,
-        set             = function(self, val) if val.color then self:SetSwipeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetSwipeTexture(val) end end,
+        set             = function(self, val) if val.color then self:SetSwipeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetSwipeTexture(val.file) end end,
     }
 
     --- Whether use circular edge
@@ -1770,6 +1771,36 @@ end
 --                         Slider                         --
 ------------------------------------------------------------
 do
+    local smoothValueDelay      = Toolset.newtable(true)
+    local smoothRealValue       = Toolset.newtable(true)
+    local smoothValueFinal      = Toolset.newtable(true)
+
+    __Service__(true)
+    function ProcessSmoothValueUpdate()
+        while true do
+            while next(smoothRealValue) do
+                local now       = GetTime()
+
+                for self, real in pairs(smoothRealValue) do
+                    local diff  = smoothValueFinal[self] - now
+
+                    if diff <= 0 then
+                        self:SetValue(real)
+                        smoothRealValue[self] = nil
+                    else
+                        diff    = diff / (smoothValueDelay[self] or 1)
+                        if diff > 1 then diff = 1 end
+                        self:SetValue(self:GetValue() * diff + real * (1 - diff))
+                    end
+                end
+
+                Next()
+            end
+
+            NextEvent("SCORPIO_UI_SMOOTH_VALUE_PROCESS")
+        end
+    end
+
     --- the texture object for the slider thumb
     UI.Property         {
         name            = "ThumbTexture",
@@ -1836,6 +1867,36 @@ do
         default         = 0,
         set             = function(self, val) self:SetValueStep(val) end,
         get             = function(self) return self:GetValueStep() end,
+    }
+
+    --- A smooth value accessor instead of the Value
+    UI.Property         {
+        name            = "SmoothValue",
+        type            = Number,
+        require         = { Slider, StatusBar },
+        default         = 0,
+        set             = function(self, val)
+            if not next(smoothRealValue) then
+                FireSystemEvent("SCORPIO_UI_SMOOTH_VALUE_PROCESS")
+            end
+
+            smoothRealValue[self]  = val
+            smoothValueFinal[self] = GetTime() + (smoothValueDelay[self] or 1)
+        end,
+    }
+
+    --- The smooth value delay
+    UI.Property         {
+        name            = "SmoothValueDelay",
+        type            = Number,
+        require         = { Slider, StatusBar },
+        default         = 1,
+        set             = function(self, val)
+            smoothValueDelay[self] = val
+        end,
+        get             = function(self)
+            return smoothValueDelay[self] or 1
+        end,
     }
 end
 
@@ -2373,6 +2434,31 @@ do
         name            = "BackgroundFrame",
         require         = Frame,
         childtype       = Frame,
+    }
+
+    UI.Property         {
+        name            = "IconFrame",
+        require         = Frame,
+        childtype       = Frame,
+    }
+
+    -- The Label
+    UI.Property         {
+        name            = "FontString",
+        require         = Frame,
+        childtype       = FontString,
+    }
+
+    UI.Property         {
+        name            = "SecondFontString",
+        require         = Frame,
+        childtype       = FontString,
+    }
+
+    UI.Property         {
+        name            = "ThirdFontString",
+        require         = Frame,
+        childtype       = FontString,
     }
 end
 

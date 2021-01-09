@@ -147,6 +147,9 @@ PLoop(function(_ENV)
         g_EndTime               = 0
         g_AverageTime           = 20    -- An useless init value
 
+        g_PhaseStartTime        = 0     -- Recored the start phase time
+        g_PhaseStartProfile     = 0     -- The start profile time of current phase
+
         -- For diagnosis
         g_DelayedTask           = 0
         g_MaxPhaseTime          = 0
@@ -190,7 +193,7 @@ PLoop(function(_ENV)
                 end
 
                 -- Record the start time
-                g_StartTime     = debugprofilestop()
+                g_StartTime     = g_PhaseStartProfile   -- debugprofilestop()
 
                 -- Move task to core based on priority
                 -- High priority means it should be processed as soon as possible
@@ -230,6 +233,10 @@ PLoop(function(_ENV)
                 g_PhaseTime     = min(PHASE_THRESHOLD, g_PhaseTime + 1000 * PHASE_TIME_FACTOR / max(10, GetFramerate() or 60))
 
                 g_Threshold     = g_StartTime + g_PhaseTime
+
+                -- Check if too much time cost by events(with low cpu), we still need some time to process the high priority tasks
+                local currStop  = debugprofilestop()
+                if g_Threshold <= currStop then g_Threshold = currStop + g_PhaseTime end
             elseif not r_Tasks[1] then
                 -- Only tasks of high priority can be executed again and again in a phase
                 local cache                 = t_Tasks[HIGH_PRIORITY]
@@ -723,6 +730,28 @@ PLoop(function(_ENV)
         end
 
         ----------------------------------------------
+        --             Next Observable              --
+        ----------------------------------------------
+        local rycNextObserver   = Recycle(Observer)
+
+        function rycNextObserver:OnInit(ob)
+            ob.OnNextCore       = function(...)
+                ob:Unsubscribe()
+                ob:Resubscribe()
+
+                local thread    = ob.NextThread
+
+                ob.NextThread   = nil
+                rycNextObserver(ob)
+
+                if thread then
+                    resume(thread, ...)
+                    queueTask(HIGH_PRIORITY, thread)
+                end
+            end
+        end
+
+        ----------------------------------------------
         --               Addon Helper               --
         ----------------------------------------------
         _SlashCmdList           = _G.SlashCmdList
@@ -901,6 +930,12 @@ PLoop(function(_ENV)
         --             Scorpio Manager              --
         ----------------------------------------------
         function ScorpioManager:OnEvent(evt, ...)
+            local now           = GetTime()
+            if now > g_PhaseStartTime then
+                g_PhaseStartTime = now
+                g_PhaseStartProfile = debugprofilestop()
+            end
+
             local cache         = t_EventTasks[evt]
             local wcache        = t_WaitEventTasks[evt]
 
@@ -935,6 +970,11 @@ PLoop(function(_ENV)
 
         function ScorpioManager:OnUpdate()
             local now           = GetTime()
+
+            if now > g_PhaseStartTime then
+                g_PhaseStartTime = now
+                g_PhaseStartProfile = debugprofilestop()
+            end
 
             -- Make sure unexpected error won't stop the whole task system
             if now > g_Phase then g_InPhase = false end
@@ -1295,10 +1335,9 @@ PLoop(function(_ENV)
             local thread        = running()
             if not thread then error("Scorpio.Next(observable) can only be used in a thread.", 2) end
 
-            observable:Take(1):Subscribe(function(...)
-                resume(thread, ...)
-                queueTask(HIGH_PRIORITY, thread)
-            end)
+            local obNext        = rycNextObserver()
+            obNext.NextThread   = thread
+            observable:Subscribe(obNext)
 
             return yieldReturn(yield())
         end

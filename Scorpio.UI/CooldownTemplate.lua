@@ -58,10 +58,13 @@ class "CooldownLabel" (function(_ENV)
     property "MinuteSuffix"     { type = String,    default = "m" }
 
     --- Set the cooldown status
-    __AsyncSingle__(true)
+    __Async__()
     function SetCooldown(self, start, duration)
+        self.TaskID             = (self.TaskID or 0) + 1
+
         local total             = start and duration and (start + duration) or 0
         local now               = GetTime()
+        local task              = self.TaskID
 
         while total > now do
             local remain        = total - now
@@ -106,6 +109,8 @@ class "CooldownLabel" (function(_ENV)
                 Delay(remain > 0 and remain or 86400)
             end
 
+            if task ~= self.TaskID then return end
+
             now                 = GetTime()
         end
 
@@ -117,19 +122,26 @@ __Sealed__() __ChildProperty__(Frame, "CooldownStatusBar")
 class "CooldownStatusBar" (function(_ENV)
     inherit "StatusBar"
 
-    --- Whether the status bar is reversed
-    property "Reverse"      { type = Boolean }
+    local function processCooldown(self, start, duration)
+        if self.AutoHide then self:Show() end
 
-    --- Whether auto hide the status bar when cooldown finished
-    property "AutoHide"     { type = Boolean, default = true }
-
-    __AsyncSingle__(true)
-    function SetCooldown(self, start, duration)
-        Next() -- waiting the reverse settings to be applied at the same time
+        local task              = self.TaskID
 
         local now               = GetTime()
         local fin               = start and duration and (start + duration) or 0
         local reversed          = self.Reverse
+
+        if duration > 0 and self.ShowSafeZone then
+            local safeZone      = self:GetChild("SafeZone")
+            local _,_,_,latency = GetNetStats()
+            local pct           = (latency or 0) / 1000 / duration
+            if pct > 1 then pct = 1 end
+
+            safeZone:ClearAllPoints()
+            safeZone:SetPoint("BOTTOM")
+            safeZone:SetPoint(reversed and "TOPLEFT" or "TOPRIGHT")
+            safeZone:SetWidth(pct * self:GetWidth())
+        end
 
         if fin > now then
             self:SetMinMaxValues(0, duration)
@@ -138,16 +150,49 @@ class "CooldownStatusBar" (function(_ENV)
                 local remain    = now - start
                 self:SetValue(reversed and (fin - now) or remain)
 
-                Delay(max(0.1, remain / 100))
+                if remain > 10 then
+                    Delay(max(0.1, remain / 100))
+                else
+                    Next()
+                end
+
+                if task ~= self.TaskID then return end
 
                 now             = GetTime()
             end
         end
 
         -- Reset
-        self:SetMinMaxValues(0, 100)
-        self:SetValue(reversed and 100 or 0)
-        if self.AutoHide then self:Hide() end
+        if self.AutoHide then
+            self:Hide()
+        else
+            self:SetMinMaxValues(0, 100)
+            self:SetValue(reversed and 100 or 0)
+        end
+    end
+
+    --- Whether the status bar is reversed
+    property "Reverse"      { type = Boolean }
+
+    --- Whether show the safe zone
+    property "ShowSafeZone" { type = Boolean, handler = function(self, val) self:GetChild("SafeZone"):SetShown(val or false) end }
+
+    --- Whether auto hide the status bar when cooldown finished
+    property "AutoHide"     { type = Boolean, default = true }
+
+    function SetCooldown(self, start, duration)
+        self.TaskID             = (self.TaskID or 0) + 1
+        if not self:IsShown() and duration <= 0 then return end
+
+        -- waiting the reverse settings to be applied at the same time
+        Next(processCooldown, self, start, duration)
+    end
+
+    __Template__{
+        SafeZone                = Texture,
+    }
+    function __ctor(self)
+        self:GetChild("SafeZone"):SetShown(false)
     end
 end)
 
@@ -159,14 +204,7 @@ UI.Property                     {
     name                        = "Cooldown",
     type                        = CooldownStatus,
     require                     = { Cooldown, CooldownLabel, CooldownStatusBar },
-    nilable                     = true,
-    set                         = function(self, val)
-        if val and val.duration then
-            self:SetCooldown(val.start or GetTime(), val.duration)
-        else
-            self:SetCooldown(GetTime(), 0)
-        end
-    end,
+    set                         = function(self, val) self:SetCooldown(val.start or GetTime(), val.duration or 0) end,
 }
 
 ----------------------------------------------
@@ -177,5 +215,11 @@ Style.UpdateSkin("Default",     {
         drawLayer               = "ARTWORK",
         fontObject              = CombatTextFont,
         textColor               = Color.WHITE,
-    }
+    },
+    [CooldownStatusBar]         = {
+        SafeZone                = {
+            drawLayer           = "ARTWORK",
+            color               = Color.WHITE,
+        }
+    },
 })
