@@ -13,9 +13,6 @@ namespace "Scorpio.Secure.UnitFrame"
 
 import "System.Reactive"
 
---- The aura filters
-__Sealed__() enum "AuraFilter" { "HELPFUL", "HARMFUL", "PLAYER", "RAID", "CANCELABLE", "NOT_CANCELABLE", "INCLUDE_NAME_PLATE_ONLY" }
-
 ------------------------------------------------------------
 --                    Simple Unit API                     --
 ------------------------------------------------------------
@@ -202,12 +199,9 @@ function Wow.UnitManaVisible()
 end
 
 -- The Aura API
-__Static__() __Arguments__{ AuraFilter * 0 }
-function Wow.UnitAura(...)
-    local filter            = select("#", ...) > 0 and List{ ... }:Join("|") or "HELPFUL"
-    return Wow.FromUnitEvent("UNIT_AURA"):Next():Map(function(unit)
-
-    end)
+__Static__() __AutoCache__()
+function Wow.UnitAura()
+    return Wow.FromUnitEvent("UNIT_AURA"):Next()
 end
 
 -- Unit State API

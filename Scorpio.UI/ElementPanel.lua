@@ -130,8 +130,15 @@ __Sealed__() class "ElementPanel" (function(_ENV)
             local ele
 
             for i = self.Count + 1, index do
-                local ele       = self:GetChild(self.ElementPrefix .. i) or self.ElementType(self.ElementPrefix .. i, self)
-                ele.ID          = i
+                local ele       = self:GetChild(self.ElementPrefix .. i)
+
+                if not ele then
+                    ele         = self.ElementType(self.ElementPrefix .. i, self)
+                    ele.ID      = i
+
+                    OnElementCreated(self, ele)
+                end
+
                 ele:Show()
 
                 adjustElement(ele, self)
@@ -162,6 +169,9 @@ __Sealed__() class "ElementPanel" (function(_ENV)
 
     -- Fired when an element is removed
     event "OnElementRemove"
+
+    -- Fired when an element is created
+    event "OnElementCreated"
 
     ------------------------------------------------------
     -- Method
