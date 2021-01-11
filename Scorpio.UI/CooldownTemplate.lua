@@ -80,7 +80,7 @@ class "CooldownLabel" (function(_ENV)
                     self:SetText(strformat("%.1f", remain))
                 end
                 Delay(0.1)
-            elseif remain < 60 then
+            elseif remain <= 60 then
                 if self.AutoColor then
                     self:SetText(self.SecondColor .. ceil(remain))
                 else
@@ -235,6 +235,7 @@ Style.UpdateSkin("Default",     {
         drawLayer               = "ARTWORK",
         fontObject              = CombatTextFont,
         textColor               = Color.WHITE,
+        location                = { Anchor("CENTER") },
     },
     [CooldownStatusBar]         = {
         SafeZone                = {

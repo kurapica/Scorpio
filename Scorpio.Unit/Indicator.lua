@@ -78,7 +78,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     local validate              = Enum.ValidateValue
     local shareCooldown         = { start = 0, duration = 0 }
 
-    local function refreshAura(self, filter, eleIdx, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
+    local function refreshAura(self, unit, filter, eleIdx, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
         if not name or eleIdx > self.MaxCount then return eleIdx end
 
         if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...) then
@@ -92,7 +92,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             self.AuraCount[eleIdx]          = count
             self.AuraDebuff[eleIdx]         = dtype
             self.AuraCooldown[eleIdx]       = shareCooldown
-            self.AuraStealable[eleIdx]      = isStealable
+            self.AuraStealable[eleIdx]      = isStealable and not UnitIsUnit(unit, "player")
             self.AuraSpellID[eleIdx]        = spellID
             self.AuraBossDebuff[eleIdx]     = isBossDebuff
             self.AuraCastByPlayer[eleIdx]   = castByPlayer
@@ -101,7 +101,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
         end
 
         auraIdx                 = auraIdx + 1
-        return refreshAura(self, filter, eleIdx, auraIdx, UnitAura(unit, auraIdx, filter))
+        return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAura(unit, auraIdx, filter))
     end
 
     local function OnElementCreated(self, ele)
@@ -114,9 +114,9 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
-    property "Filter"           {
+    property "AuraFilter"       {
         type                    = struct{ AuraFilter } + String,
-        field                   = "__AuraPanel_Filter",
+        field                   = "__AuraPanel_AuraFilter",
         set                     = function(self, filter)
             -- No more check, just keep it simple
             if type(filter) == "table" then
@@ -126,10 +126,10 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             end
 
             if filter == "" then
-                for i = self.Count, 1, -1 do
-                    self.Elements[i]:Hide()
-                end
+                self.Count      = 0
             end
+
+            self.__AuraPanel_AuraFilter = filter
         end,
     }
 
@@ -137,12 +137,10 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
 
     property "Refresh"          {
         set                     = function(self, unit)
-            local filter        = self.Filter
+            local filter        = self.AuraFilter
             if not filter or filter == "" then return end
 
-            for i = self.Count, refreshAura(self, filter, 1, 1, UnitAura(unit, 1, filter)), -1 do
-                self.Elements[i]:Hide()
-            end
+            self.Count          = refreshAura(self, unit, filter, 1, 1, UnitAura(unit, 1, filter)) - 1
         end
     }
 
@@ -176,7 +174,6 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     __Indexer__() __Observable__()
     property "AuraCastByPlayer" { set = Toolset.fakefunc }
 
-
     ------------------------------------------------------
     -- Constructor
     ------------------------------------------------------
@@ -196,6 +193,37 @@ __Sealed__() class "DebuffPanel"     { AuraPanel }
 __ChildProperty__(UnitFrame,         "ClassBuffPanel")
 __ChildProperty__(InSecureUnitFrame, "ClassBuffPanel")
 __Sealed__() class "ClassBuffPanel"  { AuraPanel }
+
+__Sealed__() class "AuraPanelIcon"  (function(_ENV)
+    inherit "Frame"
+
+    local isObjectType          = Class.IsObjectType
+
+    local function OnEnter(self)
+        if self.ShowTooltip then
+            local parent        = self:GetParent()
+            while parent and not isObjectType(parent, IUnitFrame) do
+                parent          = parent:GetParent()
+            end
+
+            if not parent then return end
+
+            GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
+            GameTooltip:SetUnitAura(parent.Unit, self.ID, self:GetParent().Filter)
+        end
+    end
+
+    local function OnLeave(self)
+        GameTooltip:Hide()
+    end
+
+    property "ShowTooltip"      { type = Boolean, default = true }
+
+    function __ctor(self)
+        self.OnEnter            = self.OnEnter + OnEnter
+        self.OnLeave            = self.OnLeave + OnLeave
+    end
+end)
 
 ------------------------------------------------------------
 --                     Default Style                      --
@@ -315,14 +343,27 @@ Style.UpdateSkin("Default",     {
     },
     [AuraPanel]                 = {
         refresh                 = Wow.UnitAura(),
+        elementType             = AuraPanelIcon,
+
+        frameStrata             = "MEDIUM",
+        columnCount             = 6,
+        rowCount                = 6,
+        elementWidth            = 16,
+        elementHeight           = 16,
+        hSpacing                = 2,
+        vSpacing                = 2,
+        enableMouse             = false,
     },
     [BuffPanel]                 = {
-        filter                  = "HELPFUL",
+        auraFilter              = "HELPFUL",
     },
     [DebuffPanel]               = {
-        filter                  = "HARMFUL",
+        auraFilter              = "HARMFUL",
     },
     [ClassBuffPanel]            = {
-        filter                  = "PLAYER",
+        auraFilter              = "PLAYER",
+    },
+    [AuraPanelIcon]             = {
+        enableMouse             = true,
     },
 })

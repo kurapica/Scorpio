@@ -13,8 +13,8 @@ import "System.Reactive"
 
 local isUIObject                = UI.IsUIObject
 local isObjectType              = Class.IsObjectType
-local isProperty                = Property.Validate
-local isIsIndexerProperty       = Property.IsIndexer
+local isProperty                = System.Property.Validate
+local isIndexerProperty         = System.Property.IsIndexer
 local getCurrentTarget          = Scorpio.UI.Style.GetCurrentTarget
 local getFeature                = Class.GetFeature
 
@@ -51,7 +51,7 @@ function Wow.FromPanelProperty(name)
                 if isObjectType(parent, ElementPanel) then
                     index       = frame.ID
                     local prop  = getFeature(getmetatable(parent), name, true)
-                    if prop and isIsIndexerProperty(prop) then
+                    if prop and isIndexerProperty(prop) then
                         subject = Observable.From(parent, name)
                     end
                     break

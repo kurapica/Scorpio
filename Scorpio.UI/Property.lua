@@ -555,7 +555,7 @@ do
     --- The texture file path
     UI.Property         {
         name            = "File",
-        type            = String,
+        type            = String + Number,
         require         = { Texture, Line },
         get             = function(self) return self:GetTextureFilePath() end,
         set             = function(self, val) self:SetTexture(val, _HWrapMode[self], _VWrapMode[self], _FilterMode[self]) end,
