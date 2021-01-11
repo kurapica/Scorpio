@@ -2441,25 +2441,6 @@ do
         require         = Frame,
         childtype       = Frame,
     }
-
-    -- The Label
-    UI.Property         {
-        name            = "FontString",
-        require         = Frame,
-        childtype       = FontString,
-    }
-
-    UI.Property         {
-        name            = "SecondFontString",
-        require         = Frame,
-        childtype       = FontString,
-    }
-
-    UI.Property         {
-        name            = "ThirdFontString",
-        require         = Frame,
-        childtype       = FontString,
-    }
 end
 
 -----------------------------------------------------------
