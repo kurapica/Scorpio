@@ -204,6 +204,11 @@ function Wow.UnitAura()
     return Wow.FromUnitEvent("UNIT_AURA"):Next()
 end
 
+__Static__() __AutoCache__()
+function Wow.UnitTotem()
+    return Wow.FromUnitEvent(Wow.FromEvent("PLAYER_TOTEM_UPDATE"):Map("=>'player'"))
+end
+
 -- Unit State API
 __Static__() __AutoCache__()
 function Wow.UnitIsDisconnected()

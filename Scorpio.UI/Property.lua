@@ -653,8 +653,8 @@ do
         name            = "StartPoint",
         type            = Anchor,
         require         = Line,
-        set             = function(self, anchor) self:SetStartPoint(fromAnchor(anchor)) end,
-        get             = function(self) return toAnchor(self:GetStartPoint()) end,
+        set             = function(self, anchor) self:SetStartPoint(fromAnchor(self, anchor)) end,
+        get             = function(self) return toAnchor(self, self:GetStartPoint()) end,
     }
 
     --- the end point of the line
@@ -662,8 +662,8 @@ do
         name            = "EndPoint",
         type            = Anchor,
         require         = Line,
-        set             = function(self, anchor) self:SetEndPoint(fromAnchor(anchor)) end,
-        get             = function(self) return toAnchor(self:GetEndPoint()) end,
+        set             = function(self, anchor) self:SetEndPoint(fromAnchor(self, anchor)) end,
+        get             = function(self) return toAnchor(self, self:GetEndPoint()) end,
     }
 
     --- the thickness of the line

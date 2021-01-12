@@ -225,6 +225,96 @@ __Sealed__() class "AuraPanelIcon"  (function(_ENV)
     end
 end)
 
+__ChildProperty__(UnitFrame,        "TotemPanel")
+__ChildProperty__(InSecureUnitFrame,"TotemPanel")
+__Sealed__() class "TotemPanel"     (function(_ENV)
+    inherit "ElementPanel"
+
+    import "System.Reactive"
+
+    local MAX_TOTEMS            = _G.MAX_TOTEMS
+    local SLOT_MAP              = {}
+
+    for slot, index in ipairs(select(2, UnitClass("player")) == "SHAMAN" and _G.SHAMAN_TOTEM_PRIORITIES or _G.STANDARD_TOTEM_PRIORITIES) do
+        SLOT_MAP[index]         = slot
+    end
+
+    local shareCooldown         = { start = 0, duration = 0 }
+
+    local function OnElementCreated(self, ele)
+        return ele:InstantApplyStyle()
+    end
+
+    ------------------------------------------------------
+    -- Property
+    ------------------------------------------------------
+    property "Refresh"          {
+        set                     = function(self, unit)
+            local eleIdx        = 1
+            for i = 1, MAX_TOTEMS do
+                local haveTotem, name, startTime, duration, icon = GetTotemInfo(SLOT_MAP[i])
+                if haveTotem then
+                    self.Elements[eleIdx]:Show()
+                    self.Elements[eleIdx].Slot  = SLOT_MAP[i]
+
+                    shareCooldown.start         = startTime
+                    shareCooldown.duration      = duration
+
+                    self.TotemName[eleIdx]      = name
+                    self.TotemIcon[eleIdx]      = icon
+                    self.TotemCooldown[eleIdx]  = shareCooldown
+
+                    eleIdx      = eleIdx + 1
+                end
+            end
+
+            self.Count          = eleIdx - 1
+        end
+    }
+
+    ------------------------------------------------------
+    -- Observable Property
+    ------------------------------------------------------
+    __Indexer__() __Observable__()
+    property "TotemName"        { set = Toolset.fakefunc }
+
+    __Indexer__() __Observable__()
+    property "TotemIcon"        { set = Toolset.fakefunc }
+
+    __Indexer__() __Observable__()
+    property "TotemCooldown"    { set = Toolset.fakefunc }
+
+    ------------------------------------------------------
+    -- Constructor
+    ------------------------------------------------------
+    function __ctor(self)
+        self.OnElementCreated   = self.OnElementCreated + OnElementCreated
+    end
+end)
+
+__Sealed__() class "TotemPanelIcon"  (function(_ENV)
+    inherit "Frame"
+
+    local function OnEnter(self)
+        if self.ShowTooltip then
+            GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
+            GameTooltip:SetTotem(self.Slot)
+        end
+    end
+
+    local function OnLeave(self)
+        GameTooltip:Hide()
+    end
+
+    property "Slot"             { type = Number }
+    property "ShowTooltip"      { type = Boolean, default = true }
+
+    function __ctor(self)
+        self.OnEnter            = self.OnEnter + OnEnter
+        self.OnLeave            = self.OnLeave + OnLeave
+    end
+end)
+
 ------------------------------------------------------------
 --                     Default Style                      --
 ------------------------------------------------------------
@@ -364,6 +454,23 @@ Style.UpdateSkin("Default",     {
         auraFilter              = "PLAYER",
     },
     [AuraPanelIcon]             = {
+        enableMouse             = true,
+    },
+    [TotemPanel]                = {
+        refresh                 = Wow.UnitTotem(),
+        visible                 = Wow.UnitIsPlayer(),
+        elementType             = TotemPanelIcon,
+
+        frameStrata             = "MEDIUM",
+        columnCount             = _G.MAX_TOTEMS,
+        rowCount                = 1,
+        elementWidth            = 16,
+        elementHeight           = 16,
+        hSpacing                = 2,
+        vSpacing                = 2,
+        enableMouse             = false,
+    },
+    [TotemPanelIcon]            = {
         enableMouse             = true,
     },
 })
