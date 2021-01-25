@@ -321,7 +321,6 @@ class "SecurePanel" (function(_ENV)
     property "Elements"         {
         get                     = function(self, index)
             if index >= 1 and index <= self.ColumnCount * self.RowCount then
-
                 if self:GetChild(self.ElementPrefix .. index) then return self:GetChild(self.ElementPrefix .. index) end
 
                 if self.ElementType and not InCombatLockdown() then

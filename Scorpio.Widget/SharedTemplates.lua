@@ -285,7 +285,6 @@ class "Mask" (function(_ENV)
     end
 
     local function updateBindKey(self, key)
-        local oldKey            = self.BindingKey
         key                     = key:upper()
 
         if _BlockKey[key] then return end
@@ -300,6 +299,8 @@ class "Mask" (function(_ENV)
             end
             return
         end
+
+        local oldKey            = self.BindingKey
 
         if key == "ESCAPE" then
             if oldKey then
@@ -339,24 +340,31 @@ class "Mask" (function(_ENV)
         self:SetSize(parent:GetSize())
     end
 
-    local function OnHide(self)
+    local function checkMoving(self)
+        local start             = GetTime()
 
+        repeat Next() until _Moving[self] == nil or (GetTime() - start) >= START_MOVE_RESIZE_DELAY
+
+        if _Moving[self] == nil then return end
+        local parent            = self:GetParent()
+
+        _Moving[self]           = LayoutFrame.GetLocation(parent)
+        parent:StartMoving()
+        return OnStartMoving(self)
     end
 
     local function OnMouseDown(self)
         local parent            = self:GetParent()
         if parent:IsMovable() then
-            _Moving[self]       = LayoutFrame.GetLocation(parent)
-            parent:StartMoving()
-            return OnStartMoving(self)
+            _Moving[self]       = false
+            return Continue(checkMoving, self)
         end
     end
 
     local function OnMouseUp(self)
         local loc               = _Moving[self]
+        _Moving[self]           = nil
         if loc then
-            _Moving[self]       = nil
-
             local parent        = self:GetParent()
             parent:StopMovingOrSizing()
 
@@ -407,12 +415,6 @@ class "Mask" (function(_ENV)
         end
     end
 
-    local function OnStartResizing(self)
-    end
-
-    local function OnStopResizing(self)
-    end
-
     ---------------------------------------------------
     --                    Method                     --
     ---------------------------------------------------
@@ -423,7 +425,7 @@ class "Mask" (function(_ENV)
 
     --- Whether the mask is moving
     function IsMoving(self)
-
+        return _Moving[self] and true or false
     end
 
     --- Enable the key binding
@@ -490,7 +492,6 @@ class "Mask" (function(_ENV)
     }
     function __ctor(self)
         self.OnShow             = self.OnShow           + OnShow
-        self.OnHide             = self.OnHide           + OnHide
         self.OnMouseDown        = self.OnMouseDown      + OnMouseDown
         self.OnMouseUp          = self.OnMouseUp        + OnMouseUp
         self.OnClick            = self.OnClick          + OnClick
@@ -499,8 +500,6 @@ class "Mask" (function(_ENV)
         self.OnEnter            = self.OnEnter          + OnEnter
         self.OnLeave            = self.OnLeave          + OnLeave
         self.OnParentChanged    = self.OnParentChanged  + OnParentChanged
-        self.OnStartResizing    = self.OnStartResizing  + OnStartResizing
-        self.OnStopResizing     = self.OnStopResizing   + OnStopResizing
 
         self:RegisterForClicks("AnyUp")
 

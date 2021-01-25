@@ -30,6 +30,8 @@ local tsort                     = table.sort
 local isObservable              = function(val) return type(val) == "table" and isObjectType(val, IObservable) end
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
 
+local parentPath                = {}
+
 local CHILD_SETTING             = 0   -- For children
 
 ----------------------------------------------
@@ -673,7 +675,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
                 obj             = validate(UI, _G[str], true)
             else
                 local children  = _ChildMap[obj[0]]
-                obj             = children and children[str]
+                obj             = children and children[str] or UIObject.GetPropertyChild(obj, str)
             end
             if not obj then return end
         end
@@ -694,6 +696,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
             else
                 local parent    = self:GetParent()
                 local pname     = parent and parent:GetName(true)
+                name            = _PropertyChildName[self] or name
                 if pname then return pname .. "." .. name end
             end
         else
@@ -1967,6 +1970,67 @@ function UIObject:GetPropertyChild(name, create)
     local prop                  = props and props[strlower(name)]
 
     return prop and prop.childtype and prop.get(self, not create)
+end
+
+-- Get the relative UI Elements based on the name, nil means parent
+__Arguments__{ NEString/nil }
+function UIObject:GetRelativeUI(relativeTo)
+    if relativeTo then
+        local rtar
+
+        -- $parent.xxx.xxx
+        if relativeTo:find(".", 1, true) then
+            for pattern in relativeTo:gmatch("[^%.]+") do
+                if pattern:lower() == "$parent" then
+                    rtar    = (rtar or self):GetParent()
+                else
+                    local p = rtar or self:GetParent()
+                    rtar    = UIObject.GetChild(p, pattern) or UIObject.GetPropertyChild(p, pattern)
+                end
+                if not rtar then break end
+            end
+        else
+            local p = self:GetParent()
+            rtar    = p and (UIObject.GetChild(p, relativeTo) or UIObject.GetPropertyChild(p, relativeTo))
+        end
+
+        return rtar or UIObject.FromName(relativeTo)
+    else
+        return self:GetParent()
+    end
+end
+
+--- Gets the relative ui access name
+__Arguments__{ UI }
+function UIObject:GetRelativeUIName(frame)
+    local parent                = self:GetParent()
+
+    -- Use nil represent the parent
+    if UI.IsSameUI(frame, parent) then return nil end
+
+    -- Use brother's name
+    if UI.IsSameUI(frame:GetParent(), parent) then return frame:GetName() end
+
+    local fullName              = UIObject.GetName(self, true)
+    local tarFullName           = UIObject.GetName(frame, true)
+
+    -- Check the max same prefix
+    local index                 = 1
+    if fullName and tarFullName then
+        while fullName:byte(index) == tarFullName:byte(index) do index = index + 1 end
+        if index > #fullName and tarFullName:byte(index) == 46 then
+            -- the frame is a child
+            return tarFullName:sub(index + 1, -1)
+        elseif index > #tarFullName and fullName:byte(index) == 46 then
+            -- means parent
+            return (fullName:sub(index + 1, -1):gsub("[^%.]+", "$parent"))
+        end
+
+        while index > 1 and fullName:byte(index - 1) ~= 46 do index = index - 1 end
+        return index > 1 and (fullName:sub(index, -1):gsub("[^%.]+", "$parent") .. "." .. tarFullName:sub(index, -1)) or tarFullName
+    else
+        return false
+    end
 end
 
 ----------------------------------------------

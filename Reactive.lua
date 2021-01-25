@@ -105,6 +105,14 @@ do
     -- multiple-times in one phase(the same value will be blocked until the next phase)
     local _Recyle               = Recycle()
 
+    local function onNextSingleProcess(observer, cache)
+        for single in pairs(cache) do
+            observer:OnNext(single)
+        end
+
+        _Recyle(wipe(cache))
+    end
+
     local function onNextProcess(observer, cache)
         local index             = 1
 
@@ -150,19 +158,31 @@ do
     end
 
     __Observable__()
-    function IObservable:Next()
+    function IObservable:Next(multi)
         local cache
         local currTime          = 0
 
-        return Operator(self, function(observer, ...)
-            local now           = GetTime()
-            if now ~= currTime then
-                cache           = _Recyle()
-                currTime        = now
-                Next(onNextProcess, observer, cache)
-            end
-            distinctCache(cache, ...)
-        end)
+        if multi then
+            return Operator(self, function(observer, ...)
+                local now           = GetTime()
+                if now ~= currTime then
+                    cache           = _Recyle()
+                    currTime        = now
+                    Next(onNextProcess, observer, cache)
+                end
+                distinctCache(cache, ...)
+            end)
+        else
+            return Operator(self, function(observer, single)
+                local now           = GetTime()
+                if now ~= currTime then
+                    cache           = _Recyle()
+                    currTime        = now
+                    Next(onNextSingleProcess, observer, cache)
+                end
+                if single ~= nil then cache[single] = true end
+            end)
+        end
     end
 
     if not IObservable.Throttle then

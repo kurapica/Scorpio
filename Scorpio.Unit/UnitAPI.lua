@@ -109,95 +109,6 @@ function Wow.UnitLevelColor(default)
         end)
 end
 
--- Unit Health API
-__Static__() __AutoCache__()
-function Wow.UnitHealth()
-    -- Use the Next for a tiny delay after the UnitHealthMax
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(UnitHealth)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthMax()
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent("UNIT_MAXHEALTH"):Map(function(unit)
-            minMax.max          = UnitHealthMax(unit) or 100
-            return minMax
-        end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthPercent()
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(function(unit)
-            local health        = UnitHealth(unit)
-            local max           = UnitHealthMax(unit)
-
-            return floor(0.5 + (health and max and health / max * 100) or 0)
-        end)
-end
-
--- Unit Power API
-__Static__() __AutoCache__()
-function Wow.UnitPower(frequent)
-    return Wow.FromUnitEvent(frequent and "UNIT_POWER_FREQUENT" or "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Next():Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitPowerMax()
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) minMax.max =  UnitPowerMax(unit, (UnitPowerType(unit))) return minMax end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitPowerColor()
-    local scolor                = Color(1, 1, 1)
-    return Wow.FromUnitEvent("UNIT_CONNECTION", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit)
-            if not UnitIsConnected(unit) then
-                scolor.r        = 0.5
-                scolor.g        = 0.5
-                scolor.b        = 0.5
-            else
-                local ptype, ptoken, r, g, b = UnitPowerType(unit)
-                local color     = ptoken and Color[ptoken]
-                if color then return color end
-
-                if r then
-                    scolor.r    = r
-                    scolor.g    = g
-                    scolor.b    = b
-                else
-                    return Color.MANA
-                end
-            end
-
-            return scolor
-        end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitMana()
-    local MANA                  = _G.Enum.PowerType.Mana
-    return Wow.FromUnitEvent("UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) return UnitPower(unit, MANA) end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitManaMax()
-    local MANA                  = _G.Enum.PowerType.Mana
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) minMax.max =  UnitPowerMax(unit, MANA) return minMax end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitManaVisible()
-    local MANA                  = _G.Enum.PowerType.Mana
-    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) return UnitPowerType(unit) ~= MANA and (UnitPowerMax(unit, MANA) or 0) > 0 end)
-end
-
 -- The Aura API
 __Static__() __AutoCache__()
 function Wow.UnitAura()
@@ -212,7 +123,7 @@ end
 -- Unit State API
 __Static__() __AutoCache__()
 function Wow.UnitIsDisconnected()
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_CONNECTION"):Map(function(unit) return not UnitIsConnected(unit) end)
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_CONNECTION"):Next():Map(function(unit) return not UnitIsConnected(unit) end)
 end
 
 __Static__() __AutoCache__()
@@ -221,12 +132,13 @@ function Wow.UnitIsTarget()
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitIsPlayer(isPlayer)
-    if isPlayer == false then
-        return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return not UnitIsUnit(unit, "player") end)
-    else
-        return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return UnitIsUnit(unit, "player") end)
-    end
+function Wow.UnitIsPlayer()
+    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return UnitIsUnit(unit, "player") end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitNotPlayer()
+    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return not UnitIsUnit(unit, "player") end)
 end
 
 __Static__() __AutoCache__()
@@ -258,9 +170,55 @@ function Wow.UnitRaidTargetIndex()
     return Wow.FromUnitEvent(Wow.FromEvent("RAID_TARGET_UPDATE"):Map("=>'any'")):Map(GetRaidTargetIndex)
 end
 
+__Static__() __AutoCache__()
+function Wow.UnitThreatLevel()
+    return Wow.FromUnitEvent("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
+        return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitGroupRoster()
+    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE"):Map("=>'any'")):Map(function(unit)
+        if IsInRaid() and not UnitHasVehicleUI(unit) then
+            if GetPartyAssignment('MAINTANK', unit) then
+                return "MAINTANK"
+            elseif GetPartyAssignment('MAINASSIST', unit) then
+                return "MAINASSIST"
+            else
+                return "NONE"
+            end
+        else
+            return "NONE"
+        end
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitGroupRosterVisible()
+    return Wow.UnitGroupRoster():Map(function(assign) return assign and assign ~= "NONE" or false end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitRole()
+    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED"):Map("=>'any'")):Map(UnitGroupRolesAssigned)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitRoleVisible()
+    return Wow.UnitRole():Map(function(role) return role and role ~= "NONE" or false end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitIsLeader()
+    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PARTY_LEADER_CHANGED"):Map("=>'any'")):Map(function(unit)
+        return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit)
+    end)
+end
+
 
 ------------------------------------------------------------
---                    Class Power API                     --
+--                     Unit Power API                     --
 ------------------------------------------------------------
 local _PlayerClass              = select(2, UnitClass("player"))
 local _ClassPowerType, _ClassPowerToken, _PrevClassPowerType
@@ -279,7 +237,7 @@ local FindAuraByName            = _G.AuraUtil.FindAuraByName
 local PowerType                 = _G.Enum.PowerType
 
 __Async__()
-function OnEnable()
+OnEnable                        = OnEnable + function ()
     -- Use the custom unit event to provide the API
     if _PlayerClass == "WARRIOR" then
 
@@ -494,6 +452,68 @@ function Wow.ClassPowerUsable()
     return Wow.FromUnitEvent(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
 end
 
+__Static__() __AutoCache__()
+function Wow.UnitPower(frequent)
+    return Wow.FromUnitEvent(frequent and "UNIT_POWER_FREQUENT" or "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Next():Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitPowerMax()
+    local minMax                = { min = 0 }
+    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Map(function(unit) minMax.max =  UnitPowerMax(unit, (UnitPowerType(unit))) return minMax end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitPowerColor()
+    local scolor                = Color(1, 1, 1)
+    return Wow.FromUnitEvent("UNIT_CONNECTION", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Map(function(unit)
+            if not UnitIsConnected(unit) then
+                scolor.r        = 0.5
+                scolor.g        = 0.5
+                scolor.b        = 0.5
+            else
+                local ptype, ptoken, r, g, b = UnitPowerType(unit)
+                local color     = ptoken and Color[ptoken]
+                if color then return color end
+
+                if r then
+                    scolor.r    = r
+                    scolor.g    = g
+                    scolor.b    = b
+                else
+                    return Color.MANA
+                end
+            end
+
+            return scolor
+        end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitMana()
+    local MANA                  = _G.Enum.PowerType.Mana
+    return Wow.FromUnitEvent("UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Map(function(unit) return UnitPower(unit, MANA) end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitManaMax()
+    local MANA                  = _G.Enum.PowerType.Mana
+    local minMax                = { min = 0 }
+    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Map(function(unit) minMax.max =  UnitPowerMax(unit, MANA) return minMax end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitManaVisible()
+    local MANA                  = _G.Enum.PowerType.Mana
+    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
+        :Map(function(unit) return UnitPowerType(unit) ~= MANA and (UnitPowerMax(unit, MANA) or 0) > 0 end)
+end
+
 
 ------------------------------------------------------------
 --                     Unit Cast API                      --
@@ -620,4 +640,141 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitCastDelay()
     return Wow.FromUnitEvent(_UnitCastDelay):Map(function(unit, delay) return delay end)
+end
+
+
+------------------------------------------------------------
+--                      READY CHECK                       --
+------------------------------------------------------------
+local _ReadyChecking            = 0
+local _ReadyCheckSubject        = Subject()
+local _ReadyCheckConfirmSubject = Subject()
+
+__SystemEvent__() __Async__()
+function READY_CHECK()
+    _ReadyChecking              = 1
+    _ReadyCheckSubject:OnNext("any")
+
+    if "READY_CHECK_FINISHED" == Wait("READY_CHECK_FINISHED", "PLAYER_REGEN_DISABLED") then
+        _ReadyChecking          = 2
+        _ReadyCheckConfirmSubject:OnNext("any")
+
+        Wait(8, "PLAYER_REGEN_DISABLED")
+    end
+
+    _ReadyChecking              = 0
+    _ReadyCheckSubject:OnNext("any")
+end
+
+__SystemEvent__()
+function READY_CHECK_CONFIRM()
+    _ReadyCheckConfirmSubject:OnNext("any")
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitReadyCheckVisible()
+    return Wow.FromUnitEvent(_ReadyCheckSubject):Map(function() return _ReadyChecking > 0 end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitReadyCheck()
+    return Wow.FromUnitEvent(_ReadyCheckConfirmSubject):Map(function(unit)
+        if _ReadyChecking == 0 then return end
+
+        local state             = GetReadyCheckStatus(unit)
+        return _ReadyChecking == 2 and state == "waiting" and "notready" or state
+    end)
+end
+
+
+------------------------------------------------------------
+--                      UNIT HEALTH                       --
+------------------------------------------------------------
+__Static__() __AutoCache__()
+function Wow.UnitHealth()
+    -- Use the Next for a tiny delay after the UnitHealthMax
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(UnitHealth)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthMax()
+    local minMax                = { min = 0 }
+    return Wow.FromUnitEvent("UNIT_MAXHEALTH"):Map(function(unit)
+        minMax.max              = UnitHealthMax(unit) or 100
+        return minMax
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthPercent()
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(function(unit)
+        local health            = UnitHealth(unit)
+        local max               = UnitHealthMax(unit)
+
+        return floor(0.5 + (health and max and health / max * 100) or 0)
+    end)
+end
+
+__Static__() __AutoCache__() __Arguments__{ Number/1 }
+function Wow.UnitHealPrediction(maxHealOverflowRatio)
+    local prediction            = HealPrediction()
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+        :Next()
+        :Map(function(unit)
+            local health        = UnitHealth(unit)
+            local maxHealth     = UnitHealthMax(unit)
+
+            if maxHealth <= 0 then
+                prediction.myIncomingHeal   = 0
+                prediction.allIncomingHeal  = 0
+                prediction.otherIncomingHeal= 0
+                prediction.totalAbsorb      = 0
+                prediction.totalHealAbsorb  = 0
+                return prediction
+            end
+
+            local myIncomingHeal            = UnitGetIncomingHeals(unit, "player") or 0
+            local allIncomingHeal           = UnitGetIncomingHeals(unit) or 0
+            local totalAbsorb               = UnitGetTotalAbsorbs(unit) or 0
+            local totalHealAbsorb           = UnitGetTotalHealAbsorbs(unit) or 0
+            local otherIncomingHeal         = 0
+            local overHealAbsorb            = false
+            local overAbsorb                = false
+
+            if health < totalHealAbsorb then
+                totalHealAbsorb             = health
+               overHealAbsorb               = true
+            end
+
+            if health - totalHealAbsorb + allIncomingHeal > maxHealth * maxHealOverflowRatio then
+                allIncomingHeal             = maxHealth * maxHealOverflowRatio - health + totalHealAbsorb
+            end
+
+            --Split up incoming heals.
+            if allIncomingHeal >= myIncomingHeal then
+                otherIncomingHeal           = allIncomingHeal - myIncomingHeal
+            else
+                myIncomingHeal              = allIncomingHeal
+            end
+
+            if health - totalHealAbsorb + allIncomingHeal + totalAbsorb >= maxHealth or health + totalAbsorb >= maxHealth then
+                overAbsorb                  = totalAbsorb > 0
+
+                if allIncomingHeal > totalHealAbsorb then
+                    totalAbsorb             = max(0, maxHealth - (health - totalHealAbsorb + allIncomingHeal))
+                else
+                    totalAbsorb             = max(0, maxHealth - health)
+                end
+            end
+
+            prediction.myIncomingHeal       = myIncomingHeal
+            prediction.allIncomingHeal      = allIncomingHeal
+            prediction.otherIncomingHeal    = otherIncomingHeal
+            prediction.totalAbsorb          = totalAbsorb
+            prediction.totalHealAbsorb      = totalHealAbsorb
+            prediction.overAbsorb           = overAbsorb
+            prediction.overHealAbsorb       = overHealAbsorb
+
+            return prediction
+        end)
 end

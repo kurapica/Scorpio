@@ -62,6 +62,22 @@ __ChildProperty__(UnitFrame,         "RaidTargetIcon")
 __ChildProperty__(InSecureUnitFrame, "RaidTargetIcon")
 __Sealed__() class "RaidTargetIcon"  { Texture }
 
+__ChildProperty__(UnitFrame,         "ReadyCheckIcon")
+__ChildProperty__(InSecureUnitFrame, "ReadyCheckIcon")
+__Sealed__() class "ReadyCheckIcon"  { Texture }
+
+__ChildProperty__(UnitFrame,         "RaidRosterIcon")
+__ChildProperty__(InSecureUnitFrame, "RaidRosterIcon")
+__Sealed__() class "RaidRosterIcon"  { Texture }
+
+__ChildProperty__(UnitFrame,         "RoleIcon")
+__ChildProperty__(InSecureUnitFrame, "RoleIcon")
+__Sealed__() class "RoleIcon"        { Texture }
+
+__ChildProperty__(UnitFrame,         "LeaderIcon")
+__ChildProperty__(InSecureUnitFrame, "LeaderIcon")
+__Sealed__() class "LeaderIcon"      { Texture }
+
 __ChildProperty__(UnitFrame,         "CastBar")
 __ChildProperty__(InSecureUnitFrame, "CastBar")
 __Sealed__() class "CastBar"         { CooldownStatusBar }
@@ -87,6 +103,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             shareCooldown.start             = expires - duration
             shareCooldown.duration          = duration
 
+            self.AuraIndex[eleIdx]          = auraIdx
             self.AuraName[eleIdx]           = name
             self.AuraIcon[eleIdx]           = icon
             self.AuraCount[eleIdx]          = count
@@ -148,6 +165,9 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     -- Observable Property
     ------------------------------------------------------
     __Indexer__() __Observable__()
+    property "AuraIndex"        { set = Toolset.fakefunc }
+
+    __Indexer__() __Observable__()
     property "AuraName"         { set = Toolset.fakefunc }
 
     __Indexer__() __Observable__()
@@ -200,7 +220,7 @@ __Sealed__() class "AuraPanelIcon"  (function(_ENV)
     local isObjectType          = Class.IsObjectType
 
     local function OnEnter(self)
-        if self.ShowTooltip then
+        if self.ShowTooltip and self.AuraIndex then
             local parent        = self:GetParent()
             while parent and not isObjectType(parent, IUnitFrame) do
                 parent          = parent:GetParent()
@@ -209,7 +229,7 @@ __Sealed__() class "AuraPanelIcon"  (function(_ENV)
             if not parent then return end
 
             GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
-            GameTooltip:SetUnitAura(parent.Unit, self.ID, self:GetParent().Filter)
+            GameTooltip:SetUnitAura(parent.Unit, self.AuraIndex, self:GetParent().AuraFilter)
         end
     end
 
@@ -218,6 +238,8 @@ __Sealed__() class "AuraPanelIcon"  (function(_ENV)
     end
 
     property "ShowTooltip"      { type = Boolean, default = true }
+
+    property "AuraIndex"        { type = Number }
 
     function __ctor(self)
         self.OnEnter            = self.OnEnter + OnEnter
@@ -313,6 +335,96 @@ __Sealed__() class "TotemPanelIcon"  (function(_ENV)
         self.OnEnter            = self.OnEnter + OnEnter
         self.OnLeave            = self.OnLeave + OnLeave
     end
+end)
+
+-- A health bar with prediction elements
+__ChildProperty__(UnitFrame,        "PredictionHealthBar")
+__ChildProperty__(InSecureUnitFrame,"PredictionHealthBar")
+__Sealed__() class "PredictionHealthBar" (function(_ENV)
+    inherit "StatusBar"
+
+    property "HealPrediction"   {
+        type                    = HealPrediction,
+        handler                 = function(self, prediction)
+            local myIncomingHeal    = prediction.myIncomingHeal
+            local allIncomingHeal   = prediction.allIncomingHeal
+            local otherIncomingHeal = prediction.otherIncomingHeal
+            local totalAbsorb       = prediction.totalAbsorb
+            local totalHealAbsorb   = prediction.totalHealAbsorb
+
+            self:GetChild("OverHealAbsorbGlow"):SetShown(prediction.overHealAbsorb)
+            self:GetChild("OverAbsorbGlow"):SetShown(prediction.overAbsorb)
+
+            local healthTexture = frame.healthBar:GetStatusBarTexture();
+
+            local totalHealAbsorbPercent = totalHealAbsorb / maxHealth;
+
+            local healAbsorbTexture = nil;
+
+            --If allIncomingHeal is greater than totalHealAbsorb, then the current
+            --heal absorb will be completely overlayed by the incoming heals so we don't show it.
+            if ( totalHealAbsorb > allIncomingHeal ) then
+                local shownHealAbsorb = totalHealAbsorb - allIncomingHeal;
+                local shownHealAbsorbPercent = shownHealAbsorb / maxHealth;
+                healAbsorbTexture = CompactUnitFrameUtil_UpdateFillBar(frame, healthTexture, frame.myHealAbsorb, shownHealAbsorb, -shownHealAbsorbPercent);
+
+                --If there are incoming heals the left shadow would be overlayed by the incoming heals
+                --so it isn't shown.
+                if ( allIncomingHeal > 0 ) then
+                    frame.myHealAbsorbLeftShadow:Hide();
+                else
+                    frame.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0);
+                    frame.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0);
+                    frame.myHealAbsorbLeftShadow:Show();
+                end
+
+                -- The right shadow is only shown if there are absorbs on the health bar.
+                if ( totalAbsorb > 0 ) then
+                    frame.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0);
+                    frame.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0);
+                    frame.myHealAbsorbRightShadow:Show();
+                else
+                    frame.myHealAbsorbRightShadow:Hide();
+                end
+            else
+                frame.myHealAbsorb:Hide();
+                frame.myHealAbsorbRightShadow:Hide();
+                frame.myHealAbsorbLeftShadow:Hide();
+            end
+
+            --Show myIncomingHeal on the health bar.
+            local incomingHealsTexture = CompactUnitFrameUtil_UpdateFillBar(frame, healthTexture, frame.myHealPrediction, myIncomingHeal, -totalHealAbsorbPercent);
+            --Append otherIncomingHeal on the health bar.
+            incomingHealsTexture = CompactUnitFrameUtil_UpdateFillBar(frame, incomingHealsTexture, frame.otherHealPrediction, otherIncomingHeal);
+
+            --Appen absorbs to the correct section of the health bar.
+            local appendTexture = nil;
+            if ( healAbsorbTexture ) then
+                --If there is a healAbsorb part shown, append the absorb to the end of that.
+                appendTexture = healAbsorbTexture;
+            else
+                --Otherwise, append the absorb to the end of the the incomingHeals part;
+                appendTexture = incomingHealsTexture;
+            end
+            CompactUnitFrameUtil_UpdateFillBar(frame, appendTexture, frame.totalAbsorb, totalAbsorb)
+        end
+    }
+
+
+    __Template__{
+        MyHealPrediction        = Texture,
+        OtherHealPrediction     = Texture,
+        TotalAbsorb             = Texture,
+        TotalAbsorbOverlay      = Texture,
+
+        MyHealAbsorb            = Texture,
+        MyHealAbsorbLeftShadow  = Texture,
+        MyHealAbsorbRightShadow = Texture,
+
+        OverAbsorbGlow          = Texture,
+        OverHealAbsorbGlow      = Texture,
+    }
+    function __ctor(self) end
 end)
 
 ------------------------------------------------------------
@@ -426,6 +538,35 @@ Style.UpdateSkin("Default",     {
         end),
         visible                 = Wow.UnitRaidTargetIndex():Map(function(val) return val and true or false end),
     },
+    [ReadyCheckIcon]            = {
+        file                    = Wow.UnitReadyCheck():Map(function(state)
+            return state == "ready"    and READY_CHECK_READY_TEXTURE
+                or state == "notready" and READY_CHECK_NOT_READY_TEXTURE
+                or state == "waiting"  and READY_CHECK_WAITING_TEXTURE
+                or nil
+        end),
+        visible                 = Wow.UnitReadyCheckVisible(),
+        size                    = Size(16, 16),
+    },
+    [RaidRosterIcon]            = {
+        file                    = Wow.UnitGroupRoster():Map(function(assign)
+            return assign == "MAINTANK"   and [[Interface\GROUPFRAME\UI-GROUP-MAINTANKICON]]
+                or assign == "MAINASSIST" and [[Interface\GROUPFRAME\UI-GROUP-MAINASSISTICON]]
+                or nil
+        end),
+        size                    = Size(16, 16),
+    },
+    [RoleIcon]                  = {
+        file                    = Wow.UnitRole():Map(function(role)
+            return role and role ~= "NONE" and GetTexCoordsForRoleSmallCircle(role) or nil
+        end),
+        size                    = Size(16, 16),
+    },
+    [LeaderIcon]                = {
+        file                    = [[Interface\GroupFrame\UI-Group-LeaderIcon]],
+        size                    = Size(16, 16),
+        visible                 = Wow.UnitIsLeader(),
+    },
     [CastBar]                   = {
         cooldown                = Wow.UnitCastCooldown(),
         reverse                 = Wow.UnitCastChannel(),
@@ -455,6 +596,7 @@ Style.UpdateSkin("Default",     {
     },
     [AuraPanelIcon]             = {
         enableMouse             = true,
+        auraIndex               = Wow.FromPanelProperty("AuraIndex"),
     },
     [TotemPanel]                = {
         refresh                 = Wow.UnitTotem(),
@@ -472,5 +614,57 @@ Style.UpdateSkin("Default",     {
     },
     [TotemPanelIcon]            = {
         enableMouse             = true,
+    },
+    [PredictionHealthBar]       = {
+        frameStrata             = "LOW",
+        enableMouse             = false,
+        statusBarColor          = Color.GREEN,
+        statusBarTexture        = {
+            file                = [[Interface\TargetingFrame\UI-StatusBar]],
+        },
+
+        value                   = Wow.UnitHealth(),
+        minMaxValues            = Wow.UnitHealthMax(),
+        healPrediction          = Wow.UnitHealPrediction(),
+
+        MyHealPrediction        = {
+            drawLayer           = "BORDER",
+            subLevel            = 5,
+        },
+        OtherHealPrediction     = {
+            drawLayer           = "BORDER",
+            subLevel            = 5,
+        },
+        TotalAbsorb             = {
+            drawLayer           = "BORDER",
+            subLevel            = 5,
+        },
+        TotalAbsorbOverlay      = {
+            drawLayer           = "BORDER",
+            subLevel            = 6,
+        },
+        MyHealAbsorb            = {
+            drawLayer           = "ARTWORK",
+            subLevel            = 1,
+        },
+        MyHealAbsorbLeftShadow  = {
+            file                = [[Interface\RaidFrame\Absorb-Edge]],
+            drawLayer           = "ARTWORK",
+            subLevel            = 1,
+        },
+        MyHealAbsorbRightShadow = {
+            file                = [[Interface\RaidFrame\Absorb-Edge]],
+            drawLayer           = "ARTWORK",
+            subLevel            = 1,
+            texCoords           = RectType(1, 0, 0, 1),
+        },
+        OverAbsorbGlow          = {
+            drawLayer           = "ARTWORK",
+            subLevel            = 2,
+        },
+        OverHealAbsorbGlow      = {
+            drawLayer           = "ARTWORK",
+            subLevel            = 2,
+        },
     },
 })

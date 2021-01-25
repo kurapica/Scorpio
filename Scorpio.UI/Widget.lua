@@ -102,24 +102,13 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
     __Final__() __Arguments__{}:Throwable()
     function GetLocation(self)
         local loc               = {}
-        local parent            = self:GetParent()
 
         for i = 1, self:GetNumPoints() do
             local p, f, r, x, y = self:GetPoint(i)
 
             if f then
-                if IsSameUI(f, parent) then
-                    -- Don't save parent
-                    f           = nil
-                elseif IsSameUI(f:GetParent(), parent) then
-                    -- Save the brother's name, it may be a child generated from property
-                    f           = UIObject.GetChildPropertyName(f) or f:GetName()
-                    if not f then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
-                else
-                    -- Save its full name
-                    f           = f:GetName(true)
-                    if not f then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
-                end
+                f               = UIObject.GetRelativeUIName(self, f)
+                if f == false then throw("Usage: LayoutFrame:GetLocation() - The System can't identify the relativeTo frame's name") end
             end
 
             if r == p then r    = nil end
@@ -139,19 +128,11 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
 
         for i, anchor in ipairs(oLoc) do
             local relativeTo    = anchor.relativeTo
-            local relativeFrame
+            local relativeFrame = UIObject.GetRelativeUI(self, relativeTo)
 
-            if relativeTo then
-                relativeFrame   = parent and (UIObject.GetChild(parent, relativeTo) or UIObject.GetPropertyChild(parent, relativeTo)) or UIObject.FromName(relativeTo)
-
-                if not relativeFrame then
-                    throw("Usage: LayoutFrame:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.")
-                end
+            if not relativeFrame then
+                throw("Usage: LayoutFrame:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.")
             else
-                relativeFrame   = parent
-            end
-
-            if relativeFrame then
                 local e         = self:GetEffectiveScale()/UIParent:GetScale()
                 local x, y      = GetPos(self, anchor.point, e)
                 local rx, ry    = GetPos(relativeFrame, anchor.relativePoint or anchor.point, e)
@@ -170,41 +151,11 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
             self:ClearAllPoints()
 
             for _, anchor in ipairs(loc) do
-                local relativeTo= anchor.relativeTo
+                local relativeTo= UIObject.GetRelativeUI(self, anchor.relativeTo)
 
-                if relativeTo then
-                    local rtar
-
-                    -- $parent.xxx.xxx
-                    if relativeTo:find(".", 1, true) then
-                        for pattern in relativeTo:gmatch("[^%.]+") do
-                            if pattern:lower() == "$parent" then
-                                rtar    = (rtar or self):GetParent()
-                            else
-                                local p = rtar or self:GetParent()
-                                rtar    = UIObject.GetChild(p, pattern) or UIObject.GetPropertyChild(p, pattern)
-                            end
-                            if not rtar then break end
-                        end
-                    else
-                        local p = self:GetParent()
-                        rtar    = p and (UIObject.GetChild(p, relativeTo) or UIObject.GetPropertyChild(p, relativeTo))
-                    end
-
-                    if not rtar then
-                        rtar    = UIObject.FromName(relativeTo)
-                    end
-
-                    if not rtar then
-                        throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo - " .. relativeTo)
-                    end
-
-                    relativeTo  = rtar
+                if not relativeTo then
+                    throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo - " .. anchor.relativeTo)
                 else
-                    relativeTo  = self:GetParent()
-                end
-
-                if relativeTo then
                     self:SetPoint(anchor.point, relativeTo, anchor.relativePoint or anchor.point, anchor.x or 0, anchor.y or 0)
                 end
             end

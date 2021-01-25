@@ -676,7 +676,7 @@ end
 --- The root unit frame widget class with hover spell casting
 -- We can bind short keys to the hover spell group, each unit frame can have a group
 --
--- UnitFrame.HoverSpellGroups["Default"].Spell["Holy Light"].With["target'].Key = "ctrl-f"
+-- UnitFrame.HoverSpellGroups["Default"].Spell["Holy Light"].With["target"].Key = "ctrl-f"
 -- UnitFrame.HoverSpellGroups["Default"].MacroText["/cast Holy Light"].Key = "ctrl-f"
 --
 __Sealed__() __SecureTemplate__"SecureUnitButtonTemplate, SecureHandlerAttributeTemplate"

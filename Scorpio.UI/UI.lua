@@ -560,6 +560,17 @@ do
         { name = "set",         type = Function, require = true },
         { name = "get",         type = Any }
     }
+
+    __Sealed__()
+    struct "HealPrediction" {
+        { name = "myIncomingHeal",      type = Number, default = 0 },
+        { name = "allIncomingHeal",     type = Number, default = 0 },
+        { name = "otherIncomingHeal",   type = Number, default = 0 },
+        { name = "totalAbsorb",         type = Number, default = 0 },
+        { name = "totalHealAbsorb",     type = Number, default = 0 },
+        { name = "overAbsorb",          type = Boolean },
+        { name = "overHealAbsorb",      type = Boolean },
+    }
 end
 
 ----------------------------------------------

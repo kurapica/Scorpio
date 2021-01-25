@@ -264,6 +264,17 @@ class "SecureGroupPanel" (function(_ENV)
             end
         ]]
 
+        local function refreshActiveState(self)
+            NoCombat(function()
+                if self.ActivatedInCombat then
+                    self:RegisterStateDriver("visibility", ("[combat]show;hide"))
+                else
+                    self:UnregisterStateDriver("visibility")
+                    self:SetShown(self.Activated)
+                end
+            end)
+        end
+
         ------------------------------------------------------
         -- Method
         ------------------------------------------------------
@@ -306,16 +317,6 @@ class "SecureGroupPanel" (function(_ENV)
             self:Execute(_RegisterUnitFrame)
         end
 
-        -- Activate the unit panel
-        function Activate(self)
-            return not self:IsShown() and NoCombat(self.Show, self)
-        end
-
-        -- Deactivate the unit panel
-        function Deactivate(self)
-            return self:IsShown() and NoCombat(self.Hide, self)
-        end
-
         -- Set whether only show dead players
         __NoCombat__()
         function SetShowDeadOnly(self, flag)
@@ -337,9 +338,16 @@ class "SecureGroupPanel" (function(_ENV)
         ------------------------------------------------------
         -- Whether the unit panel is activated
         property "Activated" {
-            get                 = function(self) return self:IsShown() end,
-            set                 = function(self, value) if value then self:Activate() else self:Deactivate() end end,
+            handler             = refreshActiveState,
             type                = Boolean,
+            default             = false,
+        }
+
+        -- Whether the panel is only activated during combat
+        property "ActivatedInCombat" {
+            handler             = refreshActiveState,
+            type                = Boolean,
+            default             = false,
         }
 
         -- Whether only show the dead players
@@ -439,22 +447,6 @@ class "SecureGroupPanel" (function(_ENV)
         return self:RefreshLayout()
     end
 
-    -- Init the unit panel with a unit count
-    __NoCombat__()
-    function InitWithCount(self, count)
-        self.Count = count
-    end
-
-    -- Activate the unit panel
-    function Activate(self)
-        self.GroupHeader:Activate()
-    end
-
-    -- Deactivate the unit panel
-    function Deactivate(self)
-        self.GroupHeader:Deactivate()
-    end
-
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
@@ -462,6 +454,13 @@ class "SecureGroupPanel" (function(_ENV)
     property "Activated"        {
         get                     = function(self) return self.GroupHeader.Activated end,
         set                     = function(self, value) self.GroupHeader.Activated = value end,
+        type                    = Boolean,
+    }
+
+    -- Whether the panel is only activated during combat
+    property "ActivatedInCombat" {
+        get                     = function(self) return self.GroupHeader.ActivatedInCombat end,
+        set                     = function(self, value) self.GroupHeader.ActivatedInCombat = value end,
         type                    = Boolean,
     }
 
@@ -497,7 +496,6 @@ class "SecureGroupPanel" (function(_ENV)
     __Set__(PropertySet.Clone)
     property "GroupFilter"      {
         handler                 = function (self, value)
-            if value and not next(value) then self.GroupFilter = nil return end
             setupGroupFilter(self)
             if self.GroupBy == "GROUP" then setupGroupingOrder(self) end
         end,
@@ -508,7 +506,6 @@ class "SecureGroupPanel" (function(_ENV)
     __Set__(PropertySet.Clone)
     property "ClassFilter"      {
         handler                 = function (self, value)
-            if value and not next(value) then self.ClassFilter = nil return end
             setupGroupFilter(self)
             if self.GroupBy == "CLASS" then setupGroupingOrder(self) end
         end,
@@ -519,7 +516,6 @@ class "SecureGroupPanel" (function(_ENV)
     __Set__(PropertySet.Clone)
     property "RoleFilter"       {
         handler                 = function (self, value)
-            if value and not next(value) then self.RoleFilter = nil return end
             setupRoleFilter(self)
             if self.GroupBy == "ROLE" or self.GroupBy == "ASSIGNEDROLE" then
                 setupGroupingOrder(self)
@@ -568,6 +564,7 @@ class "SecureGroupPanel" (function(_ENV)
     local function OnElementAdd(self, element)
         element.UnitWatchEnabled = false
         element:SetAttribute("unit", nil)
+        element:InstantApplyStyle()
 
         self.GroupHeader:RegisterUnitFrame(element)
     end
