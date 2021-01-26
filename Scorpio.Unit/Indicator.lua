@@ -343,73 +343,148 @@ __ChildProperty__(InSecureUnitFrame,"PredictionHealthBar")
 __Sealed__() class "PredictionHealthBar" (function(_ENV)
     inherit "StatusBar"
 
+    local  function updateFillBar(self, previousTexture, bar, amount, barOffsetXPercent)
+        local totalWidth, totalHeight   = self:GetSize()
+
+        if ( totalWidth == 0 or amount == 0 ) then
+            bar:Hide()
+            if ( bar.overlay ) then
+                bar.overlay:Hide()
+            end
+            return previousTexture
+        end
+
+        local barOffsetX                = 0
+        if ( barOffsetXPercent ) then
+            barOffsetX                  = totalWidth * barOffsetXPercent
+        end
+
+        bar:ClearAllPoints()
+        bar:SetPoint("TOPLEFT", previousTexture, "TOPRIGHT", barOffsetX, 0)
+        bar:SetPoint("BOTTOMLEFT", previousTexture, "BOTTOMRIGHT", barOffsetX, 0)
+
+        local _, totalMax = self:GetMinMaxValues()
+
+        local barSize                   = (amount / totalMax) * totalWidth
+        bar:SetWidth(barSize)
+        bar:Show()
+        if ( bar.overlay ) then
+            bar.overlay:SetTexCoord(0, barSize / bar.overlay.tileSize, 0, totalHeight / bar.overlay.tileSize)
+            bar.overlay:Show()
+        end
+        return bar
+    end
+
     property "HealPrediction"   {
-        type                    = HealPrediction,
-        handler                 = function(self, prediction)
-            local myIncomingHeal    = prediction.myIncomingHeal
-            local allIncomingHeal   = prediction.allIncomingHeal
-            local otherIncomingHeal = prediction.otherIncomingHeal
-            local totalAbsorb       = prediction.totalAbsorb
-            local totalHealAbsorb   = prediction.totalHealAbsorb
+        handler                 = function(self, unit)
+            local maxHealth                 = unt and UnitHealthMax(unit) or 0
 
-            self:GetChild("OverHealAbsorbGlow"):SetShown(prediction.overHealAbsorb)
-            self:GetChild("OverAbsorbGlow"):SetShown(prediction.overAbsorb)
+            if maxHealth <= 0 then
+                self.myHealPrediction:Hide()
+                self.otherHealPrediction:Hide()
+                self.totalAbsorb:Hide()
+                self.totalAbsorbOverlay:Hide()
+                self.myHealAbsorb:Hide()
+                self.myHealAbsorbLeftShadow:Hide()
+                self.overAbsorbGlow:Hide()
+                self.overHealAbsorbGlow:Hide()
+                return
+            end
 
-            local healthTexture = frame.healthBar:GetStatusBarTexture();
+            local health                    = unit and UnitHealth(unit)
 
-            local totalHealAbsorbPercent = totalHealAbsorb / maxHealth;
+            local myIncomingHeal            = UnitGetIncomingHeals(unit, "player") or 0
+            local allIncomingHeal           = UnitGetIncomingHeals(unit) or 0
+            local totalAbsorb               = UnitGetTotalAbsorbs(unit) or 0
+            local totalHealAbsorb           = UnitGetTotalHealAbsorbs(unit) or 0
+            local otherIncomingHeal         = 0
+            local overHealAbsorb            = false
+            local overAbsorb                = false
 
-            local healAbsorbTexture = nil;
+            if health < totalHealAbsorb then
+                totalHealAbsorb             = health
+                overHealAbsorb               = true
+            end
 
-            --If allIncomingHeal is greater than totalHealAbsorb, then the current
-            --heal absorb will be completely overlayed by the incoming heals so we don't show it.
-            if ( totalHealAbsorb > allIncomingHeal ) then
-                local shownHealAbsorb = totalHealAbsorb - allIncomingHeal;
-                local shownHealAbsorbPercent = shownHealAbsorb / maxHealth;
-                healAbsorbTexture = CompactUnitFrameUtil_UpdateFillBar(frame, healthTexture, frame.myHealAbsorb, shownHealAbsorb, -shownHealAbsorbPercent);
+            if health - totalHealAbsorb + allIncomingHeal > maxHealth * self.MaxHealOverflowRatio then
+                allIncomingHeal             = maxHealth * self.MaxHealOverflowRatio - health + totalHealAbsorb
+            end
+
+            --Split up incoming heals.
+            if allIncomingHeal >= myIncomingHeal then
+                otherIncomingHeal           = allIncomingHeal - myIncomingHeal
+            else
+                myIncomingHeal              = allIncomingHeal
+            end
+
+            if health - totalHealAbsorb + allIncomingHeal + totalAbsorb >= maxHealth or health + totalAbsorb >= maxHealth then
+                overAbsorb                  = totalAbsorb > 0
+
+                if allIncomingHeal > totalHealAbsorb then
+                    totalAbsorb             = max(0, maxHealth - (health - totalHealAbsorb + allIncomingHeal))
+                else
+                    totalAbsorb             = max(0, maxHealth - health)
+                end
+            end
+
+            self.overHealAbsorbGlow:SetShown(overHealAbsorb)
+            self.overAbsorbGlow:SetShown(overAbsorb)
+
+            local healthTexture             = self:GetStatusBarTexture()
+            local totalHealAbsorbPct        = totalHealAbsorb / maxHealth
+
+            local healAbsorbTexture         = nil
+
+            if totalHealAbsorb > allIncomingHeal then
+                local shownHealAbsorb       = totalHealAbsorb - allIncomingHeal
+                local shownHealAbsorbPercent= shownHealAbsorb / maxHealth
+                healAbsorbTexture           = updateFillBar(self, healthTexture, frame.myHealAbsorb, shownHealAbsorb, -shownHealAbsorbPercent)
 
                 --If there are incoming heals the left shadow would be overlayed by the incoming heals
                 --so it isn't shown.
                 if ( allIncomingHeal > 0 ) then
-                    frame.myHealAbsorbLeftShadow:Hide();
+                    frame.myHealAbsorbLeftShadow:Hide()
                 else
-                    frame.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0);
-                    frame.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0);
-                    frame.myHealAbsorbLeftShadow:Show();
+                    frame.myHealAbsorbLeftShadow:ClearAllPoints()
+                    frame.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0)
+                    frame.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0)
+                    frame.myHealAbsorbLeftShadow:Show()
                 end
 
                 -- The right shadow is only shown if there are absorbs on the health bar.
                 if ( totalAbsorb > 0 ) then
-                    frame.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0);
-                    frame.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0);
-                    frame.myHealAbsorbRightShadow:Show();
+                    frame.myHealAbsorbRightShadow:ClearAllPoints()
+                    frame.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0)
+                    frame.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0)
+                    frame.myHealAbsorbRightShadow:Show()
                 else
-                    frame.myHealAbsorbRightShadow:Hide();
+                    frame.myHealAbsorbRightShadow:Hide()
                 end
             else
-                frame.myHealAbsorb:Hide();
-                frame.myHealAbsorbRightShadow:Hide();
-                frame.myHealAbsorbLeftShadow:Hide();
+                frame.myHealAbsorb:Hide()
+                frame.myHealAbsorbRightShadow:Hide()
+                frame.myHealAbsorbLeftShadow:Hide()
             end
 
             --Show myIncomingHeal on the health bar.
-            local incomingHealsTexture = CompactUnitFrameUtil_UpdateFillBar(frame, healthTexture, frame.myHealPrediction, myIncomingHeal, -totalHealAbsorbPercent);
+            local incomingHealsTexture = updateFillBar(self, healthTexture, frame.myHealPrediction, myIncomingHeal, -totalHealAbsorbPct)
             --Append otherIncomingHeal on the health bar.
-            incomingHealsTexture = CompactUnitFrameUtil_UpdateFillBar(frame, incomingHealsTexture, frame.otherHealPrediction, otherIncomingHeal);
+            incomingHealsTexture = updateFillBar(self, incomingHealsTexture, frame.otherHealPrediction, otherIncomingHeal)
 
             --Appen absorbs to the correct section of the health bar.
-            local appendTexture = nil;
+            local appendTexture = nil
             if ( healAbsorbTexture ) then
                 --If there is a healAbsorb part shown, append the absorb to the end of that.
-                appendTexture = healAbsorbTexture;
+                appendTexture = healAbsorbTexture
             else
-                --Otherwise, append the absorb to the end of the the incomingHeals part;
-                appendTexture = incomingHealsTexture;
+                --Otherwise, append the absorb to the end of the the incomingHeals part
+                appendTexture = incomingHealsTexture
             end
-            CompactUnitFrameUtil_UpdateFillBar(frame, appendTexture, frame.totalAbsorb, totalAbsorb)
+            updateFillBar(self, appendTexture, frame.totalAbsorb, totalAbsorb)
         end
     }
 
+    property "MaxHealOverflowRatio" { type = Number, default = 1.00 }
 
     __Template__{
         MyHealPrediction        = Texture,
@@ -424,7 +499,19 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         OverAbsorbGlow          = Texture,
         OverHealAbsorbGlow      = Texture,
     }
-    function __ctor(self) end
+    function __ctor(self)
+        self.myHealPrediction   = self:GetChild("MyHealPrediction")
+        self.otherHealPrediction= self:GetChild("OtherHealPrediction")
+        self.totalAbsorb        = self:GetChild("TotalAbsorb")
+        self.totalAbsorbOverlay = self:GetChild("TotalAbsorbOverlay")
+        self.myHealAbsorb       = self:GetChild("MyHealAbsorb")
+        self.myHealAbsorbLeftShadow = self:GetChild("MyHealAbsorbLeftShadow")
+        self.overAbsorbGlow     = self:GetChild("OverAbsorbGlow")
+        self.overHealAbsorbGlow = self:GetChild("OverHealAbsorbGlow")
+
+        self.totalAbsorb.overlay = self.totalAbsorbOverlay
+        self.totalAbsorbOverlay.tileSize = 32
+    end
 end)
 
 ------------------------------------------------------------
@@ -618,7 +705,7 @@ Style.UpdateSkin("Default",     {
     [PredictionHealthBar]       = {
         frameStrata             = "LOW",
         enableMouse             = false,
-        statusBarColor          = Color.GREEN,
+        statusBarColor          = Wow.UnitConditionColor(true, Color.RED),
         statusBarTexture        = {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
@@ -630,20 +717,31 @@ Style.UpdateSkin("Default",     {
         MyHealPrediction        = {
             drawLayer           = "BORDER",
             subLevel            = 5,
+            color               = Color.WHITE,
+            gradient            = GradientType("VERTICAL", Color(8/255, 93/255, 72/255), Color(11/255, 136/255, 105/255)),
         },
         OtherHealPrediction     = {
             drawLayer           = "BORDER",
             subLevel            = 5,
+            color               = Color.WHITE,
+            gradient            = GradientType("VERTICAL", Color(11/255, 53/255, 43/255), Color(21/255, 89/255, 72/255)),
         },
         TotalAbsorb             = {
+            file                = [[Interface\RaidFrame\Shield-Fill]],
             drawLayer           = "BORDER",
             subLevel            = 5,
         },
         TotalAbsorbOverlay      = {
+            file                = [[Interface\RaidFrame\Shield-Overlay]],
+            hWrapMode           = "REPEAT",
+            vWrapMode           = "REPEAT",
             drawLayer           = "BORDER",
             subLevel            = 6,
         },
         MyHealAbsorb            = {
+            file                = [[Interface\RaidFrame\Absorb-Fill]],
+            hWrapMode           = "REPEAT",
+            vWrapMode           = "REPEAT",
             drawLayer           = "ARTWORK",
             subLevel            = 1,
         },
@@ -659,12 +757,20 @@ Style.UpdateSkin("Default",     {
             texCoords           = RectType(1, 0, 0, 1),
         },
         OverAbsorbGlow          = {
+            file                = [[Interface\RaidFrame\Shield-Overshield]],
+            alphaMode           = "ADD",
             drawLayer           = "ARTWORK",
             subLevel            = 2,
+            location            = { Anchor("BOTTOMLEFT", -7, 0, nil, "BOTTOMRIGHT"), Anchor("TOPLEFT", -7, 0, nil, "TOPRIGHT") },
+            width               = 16,
         },
         OverHealAbsorbGlow      = {
+            file                = [[Interface\RaidFrame\Absorb-Overabsorb]],
+            alphaMode           = "ADD",
             drawLayer           = "ARTWORK",
             subLevel            = 2,
+            location            = { Anchor("BOTTOMRIGHT", 7, 0, nil, "BOTTOMLEFT"), Anchor("TOPRIGHT", 7, 0, nil, "TOPLEFT") },
+            width               = 16,
         },
     },
 })

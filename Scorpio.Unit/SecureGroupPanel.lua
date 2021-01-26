@@ -607,7 +607,6 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [SecureGroupPanel]          = {
-        elementType             = UnitFrame,
         rowCount                = _G.MEMBERS_PER_RAID_GROUP or 5,
         columnCount             = _G.NUM_RAID_GROUPS or 8,
 

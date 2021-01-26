@@ -690,6 +690,16 @@ end
 ------------------------------------------------------------
 --                      UNIT HEALTH                       --
 ------------------------------------------------------------
+local _DISPELLABLE              = ({
+    ["MAGE"]                    = { Curse   = Color.CURSE, },
+    ["DRUID"]                   = { Poison  = Color.POISON, Curse   = Color.CURSE,   Magic = Color.MAGIC },
+    ["PALADIN"]                 = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
+    ["PRIEST"]                  = { Disease = Color.DISEASE,Magic   = Color.MAGIC },
+    ["SHAMAN"]                  = { Curse   = Color.CURSE,  Magic   = Color.MAGIC },
+    ["WARLOCK"]                 = { Magic   = Color.MAGIC, },
+    ["MONK"]                    = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
+})[_PlayerClass] or false
+
 __Static__() __AutoCache__()
 function Wow.UnitHealth()
     -- Use the Next for a tiny delay after the UnitHealthMax
@@ -707,7 +717,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitHealthPercent()
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Map(function(unit)
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(function(unit)
         local health            = UnitHealth(unit)
         local max               = UnitHealthMax(unit)
 
@@ -715,66 +725,95 @@ function Wow.UnitHealthPercent()
     end)
 end
 
-__Static__() __AutoCache__() __Arguments__{ Number/1 }
-function Wow.UnitHealPrediction(maxHealOverflowRatio)
-    local prediction            = HealPrediction()
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
-        :Next()
-        :Map(function(unit)
-            local health        = UnitHealth(unit)
-            local maxHealth     = UnitHealthMax(unit)
+__Static__() __AutoCache__() -- Too complex to do it here, leave it to the indicators or map chains
+function Wow.UnitHealPrediction()
+    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED"):Next()
+end
 
-            if maxHealth <= 0 then
-                prediction.myIncomingHeal   = 0
-                prediction.allIncomingHeal  = 0
-                prediction.otherIncomingHeal= 0
-                prediction.totalAbsorb      = 0
-                prediction.totalHealAbsorb  = 0
-                return prediction
-            end
+__Arguments__{ (ColorType + Boolean)/nil, ColorType/nil }
+__Static__()
+function Wow.UnitConditionColor(useClassColor, smoothEndColor)
+    local defaultColor          = type(useClassColor) == "table" and useClassColor or Color.GREEN
+    useClassColor               = useClassColor == true
 
-            local myIncomingHeal            = UnitGetIncomingHeals(unit, "player") or 0
-            local allIncomingHeal           = UnitGetIncomingHeals(unit) or 0
-            local totalAbsorb               = UnitGetTotalAbsorbs(unit) or 0
-            local totalHealAbsorb           = UnitGetTotalHealAbsorbs(unit) or 0
-            local otherIncomingHeal         = 0
-            local overHealAbsorb            = false
-            local overAbsorb                = false
+    if smoothEndColor then
+        local cache             = Color{ r = 1, g = 1, b = 1 }
+        local br, bg, bb        = smoothEndColor.r, smoothEndColor.g, smoothEndColor.b
 
-            if health < totalHealAbsorb then
-                totalHealAbsorb             = health
-               overHealAbsorb               = true
-            end
+        if _DISPELLABLE then
+            return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_AURA"):Next():Map(function(unit)
+                local index     = 1
+                repeat
+                    local n, _, _, d = UnitAura(unit, index, "HARMFUL")
+                    local color = _DISPELLABLE[d]
+                    if color then return color end
+                    index       = index + 1
+                until not name
 
-            if health - totalHealAbsorb + allIncomingHeal > maxHealth * maxHealOverflowRatio then
-                allIncomingHeal             = maxHealth * maxHealOverflowRatio - health + totalHealAbsorb
-            end
+                local health    = UnitHealth(unit)
+                local maxHealth = UnitHealthMax(unit)
+                local pct       = health / maxHealth
+                local dcolor    = defaultColor
 
-            --Split up incoming heals.
-            if allIncomingHeal >= myIncomingHeal then
-                otherIncomingHeal           = allIncomingHeal - myIncomingHeal
-            else
-                myIncomingHeal              = allIncomingHeal
-            end
-
-            if health - totalHealAbsorb + allIncomingHeal + totalAbsorb >= maxHealth or health + totalAbsorb >= maxHealth then
-                overAbsorb                  = totalAbsorb > 0
-
-                if allIncomingHeal > totalHealAbsorb then
-                    totalAbsorb             = max(0, maxHealth - (health - totalHealAbsorb + allIncomingHeal))
-                else
-                    totalAbsorb             = max(0, maxHealth - health)
+                if useClassColor then
+                    local _, cls= UnitClass(unit)
+                    if cls then dcolor = Color[cls] end
                 end
-            end
 
-            prediction.myIncomingHeal       = myIncomingHeal
-            prediction.allIncomingHeal      = allIncomingHeal
-            prediction.otherIncomingHeal    = otherIncomingHeal
-            prediction.totalAbsorb          = totalAbsorb
-            prediction.totalHealAbsorb      = totalHealAbsorb
-            prediction.overAbsorb           = overAbsorb
-            prediction.overHealAbsorb       = overHealAbsorb
+                cache.r         = br + (dcolor.r - br) * pct
+                cache.g         = bg + (dcolor.g - bg) * pct
+                cache.b         = bb + (dcolor.b - bb) * pct
 
-            return prediction
-        end)
+                return cache
+            end)
+        else
+            return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(function(unit)
+                local health    = UnitHealth(unit)
+                local maxHealth = UnitHealthMax(unit)
+                local pct       = health / maxHealth
+                local dcolor    = defaultColor
+
+                if useClassColor then
+                    local _, cls= UnitClass(unit)
+                    if cls then dcolor = Color[cls] end
+                end
+
+                cache.r         = br + (dcolor.r - br) * pct
+                cache.g         = bg + (dcolor.g - bg) * pct
+                cache.b         = bb + (dcolor.b - bb) * pct
+
+                return cache
+            end)
+        end
+    else
+        if _DISPELLABLE then
+            return Wow.FromUnitEvent("UNIT_AURA"):Next():Map(function(unit)
+                local index     = 1
+                repeat
+                    local n, _, _, d = UnitAura(unit, index, "HARMFUL")
+                    local color = _DISPELLABLE[d]
+                    if color then return color end
+                    index       = index + 1
+                until not name
+
+                local dcolor    = defaultColor
+
+                if useClassColor then
+                    local _, cls= UnitClass(unit)
+                    if cls then dcolor = Color[cls] end
+                end
+                return dcolor
+            end)
+        else
+            return Wow.FromUnitEvent():Map(function(unit)
+                local dcolor    = defaultColor
+
+                if useClassColor then
+                    local _, cls= UnitClass(unit)
+                    if cls then dcolor = Color[cls] end
+                end
+                return dcolor
+            end)
+        end
+    end
 end

@@ -754,7 +754,7 @@ Style.UpdateSkin("Default",     {
     },
     [Mask]                      = {
         toplevel                = true,
-        frameStrata             = "TOOLTIP",
+        frameStrata             = "FULLSCREEN",
         setAllPoints            = true,
         backdrop                = {
             bgFile              = [[Interface\Tooltips\UI-Tooltip-Background]],
