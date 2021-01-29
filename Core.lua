@@ -2017,18 +2017,18 @@ PLoop(function(_ENV)
                 return _Localizations[name]
             end
 
-            __Arguments__{ NEString }
+            __Arguments__{ String }
             function __index(self, key)
                 rawset(self, key, key)
                 return key
             end
 
-            __Arguments__{ NEString + Number, NEString }
+            __Arguments__{ String + Number, String }
             function __newindex(self, key, value)
                 rawset(self, key, value)
             end
 
-            __Arguments__{ NEString, Boolean }
+            __Arguments__{ String, Boolean }
             function __newindex(self, key, value)
                 rawset(self, key, key)
             end

@@ -212,7 +212,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitIsLeader()
     return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PARTY_LEADER_CHANGED"):Map("=>'any'")):Map(function(unit)
-        return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit)
+        return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit) or false
     end)
 end
 

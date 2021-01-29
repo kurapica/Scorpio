@@ -404,6 +404,9 @@ class "UIDropDownMenuButton" (function(_ENV)
     --- The menu level
     property "MenuLevel"        { type = Number }
 
+    --- AsSeparator
+    property "AsSeparator"      { type = Boolean, handler = function(self, val) self:GetChild("Separator"):SetShown(val) end }
+
     -------------------------------------------------------
     --                      Method                       --
     -------------------------------------------------------
@@ -426,6 +429,7 @@ class "UIDropDownMenuButton" (function(_ENV)
         ColorSwatchBG               = Texture,
         ColorSwatch                 = Texture,
         InvisibleButton             = Button,
+        Separator                   = Line,
     }
     function __ctor(self)
         self:GetChild("Highlight"):Hide()
@@ -438,6 +442,7 @@ class "UIDropDownMenuButton" (function(_ENV)
         self:GetChild("ColorSwatchBG"):Hide()
         self:GetChild("ExpandArrow"):Hide()
         self:GetChild("InvisibleButton"):Hide()
+        self:GetChild("Separator"):Hide()
 
         self.OnEnter                = self.OnEnter + OnEnter
         self.OnLeave                = self.OnLeave + OnLeave
@@ -545,6 +550,12 @@ Style.UpdateSkin("Default",     {
         },
         InvisibleButton         = {
             location            = { Anchor("TOPLEFT"), Anchor("BOTTOMLEFT"), Anchor("RIGHT", 0, 0, "ColorSwatch", "LEFT") },
+        },
+        Separator               = {
+            startPoint          = Anchor("LEFT", 0, 0),
+            endPoint            = Anchor("RIGHT", 0, 0),
+            thickness           = 2,
+            color               = Color.DISABLED,
         },
     },
     [UIDropDownMenuList]        = {
@@ -790,6 +801,7 @@ local function buildDropDownMenuList(info, dropdown, root)
         button.MouseOverIcon    = binfo.mouseOverIcon
         button.TooltipTitle     = binfo.tiptitle
         button.TooltipText      = binfo.tiptext
+        button.AsSeparator      = binfo.separator
 
         if binfo.submenu then
             button.SubMenu      = buildDropDownMenuList(binfo.submenu, dropdown)
@@ -802,13 +814,14 @@ end
 struct "UIDropDownMenuInfo" {}
 
 __Sealed__() struct "UIDropDownMenuButtonInfo" {
-    { name = "text",            type = String, require = true },
+    { name = "text",            type = String },
     { name = "color",           type = PropertyAccessor },
     { name = "check",           type = PropertyAccessor },
     { name = "checkvalue",      type = Any },
     { name = "click",           type = Function },
     { name = "disabled",        type = Boolean },
     { name = "submenu",         type = UIDropDownMenuInfo },
+    { name = "separator",       type = Boolean },
 
     { name = "icon",            type = String + Number },
     { name = "mouseovericon",   type = String + Number },

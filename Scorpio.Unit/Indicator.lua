@@ -90,9 +90,12 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     import "System.Reactive"
 
     local tconcat               = table.concat
+    local tinsert               = table.insert
+    local wipe                  = wipe
     local strtrim               = Toolset.trim
     local validate              = Enum.ValidateValue
     local shareCooldown         = { start = 0, duration = 0 }
+    local cache                 = {}
 
     local function refreshAura(self, unit, filter, eleIdx, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
         if not name or eleIdx > self.MaxCount then return eleIdx end
@@ -121,6 +124,22 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
         return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAura(unit, auraIdx, filter))
     end
 
+    local function refreshAuraByPriorty(self, unit, filter, priority, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
+        if not name then return end
+
+        if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...) then
+            local order         = priority[name] or priority[spellID]
+            if order then
+                cache[order]    = auraIdx
+            else
+                tinsert(cache, auraIdx)
+            end
+        end
+
+        auraIdx                 = auraIdx + 1
+        return refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAura(unit, auraIdx, filter))
+    end
+
     local function OnElementCreated(self, ele)
         return ele:InstantApplyStyle()
     end
@@ -131,6 +150,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
+    --- The aura filter
     property "AuraFilter"       {
         type                    = struct{ AuraFilter } + String,
         field                   = "__AuraPanel_AuraFilter",
@@ -150,16 +170,60 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
         end,
     }
 
+    --- The custom filter
     property "CustomFilter"     { type = Function }
 
+    --- The aura priority with order
+    property "AuraPriority"      { type = struct { String + Number }, handler = function(self, val) self._AuraPriorityCache = {} if val then for i, v in ipairs(val) do self._AuraPriorityCache[v] = i end end end }
+
+    --- The property to drive the refreshing
     property "Refresh"          {
         set                     = function(self, unit)
+            self.Unit           = unit
             local filter        = self.AuraFilter
             if not filter or filter == "" then return end
 
-            self.Count          = refreshAura(self, unit, filter, 1, 1, UnitAura(unit, 1, filter)) - 1
+            local auraPriority  = self.AuraPriority
+            if not auraPriority or #auraPriority == 0 then
+                self.Count      = refreshAura(self, unit, filter, 1, 1, UnitAura(unit, 1, filter)) - 1
+            else
+                wipe(cache) for i = 1, #auraPriority do cache[i] = false end
+                refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAura(unit, 1, filter))
+
+                local eleIdx    = 1
+                for i = 1, #cache do
+                    local aIdx  = cache[i]
+                    if aIdx then
+                        local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAura(unit, aIdx, filter)
+
+                        self.Elements[eleIdx]:Show()
+
+                        shareCooldown.start             = expires - duration
+                        shareCooldown.duration          = duration
+
+                        self.AuraIndex[eleIdx]          = aIdx
+                        self.AuraName[eleIdx]           = name
+                        self.AuraIcon[eleIdx]           = icon
+                        self.AuraCount[eleIdx]          = count
+                        self.AuraDebuff[eleIdx]         = dtype
+                        self.AuraCooldown[eleIdx]       = shareCooldown
+                        self.AuraStealable[eleIdx]      = isStealable and not UnitIsUnit(unit, "player")
+                        self.AuraSpellID[eleIdx]        = spellID
+                        self.AuraBossDebuff[eleIdx]     = isBossDebuff
+                        self.AuraCastByPlayer[eleIdx]   = castByPlayer
+
+                        eleIdx  = eleIdx + 1
+                        if eleIdx > self.MaxCount then break end
+                    end
+                end
+
+                self.Count      = eleIdx - 1
+            end
         end
     }
+
+    --- The unit of the current aura
+    property "Unit"             { type = String }
 
     ------------------------------------------------------
     -- Observable Property
@@ -222,14 +286,10 @@ __Sealed__() class "AuraPanelIcon"  (function(_ENV)
     local function OnEnter(self)
         if self.ShowTooltip and self.AuraIndex then
             local parent        = self:GetParent()
-            while parent and not isObjectType(parent, IUnitFrame) do
-                parent          = parent:GetParent()
-            end
-
             if not parent then return end
 
             GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
-            GameTooltip:SetUnitAura(parent.Unit, self.AuraIndex, self:GetParent().AuraFilter)
+            GameTooltip:SetUnitAura(parent.Unit, self.AuraIndex, parent.AuraFilter)
         end
     end
 
@@ -376,8 +436,8 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
     end
 
     property "HealPrediction"   {
-        handler                 = function(self, unit)
-            local maxHealth                 = unt and UnitHealthMax(unit) or 0
+        set                     = function(self, unit)
+            local maxHealth                 = unit and UnitHealthMax(unit) or 0
 
             if maxHealth <= 0 then
                 self.myHealPrediction:Hide()
@@ -438,38 +498,38 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
             if totalHealAbsorb > allIncomingHeal then
                 local shownHealAbsorb       = totalHealAbsorb - allIncomingHeal
                 local shownHealAbsorbPercent= shownHealAbsorb / maxHealth
-                healAbsorbTexture           = updateFillBar(self, healthTexture, frame.myHealAbsorb, shownHealAbsorb, -shownHealAbsorbPercent)
+                healAbsorbTexture           = updateFillBar(self, healthTexture, self.myHealAbsorb, shownHealAbsorb, -shownHealAbsorbPercent)
 
                 --If there are incoming heals the left shadow would be overlayed by the incoming heals
                 --so it isn't shown.
                 if ( allIncomingHeal > 0 ) then
-                    frame.myHealAbsorbLeftShadow:Hide()
+                    self.myHealAbsorbLeftShadow:Hide()
                 else
-                    frame.myHealAbsorbLeftShadow:ClearAllPoints()
-                    frame.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0)
-                    frame.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0)
-                    frame.myHealAbsorbLeftShadow:Show()
+                    self.myHealAbsorbLeftShadow:ClearAllPoints()
+                    self.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0)
+                    self.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0)
+                    self.myHealAbsorbLeftShadow:Show()
                 end
 
                 -- The right shadow is only shown if there are absorbs on the health bar.
                 if ( totalAbsorb > 0 ) then
-                    frame.myHealAbsorbRightShadow:ClearAllPoints()
-                    frame.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0)
-                    frame.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0)
-                    frame.myHealAbsorbRightShadow:Show()
+                    self.myHealAbsorbRightShadow:ClearAllPoints()
+                    self.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0)
+                    self.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0)
+                    self.myHealAbsorbRightShadow:Show()
                 else
-                    frame.myHealAbsorbRightShadow:Hide()
+                    self.myHealAbsorbRightShadow:Hide()
                 end
             else
-                frame.myHealAbsorb:Hide()
-                frame.myHealAbsorbRightShadow:Hide()
-                frame.myHealAbsorbLeftShadow:Hide()
+                self.myHealAbsorb:Hide()
+                self.myHealAbsorbRightShadow:Hide()
+                self.myHealAbsorbLeftShadow:Hide()
             end
 
             --Show myIncomingHeal on the health bar.
-            local incomingHealsTexture = updateFillBar(self, healthTexture, frame.myHealPrediction, myIncomingHeal, -totalHealAbsorbPct)
+            local incomingHealsTexture = updateFillBar(self, healthTexture, self.myHealPrediction, myIncomingHeal, -totalHealAbsorbPct)
             --Append otherIncomingHeal on the health bar.
-            incomingHealsTexture = updateFillBar(self, incomingHealsTexture, frame.otherHealPrediction, otherIncomingHeal)
+            incomingHealsTexture = updateFillBar(self, incomingHealsTexture, self.otherHealPrediction, otherIncomingHeal)
 
             --Appen absorbs to the correct section of the health bar.
             local appendTexture = nil
@@ -480,7 +540,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
                 --Otherwise, append the absorb to the end of the the incomingHeals part
                 appendTexture = incomingHealsTexture
             end
-            updateFillBar(self, appendTexture, frame.totalAbsorb, totalAbsorb)
+            updateFillBar(self, appendTexture, self.totalAbsorb, totalAbsorb)
         end
     }
 
@@ -506,6 +566,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         self.totalAbsorbOverlay = self:GetChild("TotalAbsorbOverlay")
         self.myHealAbsorb       = self:GetChild("MyHealAbsorb")
         self.myHealAbsorbLeftShadow = self:GetChild("MyHealAbsorbLeftShadow")
+        self.myHealAbsorbRightShadow= self:GetChild("MyHealAbsorbRightShadow")
         self.overAbsorbGlow     = self:GetChild("OverAbsorbGlow")
         self.overHealAbsorbGlow = self:GetChild("OverHealAbsorbGlow")
 
