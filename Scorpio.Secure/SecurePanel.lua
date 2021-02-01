@@ -256,6 +256,7 @@ class "SecurePanel" (function(_ENV)
         if index < self.Count then
             for i = self.Count, index + 1, -1 do
                 local ele       = self:GetChild(self.ElementPrefix .. i)
+                ele:Hide()
                 OnElementRemove(self, ele)
 
                 self.ElementRecycle(ele)
@@ -274,6 +275,7 @@ class "SecurePanel" (function(_ENV)
                 local ele       = self.ElementRecycle()
                 ele.ID          = i
 
+                ele:Show()
                 OnElementAdd(self, ele)
 
                 self:SetAttribute("IFSecurePanel_Count", i)
