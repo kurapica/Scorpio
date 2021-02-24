@@ -564,7 +564,7 @@ class "SecureGroupPanel" (function(_ENV)
     local function OnElementAdd(self, element)
         element.UnitWatchEnabled = false
         element:SetAttribute("unit", nil)
-        element:InstantApplyStyle()
+        --element:InstantApplyStyle()
 
         self.GroupHeader:RegisterUnitFrame(element)
     end
