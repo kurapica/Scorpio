@@ -581,7 +581,7 @@ __Sealed__() class "TrackBar" (function(_ENV)
         if value and step then
             local count         = tostring(step):match("%.%d+")
             count               = count and 10 ^ (#count - 1) or 1
-            return floor(count * value) / count
+            return floor(count * value + 0.5) / count
         end
 
         return value
