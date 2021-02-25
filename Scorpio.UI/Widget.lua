@@ -135,7 +135,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
             else
                 local e         = self:GetEffectiveScale()/UIParent:GetScale()
                 local x, y      = GetPos(self, anchor.point, e)
-                local rx, ry    = GetPos(relativeFrame, anchor.relativePoint or anchor.point, e)
+                local rx, ry    = GetPos(relativeFrame, anchor.relativePoint or anchor.point, relativeFrame:GetEffectiveScale()/UIParent:GetScale())
 
                 tinsert(loc, Anchor(anchor.point, (x-rx)/e, (y-ry)/e, relativeTo, anchor.relativePoint or anchor.point))
             end
