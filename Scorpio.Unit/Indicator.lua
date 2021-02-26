@@ -705,8 +705,22 @@ Style.UpdateSkin("Default",     {
         size                    = Size(16, 16),
     },
     [RoleIcon]                  = {
-        file                    = Wow.UnitRole():Map(function(role)
-            return role and role ~= "NONE" and GetTexCoordsForRoleSmallCircle(role) or nil
+        file                    = [[Interface\LFGFrame\UI-LFG-ICON-PORTRAITROLES]],
+        texCoords               = Wow.UnitRole():Map(function(role)
+            if role and role ~= "NONE" then
+                local left, right, top, bottom = GetTexCoordsForRoleSmallCircle(role)
+
+                shareRect.left  = left
+                shareRect.right = right
+                shareRect.top   = top
+                shareRect.bottom= bottom
+            else
+                shareRect.left  = 0
+                shareRect.right = 0
+                shareRect.top   = 0
+                shareRect.bottom= 0
+            end
+            return shareRect
         end),
         size                    = Size(16, 16),
     },

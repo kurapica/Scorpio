@@ -145,7 +145,10 @@ local function applyProperty(self, prop, value)
             end
 
             if not map[prop] then
-                if prop.nilable then
+                if prop.clear then
+                    local clear = prop.clear
+                    map[prop]   = Observer(function(val) if val ~= nil then return pset(self, val) else return clear(self) end end)
+                elseif prop.nilable then
                     map[prop]   = Observer(function(val) return pset(self, val) end)
                 elseif prop.default ~= nil then
                     local dft   = prop.default

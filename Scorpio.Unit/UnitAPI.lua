@@ -143,7 +143,16 @@ end
 
 __Static__() __AutoCache__()
 function Wow.PlayerInCombat()
-    return Wow.FromUnitEvent(Wow.FromEvent("PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT"):Map("=>'player'")):Map(function(unit) return UnitAffectingCombat("player") end)
+    local subject               = BehaviorSubject()
+    Continue(function(subject)
+        while true do
+            local status        = UnitAffectingCombat("player") or false
+            subject:OnNext(status)
+
+            NextEvent(status and "PLAYER_REGEN_ENABLED" or "PLAYER_REGEN_DISABLED")
+        end
+    end, subject)
+    return subject
 end
 
 __Static__() __AutoCache__()
