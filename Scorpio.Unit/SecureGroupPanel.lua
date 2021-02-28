@@ -39,6 +39,8 @@ class "SecureGroupPanel" (function(_ENV)
     __Sealed__() class "ShadowGroupHeader" (function(_ENV)
         inherit "SecureFrame"
 
+        export { min = math.min }
+
         _InitHeader             = [=[
             Manager             = self
 
@@ -282,6 +284,10 @@ class "SecureGroupPanel" (function(_ENV)
         function UpdateUnitCount(self, count)
             Next() NoCombat()
 
+            -- Init the panel
+            local panel         = self:GetParent()
+            count               = min(count, panel.MaxCount)    -- Limit the count
+
             for i = self.__InitedCount + 1, count do
                 -- Init the child
                 local child     = self:GetAttribute("child" .. i)
@@ -293,9 +299,6 @@ class "SecureGroupPanel" (function(_ENV)
                 self:SetAttribute("useAttributeChildCnt", count)
             end
             self.__InitedCount  = count
-
-            -- Init the panel
-            local panel         = self:GetParent()
 
             if panel and count and panel.Count < count then
                 panel.Count     = count

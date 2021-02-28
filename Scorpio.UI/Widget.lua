@@ -131,7 +131,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
             local relativeFrame = UIObject.GetRelativeUI(self, relativeTo)
 
             if not relativeFrame then
-                throw("Usage: LayoutFrame:GetLocation(accordingLoc) - The System can't identify the relativeTo frame.")
+                throw("Usage: LayoutFrame:GetLocation(accordingLoc) - The System can't identify the relativeTo frame of " .. self:GetName(true))
             else
                 local e         = self:GetEffectiveScale()/UIParent:GetScale()
                 local x, y      = GetPos(self, anchor.point, e)
@@ -154,7 +154,7 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
                 local relativeTo= UIObject.GetRelativeUI(self, anchor.relativeTo)
 
                 if not relativeTo then
-                    throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo - " .. anchor.relativeTo)
+                    throw("Usage: LayoutFrame:SetLocation(loc) - The System can't identify the relativeTo frame of " .. self:GetName(true))
                 else
                     self:SetPoint(anchor.point, relativeTo, anchor.relativePoint or anchor.point, anchor.x or 0, anchor.y or 0)
                 end

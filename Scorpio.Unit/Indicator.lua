@@ -429,7 +429,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         bar:SetWidth(barSize)
         bar:Show()
         if ( bar.overlay ) then
-            bar.overlay:SetTexCoord(0, barSize / bar.overlay.tileSize, 0, totalHeight / bar.overlay.tileSize)
+            bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(totalHeight / bar.overlay.tileSize, 0, 1))
             bar.overlay:Show()
         end
         return bar
