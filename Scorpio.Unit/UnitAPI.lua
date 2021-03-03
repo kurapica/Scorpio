@@ -764,7 +764,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
                     local color = _DISPELLABLE[d]
                     if color then return color end
                     index       = index + 1
-                until not name
+                until not n
 
                 local health    = UnitHealth(unit)
                 local maxHealth = UnitHealthMax(unit)
@@ -810,7 +810,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
                     local color = _DISPELLABLE[d]
                     if color then return color end
                     index       = index + 1
-                until not name
+                until not n
 
                 local dcolor    = defaultColor
 
