@@ -785,7 +785,7 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
 
-        value                   = Wow.UnitHealth(),
+        value                   = Wow.UnitHealthFrequent(),
         minMaxValues            = Wow.UnitHealthMax(),
         healPrediction          = Wow.UnitHealPrediction(),
 

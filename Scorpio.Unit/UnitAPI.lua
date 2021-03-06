@@ -12,6 +12,7 @@ Scorpio           "Scorpio.Secure.UnitFrame.API"     "1.0.0"
 namespace "Scorpio.Secure.UnitFrame"
 
 import "System.Reactive"
+import "System.Toolset"
 
 ------------------------------------------------------------
 --                    Simple Unit API                     --
@@ -23,12 +24,12 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitName(withServer)
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(withServer and function(unit) return GetUnitName(unit, true) end or GetUnitName)
+    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Next():Map(withServer and function(unit) return GetUnitName(unit, true) end or GetUnitName)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitColor()
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit)
+    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Next():Map(function(unit)
         local _, cls            = UnitClass(unit)
         return Color[cls or "PALADIN"]
     end)
@@ -716,28 +717,170 @@ local _DISPELLABLE              = ({
     ["MONK"]                    = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
 })[_PlayerClass] or false
 
-__Static__() __AutoCache__()
-function Wow.UnitHealth()
-    -- Use the Next for a tiny delay after the UnitHealthMax
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(UnitHealth)
+local _UnitGUIDMap              = {}
+local _UnitHealthMap            = {}
+
+local _UnitHealthSubject        = Subject()
+local _UnitMaxHealthSubject     = Subject()
+
+function RegisterFrequentHealthUnit(unit, guid, health)
+    _UnitHealthMap[guid]        = health
+
+    local oguid                 = _UnitGUIDMap[unit]
+    if oguid == guid then return end
+
+    local map                   = _UnitGUIDMap[guid] -- Unit(*) =>  GUID(1)
+    if not map then
+        map                     = {}
+        _UnitGUIDMap[guid]      = map
+    end
+
+    map[unit]                   = true
+    _UnitGUIDMap[unit]          = guid
+
+    if oguid then
+        map                     = _UnitGUIDMap[oguid]
+        if map then
+            map[unit]           = nil
+            if not next(map) then
+                _UnitGUIDMap[oguid]     = nil
+                _UnitHealthMap[oguid]   = nil
+            end
+        end
+    end
+end
+
+__SystemEvent__()
+function COMBAT_LOG_EVENT_UNFILTERED()
+    local _, event, _, _, _, _, _, destGUID, _, _, _, arg12, arg13, arg14, arg15, arg16 = CombatLogGetCurrentEventInfo()
+    local health                = _UnitHealthMap[destGUID]
+    if not health then return end
+
+    local change                = 0
+
+    if event == "SWING_DAMAGE" then
+        -- amount   : arg12
+        -- overkill : arg13
+        change                  = (arg13 > 0 and arg13 or 0) - arg12
+    elseif event == "RANGE_DAMAGE" or event == "SPELL_DAMAGE" or event == "SPELL_PERIODIC_DAMAGE" or event == "DAMAGE_SPLIT" or event == "DAMAGE_SHIELD" then
+        -- amount   : arg15
+        -- overkill : arg16
+        change                  = (arg16 > 0 and arg16 or 0) - arg15
+    elseif event == "ENVIRONMENTAL_DAMAGE" then
+        -- amount   : arg13
+        -- overkill : arg14
+        change                  = (arg14 > 0 and arg14 or 0) - arg13
+    elseif event == "SPELL_HEAL" or event == "SPELL_PERIODIC_HEAL" then
+        -- amount       : arg15
+        -- overhealing  : arg16
+        change                  = amount - overhealing
+    end
+
+    if change == 0 then return end
+
+    local map                   = _UnitGUIDMap[destGUID]
+    if not map then return end
+
+    health                      = health + change
+    if change < 0 then
+        if health < 0 then health = 0 end
+    elseif change > 0 then
+        local unit              = next(map)
+        if not unit then
+            _UnitGUIDMap[destGUID]  = nil
+            _UnitHealthMap[destGUID]= nil
+            return
+        end
+
+        local max               = UnitHealthMax(unit)
+        if health > max then health = max end
+    end
+    _UnitHealthMap[destGUID]    = health
+
+    -- Distribute the new health
+    for unit in pairs(map) do
+        _UnitHealthSubject:OnNext(unit)
+    end
+end
+
+__SystemEvent__()
+function PLAYER_ENTERING_WORLD()
+    -- Clear the Registered Units
+    wipe(_UnitGUIDMap)
+    wipe(_UnitHealthMap)
+end
+
+__SystemEvent__()
+function UNIT_HEALTH(unit)
+    local guid                  = UnitGUID(unit)
+    if _UnitHealthMap[guid] then
+        _UnitHealthMap[guid]    = UnitHealth(unit)
+    end
+
+    _UnitHealthSubject:OnNext(unit)
+end
+
+__SystemEvent__()
+function UNIT_MAXHEALTH(unit)
+    _UnitMaxHealthSubject:OnNext(unit)
+    _UnitHealthSubject:OnNext(unit)
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitHealthMax()
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent("UNIT_MAXHEALTH"):Map(function(unit)
-        minMax.max              = UnitHealthMax(unit) or 100
-        return minMax
+function Wow.UnitHealth()
+    -- Use the Next for a tiny delay after the UnitHealthMax
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(UnitHealth)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthFrequent()
+    -- Based on the CLEU
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+        local guid              = UnitGUID(unit)
+        local health            = _UnitHealthMap[guid]
+        if health and _UnitGUIDMap[unit] == guid then return health end
+
+        -- Register the unit
+        health                  = health or UnitHealth(unit)
+        RegisterFrequentHealthUnit(unit, guid, health)
+        return health
     end)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitHealthPercent()
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
         local health            = UnitHealth(unit)
         local max               = UnitHealthMax(unit)
 
         return floor(0.5 + (health and max and health / max * 100) or 0)
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthPercentFrequent()
+    -- Based on the CLEU
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+        local guid              = UnitGUID(unit)
+        local health            = _UnitHealthMap[guid]
+
+        if not (health and _UnitGUIDMap[unit] == guid) then
+        -- Register the unit
+            health              = health or UnitHealth(unit)
+            RegisterFrequentHealthUnit(unit, guid, health)
+        end
+
+        local max               = UnitHealthMax(unit)
+        return floor(0.5 + (health and max and health / max * 100) or 0)
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthMax()
+    local minMax                = { min = 0 }
+    return Wow.FromUnitEvent(_UnitMaxHealthSubject):Map(function(unit)
+        minMax.max              = UnitHealthMax(unit) or 100
+        return minMax
     end)
 end
 
@@ -783,8 +926,8 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
                 return cache
             end)
         else
-            return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH"):Next():Map(function(unit)
-                local health    = UnitHealth(unit)
+            return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+                local health    = _UnitHealthMap[unit] or UnitHealth(unit)
                 local maxHealth = UnitHealthMax(unit)
                 local pct       = health / maxHealth
                 local dcolor    = defaultColor
