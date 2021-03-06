@@ -1,7 +1,7 @@
 ## Interface: 90002
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
-## Version: v066
+## Version: v067
 ## Notes: Scorpio Addon FrameWork
 ## URL: http://github.com/kurapica/Scorpio
 ## Dependencies: PLoop
@@ -10,4 +10,4 @@
 ## SavedVariables: Scorpio_DB
 ## SavedVariablesPerCharacter: Scorpio_DB_Char
 
-Scorpio.xml
+Modules\Scorpio.xml

@@ -810,7 +810,7 @@ function PLAYER_ENTERING_WORLD()
     wipe(_UnitHealthMap)
 end
 
-__SystemEvent__()
+__SystemEvent__(Scorpio.IsRetail and "UNIT_HEALTH" or "UNIT_HEALTH_FREQUENT")
 function UNIT_HEALTH(unit)
     local guid                  = UnitGUID(unit)
     if _UnitHealthMap[guid] then

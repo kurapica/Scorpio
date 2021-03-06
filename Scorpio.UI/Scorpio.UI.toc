@@ -8,4 +8,4 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 1
 
-UI.xml
+Modules\UI.xml

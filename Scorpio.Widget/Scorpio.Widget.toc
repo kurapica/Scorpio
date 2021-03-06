@@ -8,4 +8,4 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 1
 
-Widget.xml
+Modules\Widget.xml
