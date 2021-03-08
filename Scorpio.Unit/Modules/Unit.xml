@@ -5,8 +5,11 @@
 	<!-- Core Unit Frame Template -->
 	<Script file="UnitFrame.lua"/>
 
-	<!-- Unit Frame Indicator -->
+	<!-- Unit API -->
 	<Script file="UnitAPI.lua"/>
+	<Script file="UnitHealthAPI.lua"/>
+	<Script file="UnitPowerAPI.lua"/>
+	<Script file="UnitCastAPI.lua"/>
 
 	<!-- Unit Frame Indicator -->
 	<Script file="Indicator.lua"/>

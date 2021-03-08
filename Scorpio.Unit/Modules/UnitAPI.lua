@@ -17,6 +17,18 @@ import "System.Toolset"
 ------------------------------------------------------------
 --                    Simple Unit API                     --
 ------------------------------------------------------------
+local _UnitNameSubject          = Subject()
+
+__SystemEvent__()
+function UNIT_NAME_UPDATE(unit)
+    _UnitNameSubject:OnNext(unit)
+end
+
+__SystemEvent__()
+function GROUP_ROSTER_UPDATE()
+    _UnitNameSubject:OnNext("any")
+end
+
 __Static__()
 function Wow.Unit()
     return Wow.FromUnitEvent()
@@ -24,12 +36,12 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitName(withServer)
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Next():Map(withServer and function(unit) return GetUnitName(unit, true) end or GetUnitName)
+    return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(withServer and function(unit) return GetUnitName(unit, true) end or GetUnitName)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitColor()
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(function(unit)
         local _, cls            = UnitClass(unit)
         return Color[cls or "PALADIN"]
     end)
@@ -64,12 +76,19 @@ function Wow.UnitLevel(format)
     format                      = format or "%s"
     local unknownFormat         = format:gsub("%%%w+", "%%s")
     return Wow.FromUnitEvent(Wow.FromEvent("PLAYER_LEVEL_UP"):Map(function(level) return "player", level end))
-        :Map(function(unit, level)
+        :Map(Scorpio.IsRetail and function(unit, level)
             level               = level or UnitLevel(unit)
             if level and level > 0 then
                 if UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit) then
                     level       = UnitBattlePetLevel(unit)
                 end
+                return strformat(format, level)
+            else
+                return strformat(unknownFormat, "???")
+            end
+        end or function(unit, level)
+            level               = level or UnitLevel(unit)
+            if level and level > 0 then
                 return strformat(format, level)
             else
                 return strformat(unknownFormat, "???")
@@ -134,12 +153,12 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitIsPlayer()
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return UnitIsUnit(unit, "player") end)
+    return Wow.FromUnitEvent(_UnitNameSubject):Map(function(unit) return UnitIsUnit(unit, "player") end)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitNotPlayer()
-    return Wow.FromUnitEvent("UNIT_NAME_UPDATE"):Map(function(unit) return not UnitIsUnit(unit, "player") end)
+    return Wow.FromUnitEvent(_UnitNameSubject):Map(function(unit) return not UnitIsUnit(unit, "player") end)
 end
 
 __Static__() __AutoCache__()
@@ -189,7 +208,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitGroupRoster()
-    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE"):Map("=>'any'")):Map(function(unit)
+    return Wow.FromUnitEvent(_UnitNameSubject):Map(function(unit)
         if IsInRaid() and not UnitHasVehicleUI(unit) then
             if GetPartyAssignment('MAINTANK', unit) then
                 return "MAINTANK"
@@ -211,7 +230,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitRole()
-    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED"):Map("=>'any'")):Map(UnitGroupRolesAssigned)
+    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED"):Map("=>'any'")):Map(UnitGroupRolesAssigned or Toolset.fakefunc)
 end
 
 __Static__() __AutoCache__()
@@ -232,433 +251,6 @@ function Wow.UnitInRange()
         return UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)
     end)
 end
-
-
-------------------------------------------------------------
---                     Unit Power API                     --
-------------------------------------------------------------
-local _PlayerClass              = select(2, UnitClass("player"))
-local _ClassPowerType, _ClassPowerToken, _PrevClassPowerType
-
-local _ClassPowerRefresh        = Subject()
-local _ClassPowerSubject        = Subject()
-local _ClassPowerMaxSubject     = Subject()
-
-local SPEC_DEMONHUNTER_VENGENCE = 2
-local SOULFRAGMENT              = 203981
-local SOULFRAGMENTNAME
-
-local STAGGER                   = 100 -- DIFF to other class type
-
-local FindAuraByName            = _G.AuraUtil.FindAuraByName
-local PowerType                 = _G.Enum.PowerType
-
-__Async__()
-OnEnable                        = OnEnable + function ()
-    -- Use the custom unit event to provide the API
-    if _PlayerClass == "WARRIOR" then
-
-    elseif _PlayerClass == "DEATHKNIGHT" then
-        _ClassPowerToken        = "RUNES"
-        _ClassPowerType         = PowerType.Runes
-
-        while true do
-            local spec          = GetSpecialization()
-            Continue(RefreshClassPower)
-            NextEvent("PLAYER_SPECIALIZATION_CHANGED")
-        end
-
-    elseif _PlayerClass == "PALADIN" then
-        _ClassPowerToken        = "HOLY_POWER"
-
-        local level             = UnitLevel("player")
-        while level < PALADINPOWERBAR_SHOW_LEVEL do
-            level               = NextEvent("PLAYER_LEVEL_UP")
-        end
-        _ClassPowerType         = PowerType.HolyPower
-
-    elseif _PlayerClass == "MONK" then
-        _ClassPowerToken        = "CHI"
-
-        while true do
-            local spec          = GetSpecialization()
-            _ClassPowerType     = spec == SPEC_MONK_WINDWALKER and PowerType.Chi or spec == SPEC_MONK_BREWMASTER and STAGGER or nil
-            Continue(RefreshClassPower)
-            NextEvent("PLAYER_SPECIALIZATION_CHANGED")
-        end
-
-    elseif _PlayerClass == "PRIEST" then
-        _ClassPowerToken        = "MANA"
-
-        while true do
-            _ClassPowerType     = GetSpecialization() == SPEC_PRIEST_SHADOW and PowerType.Mana or nil
-            Continue(RefreshClassPower)
-            NextEvent("PLAYER_SPECIALIZATION_CHANGED")
-        end
-
-    elseif _PlayerClass == "SHAMAN" then
-        _ClassPowerToken        = "MANA"
-
-        while true do
-            _ClassPowerType     = GetSpecialization() ~= SPEC_SHAMAN_RESTORATION and PowerType.Mana or nil
-            Continue(RefreshClassPower)
-            NextEvent("PLAYER_SPECIALIZATION_CHANGED")
-        end
-
-    elseif _PlayerClass == "DRUID" then
-        _ClassPowerToken        = "COMBO_POINTS"
-
-        while true do
-            _ClassPowerType     = GetShapeshiftFormID() == CAT_FORM and PowerType.ComboPoints or nil
-            Continue(RefreshClassPower)
-            NextEvent("UPDATE_SHAPESHIFT_FORM")
-        end
-
-    elseif _PlayerClass == "ROGUE" then
-        _ClassPowerToken        = "COMBO_POINTS"
-        _ClassPowerType         = PowerType.ComboPoints
-
-    elseif _PlayerClass == "MAGE" then
-        _ClassPowerToken        = "ARCANE_CHARGES"
-
-        while true do
-            _ClassPowerType     = GetSpecialization() == SPEC_MAGE_ARCANE and PowerType.ArcaneCharges or nil
-            Continue(RefreshClassPower)
-            NextEvent("PLAYER_SPECIALIZATION_CHANGED")
-        end
-
-    elseif _PlayerClass == "WARLOCK" then
-        _ClassPowerToken        = "SOUL_SHARDS"
-        _ClassPowerType         = PowerType.SoulShards
-
-    elseif _PlayerClass == "HUNTER" then
-
-    elseif _PlayerClass == "DEMONHUNTER" then
-        SOULFRAGMENTNAME        = GetSpellInfo(SOULFRAGMENT)
-        _ClassPowerToken        = "DEMONHUNTER"
-
-        while true do
-            _ClassPowerType     = GetSpecialization() == SPEC_DEMONHUNTER_VENGENCE and SOULFRAGMENT or nil
-            Continue(RefreshClassPower)
-            NextEvent("PLAYER_SPECIALIZATION_CHANGED")
-        end
-
-    end
-
-    return RefreshClassPower()
-end
-
-function RefreshClassPower()
-    if _ClassPowerType then
-        if _PrevClassPowerType ~= _ClassPowerType then
-            if _PrevClassPowerType then
-                _ClassPowerSubject:Unsubscribe()
-                _ClassPowerMaxSubject:Unsubscribe()
-            end
-
-            _PrevClassPowerType = _ClassPowerType
-
-            -- Binding the real event source
-            _ClassPowerSubject:Resubscribe()
-            _ClassPowerMaxSubject:Resubscribe()
-
-            if _ClassPowerType == SOULFRAGMENT then
-                -- Use aura to track, keep using Next() for throttling
-                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
-            elseif _ClassPowerType == STAGGER then
-                Wow.FromEvent("UNIT_HEALTH"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
-                Wow.FromEvent("UNIT_MAXHEALTH"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
-            elseif _ClassPowerType == PowerType.Runes then
-                Wow.FromEvent("RUNE_POWER_UPDATE"):Map("=>'player'"):Subscribe(_ClassPowerSubject)
-            else
-                Wow.FromEvent("UNIT_POWER_FREQUENT"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
-                Wow.FromEvent("UNIT_MAXPOWER"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
-            end
-        end
-    else
-        _PrevClassPowerType     = false
-        _ClassPowerSubject:Unsubscribe()
-        _ClassPowerMaxSubject:Unsubscribe()
-    end
-
-    -- Publish the changes
-    _ClassPowerRefresh:OnNext("any")        -- For all, but other unit's indicator will be disabled and hide
-    _ClassPowerSubject:OnNext("player")     -- For player only
-    _ClassPowerMaxSubject:OnNext("player")
-end
-
-__Static__() __AutoCache__()
-function Wow.ClassPower()
-    if _PlayerClass == "DEATHKNIGHT" then
-        -- A simple total rune as basic features
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
-    elseif _PlayerClass == "DEMONHUNTER" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
-    elseif _PlayerClass == "MONK" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
-    else
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
-    end
-end
-
-__Static__() __AutoCache__()
-function Wow.ClassPowerMax()
-    local minMax                = { min = 0 }
-    if _PlayerClass == "DEATHKNIGHT" then
-        minMax.max              = 6
-        return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
-            return minMax
-        end)
-    elseif _PlayerClass == "DEMONHUNTER" then
-        minMax.max              = 5
-        -- Only track max 5 soul fragment
-        return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
-            return minMax
-        end)
-    elseif _PlayerClass == "MONK" then
-        return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
-            minMax.max          = _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
-            return minMax
-        end)
-    else
-        return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
-            minMax.max          = _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
-            return minMax
-        end)
-    end
-end
-
-__Static__() __AutoCache__()
-function Wow.ClassPowerColor()
-    if _PlayerClass == "MONK" then
-        local STAGGER_YELLOW_TRANSITION = _G.STAGGER_YELLOW_TRANSITION
-        local STAGGER_RED_TRANSITION    = _G.STAGGER_RED_TRANSITION
-
-        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit)
-            if _ClassPowerType and UnitIsUnit(unit, "player") then
-                if _ClassPowerType == STAGGER then
-                    local curr          = UnitStagger(unit)
-                    local maxs          = UnitHealthMax(unit)
-                    if curr and maxs then
-                        local pct       = curr / max
-
-                        if (pct >= STAGGER_RED_TRANSITION) then
-                            return Color.RED
-                        elseif (pct >= STAGGER_YELLOW_TRANSITION) then
-                            return Color.YELLOW
-                        else
-                            return Color.GREEN
-                        end
-                    end
-                else
-                    return Color[_ClassPowerToken]
-                end
-            end
-
-            return Color.DISABLED
-        end)
-    else
-        return Wow.FromUnitEvent(_ClassPowerRefresh):Map(function(unit)
-            return UnitIsUnit(unit, "player") and _ClassPowerType and Color[_ClassPowerToken] or Color.DISABLED
-        end)
-    end
-end
-
-__Static__() __AutoCache__()
-function Wow.ClassPowerUsable()
-    return Wow.FromUnitEvent(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitPower(frequent)
-    return Wow.FromUnitEvent(frequent and "UNIT_POWER_FREQUENT" or "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Next():Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitPowerMax()
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) minMax.max =  UnitPowerMax(unit, (UnitPowerType(unit))) return minMax end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitPowerColor()
-    local scolor                = Color(1, 1, 1)
-    return Wow.FromUnitEvent("UNIT_CONNECTION", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit)
-            if not UnitIsConnected(unit) then
-                scolor.r        = 0.5
-                scolor.g        = 0.5
-                scolor.b        = 0.5
-            else
-                local ptype, ptoken, r, g, b = UnitPowerType(unit)
-                local color     = ptoken and Color[ptoken]
-                if color then return color end
-
-                if r then
-                    scolor.r    = r
-                    scolor.g    = g
-                    scolor.b    = b
-                else
-                    return Color.MANA
-                end
-            end
-
-            return scolor
-        end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitMana()
-    local MANA                  = _G.Enum.PowerType.Mana
-    return Wow.FromUnitEvent("UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) return UnitPower(unit, MANA) end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitManaMax()
-    local MANA                  = _G.Enum.PowerType.Mana
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) minMax.max =  UnitPowerMax(unit, MANA) return minMax end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitManaVisible()
-    local MANA                  = _G.Enum.PowerType.Mana
-    return Wow.FromUnitEvent("UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Map(function(unit) return UnitPowerType(unit) ~= MANA and (UnitPowerMax(unit, MANA) or 0) > 0 end)
-end
-
-
-------------------------------------------------------------
---                     Unit Cast API                      --
-------------------------------------------------------------
-local _CurrentCastID            = {}
-local _CurrentCastEndTime       = {}
-
-local _UnitCastSubject          = Subject()
-local _UnitCastDelay            = Subject()
-local _UnitCastInterruptible    = Subject()
-local _UnitCastChannel          = Subject()
-
-__SystemEvent__()
-function UNIT_SPELLCAST_START(unit, castID, spellID)
-    local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
-    s, e                        = s / 1000, e / 1000
-
-    _CurrentCastID[unit]        = castID
-    _CurrentCastEndTime[unit]   = e
-
-    _UnitCastChannel:OnNext(unit, false)
-    _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
-    _UnitCastDelay:OnNext(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, not i)
-end
-
-__SystemEvent__ "UNIT_SPELLCAST_FAILED" "UNIT_SPELLCAST_STOP" "UNIT_SPELLCAST_INTERRUPTED"
-function UNIT_SPELLCAST_FAILED(unit, castID, spellID)
-    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
-        _UnitCastSubject:OnNext(unit, spellID, nil, nil, 0, 0)
-        _UnitCastDelay:OnNext(unit, 0)
-    end
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_INTERRUPTIBLE(unit)
-    if not _CurrentCastID[unit] then return end
-    _UnitCastInterruptible:OnNext(unit, true)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_NOT_INTERRUPTIBLE(unit)
-    if not _CurrentCastID[unit] then return end
-    _UnitCastInterruptible:OnNext(unit, false)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_DELAYED(unit, castID, spellID)
-    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
-        local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
-        s, e                        = s / 1000, e / 1000
-
-        _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
-        _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
-    end
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_CHANNEL_START(unit, castID, spellID)
-    local n, _, t, s, e, _, i   = UnitChannelInfo(unit)
-    s, e                        = s / 1000, e / 1000
-
-    _CurrentCastID[unit]        = nil
-    _CurrentCastEndTime[unit]   = e
-
-    _UnitCastChannel:OnNext(unit, true)
-    _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
-    _UnitCastDelay:OnNext(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, i)
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_CHANNEL_UPDATE(unit, castID, spellID)
-    local n, _, t, s, e         = UnitChannelInfo(unit)
-    s, e                        = s / 1000, e / 1000
-
-    _UnitCastSubject:OnNext(unit, spellID, n, t, s, e - s)
-    _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
-end
-
-__SystemEvent__()
-function UNIT_SPELLCAST_CHANNEL_STOP(unit, castID, spellID)
-    _UnitCastSubject:OnNext(unit, spellID, nil, nil, 0, 0)
-    _UnitCastDelay:OnNext(unit, 0)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitCastCooldown()
-    local status                = { start = 0, duration = 0 }
-    return Wow.FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, name, icon, start, duration)
-        if spellID then
-            status.start        = start
-            status.duration     = duration
-        else
-            -- Register the Unit Here
-            _CurrentCastID[unit]= 0
-            status.start        = 0
-            status.duration     = 0
-        end
-        return status
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitCastChannel()
-    return Wow.FromUnitEvent(_UnitCastChannel):Map(function(unit, val) return val or false end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitCastInterruptible()
-    return Wow.FromUnitEvent(_UnitCastInterruptible):Map(function(unit, val) return val or false end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitCastName()
-    return Wow.FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, name) return name end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitCastIcon()
-    return Wow.FromUnitEvent(_UnitCastSubject):Map(function(unit, spellID, name, icon) return icon end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitCastDelay()
-    return Wow.FromUnitEvent(_UnitCastDelay):Map(function(unit, delay) return delay end)
-end
-
 
 ------------------------------------------------------------
 --                      READY CHECK                       --
@@ -703,276 +295,29 @@ function Wow.UnitReadyCheck()
     end)
 end
 
-
 ------------------------------------------------------------
---                      UNIT HEALTH                       --
+--                      Wow Classic                       --
 ------------------------------------------------------------
-local _DISPELLABLE              = ({
-    ["MAGE"]                    = { Curse   = Color.CURSE, },
-    ["DRUID"]                   = { Poison  = Color.POISON, Curse   = Color.CURSE,   Magic = Color.MAGIC },
-    ["PALADIN"]                 = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
-    ["PRIEST"]                  = { Disease = Color.DISEASE,Magic   = Color.MAGIC },
-    ["SHAMAN"]                  = { Curse   = Color.CURSE,  Magic   = Color.MAGIC },
-    ["WARLOCK"]                 = { Magic   = Color.MAGIC, },
-    ["MONK"]                    = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
-})[_PlayerClass] or false
+if Scorpio.IsRetail then return end
 
-local _UnitGUIDMap              = {}
-local _UnitHealthMap            = {}
-
-local _UnitHealthSubject        = Subject()
-local _UnitMaxHealthSubject     = Subject()
-
-function RegisterFrequentHealthUnit(unit, guid, health)
-    _UnitHealthMap[guid]        = health
-
-    local oguid                 = _UnitGUIDMap[unit]
-    if oguid == guid then return end
-
-    local map                   = _UnitGUIDMap[guid] -- Unit(*) =>  GUID(1)
-    if not map then
-        map                     = {}
-        _UnitGUIDMap[guid]      = map
-    end
-
-    map[unit]                   = true
-    _UnitGUIDMap[unit]          = guid
-
-    if oguid then
-        map                     = _UnitGUIDMap[oguid]
-        if map then
-            map[unit]           = nil
-            if not next(map) then
-                _UnitGUIDMap[oguid]     = nil
-                _UnitHealthMap[oguid]   = nil
-            end
-        end
-    end
-end
-
-__SystemEvent__()
-function COMBAT_LOG_EVENT_UNFILTERED()
-    local _, event, _, _, _, _, _, destGUID, _, _, _, arg12, arg13, arg14, arg15, arg16 = CombatLogGetCurrentEventInfo()
-    local health                = _UnitHealthMap[destGUID]
-    if not health then return end
-
-    local change                = 0
-
-    if event == "SWING_DAMAGE" then
-        -- amount   : arg12
-        -- overkill : arg13
-        change                  = (arg13 > 0 and arg13 or 0) - arg12
-    elseif event == "RANGE_DAMAGE" or event == "SPELL_DAMAGE" or event == "SPELL_PERIODIC_DAMAGE" or event == "DAMAGE_SPLIT" or event == "DAMAGE_SHIELD" then
-        -- amount   : arg15
-        -- overkill : arg16
-        change                  = (arg16 > 0 and arg16 or 0) - arg15
-    elseif event == "ENVIRONMENTAL_DAMAGE" then
-        -- amount   : arg13
-        -- overkill : arg14
-        change                  = (arg14 > 0 and arg14 or 0) - arg13
-    elseif event == "SPELL_HEAL" or event == "SPELL_PERIODIC_HEAL" then
-        -- amount       : arg15
-        -- overhealing  : arg16
-        change                  = amount - overhealing
-    end
-
-    if change == 0 then return end
-
-    local map                   = _UnitGUIDMap[destGUID]
-    if not map then return end
-
-    health                      = health + change
-    if change < 0 then
-        if health < 0 then health = 0 end
-    elseif change > 0 then
-        local unit              = next(map)
-        if not unit then
-            _UnitGUIDMap[destGUID]  = nil
-            _UnitHealthMap[destGUID]= nil
-            return
-        end
-
-        local max               = UnitHealthMax(unit)
-        if health > max then health = max end
-    end
-    _UnitHealthMap[destGUID]    = health
-
-    -- Distribute the new health
-    for unit in pairs(map) do
-        _UnitHealthSubject:OnNext(unit)
-    end
-end
-
-__SystemEvent__()
-function PLAYER_ENTERING_WORLD()
-    -- Clear the Registered Units
-    wipe(_UnitGUIDMap)
-    wipe(_UnitHealthMap)
-end
-
-__SystemEvent__(Scorpio.IsRetail and "UNIT_HEALTH" or "UNIT_HEALTH_FREQUENT")
-function UNIT_HEALTH(unit)
-    local guid                  = UnitGUID(unit)
-    if _UnitHealthMap[guid] then
-        _UnitHealthMap[guid]    = UnitHealth(unit)
-    end
-
-    _UnitHealthSubject:OnNext(unit)
-end
-
-__SystemEvent__()
-function UNIT_MAXHEALTH(unit)
-    _UnitMaxHealthSubject:OnNext(unit)
-    _UnitHealthSubject:OnNext(unit)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealth()
-    -- Use the Next for a tiny delay after the UnitHealthMax
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(UnitHealth)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthFrequent()
-    -- Based on the CLEU
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
-        local guid              = UnitGUID(unit)
-        local health            = _UnitHealthMap[guid]
-        if health and _UnitGUIDMap[unit] == guid then return health end
-
-        -- Register the unit
-        health                  = health or UnitHealth(unit)
-        RegisterFrequentHealthUnit(unit, guid, health)
-        return health
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthPercent()
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
-        local health            = UnitHealth(unit)
-        local max               = UnitHealthMax(unit)
-
-        return floor(0.5 + (health and max and health / max * 100) or 0)
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthPercentFrequent()
-    -- Based on the CLEU
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
-        local guid              = UnitGUID(unit)
-        local health            = _UnitHealthMap[guid]
-
-        if not (health and _UnitGUIDMap[unit] == guid) then
-        -- Register the unit
-            health              = health or UnitHealth(unit)
-            RegisterFrequentHealthUnit(unit, guid, health)
-        end
-
-        local max               = UnitHealthMax(unit)
-        return floor(0.5 + (health and max and health / max * 100) or 0)
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthMax()
-    local minMax                = { min = 0 }
-    return Wow.FromUnitEvent(_UnitMaxHealthSubject):Map(function(unit)
-        minMax.max              = UnitHealthMax(unit) or 100
-        return minMax
-    end)
-end
-
-__Static__() __AutoCache__() -- Too complex to do it here, leave it to the indicators or map chains
-function Wow.UnitHealPrediction()
-    return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED"):Next()
-end
-
-__Arguments__{ (ColorType + Boolean)/nil, ColorType/nil }
-__Static__()
-function Wow.UnitConditionColor(useClassColor, smoothEndColor)
-    local defaultColor          = type(useClassColor) == "table" and useClassColor or Color.GREEN
-    useClassColor               = useClassColor == true
-
-    if smoothEndColor then
-        local cache             = Color{ r = 1, g = 1, b = 1 }
-        local br, bg, bb        = smoothEndColor.r, smoothEndColor.g, smoothEndColor.b
-
-        if _DISPELLABLE then
-            return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_AURA"):Next():Map(function(unit)
-                local index     = 1
-                repeat
-                    local n, _, _, d = UnitAura(unit, index, "HARMFUL")
-                    local color = _DISPELLABLE[d]
-                    if color then return color end
-                    index       = index + 1
-                until not n
-
-                local health    = UnitHealth(unit)
-                local maxHealth = UnitHealthMax(unit)
-                local pct       = health / maxHealth
-                local dcolor    = defaultColor
-
-                if useClassColor then
-                    local _, cls= UnitClass(unit)
-                    if cls then dcolor = Color[cls] end
-                end
-
-                cache.r         = br + (dcolor.r - br) * pct
-                cache.g         = bg + (dcolor.g - bg) * pct
-                cache.b         = bb + (dcolor.b - bb) * pct
-
-                return cache
-            end)
-        else
-            return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
-                local health    = _UnitHealthMap[unit] or UnitHealth(unit)
-                local maxHealth = UnitHealthMax(unit)
-                local pct       = health / maxHealth
-                local dcolor    = defaultColor
-
-                if useClassColor then
-                    local _, cls= UnitClass(unit)
-                    if cls then dcolor = Color[cls] end
-                end
-
-                cache.r         = br + (dcolor.r - br) * pct
-                cache.g         = bg + (dcolor.g - bg) * pct
-                cache.b         = bb + (dcolor.b - bb) * pct
-
-                return cache
-            end)
-        end
+function GetThreatStatusColor(index)
+    if index == 3 then
+        return 1, 0, 0
+    elseif index == 2 then
+        return 1, 0.6, 0
+    elseif index == 1 then
+        return 1, 1, 0.47
     else
-        if _DISPELLABLE then
-            return Wow.FromUnitEvent("UNIT_AURA"):Next():Map(function(unit)
-                local index     = 1
-                repeat
-                    local n, _, _, d = UnitAura(unit, index, "HARMFUL")
-                    local color = _DISPELLABLE[d]
-                    if color then return color end
-                    index       = index + 1
-                until not n
-
-                local dcolor    = defaultColor
-
-                if useClassColor then
-                    local _, cls= UnitClass(unit)
-                    if cls then dcolor = Color[cls] end
-                end
-                return dcolor
-            end)
-        else
-            return Wow.FromUnitEvent():Map(function(unit)
-                local dcolor    = defaultColor
-
-                if useClassColor then
-                    local _, cls= UnitClass(unit)
-                    if cls then dcolor = Color[cls] end
-                end
-                return dcolor
-            end)
-        end
+        return 0.69, 0.69, 0.69
     end
+end
+
+if IsAddOnLoaded("LibClassicDurations") or (LibStub and LibStub("LibClassicDurations")) then
+    LibClassicDurations         = LibStub("LibClassicDurations")
+    LibClassicDurations:Register("Scorpio") -- tell library it's being used and should start working
+    _Parent.UnitAura            = LibClassicDurations.UnitAuraWithBuffs
+
+    LibClassicDurations.RegisterCallback("Scorpio", "UNIT_BUFF", function(event, unit)
+        return FireSystemEvent("UNIT_AURA", unit)
+    end)
 end

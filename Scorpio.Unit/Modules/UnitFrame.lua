@@ -21,9 +21,10 @@ do
         Spell                   = {
             type                = "spell",
             parse               = function (spell)
-                if (type(spell) == "string" or type(spell) == "number") and GetSpellInfo(spell) then
+                if (type(spell) == "string" or type(spell) == "number") then
                     -- Only keep spell id
-                    return tonumber(GetSpellLink(spell):match('spell:(%d+)')), IsHarmfulSpell(spell)
+                    local name, _, _, _, _, _, spellId = GetSpellInfo(spell)
+                    if name then return spellId, IsHarmfulSpell(name) end
                 end
 
                 error("Invalid spell name|id - "..tostring(spell), 3)

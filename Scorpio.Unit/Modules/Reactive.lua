@@ -46,6 +46,59 @@ class "UnitFrameSubject" (function(_ENV)
         self.Unit               = unit
     end
 
+    local _Recycle              = Recycle()
+    local _UnitGuidMap          = {}
+    local _GuidUnitMap          = {}
+
+    local NAMEPLATE_SUBJECT     = FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED")
+    local RAID_UNIT_SUBJECT     = FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function(unit) return unit or "any" end)
+
+    local function refreshUnitGuidMap(unit)
+        local guid              = UnitGUID(unit)
+        local oguid             = _UnitGuidMap[unit]
+
+        if guid == oguid then return end
+        _UnitGuidMap[unit]      = guid
+
+        if guid then
+            local map           = _GuidUnitMap[guid]
+            if not map then
+                map             = _Recycle()
+                _GuidUnitMap[guid] = map
+            end
+
+            map[unit]           = true
+        end
+
+        if oguid then
+            local map           = _GuidUnitMap[oguid]
+            if map then
+                map[unit]       = nil
+
+                if not next(map) then
+                    -- Clear
+                    _GuidUnitMap[oguid] = nil
+                    _Recycle(map)
+                end
+            end
+        end
+    end
+
+    ----------------------------------------------------
+    -- Extend Method To Scorpio
+    ----------------------------------------------------
+    __Static__()
+    function Scorpio.GetUnitFromGUID(guid)
+        local map               = _GuidUnitMap[guid]
+        return (map and next(map))
+    end
+
+    __Static__() __Iterator__()
+    function Scorpio.GetUnitsFromGUID(guid)
+        local map               = _GuidUnitMap[guid]
+        if map then for unit in pairs(map) do yield(unit) end end
+    end
+
     ----------------------------------------------------
     -- Method
     ----------------------------------------------------
@@ -56,58 +109,86 @@ class "UnitFrameSubject" (function(_ENV)
 
     -- Don't use __AsyncSingle__ here to reduce the memory garbage collect
     __Async__()
-    function RefreshUnit(self, unit)
+    function RefreshUnit(self, unit, oldunit)
         self.TaskId             = (self.TaskId or 0) + 1
         local task              = self.TaskId
 
-        if unit == "target" then
+        -- May clear the old unit's cache
+        if oldunit then refreshUnitGuidMap(oldunit) end
+
+        if not unit or unit == "none" then
+            -- need sepcial unit to be passed to clear the values
+            self:OnNext("none", true)
+        elseif unit:match("%w+target") then
+            local frm           = self.UnitFrame
             while task == self.TaskId do
+                while frm:IsShown() and task == self.TaskId do
+                    self:OnNext(unit, true)
+                    Delay(self.Interval)
+                end
+
+                -- Wait the unit frame re-show
+                if task == self.TaskId then
+                    Next(Observable.From(frm.OnShow))
+                end
+            end
+        elseif unit == "player" then
+            refreshUnitGuidMap(unit)
+            self:OnNext(unit)
+        elseif unit == "target" then
+            while task == self.TaskId do
+                refreshUnitGuidMap(unit)
                 self:OnNext(unit)
                 NextEvent("PLAYER_TARGET_CHANGED")
             end
         elseif unit == "mouseover" then
             while task == self.TaskId do
+                refreshUnitGuidMap(unit)
                 self:OnNext(unit)
                 NextEvent("UPDATE_MOUSEOVER_UNIT")
             end
         elseif unit == "focus" then
             while task == self.TaskId do
+                refreshUnitGuidMap(unit)
                 self:OnNext(unit)
                 NextEvent("PLAYER_FOCUS_CHANGED")
             end
-        elseif unit then
-            if unit:match("^party%d") or unit:match("^raid%d") then
-                while task == self.TaskId do
-                    self:OnNext(unit)
-                    Next(FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
-                end
-            elseif unit:match("pet") then
-                local owner     = unit:match("^(%w*)pet")
-                if not owner or owner:match("^%s*$") then owner = "player" end
-
-                while task == self.TaskId do
-                    self:OnNext(unit)
-                    Next(FromEvent("UNIT_PET"):MatchUnit(owner))
-                end
-            elseif unit:match("%w+target") then
-                local frm       = self.UnitFrame
-                while task == self.TaskId do
-                    while frm:IsShown() and task == self.TaskId do
-                        self:OnNext(unit, true)
-                        Delay(self.Interval)
-                    end
-
-                    -- Wait the unit frame re-show
-                    if task == self.TaskId then
-                        Next(Observable.From(frm.OnShow))
-                    end
-                end
+        elseif unit:match("pet") then
+            local owner     = unit:match("^(%w+)pet")
+            local index     = owner and unit:match("%d+")
+            if not owner then
+                owner       = "player"
+            elseif index then
+                owner       = owner .. index
             else
+                -- Not valid
+                return self:OnNext("none", true)
+            end
+
+            while task == self.TaskId do
+                refreshUnitGuidMap(unit)
                 self:OnNext(unit)
+                Next(FromEvent("UNIT_PET"):MatchUnit(owner))
+            end
+        elseif unit:match("nameplate") then
+            while task == self.TaskId do
+                refreshUnitGuidMap(unit)
+                self:OnNext(unit)
+                Next(NAMEPLATE_SUBJECT:MatchUnit(unit))
+            end
+        elseif unit:match("^party%d") or unit:match("^raid%d") then
+            while task == self.TaskId do
+                refreshUnitGuidMap(unit)
+                self:OnNext(unit)
+                Next(RAID_UNIT_SUBJECT:MatchUnit(unit))
             end
         else
-            -- need sepcial unit to be passed to clear the values
-            self:OnNext("clear", true)
+            -- Other units: arenaN, bossN, vehicle, spectated<T><N>
+            while task == self.TaskId do
+                refreshUnitGuidMap(unit)
+                self:OnNext(unit)
+                Next(FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
+            end
         end
     end
 

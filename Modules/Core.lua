@@ -387,6 +387,7 @@ PLoop(function(_ENV)
         ScorpioManager          = CreateFrame("Frame")
 
         _EventDistribution      = {}                                -- System Event
+        _CombatEventDistribution= {}                                -- Combat Event
         _SecureHookDistribution = setmetatable({}, META_WEAKKEY)    -- Secure Hook
 
         t_EventTasks            = {}                                -- Event Task
@@ -729,6 +730,11 @@ PLoop(function(_ENV)
             end
         end
 
+        local function callCombatHandlers(timestamp, eventType, ...)
+            local map           = _CombatEventDistribution[eventType]
+            if map then return callAddonHandlers(map, timestamp, eventType, ...) end
+        end
+
         ----------------------------------------------
         --             Next Observable              --
         ----------------------------------------------
@@ -930,6 +936,10 @@ PLoop(function(_ENV)
         --             Scorpio Manager              --
         ----------------------------------------------
         function ScorpioManager:OnEvent(evt, ...)
+            if evt == "COMBAT_LOG_EVENT_UNFILTERED" then
+                callCombatHandlers( CombatLogGetCurrentEventInfo() )
+            end
+
             local now           = GetTime()
             if now > g_PhaseStartTime then
                 g_PhaseStartTime = now
@@ -1183,6 +1193,75 @@ PLoop(function(_ENV)
                 return ScorpioManager:OnEvent(self, ...)
             elseif type(self) == "table" and type(select(1, ...)) == "string" then
                 return ScorpioManager:OnEvent(...)
+            end
+        end
+
+        ----------------------------------------------
+        --           System Combat Method           --
+        ----------------------------------------------
+        --- Register combat event or custom event
+        -- @param event         string, the combat|custom event name
+        -- @param handler       string|function, the event handler or its name
+        __Arguments__{ NEString, (NEString + Function)/nil }:Throwable()
+        function RegisterCombatEvent(self, evt, handler)
+            local map           = _CombatEventDistribution[evt]
+            if not map then
+                map             = setmetatable({}, META_WEAKKEY)
+                _CombatEventDistribution[evt] = map
+            end
+
+            handler             = handler or evt
+            if type(handler) == "string" then handler = self[handler] end
+            if type(handler) ~= "function" then throw("Scorpio:RegisterCombatEvent(event[, handler]) -- handler not existed.") end
+
+            map[self]           = handler
+        end
+
+        --- Whether the combat event or custom event is registered
+        --@param  event          string, the combat|custom event name
+        --@return boolean       true if the event is registered
+        __Arguments__{ NEString }
+        function IsCombatEventRegistered(self, evt)
+            local map           = _CombatEventDistribution[evt]
+            return map and map[self] and true or false
+        end
+
+        --- Get the registered handler of an event
+        --@param  event         string, the combat|custom event name
+        --@return boolean       true if the event is registered
+        __Arguments__{ NEString }
+        function GetRegisteredCombatEventHandler(self, evt)
+            local map           = _CombatEventDistribution[evt]
+            return map and map[self]
+        end
+
+        --- Unregister combat event or custom event
+        --@param event          string, the combat|custom event name
+        __Arguments__{ NEString }
+        function UnregisterCombatEvent(self, evt)
+            local map           = _CombatEventDistribution[evt]
+            if map and map[self] then
+                map[self]       = nil
+            end
+        end
+
+        --- Unregister all the events
+        function UnregisterAllCombatEvents(self)
+            for evt, map in pairs(_CombatEventDistribution) do
+                if map[self] then
+                    map[self]   = nil
+                end
+            end
+        end
+
+        --- Fire the combat event
+        --@param event          string, the event's name
+        --@param ...            the other arguments
+        function FireCombatEvent(self, arg1, ...)
+            if type(self) == "string" then
+                return ScorpioManager:OnEvent("COMBAT_LOG_EVENT_UNFILTERED", time(), self, arg1, ...)
+            elseif type(arg1) == "string" then
+                return ScorpioManager:OnEvent("COMBAT_LOG_EVENT_UNFILTERED", time(), arg1, ...)
             end
         end
 
@@ -1643,6 +1722,57 @@ PLoop(function(_ENV)
             end
         end)
 
+        --- Register a combat event with a handler, the handler's name is the event name
+        -- @usage
+        --      Scorpio "MyAddon" "v1.0.1"
+        --
+        --      __CombatEvent__()
+        --      function SPELL_CAST_START(...)
+        --      end
+        --
+        --      __CombatEvent__ "SPELL_CAST_SUCCESS" "SPELL_MISSED"
+        --      function SPELL_CAST(...)
+        --      end
+        class "__CombatEvent__" (function(_ENV)
+            extend "IAttachAttribute"
+
+            function AttachAttribute(self, target, targettype, owner, name, stack)
+                if Class.IsObjectType(owner, Scorpio) then
+                    if #self > 0 then
+                        for _, evt in ipairs(self) do
+                            owner:RegisterCombatEvent(evt, target)
+                        end
+                    else
+                        owner:RegisterCombatEvent(name, target)
+                    end
+                else
+                    error("__CombatEvent__ can only be applyed to objects of Scorpio.", stack + 1)
+                end
+            end
+
+            ----------------------------------------------
+            --                 Property                 --
+            ----------------------------------------------
+            property "AttributeTarget"  { default = AttributeTargets.Function }
+
+            ----------------------------------------------
+            --                Constructor               --
+            ----------------------------------------------
+            __Arguments__{ NEString * 0 }
+            function __new(cls, ...)
+                return { ... }, true
+            end
+
+            ----------------------------------------------
+            --                Meta-Method               --
+            ----------------------------------------------
+            __Arguments__{ NEString }
+            function __call(self, other)
+                tinsert(self, other)
+                return self
+            end
+        end)
+
 
         --- Mark the method as a hook
         -- @usage
@@ -1909,6 +2039,7 @@ PLoop(function(_ENV)
 
         ScorpioManager:SetScript("OnEvent", ScorpioManager.OnEvent)
         ScorpioManager:SetScript("OnUpdate", ScorpioManager.OnUpdate)
+        ScorpioManager:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
         RegisterEvent(ScorpioManager, "ADDON_LOADED")
         RegisterEvent(ScorpioManager, "PLAYER_LOGIN")
