@@ -34,13 +34,14 @@ local _UnitHealthSubject        = Subject()
 local _UnitMaxHealthSubject     = Subject()
 
 function RegisterFrequentHealthUnit(unit, guid, health)
-    _UnitHealthMap[guid]        = health
-
     local oguid                 = _UnitGUIDMap[unit]
     if oguid == guid then return end
 
     _UnitGUIDMap[unit]          = guid
-    _UnitGUIDMap[guid]          = (_UnitGUIDMap[guid] or 0) + 1
+    if guid then
+        _UnitHealthMap[guid]    = health
+        _UnitGUIDMap[guid]      = (_UnitGUIDMap[guid] or 0) + 1
+    end
 
     if oguid then
         _UnitGUIDMap[oguid]     = _UnitGUIDMap[oguid] - 1
