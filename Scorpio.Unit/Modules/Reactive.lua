@@ -245,22 +245,16 @@ local function genUnitFrameObservable(unitEvent)
             if not unitSubject then return unitEvent and unitEvent:Subscribe(observer) end
             if not unitEvent   then return unitSubject:Subscribe(observer) end
 
-            local currUnit
-
             -- Unit event observer
             local obsEvent      = Observer(function(...) return observer:OnNext(...) end)
 
             -- Unit change observer
             local obsUnit       = Observer(function(unit, noevent)
-                if noevent or currUnit ~= unit then
-                    obsEvent:Unsubscribe() -- Clear the previous observable
-                    obsEvent:Resubscribe()
+                obsEvent:Unsubscribe() -- Clear the previous observable
+                obsEvent:Resubscribe()
 
-                    currUnit    = unit
-
-                    if not noevent then
-                        unitEvent:MatchUnit(unit):Subscribe(obsEvent)
-                    end
+                if not noevent then
+                    unitEvent:MatchUnit(unit):Subscribe(obsEvent)
                 end
 
                 observer:OnNext(unit)
