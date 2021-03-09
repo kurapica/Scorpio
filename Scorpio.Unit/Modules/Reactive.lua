@@ -116,9 +116,9 @@ class "UnitFrameSubject" (function(_ENV)
         -- May clear the old unit's cache
         if oldunit then refreshUnitGuidMap(oldunit) end
 
-        if not unit or unit == "none" then
+        if not unit then
             -- need sepcial unit to be passed to clear the values
-            self:OnNext("none", true)
+            self:OnNext("clear", true)
         elseif unit:match("%w+target") then
             local frm           = self.UnitFrame
             while task == self.TaskId do
