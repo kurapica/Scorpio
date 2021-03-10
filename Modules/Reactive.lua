@@ -105,61 +105,60 @@ do
     -- multiple-times in one phase(the same value will be blocked until the next phase)
     local _Recyle               = Recycle()
 
-    local function onNextSingleProcess(observer, cache)
-        for single in pairs(cache) do
-            observer:OnNext(single)
+    local function onNextSingleProcess(observer, cache, idxmap)
+        for i = 1, #cache do
+            local single        = cache[i]
+            if idxmap[single] == i then
+                observer:OnNext(single)
+            end
         end
 
         _Recyle(wipe(cache))
+        _Recyle(wipe(idxmap))
     end
 
-    local function onNextProcess(observer, cache)
-        local index             = 1
-
-        while true do
-            local count         = cache[index]
-            if not count then break end
-
-            observer:OnNext(unpack(cache, index + 1, index + count))
-
-            index               = index + count + 1
+    local function onNextProcess(observer, cache, idxmap)
+        for i = 1, #cache do
+            local item          = cache[i]
+            if idxmap[item[0]] == i then
+                observer:OnNext(unpack(item, 1))
+                wipe(item)
+            end
         end
 
         _Recyle(wipe(cache))
+        _Recyle(wipe(idxmap))
     end
 
-    local function distinctCache(cache, ...)
+    local function distinctCache(cache, idxmap, ...)
+        local item              = _Recyle()
         local ncnt              = select("#", ...)
         local index             = 1
 
-        while true do
-            local count         = cache[index]
-            if not count then break end
+        for i = 1, ncnt do
+            item[i]             = tostring((select(i, ...)))
+        end
 
-            if count == ncnt then
-                local match     = true
-                for i = 1, ncnt do
-                    if cache[index + i] ~= select(i, ...) then
-                        match   = false
-                        break
-                    end
-                end
-                if match then return end
+        local token             = tblconcat(item, "|")
+        local index             = #cache + 1
+
+        if idxmap[token] then
+            cache[index]        = cache[idxmap[token]]
+            _Recyle(wipe(item))
+        else
+            item[0]             = token
+            for i = 1, ncnt do
+                item[i]         = select(i, ...)
             end
 
-            index               = index + count + 1
+            cache[index]        = item
         end
-
-        cache[index]            = ncnt
-
-        for i = 1, ncnt do
-            cache[index + i]    = select(i, ...)
-        end
+        idxmap[token]           = index
     end
 
     __Observable__()
     function IObservable:Next(multi)
-        local cache
+        local cache, idxmap
         local currTime          = 0
 
         if multi then
@@ -167,20 +166,26 @@ do
                 local now           = GetTime()
                 if now ~= currTime then
                     cache           = _Recyle()
+                    idxmap          = _Recyle()
                     currTime        = now
-                    Next(onNextProcess, observer, cache)
+                    Next(onNextProcess, observer, cache, idxmap)
                 end
-                distinctCache(cache, ...)
+                distinctCache(cache, idxmap, ...)
             end)
         else
             return Operator(self, function(observer, single)
                 local now           = GetTime()
                 if now ~= currTime then
                     cache           = _Recyle()
+                    idxmap          = _Recyle()
                     currTime        = now
-                    Next(onNextSingleProcess, observer, cache)
+                    Next(onNextSingleProcess, observer, cache, idxmap)
                 end
-                if single ~= nil then cache[single] = true end
+                if single ~= nil then
+                    local idx       = #cache + 1
+                    cache[idx]      = single
+                    idxmap[single]  = idx
+                end
             end)
         end
     end

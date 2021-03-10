@@ -336,8 +336,10 @@ __Sealed__() class "TotemPanel"     (function(_ENV)
             for i = 1, MAX_TOTEMS do
                 local haveTotem, name, startTime, duration, icon = GetTotemInfo(SLOT_MAP[i])
                 if haveTotem then
-                    self.Elements[eleIdx]:Show()
-                    self.Elements[eleIdx].Slot  = SLOT_MAP[i]
+                    local ele   = self.Elements[eleIdx]
+                    if not ele then return end
+                    ele:Show()
+                    ele.Slot    = SLOT_MAP[i]
 
                     shareCooldown.start         = startTime
                     shareCooldown.duration      = duration
