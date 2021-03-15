@@ -161,9 +161,9 @@ __Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
                 if not relativeTo then
                     local sname = self:GetName(true)
                     if sname then
-                        throw("Usage: LayoutFrame:SetLocation(Anchors) - The System can't identify the relativeTo frame of " .. sname)
+                        throw("Usage: LayoutFrame:SetLocation(" .. Toolset.tostring(loc) .. ") - The System can't identify the relativeTo frame of " .. sname)
                     else
-                        throw("Usage: LayoutFrame:SetLocation(Anchors) - The System can't identify the relativeTo frame")
+                        throw("Usage: LayoutFrame:SetLocation(" .. Toolset.tostring(loc) .. ") - The System can't identify the relativeTo frame")
                     end
                 else
                     self:SetPoint(anchor.point, relativeTo, anchor.relativePoint or anchor.point, anchor.x or 0, anchor.y or 0)

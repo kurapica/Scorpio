@@ -34,6 +34,8 @@ local parentPath                = {}
 
 local CHILD_SETTING             = 0   -- For children
 
+local INSTANT_STYLE_UI_CLASS    = {}
+
 ----------------------------------------------
 --            Helper - Property             --
 ----------------------------------------------
@@ -1062,10 +1064,21 @@ __Sealed__() class "__Template__" (function (_ENV)
     end
 
     local function generateChildren(self, childtree)
+        local temp
         for k, v in pairs(childtree) do
             if k ~= CHILDREN_MAP then
-                v(k, self)
+                if INSTANT_STYLE_UI_CLASS[v] then
+                    temp        = temp or _Recycle()
+                    temp[k]     = v
+                else
+                    v(k, self)
+                end
             end
+        end
+
+        if temp then
+            for k, v in pairs(temp) do v(k, self) end
+            _Recycle(wipe(temp))
         end
 
         if childtree[CHILDREN_MAP] then
@@ -1920,7 +1933,7 @@ function QueueClassFramesService()
 end
 
 -- Apply the style on the frame instantly
-function UIObject:InstantApplyStyle()
+function UIObject:InstantApplyStyle(skipCheck)
     _StyleQueue[self]       = nil
 
     local props             = _Property[getUIPrototype(self)]
@@ -1931,6 +1944,16 @@ function UIObject:InstantApplyStyle()
     Trace("[Scorpio.UI]Instant Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
     local styles, children  = buildTempStyle(self)
+
+    -- Check the location props, dirty but should be only property has relationship
+    if not skipCheck and type(styles["location"]) == "table" then
+        for _, loc in ipairs(styles["location"]) do
+            if type(loc) == "table" and not UIObject.GetRelativeUI(self, loc.relativeTo) then
+                _StyleQueue[self] = true
+                return
+            end
+        end
+    end
 
     -- Queue the children
     for name in pairs(children) do
@@ -1947,7 +1970,7 @@ function UIObject:InstantApplyStyle()
     end
 
     for name, child in pairs(children) do
-        if child then UIObject.InstantApplyStyle(child) end
+        if child then UIObject.InstantApplyStyle(child, true) end
     end
 
     _Recycle(wipe(children))
@@ -1985,16 +2008,16 @@ function UIObject:GetRelativeUI(relativeTo)
         if relativeTo:find(".", 1, true) then
             for pattern in relativeTo:gmatch("[^%.]+") do
                 if pattern:lower() == "$parent" then
-                    rtar    = (rtar or self):GetParent()
+                    rtar        = (rtar or self):GetParent()
                 else
-                    local p = rtar or self:GetParent()
-                    rtar    = UIObject.GetChild(p, pattern) or UIObject.GetPropertyChild(p, pattern)
+                    local p     = rtar or self:GetParent()
+                    rtar        = UIObject.GetChild(p, pattern) or UIObject.GetPropertyChild(p, pattern)
                 end
                 if not rtar then break end
             end
         else
-            local p = self:GetParent()
-            rtar    = p and (UIObject.GetChild(p, relativeTo) or UIObject.GetPropertyChild(p, relativeTo))
+            local p             = self:GetParent()
+            rtar                = p and (UIObject.GetChild(p, relativeTo) or UIObject.GetPropertyChild(p, relativeTo))
         end
 
         return rtar or UIObject.FromName(relativeTo)
@@ -2074,4 +2097,63 @@ __Sealed__() class "__ChildProperty__" (function(_ENV)
         self.Require            = reqframe
         self.Name               = name
     end
+end)
+
+--- Define a UI class to do the InstantApplyStyle
+__Sealed__() class "__InstantApplyStyle__" (function(_ENV)
+    extend "IInitAttribute" "IApplyAttribute"
+
+    -----------------------------------------------------------
+    --                        method                         --
+    -----------------------------------------------------------
+    --- modify the target's definition
+    -- @param   target                      the target
+    -- @param   targettype                  the target type
+    -- @param   definition                  the target's definition
+    -- @param   owner                       the target's owner
+    -- @param   name                        the target's name in the owner
+    -- @param   stack                       the stack level
+    -- @return  definition                  the new definition
+    function InitDefinition(self, target, targettype, definition, owner, name, stack)
+        if targettype == AttributeTargets.Method then
+            if name ~= "__ctor" then error("The __InstantApplyStyle__ can only be used on the constructor, not nomral method", stack + 1) end
+
+            INSTANT_STYLE_UI_CLASS[owner] = true
+
+            return function(self, ...)
+                definition(self, ...)
+                return _StyleQueue[self] and self:InstantApplyStyle()
+            end
+        end
+    end
+
+    -----------------------------------------------------------
+    --- apply changes on the target
+    -- @param   target                      the target
+    -- @param   targettype                  the target type
+    -- @param   manager                     the definition manager of the target
+    -- @param   owner                       the target's owner
+    -- @param   name                        the target's name in the owner
+    -- @param   stack                       the stack level
+    function ApplyAttribute(self, target, targettype, manager, owner, name, stack)
+        if targettype == AttributeTargets.Class then
+            INSTANT_STYLE_UI_CLASS[target] = true
+
+            local ctor          = Class.GetMetaMethod(target, "__ctor")
+
+            manager.__ctor      = ctor and function(self, ...)
+                ctor(self, ...)
+                return _StyleQueue[self] and self:InstantApplyStyle()
+            end or function(self)
+                return _StyleQueue[self] and self:InstantApplyStyle()
+            end
+        end
+    end
+
+    -----------------------------------------------------------
+    --                       property                       --
+    -----------------------------------------------------------
+    property "AttributeTarget"  { type = AttributeTargets,  default = AttributeTargets.Method + AttributeTargets.Class }
+
+    property "Priority"         { type = AttributePriority, default = AttributePriority.Lowest }
 end)

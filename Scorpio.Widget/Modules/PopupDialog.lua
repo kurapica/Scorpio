@@ -21,6 +21,7 @@ export {
     POPUP_TYPE_COLORPICKER      = 4,
     POPUP_TYPE_OPACITYPICKER    = 5,
     POPUP_TYPE_RANGEPICKER      = 6,
+    POPUP_TYPE_MACROCONDITION   = 7,
 
     _PopupQueue                 = Queue(),
 }
@@ -92,6 +93,336 @@ __Sealed__() class "RangeDialog" (function(_ENV)
         CancelButton            = UIPanelButton,
     }
     function __ctor(self) end
+end)
+
+__Sealed__() class "MacroConditionDialog" (function(_ENV)
+    inherit "Dialog"
+    import "System.Text"
+
+    __Bubbling__{ ConfirmButton = "OnClick", InputBox = "OnEnterPressed" }
+    event "OnConfirm"
+
+    __Bubbling__{ CancelButton  = "OnClick", InputBox = "OnEscapePressed", CloseButton = "OnClick" }
+    event "OnCancel"
+
+    local L                     = Scorpio("Scorpio")._Locale
+
+    local targetData            = { "target", "pet", "vehicle", "focus", "mouseover", "targettarget", "focustarget", "boss1", "arena1", "party1", "raid1" }
+
+    local conditionData         = {
+        {
+            Condition           = "canexitvehicle",
+            Text                = L["Player is in a vehicle and can exit it at will."],
+        },
+        {
+            Condition           = "combat",
+            Text                = L["Player is in combat."],
+        },
+        {
+            Condition           = "dead",
+            Text                = L["Conditional target exists and is dead."],
+        },
+        {
+            Condition           = "exists",
+            Text                = L["Conditional target exists."],
+        },
+        {
+            Condition           = "flyable",
+            Text                = L["The player can use a flying mount in this zone (though incorrect in Wintergrasp during a battle)."],
+        },
+        {
+            Condition           = "flying",
+            Text                = L["Mounted or in flight form AND in the air."],
+        },
+        {
+            Condition           = "form",
+            Text                = L["The player is in any form."],
+        },
+        {
+            Condition           = "form:0",
+            Text                = L["The player is not in any form."],
+        },
+        {
+            Condition           = "form:1",
+            Text                = L["The player is in form 1." .. (GetShapeshiftFormInfo(1) and GetSpellLink(select(4, GetShapeshiftFormInfo(1))) or "")],
+        },
+        {
+            Condition           = "form:2",
+            Text                = L["The player is in form 2." .. (GetShapeshiftFormInfo(2) and GetSpellLink(select(4, GetShapeshiftFormInfo(2))) or "")],
+        },
+        {
+            Condition           = "form:3",
+            Text                = L["The player is in form 3." .. (GetShapeshiftFormInfo(3) and GetSpellLink(select(4, GetShapeshiftFormInfo(3))) or "")],
+        },
+        {
+            Condition           = "form:4",
+            Text                = L["The player is in form 4." .. (GetShapeshiftFormInfo(4) and GetSpellLink(select(4, GetShapeshiftFormInfo(4))) or "")],
+        },
+        {
+            Condition           = "group",
+            Text                = L["Player is in a party."],
+        },
+        {
+            Condition           = "group:raid",
+            Text                = L["Player is in a raid."],
+        },
+        {
+            Condition           = "harm",
+            Text                = L["Conditional target exists and can be targeted by harmful spells (e.g.  [Fireball])."],
+        },
+        {
+            Condition           = "help",
+            Text                = L["Conditional target exists and can be targeted by helpful spells (e.g.  [Heal])."],
+        },
+        {
+            Condition           = "indoors",
+            Text                = L["Player is indoors."],
+        },
+        {
+            Condition           = "mounted",
+            Text                = L["Player is mounted."],
+        },
+        {
+            Condition           = "outdoors",
+            Text                = L["Player is outdoors."],
+        },
+        {
+            Condition           = "party",
+            Text                = L["Conditional target exists and is in your party."],
+        },
+        {
+            Condition           = "pet",
+            Text                = L["The player has a pet."],
+        },
+        {
+            Condition           = "petbattle",
+            Text                = L["Currently participating in a pet battle."],
+        },
+        {
+            Condition           = "raid",
+            Text                = L["Conditional target exists and is in your raid/party."],
+        },
+        {
+            Condition           = "resting",
+            Text                = L["Player is currently resting."],
+        },
+        {
+            Condition           = "spec:1",
+            Text                = L["Player's active the first specialization group (spec, talents and glyphs)."],
+        },
+        {
+            Condition           = "spec:2",
+            Text                = L["Player's active the second specialization group (spec, talents and glyphs)."],
+        },
+        {
+            Condition           = "stealth",
+            Text                = L["Player is stealthed."],
+        },
+        {
+            Condition           = "swimming",
+            Text                = L["Player is swimming."],
+        },
+        {
+            Condition           = "vehicleui",
+            Text                = L["Player has vehicle UI."],
+        },
+        {
+            Condition           = "extrabar",
+            Text                = L["Player currently has an extra action bar/button."],
+        },
+        {
+            Condition           = "overridebar",
+            Text                = L["Player's main action bar is currently replaced by the override action bar."],
+        },
+        {
+            Condition           = "possessbar",
+            Text                = L["Player's main action bar is currently replaced by the possess action bar."],
+        },
+        {
+            Condition           = "shapeshift",
+            Text                = L["Player's main action bar is currently replaced by a temporary shapeshift action bar."],
+        },
+        {
+            Condition           = "mod:shift",
+            Text                = L["Player's holding the shift key"],
+        },
+        {
+            Condition           = "mod:ctrl",
+            Text                = L["Player's holding the ctrl key"],
+        },
+        {
+            Condition           = "mod:alt",
+            Text                = L["Player's holding the alt key"],
+        },
+        {
+            Condition           = "cursor",
+            Text                = L["Player's mouse cursor is currently holding an item/ability/macro/etc"],
+        },
+    }
+
+    TEMPLATE_CHOOSER            = TemplateString[[ [@condition] ]]
+
+    TEMPLATE_VIEWER             = TemplateString[[
+        <html>
+            <body>
+                <p><cyan>@L["The conditional target :"]</cyan></p>
+                <p>
+                @for _, tar in ipairs(targetData) do
+                    <a href="@@@tar">[@tar]</a>
+                @end
+                </p>
+                <br/>
+                <p><cyan>@L["The macro conditions :"]</cyan></p>
+                @for _, cond in ipairs(conditionData) do
+                    <p>
+                        <a href="no@cond.Condition">[no]</a>
+                        <a href="@cond.Condition">[@cond.Condition]</a>
+                        - @cond.Text
+                    </p>
+                @end
+            </body>
+        </html>
+    ]]
+
+    local function OnShow(self)
+        self.Selection          = { "@player" }
+        self:GetChild("InputBox"):SetText("")
+    end
+
+    local function OnViewerHyperlinkClick(self, data)
+        self                    = self:GetParent()
+        local selection         = self.Selection
+
+        if data:match("^@") then
+            -- conditional target
+            if data == selection[1] then
+                selection[1]    = "@player"
+            else
+                selection[1]    = data
+            end
+        else
+            local negData
+            local matched       = false
+            if data:match("^no") then
+                negData         = data:sub(3, -1)
+            else
+                negData         = "no" .. data
+            end
+
+            if data:match("form") then
+                for i, v in ipairs(selection) do
+                    if v:match("form") then
+                        matched = true
+
+                        if(v == data) then
+                            tremove(selection, i)
+                        elseif data == "form" or data == "noform" then
+                            selection[i] = data
+                        else
+                            local forms
+                            if v == "noform" then
+                                forms = {[0] = true, false, false, false, false}
+                            elseif v == "form" then
+                                forms = {[0] = false, true, true, true, true}
+                            elseif v:match("^no") then
+                                forms = {[0] = true, true, true, true, true}
+                                v:gsub("%d+", function(num) forms[tonumber(num)] = false end)
+                            else
+                                forms = {[0] = false, false, false, false, false}
+                                v:gsub("%d+", function(num) forms[tonumber(num)] = true end)
+                            end
+                            if data:match("^no") then
+                                data:gsub("%d+", function(num) forms[tonumber(num)] = false end)
+                            else
+                                data:gsub("%d+", function(num) forms[tonumber(num)] = true end)
+                            end
+                            local cnt = 0
+                            for j = 1, #forms do if forms[j] then cnt = cnt + 1 end end
+                            if cnt == 0 then
+                                selection[i] = "noform"
+                            elseif cnt == #forms then
+                                selection[i] = "form"
+                            elseif cnt <= 2 then
+                                data = ""
+                                for j = 0, #forms do
+                                    if forms[j] then
+                                        if data ~= "" then
+                                            data = data .. "/" .. j
+                                        else
+                                            data = data .. j
+                                        end
+                                    end
+                                end
+                                selection[i] = "form:" .. data
+                            else
+                                data = ""
+                                for j = 0, #forms do
+                                    if not forms[j] then
+                                        if data ~= "" then
+                                            data = data .. "/" .. j
+                                        else
+                                            data = data .. j
+                                        end
+                                    end
+                                end
+                                selection[i] = "noform:" .. data
+                            end
+                        end
+                        break
+                    end
+                end
+            else
+                for i, v in ipairs(selection) do
+                    if v == data then
+                        matched = true
+                        tremove(selection, i)
+                        break
+                    elseif v == negData then
+                        matched = true
+                        selection[i] = data
+                    end
+                end
+            end
+            if not matched then
+                tinsert(selection, data)
+            end
+        end
+
+        local text = ""
+        for i, v in ipairs(selection) do
+            if i == 1 then
+                if v ~= "@player" then
+                    text        = v
+                end
+            else
+                text            = text .. (text ~= "" and ", " or "") .. v
+            end
+        end
+
+        self:GetChild("InputBox"):SetText("[" .. text .. "]")
+    end
+
+    __Template__{
+        Message                 = FontString,
+        InputBox                = InputBox,
+        Viewer                  = HtmlViewer,
+        ConfirmButton           = UIPanelButton,
+        CancelButton            = UIPanelButton,
+    }
+    function __ctor(self)
+        self:Hide()
+
+        local viewer            = self:GetChild("Viewer")
+        viewer.OnHyperlinkClick = viewer.OnHyperlinkClick + OnViewerHyperlinkClick
+
+        self.OnShow             = self.OnShow + OnShow
+
+        viewer:SetText(TEMPLATE_VIEWER{
+            L                   = L,
+            targetData          = targetData,
+            conditionData       = conditionData
+        })
+    end
 end)
 
 -----------------------------------------------------------
@@ -190,7 +521,38 @@ Style.UpdateSkin("Default",     {
             text                = _G.CANCEL or "Cancel",
             location            = { Anchor("BOTTOMLEFT", 4, 16, nil, "BOTTOM") },
         }
-    }
+    },
+    [MacroConditionDialog]      = {
+        size                    = Size(560, 430),
+        resizable               = false,
+        frameStrata             = "FULLSCREEN_DIALOG",
+        location                = { Anchor("CENTER") },
+
+        -- Childs
+        Message                 = {
+            location            = { Anchor("TOP", 0, -16) },
+            width               = 490,
+            drawLayer           = "ARTWORK",
+            fontObject          = GameFontHighlight,
+        },
+        InputBox                = {
+            location            = { Anchor("TOP", 0, -40) },
+            size                = Size(500, 32),
+            autoFocus           = true,
+        },
+        Viewer                = {
+            location            = { Anchor("TOP", 0, -4, "InputBox", "BOTTOM") },
+            size                = Size(500, 300),
+        },
+        ConfirmButton           = {
+            text                = _G.OKAY or "Okay",
+            location            = { Anchor("BOTTOMRIGHT", -4, 16, nil, "BOTTOM") },
+        },
+        CancelButton            = {
+            text                = _G.CANCEL or "Cancel",
+            location            = { Anchor("BOTTOMLEFT", 4, 16, nil, "BOTTOM") },
+        }
+    },
 })
 
 -----------------------------------------------------------
@@ -402,6 +764,33 @@ function showPopup()
         end
 
         OpacityFrame:Show()
+    elseif qtype == POPUP_TYPE_MACROCONDITION then
+        _CurrentPopup           = MacroConditionDialog("Scorpio_MacroConditionDialog")
+        _CurrentPopup:GetChild("InputBox"):SetText("")
+        _CurrentPopup.OnConfirm = function(self)
+            local text          = self:GetChild("InputBox"):GetText()
+            if text and strtrim(text) == "" then text = nil end
+            self:Hide()
+            Next(showPopup) _CurrentPopup = nil
+            if isthread then
+                return resume(thread, text)
+            else
+                return thread(text)
+            end
+        end
+
+        _CurrentPopup.OnCancel  = function(self)
+            self:Hide()
+            Next(showPopup) _CurrentPopup = nil
+            if isthread then
+                return resume(thread)
+            else
+                return thread()
+            end
+        end
+
+        _CurrentPopup:GetChild("Message"):SetText(message)
+        _CurrentPopup:Show()
     end
 end
 
@@ -419,11 +808,14 @@ function queuePopup(qtype, message, func, min, max, step, value)
             error("Usage: PickOpacity([callback]) - the api must be used in a coroutine or with a callback", 4)
         elseif qtype == POPUP_TYPE_RANGEPICKER then
             error("Usage: PickRange(message, min, max, step[, value[, callback]]) - the api must be used in a coroutine or with a callback", 4)
+        elseif qtype == POPUP_TYPE_MACROCONDITION then
+            error("Usage: PickMacroCondition(caption[, callback]) - the api must be used in a coroutine or with a callback")
         end
     end
 
-    _PopupQueue:Enqueue(qtype, message, current or false)
+    _PopupQueue:Enqueue(qtype, message, current)
     if qtype == POPUP_TYPE_RANGEPICKER then _PopupQueue:Enqueue(min, max, step, value or min) end
+
     Next(showPopup)
 
     return not func and current and yield()
@@ -463,5 +855,11 @@ __Static__() __Arguments__{ String, Number, Number, Number, Number/nil, Function
 function Scorpio.PickRange(message, min, max, step, value, func)
     if min >= max then error("Usage: PickRange(message, min, max, step[, value[, callback]]) - the min value must be smaller than the max value", 3) end
     local value                 = queuePopup(POPUP_TYPE_RANGEPICKER, message, func, min, max, step, value)
+    return value
+end
+
+__Static__() __Arguments__{ String, Function/nil }
+function Scorpio.PickMacroCondition(message, func)
+    local value                 = queuePopup(POPUP_TYPE_MACROCONDITION, message, func)
     return value
 end

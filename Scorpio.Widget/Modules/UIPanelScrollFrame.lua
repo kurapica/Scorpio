@@ -379,13 +379,13 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
         self:SetVerticalScroll(0)
     end
 
+    __InstantApplyStyle__()
     __Template__{
         ScrollChild             = SimpleHTML
     }
     function __ctor(self)
         local child             = self:GetChild("ScrollChild")
         self:SetScrollChild(child)
-        self:InstantApplyStyle()
 
         self.OnSizeChanged      = self.OnSizeChanged + onSizeChanged
         Next(onSizeChanged, self)
