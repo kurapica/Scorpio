@@ -107,6 +107,39 @@ interface "ISecureHandler" (function(_ENV)
         return _UnitWatchRegistered(GetRawUI(self))
     end
 
+    __Arguments__{ (String + struct { String })/nil } __NoCombat__()
+    function SetAutoHide(self, conds)
+        if not conds then
+            self:UnregisterStateDriver("visibility")
+            self:Show()
+        elseif type(conds) == "string" then
+            conds               = conds:match("%b[]")
+            if conds then
+                self:RegisterStateDriver("visibility", (conds .. "hide;show"))
+            else
+                self:UnregisterStateDriver("visibility")
+                self:Show()
+            end
+        else
+            local str           = ""
+            for _, cond in ipairs(conds) do
+                cond            = cond:match("%b[]")
+                if cond then
+                    str         = str .. cond .. "hide;"
+                end
+            end
+            if str == "" then
+                self:UnregisterStateDriver("visibility")
+                self:Show()
+            else
+                self:RegisterStateDriver("visibility", str .. "show")
+            end
+        end
+    end
+
+    ------------------------------------------------------
+    -- Initializer
+    ------------------------------------------------------
     function __init(self)
         local cls               = getmetatable(self)
         self                    = GetRawUI(self)
@@ -268,4 +301,15 @@ class "SecureCheckButton" {
         UI.RegisterRawUI(ui)
         return self
     end
+}
+
+-----------------------------------------------------------
+--                    Style Property                     --
+-----------------------------------------------------------
+UI.Property                     {
+    name                        = "AutoHide",
+    type                        = String + struct { String },
+    require                     = { SecureFrame, SecureButton, SecureCheckButton },
+    set                         = function(self, val) self:SetAutoHide(val) end,
+    clear                       = function(self) self:SetAutoHide(nil) end,
 }

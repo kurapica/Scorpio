@@ -285,16 +285,17 @@ class "SecurePanel" (function(_ENV)
         end
     end
 
-    local function onPropertyChanged(self, value, old, prop)
-        return NoCombat(function()
-            self:SetAttribute("IFSecurePanel_" .. prop, value)
+    local function handlePropertyChange(self, prop, value)
+        self:SetAttribute("IFSecurePanel_" .. prop, value)
 
-            if prop == "RowCount" or prop == "ColumnCount" then
-                reduce(self)
-            end
-            return secureUpdatePanelSize(self)
-        end)
+        if prop == "RowCount" or prop == "ColumnCount" then reduce(self) end
+        return secureUpdatePanelSize(self)
     end
+
+    local function onPropertyChanged(self, value, old, prop)
+        return NoCombat(handlePropertyChange, self, prop, value)
+    end
+
 
     ------------------------------------------------------
     -- Event

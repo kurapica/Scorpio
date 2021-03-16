@@ -809,7 +809,7 @@ function queuePopup(qtype, message, func, min, max, step, value)
         elseif qtype == POPUP_TYPE_RANGEPICKER then
             error("Usage: PickRange(message, min, max, step[, value[, callback]]) - the api must be used in a coroutine or with a callback", 4)
         elseif qtype == POPUP_TYPE_MACROCONDITION then
-            error("Usage: PickMacroCondition(caption[, callback]) - the api must be used in a coroutine or with a callback")
+            error("Usage: PickMacroCondition(message[, callback]) - the api must be used in a coroutine or with a callback")
         end
     end
 

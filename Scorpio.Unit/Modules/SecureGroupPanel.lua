@@ -266,17 +266,6 @@ class "SecureGroupPanel" (function(_ENV)
             end
         ]]
 
-        local function refreshActiveState(self)
-            NoCombat(function()
-                if self.ActivatedInCombat then
-                    self:RegisterStateDriver("visibility", ("[combat]show;hide"))
-                else
-                    self:UnregisterStateDriver("visibility")
-                    self:SetShown(self.Activated)
-                end
-            end)
-        end
-
         ------------------------------------------------------
         -- Method
         ------------------------------------------------------
@@ -339,20 +328,6 @@ class "SecureGroupPanel" (function(_ENV)
         ------------------------------------------------------
         -- Property
         ------------------------------------------------------
-        -- Whether the unit panel is activated
-        property "Activated" {
-            handler             = refreshActiveState,
-            type                = Boolean,
-            default             = false,
-        }
-
-        -- Whether the panel is only activated during combat
-        property "ActivatedInCombat" {
-            handler             = refreshActiveState,
-            type                = Boolean,
-            default             = false,
-        }
-
         -- Whether only show the dead players
         property "ShowDeadOnly" {
             get                 = IsShowDeadOnly,
@@ -365,7 +340,6 @@ class "SecureGroupPanel" (function(_ENV)
         ------------------------------------------------------
         function __ctor(self, ...)
             self.__InitedCount  = 0
-            self:Hide()
 
             self:Execute(_InitHeader)
 
@@ -450,23 +424,13 @@ class "SecureGroupPanel" (function(_ENV)
         return self:RefreshLayout()
     end
 
+    function SetAutoHide(self, value)
+        return self.GroupHeader:SetAutoHide(value)
+    end
+
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
-    -- Whether the unit panel is activated
-    property "Activated"        {
-        get                     = function(self) return self.GroupHeader.Activated end,
-        set                     = function(self, value) self.GroupHeader.Activated = value end,
-        type                    = Boolean,
-    }
-
-    -- Whether the panel is only activated during combat
-    property "ActivatedInCombat" {
-        get                     = function(self) return self.GroupHeader.ActivatedInCombat end,
-        set                     = function(self, value) self.GroupHeader.ActivatedInCombat = value end,
-        type                    = Boolean,
-    }
-
     -- Whether the panel should be shown while in a raid
     property "ShowRaid"         {
         get                     = function(self) return self.GroupHeader:GetAttribute("showRaid") end,
