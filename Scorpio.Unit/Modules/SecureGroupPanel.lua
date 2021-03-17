@@ -41,16 +41,54 @@ class "SecureGroupPanel" (function(_ENV)
 
         export { min = math.min }
 
+        -- Delay Refresh Manager
+        _DelayManagerFrame      = SecureFrame("Scorpio_SecureGroupPanel_RefreshMananger", UIParent, "SecureHandlerStateTemplate")
+        _DelayManagerFrame:Hide()
+
+        _DelayManagerFrame:Execute([=[
+            Manager             = self
+
+            _Panel              = newtable()
+            _Queue              = newtable()
+
+            Manager:SetAttribute("registerDelayAction", [[
+                local panel, action = ...
+                if panel and action then
+                    _Queue[panel] = action
+
+                    -- Reset the timer
+                    Manager:SetAttribute("state-timer", "reset")
+                end
+            ]])
+        ]=])
+
+        -- The condition has no real use, just a timer ticker
+        _DelayManagerFrame:SetAttribute("_onstate-timer", [=[
+            if newstate ~= "reset" then
+                for panel, action in pairs(_Queue) do
+                    _Panel[panel]:RunAttribute(action)
+                end
+
+                wipe(_Queue)
+            end
+        ]=])
+        _DelayManagerFrame:RegisterStateDriver("timer", "[pet]pet;nopet;")
+
+
+        -- The Secure Panel Snippets
         _InitHeader             = [=[
             Manager             = self
+            DelayManager        = self:GetFrameRef("DelayManager")
 
             UnitFrames          = newtable()
             ShadowFrames        = newtable()
             DeadFrames          = newtable()
 
+            ShadowUnitMap       = newtable()
+
             Manager:SetAttribute("useAttributeChildCnt", 0)
 
-            refreshDeadPlayer   = [[
+            Manager:SetAttribute("refreshDeadPlayer", [[
                 for i = 1, #DeadFrames do
                     local unitFrame = UnitFrames[i]
 
@@ -70,7 +108,7 @@ class "SecureGroupPanel" (function(_ENV)
                         break
                     end
                 end
-            ]]
+            ]])
 
             Manager:SetAttribute("newDeadPlayer", [[
                 local id        = ...
@@ -92,7 +130,7 @@ class "SecureGroupPanel" (function(_ENV)
                         end
                     end
 
-                    return self:Run(refreshDeadPlayer)
+                    return DelayManager:RunAttribute("registerDelayAction", Manager:GetAttribute("PanelName"), "refreshDeadPlayer")
                 end
             ]])
 
@@ -105,7 +143,7 @@ class "SecureGroupPanel" (function(_ENV)
                     for i = 1, #DeadFrames do
                         if DeadFrames[i] == sfrm then
                             tremove(DeadFrames, i)
-                            return self:Run(refreshDeadPlayer)
+                            return DelayManager:RunAttribute("registerDelayAction", Manager:GetAttribute("PanelName"), "refreshDeadPlayer")
                         end
                     end
                 end
@@ -141,13 +179,36 @@ class "SecureGroupPanel" (function(_ENV)
                 end
             ]])
 
+            Manager:SetAttribute("refreshUnitFrames", [[
+                local count     = #ShadowFrames
+                for i = 1, count do
+                    local frm   = UnitFrames[i]
+                    if not frm then return end
+
+                    frm:SetAttribute("unit", ShadowFrames[i]:GetAttribute("unit"))
+                end
+
+                for i = count + 1, #UnitFrames do
+                    UnitFrames[i]:SetAttribute("unit", nil)
+                end
+            ]])
+
+            Manager:SetAttribute("onShadowUnitChanged", [[
+                local id, unit  = ...
+                if ShadowUnitMap[id] ~= unit then
+                    ShadowUnitMap[id] = unit
+                    DelayManager:RunAttribute("registerDelayAction", Manager:GetAttribute("PanelName"), "refreshUnitFrames")
+                end
+            ]])
+
             refreshUnitChange   = [[
                 local unit      = self:GetAttribute("unit")
                 local frame     = self:GetAttribute("UnitFrame")
 
                 if frame then
-                    frame:SetAttribute("unit", unit)
-                    self:GetAttribute("Manager"):RunAttribute("refreshRestUnitFrame", self:GetID())
+                    -- frame:SetAttribute("unit", unit)
+                    -- self:GetAttribute("Manager"):RunAttribute("refreshRestUnitFrame", self:GetID())
+                    self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID(), value)
                 elseif self:GetAttribute("Manager"):GetAttribute("showDeadOnly") then
                     self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
                     self:GetAttribute("Manager"):RunAttribute("updateStateForChild", self:GetID())
@@ -166,8 +227,9 @@ class "SecureGroupPanel" (function(_ENV)
                 local frame = self:GetAttribute("UnitFrame")
 
                 if frame then
-                    frame:SetAttribute("unit", value)
-                    self:GetAttribute("Manager"):RunAttribute("refreshRestUnitFrame", self:GetID())
+                    -- frame:SetAttribute("unit", value)
+                    -- self:GetAttribute("Manager"):RunAttribute("refreshRestUnitFrame", self:GetID())
+                    self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID(), value)
                 elseif self:GetAttribute("Manager"):GetAttribute("showDeadOnly") then
                     self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
                     self:GetAttribute("Manager"):RunAttribute("updateStateForChild", self:GetID())
@@ -236,6 +298,8 @@ class "SecureGroupPanel" (function(_ENV)
         ]]
 
         _ToggleShowOnlyPlayer   = [[
+            wipe(ShadowUnitMap)
+
             if self:GetAttribute("showDeadOnly") then
                 for i = 1, #ShadowFrames do
                     ShadowFrames[i]:SetAttribute("UnitFrame", nil)
@@ -341,7 +405,16 @@ class "SecureGroupPanel" (function(_ENV)
         function __ctor(self, ...)
             self.__InitedCount  = 0
 
+            self:SetFrameRef("DelayManager", _DelayManagerFrame)
             self:Execute(_InitHeader)
+
+            self:SetAttribute("PanelName", self:GetParent():GetName())
+
+            _DelayManagerFrame:SetFrameRef("GroupPanel", self)
+            _DelayManagerFrame:Execute([[
+                local panel     = self:GetFrameRef("GroupPanel")
+                _Panel[panel:GetAttribute("PanelName")] = panel
+            ]])
 
             self:SetAttribute("template", "SecureHandlerAttributeTemplate")
             self:SetAttribute("initialConfigFunction", _InitialConfigFunction)

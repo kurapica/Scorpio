@@ -43,7 +43,7 @@ function RegisterFrequentHealthUnit(unit, guid, health)
         _UnitGUIDMap[guid]      = (_UnitGUIDMap[guid] or 0) + 1
     end
 
-    if oguid then
+    if oguid and _UnitGUIDMap[oguid] then
         _UnitGUIDMap[oguid]     = _UnitGUIDMap[oguid] - 1
 
         if _UnitGUIDMap[oguid] <= 0 then
