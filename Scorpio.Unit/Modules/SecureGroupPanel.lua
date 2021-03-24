@@ -650,6 +650,8 @@ Style.UpdateSkin("Default",     {
         rowCount                = _G.MEMBERS_PER_RAID_GROUP or 5,
         columnCount             = _G.NUM_RAID_GROUPS or 8,
 
+        autoHide                = CLEAR,
+
         elementWidth            = 80,
         elementHeight           = 32,
         orientation             = "VERTICAL",
