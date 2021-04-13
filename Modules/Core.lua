@@ -267,6 +267,7 @@ PLoop(function(_ENV)
                     end
 
                     local task  = r_Header[i]
+                    r_Header[-1]= i + 1
 
                     if task then
                         if _CancelSingleAsync[task] then
@@ -319,6 +320,7 @@ PLoop(function(_ENV)
                     end
 
                     local task  = r_Header[i]
+                    r_Header[-1]= i + 1
 
                     if task then
                         if _CancelSingleAsync[task] then
@@ -1040,9 +1042,8 @@ PLoop(function(_ENV)
         function ScorpioManager.PLAYER_LOGIN()
             if _Logined then return end
 
-            Log(2, "[START TASK MANAGER]")
-
-            r_InLoadingScreen   = false
+            --Log(2, "[START TASK MANAGER]")
+            --r_InLoadingScreen = false
 
             _PlayerSpec         = GetSpecialization() or 1
             _PlayerWarMode      = IsWarModeDesired() and WarMode.PVP or WarMode.PVE

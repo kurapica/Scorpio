@@ -384,22 +384,20 @@ do
     _ManagerFrame:Hide()
 
     -- Init manger frame's enviroment
-    NoCombat(function ()
-        _ManagerFrame:Execute[[
-            Manager             = self
+    _ManagerFrame:Execute[[
+        Manager                 = self
 
-            _HoverOnUnitFrame   = nil
-            _HoverOnUnitFrameLeaveSnippet = nil
+        _HoverOnUnitFrame       = nil
+        _HoverOnUnitFrameLeaveSnippet = nil
 
-            _GroupMap           = newtable()
-            _UnitMap            = newtable()
+        _GroupMap               = newtable()
+        _UnitMap                = newtable()
 
-            _SetupSnippet       = newtable()
-            _ClearSnippet       = newtable()
-            _EnterSnippet       = newtable()
-            _LeaveSnippet       = newtable()
-        ]]
-    end)
+        _SetupSnippet           = newtable()
+        _ClearSnippet           = newtable()
+        _EnterSnippet           = newtable()
+        _LeaveSnippet           = newtable()
+    ]]
 
     -- Global script sinppet, keep all run at global enviroment
     -- Init Snippet
@@ -637,7 +635,12 @@ do
             _UnitFrameHoverSpellGroup   = _SVData.Char.Spec.UnitFrameHoverSpellGroup
 
             for grp in pairs(_UnitFrameHoverSpellGroup) do
-                queueGroupUpdate(grp)
+                if InCombatLockdown() then
+                    queueGroupUpdate(grp)
+                else
+                    Debug("[UnitFrame]Setup the secure snippets for group: %s", grp)
+                    _ManagerFrame:Execute(SetupGroupSnippet:format(grp, getSnippet(grp)))
+                end
             end
         end
 
@@ -658,7 +661,12 @@ do
             _UnitFrameHoverSpellGroup   = _SVData.Char.UnitFrameHoverSpellGroup
 
             for grp in pairs(_UnitFrameHoverSpellGroup) do
-                queueGroupUpdate(grp)
+                if InCombatLockdown() then
+                    queueGroupUpdate(grp)
+                else
+                    Debug("[UnitFrame]Setup the secure snippets for group: %s", grp)
+                    _ManagerFrame:Execute(SetupGroupSnippet:format(grp, getSnippet(grp)))
+                end
             end
         end
 
@@ -1004,8 +1012,6 @@ class "UnitFrame" (function(_ENV)
 
         -- The group maybe set by child class
         -- normally should be done by the style system
-        if self.HoverSpellGroup then
-            initUnitFrame(self)
-        end
+        return self.HoverSpellGroup and initUnitFrame(self, self.HoverSpellGroup)
     end
 end)
