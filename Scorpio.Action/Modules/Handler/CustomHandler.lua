@@ -1,71 +1,74 @@
--- Author      : Kurapica
--- Create Date : 2013/11/25
--- Change Log  :
+--========================================================--
+--             Scorpio Secure Custom Handler              --
+--                                                        --
+-- Author      :  kurapica125@outlook.com                 --
+-- Create Date :  2021/03/29                              --
+--========================================================--
 
--- Check Version
-local version = 1
-if not IGAS:NewAddon("IGAS.Widget.Action.CustomHandler", version) then
-	return
-end
+--========================================================--
+Scorpio        "Scorpio.Secure.CustomHandler"        "1.0.0"
+--========================================================--
 
-_Enabled = false
+_Enabled                        = false
 
-handler = ActionTypeHandler {
-	Name = "custom",
+------------------------------------------------------
+-- Action Handler
+------------------------------------------------------
+handler                         = ActionTypeHandler {
+    Name                        = "custom",
+    DragStyle                   = "Block",
+    ReceiveStyle                = "Block",
 
-	DragStyle = "Block",
-
-	ReceiveStyle = "Block",
-
-	OnEnableChanged = function(self) _Enabled = self.Enabled end,
+    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
+------------------------------------------------------
 -- Overwrite methods
+------------------------------------------------------
 function handler:GetActionText()
-	return self.CustomText
+    return self.CustomText
 end
 
 function handler:GetActionTexture()
-	return self.CustomTexture
+    return self.CustomTexture
 end
 
 function handler:SetTooltip(GameTooltip)
-	if self.CustomTooltip then
-		GameTooltip:SetText(self.CustomTooltip)
-	end
+    if self.CustomTooltip then
+        GameTooltip:SetText(self.CustomTooltip)
+    end
 end
 
--- Part-interface definition
-interface "IFActionHandler"
-	local old_SetAction = IFActionHandler.SetAction
+function handler:Map(target, detail)
+    -- Convert to spell id
+    self:SetAttribute("_custom", target)
+    target                      = "_"
 
-	function SetAction(self, kind, target, ...)
-		if kind == "custom" then
-			self:SetAttribute("_custom", target)
-			target = "_"
-		end
+    return target, detail
+end
 
-		return old_SetAction(self, kind, target, ...)
-	end
+------------------------------------------------------
+-- Extend Definitions
+------------------------------------------------------
+class "SecureActionButton" (function(_ENV)
 
-	__Doc__[[The custom action]]
-	property "Custom" {
-		Get = function(self)
-			return self:GetAttribute("actiontype") == "custom" and self.custom or self:GetAttribute("custom") or nil
-		end,
-		Set = function(self, value)
-			self:SetAction("custom", value)
-		end,
-		--Type = StringFunction,
-	}
+    ------------------------------------------------------
+    -- Property
+    ------------------------------------------------------
+    --- The custom action
+    property "Custom" {
+        set                     = function(self, value) return self:SetAction("custom", value) end
+        get                     = function(self) return self:GetAttribute("actiontype") == "custom" and self:GetAttribute("_custom") or nil end
+        end,
+    }
 
-	__Doc__[[The custom text]]
-	property "CustomText" { Type = String }
+    --- The custom text
+    property "CustomText"       { Type = String }
 
-	__Doc__[[The custom texture path]]
-	__Handler__("Refresh")
-	property "CustomTexture" { Type = String + Number }
+    --- The custom texture path
+    __Handler__("Refresh")
+    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshAll(self) end }
 
-	__Doc__[[The custom tooltip]]
-	property "CustomTooltip" { Type = String }
-endinterface "IFActionHandler"
+    --- The custom tooltip
+    property "CustomTooltip"    { Type = String }
+end)

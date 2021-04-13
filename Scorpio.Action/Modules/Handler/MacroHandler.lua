@@ -1,64 +1,68 @@
--- Author      : Kurapica
--- Create Date : 2013/11/25
--- Change Log  :
+--========================================================--
+--             Scorpio Secure Macro Handler               --
+--                                                        --
+-- Author      :  kurapica125@outlook.com                 --
+-- Create Date :  2021/03/29                              --
+--========================================================--
 
--- Check Version
-local version = 1
-if not IGAS:NewAddon("IGAS.Widget.Action.MacroHandler", version) then
-	return
-end
+--========================================================--
+Scorpio        "Scorpio.Secure.MacroHandler"         "1.0.0"
+--========================================================--
 
--- Event handler
-function OnEnable(self)
-	self:RegisterEvent("PLAYER_ENTERING_WORLD")
-	self:RegisterEvent("UPDATE_MACROS")
+_Enabled                        = false
 
-	OnEnable = nil
-end
+------------------------------------------------------
+-- Action Handler
+------------------------------------------------------
+handler                         = ActionTypeHandler {
+    Name                        = "macro",
+    PickupSnippet               = [[ return "clear", "macro", ... ]],
 
-function PLAYER_ENTERING_WORLD(self)
-	return handler:Refresh()
-end
-
-function UPDATE_MACROS(self)
-	return handler:Refresh()
-end
-
-handler = ActionTypeHandler {
-	Name = "macro",
-
-	PickupSnippet = [[
-		return "clear", "macro", ...
-	]],
+    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
+------------------------------------------------------
+-- Module Event Handler
+------------------------------------------------------
+function OnEnable()
+    return handler:RefreshAll()
+end
+
+------------------------------------------------------
+-- System Event Handler
+------------------------------------------------------
+__SystemEvent__()
+function UPDATE_MACROS()
+    return handler:RefreshAll()
+end
+
+
+------------------------------------------------------
 -- Overwrite methods
+------------------------------------------------------
 function handler:PickupAction(target)
-	return PickupMacro(target)
+    return PickupMacro(target)
 end
 
 function handler:GetActionText()
-	return (GetMacroInfo(self.ActionTarget))
+    return (GetMacroInfo(self.ActionTarget))
 end
 
 function handler:GetActionTexture()
-	return (select(2, GetMacroInfo(self.ActionTarget)))
+    return (select(2, GetMacroInfo(self.ActionTarget)))
 end
 
--- Expand IFActionHandler
-interface "IFActionHandler"
-	------------------------------------------------------
-	-- Property
-	------------------------------------------------------
-	__Doc__[[The action button's content if its type is 'macro']]
-	property "Macro" {
-		Get = function(self)
-			return self:GetAttribute("actiontype") == "macro" and self:GetAttribute("macro") or nil
-		end,
-		Set = function(self, value)
-			self:SetAction("macro", value)
-		end,
-		Type = StringNumber,
-	}
-
-endinterface "IFActionHandler"
+------------------------------------------------------
+-- Extend Definitions
+------------------------------------------------------
+class "SecureActionButton" (function(_ENV)
+    ------------------------------------------------------
+    -- Property
+    ------------------------------------------------------
+    --- The action button's content if its type is 'macro'
+    property "Macro" {
+        type                    = String + Number,
+        set                     = function(self, value) self:SetAction("macro", value) end,
+        get                     = function(self) return self:GetAttribute("actiontype") == "macro" and self:GetAttribute("macro") or nil end,
+    }
+end)

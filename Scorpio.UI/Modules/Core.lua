@@ -694,18 +694,25 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     --- Gets the ui object's name or full name
     __Final__() function GetName(self, full)
         local name              = _NameMap[self[0]]
-        if full then
-            local globalUI      = _G[name]
-            if globalUI and (globalUI == self or IsSameUI(self, globalUI)) then
-                return name
+        if name then
+            if full then
+                local globalUI      = _G[name]
+                if globalUI and (globalUI == self or IsSameUI(self, globalUI)) then
+                    return name
+                else
+                    local parent    = self:GetParent()
+                    local pname     = parent and parent:GetName(true)
+                    name            = _PropertyChildName[self] or name
+                    if pname then return pname .. "." .. name end
+                end
             else
-                local parent    = self:GetParent()
-                local pname     = parent and parent:GetName(true)
-                name            = _PropertyChildName[self] or name
-                if pname then return pname .. "." .. name end
+                return name
             end
         else
-            return name
+            local getName           = self.GetName
+            if getName ~= GetName then
+                return getName(self)
+            end
         end
     end
 

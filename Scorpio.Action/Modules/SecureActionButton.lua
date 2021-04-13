@@ -9,308 +9,1324 @@
 Scorpio        "Scorpio.Secure.SecureActionButton"   "1.0.0"
 --========================================================--
 
+export { GetProxyUI             = UI.GetProxyUI }
+
+_ManagerFrame                   = SecureFrame("Scorpio_SecureActionButton_Manager", UIParent, "SecureHandlerStateTemplate")
+_ManagerFrame:Hide()
+
+_IFActionTypeHandler            = {}
+
+_ActionTypeMap                  = {}
+_ActionTargetMap                = {}
+_ActionTargetDetail             = {}
+_ReceiveMap                     = {}
+
+_ActionButtonGroupList          = {}
+
+_AutoAttackButtons              = {}
+_AutoRepeatButtons              = {}
+_RangeCheckButtons              = {}
+_Spell4Buttons                  = {}
+
+local _GridCounter              = 0
+local _PetGridCounter           = 0
+local _OnTooltipButton
+
+------------------------------------------------------
+--               Module Event Handler               --
+------------------------------------------------------
+function OnLoad()
+    _SVData.Char:SetDefault {
+        SecureActionButtonNoDragGroup   = {},
+        SecureActionButtonMouseDownGroup= {},
+    }
+
+    _NoDragGroup                = _SVData.Char.SecureActionButtonNoDragGroup
+    _MouseDownGroup             = _SVData.Char.SecureActionButtonMouseDownGroup
+
+    for group, val in pairs(_NoDragGroup) do
+        if val then DisableDrag(group) end
+    end
+end
+
+__Service__(true)
+function RangeChecker()
+    while true do
+        for i = 1, 9999 do
+            local button        = _RangeCheckButtons[i]
+            if not button then
+                if i == 1 then NextEvent("SCORPIO_SAB_RANGE_CHECK") end
+                break
+            end
+
+            _IFActionTypeHandler[button.ActionType]:RefreshRange(button)
+        end
+
+        Delay(0.2)
+    end
+end
+
+__SystemEvent__()
+function ACTIONBAR_SHOWGRID()
+    _GridCounter                = _GridCounter + 1
+    if _GridCounter == 1 then
+        for kind, handler in pairs(_IFActionTypeHandler) do
+            if handler.IsPlayerAction and handler.ReceiveStyle ~= "Block" then
+                handler:RefershGrid()
+            end
+        end
+    end
+end
+
+__SystemEvent__()
+function ACTIONBAR_HIDEGRID()
+    if _GridCounter > 0 then
+        _GridCounter            = _GridCounter - 1
+        if _GridCounter == 0 then
+            for kind, handler in pairs(_IFActionTypeHandler) do
+                if handler.IsPlayerAction and handler.ReceiveStyle ~= "Block" then
+                    handler:RefershGrid()
+                end
+            end
+        end
+    end
+end
+
+__SystemEvent__()
+function PET_BAR_SHOWGRID()
+    _PetGridCounter             = _PetGridCounter + 1
+    if _PetGridCounter == 1 then
+        for kind, handler in pairs(_IFActionTypeHandler) do
+            if handler.IsPetAction and handler.ReceiveStyle ~= "Block" then
+                handler:RefershGrid()
+            end
+        end
+    end
+end
+
+__SystemEvent__()
+function PET_BAR_HIDEGRID()
+    if _PetGridCounter > 0 then
+        _PetGridCounter         = _PetGridCounter - 1
+        if _PetGridCounter == 0 then
+            for kind, handler in pairs(_IFActionTypeHandler) do
+                if handler.IsPetAction and handler.ReceiveStyle ~= "Block" then
+                    handler:RefershGrid()
+                end
+            end
+        end
+    end
+end
+
+__SystemEvent__()
+function PLAYER_ENTER_COMBAT()
+    for button in pairs(_AutoAttackButtons) do
+        button.Flashing         = true
+    end
+end
+
+__SystemEvent__()
+function PLAYER_LEAVE_COMBAT()
+    for button in pairs(_AutoAttackButtons) do
+        button.Flashing         = false
+    end
+end
+
+__SystemEvent__()
+function PLAYER_TARGET_CHANGED()
+    for i = 1, 9999 do
+        local button            = _RangeCheckButtons[i]
+        if not button then return end
+        _IFActionTypeHandler[button.ActionType]:RefreshRange(button)
+    end
+end
+
+__SystemEvent__()
+function SPELL_ACTIVATION_OVERLAY_GLOW_SHOW(spellId)
+    local buttons               = _Spell4Buttons[spellId]
+    if not buttons then return end
+
+    if getmetatable(buttons) then
+        buttons.OverlayGlow     = true
+    else
+        for button in pairs(buttons) do
+            button.OverlayGlow  = true
+        end
+    end
+end
+
+__SystemEvent__()
+function SPELL_ACTIVATION_OVERLAY_GLOW_HIDE(spellId)
+    local buttons               = _Spell4Buttons[spellId]
+    if not buttons then return end
+
+    if getmetatable(buttons) then
+        buttons.OverlayGlow     = false
+    else
+        for button in pairs(buttons) do
+            button.OverlayGlow  = false
+        end
+    end
+end
+
+__SystemEvent__()
+function SPELL_UPDATE_CHARGES()
+    local buttons               = _Spell4Buttons[spellId]
+    if not buttons then return end
+
+    if getmetatable(buttons) then
+        _IFActionTypeHandler[buttons.ActionType]:RefreshCount(buttons)
+    else
+        for button in pairs(buttons) do
+            _IFActionTypeHandler[button.ActionType]:RefreshCount(button)
+        end
+    end
+end
+
+__SystemEvent__()
+function START_AUTOREPEAT_SPELL()
+    for button in pairs(_AutoRepeatButtons) do
+        if not _AutoAttackButtons[button] then
+            button.Flashing     = true
+        end
+    end
+end
+
+__SystemEvent__()
+function STOP_AUTOREPEAT_SPELL()
+    for button in pairs(_AutoRepeatButtons) do
+        if button.Flashing and not _AutoAttackButtons[button] then
+            button.Flashing     = false
+        end
+    end
+end
+
+__SystemEvent__ "ARCHAEOLOGY_CLOSED" "TRADE_SKILL_SHOW" "TRADE_SKILL_CLOSE"
+function TRADE_SKILL_SHOW()
+    for kind, handler in pairs(_IFActionTypeHandler) do
+        handler:RefreshButtonState()
+    end
+end
+
+__SystemEvent__"UNIT_ENTERED_VEHICLE" "UNIT_EXITED_VEHICLE"
+function UNIT_ENTERED_VEHICLE(unit)
+    if unit == "player" then
+        for kind, handler in pairs(_IFActionTypeHandler) do
+            handler:RefreshButtonState()
+        end
+    end
+end
+
+__SystemEvent__"UNIT_INVENTORY_CHANGED" "LEARNED_SPELL_IN_TAB" "ACTIONBAR_UPDATE_COOLDOWN"
+function UNIT_INVENTORY_CHANGED(unit)
+    return (not unit or unit == "player") and _OnTooltipButton and _OnTooltipButton:UpdateTooltip()
+end
+
+------------------------------------------------------
+--               Action Type Handler                --
+------------------------------------------------------
 __Sealed__()
+enum "ActionTypeHandleStyle" { "Keep", "Clear", "Block" }
+
+-- The handler for action types
+__Sealed__() __AnonymousClass__()
+interface "ActionTypeHandler" (function(_ENV)
+    extend "IList"
+
+    _RegisterSnippetTemplate    = "%s[%q] = %q"
+
+    _ActionButtonMap            = Toolset.newtable(true, true)
+
+    local function refreshButton(self, button)
+        if self:IsAttackAction(button) then
+            _AutoAttackButtons[button] = true
+        elseif _AutoAttackButtons[button] then
+            _AutoAttackButtons[button] = nil
+        end
+
+        if self:IsAutoRepeatAction(button) then
+            _AutoRepeatButtons[button] = true
+        elseif _AutoRepeatButtons[button] then
+            _AutoRepeatButtons[button] = nil
+        end
+
+        local spell             = self:GetSpellId(button)
+        local ospell            = _Spell4Buttons[button]
+
+        if ospell ~= spell then
+            if ospell then
+                local buttons   = _Spell4Buttons[ospell]
+                if getmetatable(buttons) == nil then
+                    buttons[button] = nil
+                elseif buttons == button then
+                    _Spell4Buttons[ospell] = nil
+                end
+            end
+
+            if spell then
+                local buttons   = _Spell4Buttons[spell]
+                if buttons == nil then
+                    _Spell4Buttons[spell] = button
+                elseif getmetatable(buttons) == nil then
+                    buttons[button] = true
+                else
+                    buttons     = { [buttons] = true }
+                    buttons[button] = true
+
+                    _Spell4Buttons[spell] = buttons
+                end
+            end
+
+            _Spell4Buttons[button] = spell
+        end
+
+        if self:IsRangeSpell(button) then
+            if not _RangeCheckButtons[button] then
+                local index     = #_RangeCheckButtons + 1
+                _RangeCheckButtons[button] = index
+                _RangeCheckButtons[index]  = button
+
+                if index == 1 then FireSystemEvent("SCORPIO_SAB_RANGE_CHECK") end
+            end
+        else
+            local index         = _RangeCheckButtons[button]
+            if index then
+                _RangeCheckButtons[button] = nil
+
+                for i = index, 1, -1 do
+                    if _RangeCheckButtons[i] == button then
+                        tremove(_RangeCheckButtons, i)
+                        break
+                    end
+                end
+            end
+        end
+
+        if self.ReceiveStyle ~= "Block" then
+            self:RefershGrid(button)
+        end
+
+        self:RefreshButtonState(button)
+        self:RefreshUsable(button)
+        self:RefreshCooldown(button)
+        self:RefreshFlyout(button)
+        self:RefreshAutoCastable(button)
+        self:RefreshAutoCasting(button)
+        self:RefreshEquipItem(button)
+        self:RefreshText(button)
+        self:RefreshIcon(button)
+        self:RefreshCount(button)
+        self:RefreshOverlayGlow(button)
+        self:Refresh(button)
+
+        if _OnTooltipButton == button then
+            return button:UpdateTooltip()
+        end
+    end
+
+    ------------------------------------------------------
+    -- Event
+    ------------------------------------------------------
+    -- Fired when the handler is enabled or disabled
+    event "OnEnableChanged"
+
+    ------------------------------------------------------
+    -- Refresh Method
+    ------------------------------------------------------
+    function RefershGrid(self, button)
+        local force             = (self.IsPlayerAction and _GridCounter or _PetGridCounter) > 0
+
+        if button then
+            button.GridVisible  = force or self:HasAction(button)
+        else
+            for _, button in self:GetIterator() do
+                button.GridVisible = force or self:HasAction(button)
+            end
+        end
+    end
+
+    function RefreshButtonState(self, button)
+        if button then
+            button.IsActived    = self:IsActivedAction(button) or self:IsAutoRepeatAction(button)
+        else
+            for _, button in self:GetIterator() do
+                button.IsActived= self:IsActivedAction(button) or self:IsAutoRepeatAction(button)
+            end
+        end
+    end
+
+    function RefreshUsable(self, button)
+        if button then
+            button.IsUsable    = self:IsUsableAction(button)
+        else
+            for _, button in self:GetIterator() do
+                button.IsUsable= self:IsUsableAction(button)
+            end
+        end
+    end
+
+    function RefreshCount(self, button)
+        if button then
+            if self:IsConsumableAction(button) then
+                button.Count    = self:GetActionCount(button)
+            else
+                local cha, max  = self:GetActionCharges(button)
+                if max and max > 1 then
+                    button.Count= cha
+                else
+                    button.Count= nil
+                end
+            end
+        else
+            for _, button in self:GetIterator() do
+                if self:IsConsumableAction(button) then
+                    button.Count    = self:GetActionCount(button)
+                else
+                    local cha, max  = self:GetActionCharges(button)
+                    if max and max > 1 then
+                        button.Count= cha
+                    else
+                        button.Count= nil
+                    end
+                end
+            end
+        end
+    end
+
+    local shareCooldown         = { start = 0, duration = 0 }
+    function RefreshCooldown(self, button)
+        if button then
+            shareCooldown.start, shareCooldown.duration = self:GetActionCooldown(button)
+            button.Cooldown     = shareCooldown
+        else
+            for _, button in self:GetIterator() do
+                shareCooldown.start, shareCooldown.duration = self:GetActionCooldown(button)
+                button.Cooldown = shareCooldown
+            end
+        end
+    end
+
+    function RefreshFlash(self, button)
+        if button then
+            button.Flashing     = (self:IsAttackAction(button) and self:IsActivedAction(button)) or self:IsAutoRepeatAction(button)
+        else
+            for _, button in self:GetIterator() do
+                button.Flashing = (self:IsAttackAction(button) and self:IsActivedAction(button)) or self:IsAutoRepeatAction(button)
+            end
+        end
+    end
+
+    function RefreshOverlayGlow(self, button)
+        if button then
+            local spellId       = self:GetSpellId(button)
+            self.OverlayGlow    = spellId and IsSpellOverlayed(spellId)
+        else
+            for _, button in self:GetIterator() do
+                local spellId   = self:GetSpellId(button)
+                self.OverlayGlow= spellId and IsSpellOverlayed(spellId)
+            end
+        end
+    end
+
+    function RefreshRange(self, button)
+        if button then
+            button.InRange      = self:IsInRange(button)
+        else
+            for _, button in self:GetIterator() do
+                button.InRange  = self:IsInRange(button)
+            end
+        end
+    end
+
+    function RefreshFlyout(self, button)
+        if button then
+            button.FlyoutVisible= self:IsFlyout(button)
+        else
+            for _, button in self:GetIterator() do
+                button.FlyoutVisible = self:IsFlyout(button)
+            end
+        end
+    end
+
+    function RefreshAutoCastable(self, button)
+        if button then
+            button.IsAutoCastable= self:IsAutoCastAction(button)
+        else
+            for _, button in self:GetIterator() do
+                button.IsAutoCastable = self:IsAutoCastAction(button)
+            end
+        end
+    end
+
+    function RefreshAutoCasting(self, button)
+        if button then
+            button.IsAutoCasting= self:IsAutoCasting(button)
+        else
+            for _, button in self:GetIterator() do
+                button.IsAutoCasting = self:IsAutoCasting(button)
+            end
+        end
+    end
+
+    function RefreshIcon(self, button)
+        if button then
+            button.Icon         = self:GetActionTexture(button)
+        else
+            for _, button in self:GetIterator() do
+                button.Icon     = self:GetActionTexture(button)
+            end
+        end
+    end
+
+    function RefreshEquipItem(self, button)
+        if button then
+            button.IsEquippedItem       = self:IsEquippedItem(button)
+        else
+            for _, button in self:GetIterator() do
+                button.IsEquippedItem   = self:IsEquippedItem(button)
+            end
+        end
+    end
+
+    function RefreshText(self, button)
+        if button then
+            button.Text         = self:IsConsumableAction(button) and "" or self:GetActionText(button)
+        else
+            for _, button in self:GetIterator() do
+                button.Text     = self:IsConsumableAction(button) and "" or self:GetActionText(button)
+            end
+        end
+    end
+
+    __Delegate__(Continue)
+    function RefreshAll(self, button)
+        if button then
+            return refreshButton(self, button)
+        else
+            for _, button in self:GetIterator() do
+                refreshButton(self, button)
+                Continue()
+            end
+        end
+    end
+
+    ------------------------------------------------------
+    -- Method
+    ------------------------------------------------------
+    GetIterator                 = ipairs
+
+    function Insert(self, button)
+        local oldHandler        = _ActionButtonMap[button]
+
+        if oldHandler and oldHandler == self then return end
+        if oldHandler then oldHandler:Remove(button) end
+
+        _ActionButtonMap[button]= self
+        tinsert(self, button)
+
+        self.Enabled            = true
+    end
+
+    function Remove(self, button)
+        if _ActionButtonMap[button] ~= self then return end
+        _ActionButtonMap[button]= nil
+
+        for i, v in ipairs(self) do if v == button then tremove(self, i) break end end
+
+        self.Enabled            = self[1] and true or false
+    end
+
+    -- Run the snippet in the global environment
+    __NoCombat__()
+    function RunSnippet(self, code)
+        return self.Manager:Execute(code)
+    end
+
+    -- Get the actions's kind, target, detail
+    function GetActionDetail(self)
+        local name              = self:GetAttribute("actiontype")
+        return self:GetAttribute(_ActionTargetMap[name]), _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
+    end
+
+    ------------------------------------------------------
+    -- Overridable Method For Actions
+    ------------------------------------------------------
+    -- Map the action
+    function Map(self, ...) return ... end
+
+    -- The refresh logic
+    function Refresh(self) end
+
+    -- Custom pick up action
+    function PickupAction(self, target, detail)  end
+
+    -- Custom receive action
+    function ReceiveAction(self, target, detail) end
+
+    -- Whether the action button has an action
+    function HasAction(self) return true end
+
+    -- Get the action's text
+    function GetActionText(self) return "" end
+
+    -- Get the action's texture
+    function GetActionTexture(self) end
+
+    -- Get the action's charges
+    function GetActionCharges(self) end
+
+    -- Get the action's count
+    function GetActionCount(self) return 0 end
+
+    -- Get the action's cooldown
+    function GetActionCooldown(self) return 0, 0, 0 end
+
+    -- Whether the action is attackable
+    function IsAttackAction(self) return false end
+
+    -- Whether the action is an item and can be equipped
+    function IsEquippedItem(self) return false end
+
+    -- Whether the action is actived
+    function IsActivedAction(self) return false end
+
+    -- Whether the action is auto-repeat
+    function IsAutoRepeatAction(self) return false end
+
+    -- Whether the action is usable
+    function IsUsableAction(self) return true end
+
+    -- Whether the action is consumable
+    function IsConsumableAction(self) return false end
+
+    -- Whether the action is in range of the target
+    function IsInRange(self) return end
+
+    -- Whether the action is auto-castable
+    function IsAutoCastAction(self) return false end
+
+    -- Whether the action is auto-casting now
+    function IsAutoCasting(self) return false end
+
+    -- Show the tooltip for the action
+    function SetTooltip(self, tip) end
+
+    -- Get the spell id of the action
+    function GetSpellId(self) end
+
+    -- Whether the action is a flyout spell
+    function IsFlyout(self) return false end
+
+    -- Whether the action has range spell
+    function IsRangeSpell(self) return false end
+
+    ------------------------------------------------------
+    -- Property
+    ------------------------------------------------------
+    -- The manager of the action system
+    property "Manager"          { default = _ManagerFrame, set = false }
+
+    -- Whether the handler is enabled(has buttons)
+    property "Enabled"          { type = Boolean, event = "OnEnableChanged" }
+
+    -- The action's name
+    property "Name"             { type = String }
+
+    -- The action type's type
+    property "Type"             { type = String }
+
+    -- The target attribute name
+    property "Target"           { type = String }
+
+    -- The detail attribute name
+    property "Detail"           { type = String }
+
+    -- Whether the action is player action
+    property "IsPlayerAction"   { type = Boolean, default = true }
+
+    -- Whether the action is pet action
+    property "IsPetAction"      { type = Boolean, default = false }
+
+    -- The drag style of the action type
+    property "DragStyle"        { type = ActionTypeHandleStyle, default = ActionTypeHandleStyle.Clear }
+
+    -- The receive style of the action type
+    property "ReceiveStyle"     { type = ActionTypeHandleStyle, default = ActionTypeHandleStyle.Clear }
+
+    -- The receive map
+    property "ReceiveMap"       { type = String }
+
+    -- The pickup map
+    property "PickupMap"        { type = String }
+
+    -- The snippet to setup environment for the action type
+    property "InitSnippet"      { type = String }
+
+    -- The snippet used when pick up action
+    property "PickupSnippet"    { type = String }
+
+    -- The snippet used to update for new action settings
+    property "UpdateSnippet"    { type = String }
+
+    -- The snippet used to receive action
+    property "ReceiveSnippet"   { type = String }
+
+    -- The snippet used to clear action
+    property "ClearSnippet"     { type = String }
+
+    -- The snippet used for pre click
+    property "PreClickSnippet"  { type = String }
+
+    -- The snippet used for post click
+    property "PostClickSnippet" { type = String }
+
+    ------------------------------------------------------
+    -- Initialize
+    ------------------------------------------------------
+    function __init(self)
+        -- No repeat definition for action types
+        if _IFActionTypeHandler[self.Name] then return end
+
+        -- Register the action type handler
+        _IFActionTypeHandler[self.Name] = self
+
+        -- Default map
+        if self.Type       == nil then self.Type        = self.Name end
+        if self.Target     == nil then self.Target      = self.Type end
+        if self.PickupMap  == nil then self.PickupMap   = self.Type end
+        if self.ReceiveMap == nil and self.ReceiveStyle == "Clear" then self.ReceiveMap = self.Type end
+
+        -- Register action type map
+        _ActionTypeMap[self.Name]       = self.Type
+        _ActionTargetMap[self.Name]     = self.Target
+        _ActionTargetDetail[self.Name]  = self.Detail
+
+        self:RunSnippet( _RegisterSnippetTemplate:format("_ActionTypeMap", self.Name, self.Type) )
+        self:RunSnippet( _RegisterSnippetTemplate:format("_ActionTargetMap", self.Name, self.Target) )
+        if self.Detail              then self:RunSnippet( _RegisterSnippetTemplate:format("_ActionTargetDetail", self.Name, self.Detail) ) end
+
+        -- Init the environment
+        if self.InitSnippet         then self:RunSnippet( self.InitSnippet ) end
+
+        -- Register PickupSnippet
+        if self.PickupSnippet       then self:RunSnippet( _RegisterSnippetTemplate:format("_PickupSnippet", self.Name, self.PickupSnippet) ) end
+
+        -- Register UpdateSnippet
+        if self.UpdateSnippet       then self:RunSnippet( _RegisterSnippetTemplate:format("_UpdateSnippet", self.Name, self.UpdateSnippet) ) end
+
+        -- Register ReceiveSnippet
+        if self.ReceiveSnippet      then self:RunSnippet( _RegisterSnippetTemplate:format("_ReceiveSnippet", self.Name, self.ReceiveSnippet) ) end
+
+        -- Register ClearSnippet
+        if self.ClearSnippet        then self:RunSnippet( _RegisterSnippetTemplate:format("_ClearSnippet", self.Name, self.ClearSnippet) ) end
+
+        -- Register DragStyle
+        self:RunSnippet( _RegisterSnippetTemplate:format("_DragStyle", self.Name, self.DragStyle) )
+
+        -- Register ReceiveStyle
+        self:RunSnippet( _RegisterSnippetTemplate:format("_ReceiveStyle", self.Name, self.ReceiveStyle) )
+
+        -- Register ReceiveMap
+        if self.ReceiveMap then
+            self:RunSnippet( _RegisterSnippetTemplate:format("_ReceiveMap", self.ReceiveMap, self.Name) )
+            _ReceiveMap[self.ReceiveMap] = self
+        end
+
+        -- Register PickupMap
+        if self.PickupMap           then self:RunSnippet( _RegisterSnippetTemplate:format("_PickupMap", self.Name, self.PickupMap) ) end
+
+        -- Register PreClickMap
+        if self.PreClickSnippet     then self:RunSnippet( _RegisterSnippetTemplate:format("_PreClickSnippet", self.Name, self.PreClickSnippet) ) end
+
+        -- Register PostClickMap
+        if self.PostClickSnippet    then self:RunSnippet( _RegisterSnippetTemplate:format("_PostClickSnippet", self.Name, self.PostClickSnippet) ) end
+
+        -- Clear
+        self.InitSnippet            = nil
+        self.PickupSnippet          = nil
+        self.UpdateSnippet          = nil
+        self.ReceiveSnippet         = nil
+        self.ClearSnippet           = nil
+        self.PreClickSnippet        = nil
+        self.PostClickSnippet       = nil
+    end
+end)
+
+------------------------------------------------------
+--              Action Button Manager               --
+------------------------------------------------------
+__SecureMethod__()
+function _ManagerFrame:OnPickUp(kind, target, detail)
+    return not InCombatLockdown() and PickupAny("clear", kind, target, detail)
+end
+
+__SecureMethod__()
+function _ManagerFrame:OnReceive(kind, target, detail)
+    return not InCombatLockdown() and _IFActionTypeHandler[kind] and _IFActionTypeHandler[kind]:ReceiveAction(target, detail)
+end
+
+__SecureMethod__()
+function _ManagerFrame:UpdateActionButton(name)
+    self                        = GetProxyUI(_G[name])
+
+    local name                  = self:GetAttribute("actiontype")
+    local target, detail        = _IFActionTypeHandler[name].GetActionDetail(self)
+
+    if self.__IFActionHandler_Kind ~= name
+        or self.__IFActionHandler_Target ~= target
+        or self.__IFActionHandler_Detail ~= detail then
+
+        self.__IFActionHandler_Kind     = name
+        self.__IFActionHandler_Target   = target
+        self.__IFActionHandler_Detail   = detail
+
+        local handler           = _IFActionTypeHandler[name]
+        handler:Insert(self)
+        return handler:RefreshAll(self)
+    end
+end
+
+------------------------------------------------------
+--                  Secure Snippet                  --
+------------------------------------------------------
+do
+    -- Init manger frame's enviroment
+    _ManagerFrame:Execute[[
+        -- to fix blz error, use Manager not control
+        Manager                 = self
+
+        _NoDraggable            = newtable()
+
+        _ActionTypeMap          = newtable()
+        _ActionTargetMap        = newtable()
+        _ActionTargetDetail     = newtable()
+
+        _ReceiveMap             = newtable()
+        _PickupMap              = newtable()
+
+        _ClearSnippet           = newtable()
+        _UpdateSnippet          = newtable()
+        _PickupSnippet          = newtable()
+        _ReceiveSnippet         = newtable()
+        _PreClickSnippet        = newtable()
+        _PostClickSnippet       = newtable()
+
+        _DragStyle              = newtable()
+        _ReceiveStyle           = newtable()
+
+        UpdateAction            = [=[
+            local name          = self:GetAttribute("actiontype")
+
+            -- Custom update
+            if _UpdateSnippet[name] then
+                Manager:RunFor(
+                    self, _UpdateSnippet[name],
+                    self:GetAttribute(_ActionTargetMap[name]),
+                    _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
+                )
+            end
+
+            return Manager:CallMethod("UpdateActionButton", self:GetName())
+        ]=]
+
+        ClearAction             = [=[
+            local name          = self:GetAttribute("actiontype")
+
+            if name and name ~= "empty" then
+                self:SetAttribute("actiontype", "empty")
+
+                self:SetAttribute("type", nil)
+                self:SetAttribute(_ActionTargetMap[name], nil)
+                if _ActionTargetDetail[name] then
+                    self:SetAttribute(_ActionTargetDetail[name], nil)
+                end
+
+                -- Custom clear
+                if _ClearSnippet[name] then
+                    Manager:RunFor(self, _ClearSnippet[name])
+                end
+            end
+        ]=]
+
+        GetAction               = [=[
+            return self:GetAttribute("actiontype"), self:GetAttribute(_ActionTargetMap[name]), _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
+        ]=]
+
+        SetAction               = [=[
+            local name, target, detail = ...
+
+            Manager:RunFor(self, ClearAction)
+
+            if name and _ActionTypeMap[name] and target then
+                self:SetAttribute("actiontype", name)
+
+                self:SetAttribute("type", _ActionTypeMap[name])
+                self:SetAttribute(_ActionTargetMap[name], target)
+
+                if detail ~= nil and _ActionTargetDetail[name] then
+                    self:SetAttribute(_ActionTargetDetail[name], detail)
+                end
+            end
+
+            return Manager:RunFor(self, UpdateAction)
+        ]=]
+
+        DragStart               = [=[
+            local name          = self:GetAttribute("actiontype")
+
+            if _DragStyle[name] == "Block" then return false end
+
+            local target        = self:GetAttribute(_ActionTargetMap[name])
+            local detail        = _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
+
+            -- Clear and refresh
+            if _DragStyle[name] == "Clear" then
+                Manager:RunFor(self, ClearAction)
+                Manager:RunFor(self, UpdateAction)
+            end
+
+            -- Pickup the target
+            if _PickupSnippet[name] == "Custom" then
+                Manager:CallMethod("OnPickUp", name, target, detail)
+                return false
+            elseif _PickupSnippet[name] then
+                return Manager:RunFor(self, _PickupSnippet[name], target, detail)
+            else
+                return "clear", _PickupMap[name], target, detail
+            end
+        ]=]
+
+        ReceiveDrag             = [=[
+            local kind, value, extra, extra2 = ...
+            if not kind or not value then return false end
+
+            local oldName       = self:GetAttribute("actiontype")
+            if _ReceiveStyle[oldName] == "Block" then return false end
+
+            local oldTarget     = oldName and self:GetAttribute(_ActionTargetMap[oldName])
+            local oldDetail     = oldName and _ActionTargetDetail[oldName] and self:GetAttribute(_ActionTargetDetail[oldName])
+
+            if _ReceiveStyle[oldName] == "Clear" then
+                Manager:RunFor(self, ClearAction)
+
+                local name, target, detail = _ReceiveMap[kind]
+
+                if name then
+                    if _ReceiveSnippet[name] and _ReceiveSnippet[name] ~= "Custom" then
+                        target, detail = Manager:RunFor(self, _ReceiveSnippet[name], value, extra, extra2)
+                    else
+                        target, detail = value, extra
+                    end
+
+                    if target then
+                        self:SetAttribute("actiontype", name)
+
+                        self:SetAttribute("type", _ActionTypeMap[name])
+                        self:SetAttribute(_ActionTargetMap[name], target)
+
+                        if detail ~= nil and _ActionTargetDetail[name] then
+                            self:SetAttribute(_ActionTargetDetail[name], detail)
+                        end
+                    end
+                end
+
+                Manager:RunFor(self, UpdateAction)
+            end
+
+            if _ReceiveStyle[oldName] == "Keep" and _ReceiveSnippet[oldName] == "Custom" then
+                Manager:CallMethod("OnReceive", oldName, oldTarget, oldDetail)
+                return Manager:RunFor(self, UpdateAction) or false
+            end
+
+            -- Pickup the target
+            if _PickupSnippet[oldName] == "Custom" then
+                Manager:CallMethod("OnPickUp", oldName, oldTarget, oldDetail)
+                return false
+            elseif _PickupSnippet[oldName] then
+                return Manager:RunFor(self, _PickupSnippet[oldName], oldTarget, oldDetail)
+            else
+                return "clear", _PickupMap[oldName], oldTarget, oldDetail
+            end
+        ]=]
+    ]]
+
+    _OnDragStartSnippet         = [[
+        if (IsModifierKeyDown() or _NoDraggable[self:GetAttribute("IFActionHandlerGroup")]) and not IsModifiedClick("PICKUPACTION") then return false end
+        return Manager:RunFor(self, DragStart)
+    ]]
+
+    _OnReceiveDragSnippet       = [[
+        return Manager:RunFor(self, ReceiveDrag, kind, value, ...)
+    ]]
+
+    _PostReceiveSnippet         = [[
+        return Manager:RunFor(Manager:GetFrameRef("UpdatingButton"), ReceiveDrag, %s, %s, %s, %s)
+    ]]
+
+    _SetActionSnippet        = [[
+        return Manager:RunFor(Manager:GetFrameRef("UpdatingButton"), SetAction, %s, %s, %s)
+    ]]
+
+    _WrapClickPrev              = [[
+        local name              = self:GetAttribute("actiontype")
+
+        if _PreClickSnippet[name] then
+            return Manager:RunFor(self, _PreClickSnippet[name], button, down)
+        end
+    ]]
+
+    _WrapClickPost              = [[
+        local name              = self:GetAttribute("actiontype")
+
+        if _PostClickSnippet[name] then
+            return Manager:RunFor(self, _PostClickSnippet[name], message, button, down)
+        end
+    ]]
+
+    _WrapDragPrev               = [[ return "message", "update" ]]
+
+    _WrapDragPost               = [[ Manager:RunFor(self, UpdateAction) ]]
+end
+
+------------------------------------------------------
+--              Action Script Hanlder               --
+------------------------------------------------------
+do
+    _GlobalGroup                = "Global"
+
+    function GetGroup(group)
+        group                   = type(group) == "string" and strtrim(group)
+        return (group and group ~= "" and group or _GlobalGroup):upper()
+    end
+
+    function GetFormatString(param)
+        return type(param) == "string" and ("%q"):format(param) or tostring(param)
+    end
+
+    function PickupAny(kind, target, detail, ...)
+        if (kind == "clear") then
+            ClearCursor()
+            kind, target, detail= target, detail, ...
+        end
+
+        if _IFActionTypeHandler[kind] then
+            return _IFActionTypeHandler[kind]:PickupAction(target, detail)
+        end
+    end
+
+    function PreClick(self)
+        local oldKind           = self:GetAttribute("actiontype")
+        if InCombatLockdown() or (oldKind and _IFActionTypeHandler[oldKind].ReceiveStyle ~= "Clear") then return end
+
+        local kind, value       = GetCursorInfo()
+        if not (kind and value) then return end
+
+        self.__IFActionHandler_PreType  = self:GetAttribute("type")
+        self.__IFActionHandler_PreMsg   = true
+
+        -- Make sure no action used
+        self:SetAttribute("type", nil)
+    end
+
+    function PostClick(self)
+        RefreshButtonState(self)
+
+        -- Restore the action
+        if self.__IFActionHandler_PreMsg then
+            if not InCombatLockdown() then
+                if self.__IFActionHandler_PreType then
+                    self:SetAttribute("type", self.__IFActionHandler_PreType)
+                end
+
+                local kind, value, subtype, detail = GetCursorInfo()
+
+                if kind and value and _ReceiveMap[kind] then
+                    local oldName   = self.__IFActionHandler_Kind
+                    local oldTarget = self.__IFActionHandler_Target
+                    local oldDetail = self.__IFActionHandler_Detail
+
+                    _ManagerFrame:SetFrameRef("UpdatingButton", self)
+                    _ManagerFrame:Execute(_PostReceiveSnippet:format(GetFormatString(kind), GetFormatString(value), GetFormatString(subtype), GetFormatString(detail)))
+
+                    PickupAny("clear", oldName, oldTarget, oldDetail)
+                end
+            elseif self.__IFActionHandler_PreType then
+                -- Keep safe
+                NoCombat(self.SetAttribute, self, "type", self.__IFActionHandler_PreType)
+            end
+
+            self.__IFActionHandler_PreType  = false
+            self.__IFActionHandler_PreMsg   = false
+        end
+    end
+
+    function OnEnter(self)
+        _OnTooltipButton        = self
+        return self:UpdateTooltip()
+    end
+
+    function OnLeave(self)
+        _OnTooltipButton        = nil
+        GameTooltip:Hide()
+    end
+
+    function OnShow(self)
+        _IFActionTypeHandler[self.ActionType]:RefershGrid(self)
+    end
+
+    __NoCombat__()
+    function DisableDrag(group, value)
+        group                   = GetGroup(group)
+
+        _NoDragGroup[group]     = value or nil
+        _ManagerFrame:Execute( ("_NoDraggable[%q] = %s"):format(group, tostring(value or nil)) )
+    end
+
+    function IsDragEnabled(group)
+        return not _NoDragGroup[GetGroup(group)]
+    end
+
+    __NoCombat__()
+    function EnableButtonDown(group, value)
+        group                   = GetGroup(group)
+
+        if not _MouseDownGroup[group] then
+            _MouseDownGroup[group] = value or nil
+
+            if _ActionButtonGroupList[group] then
+                local reg       = value and "AnyDown" or "AnyUp"
+
+                for btn in pairs(_ActionButtonGroupList[group]) do
+                    btn:RegisterForClicks(reg)
+                end
+            end
+        end
+    end
+
+    function IsButtonDownEnabled(group)
+        return _MouseDownGroup[GetGroup(group)]
+    end
+
+    function SetActionButtonGroup(self, group, old)
+        group                   = GetGroup(group)
+        old                     = old and GetGroup(old)
+
+        if old and _ActionButtonGroupList[old] then
+            _ActionButtonGroupList[old][self]   = nil
+        end
+        _ActionButtonGroupList[group]           = _ActionButtonGroupList[group] or {}
+        _ActionButtonGroupList[group][self]     = true
+
+        self:SetAttribute("IFActionHandlerGroup", group)
+        self:RegisterForClicks(_MouseDownGroup[group] and "AnyDown" or "AnyUp")
+    end
+
+    function SetupActionButton(self)
+        SetActionButtonGroup(self, self.ActionButtonGroup)
+
+        self:RegisterForDrag("LeftButton", "RightButton")
+
+        _ManagerFrame:WrapScript(self, "OnDragStart",   _OnDragStartSnippet)
+        _ManagerFrame:WrapScript(self, "OnReceiveDrag", _OnReceiveDragSnippet)
+
+        _ManagerFrame:WrapScript(self, "OnClick",       _WrapClickPrev, _WrapClickPost)
+        _ManagerFrame:WrapScript(self, "OnDragStart",   _WrapDragPrev, _WrapDragPost)
+        _ManagerFrame:WrapScript(self, "OnReceiveDrag", _WrapDragPrev, _WrapDragPost)
+
+        -- Register useful attribute snippets to be used in other addons
+        self:SetFrameRef("_Manager", _ManagerFrame)
+        self:SetAttribute("SetAction",  [[ return self:GetFrameRef("_Manager"):RunFor(self, "Manager:RunFor(self, SetAction, ...)", ...) ]])
+        self:SetAttribute("ClearAction",[[ return self:GetFrameRef("_Manager"):RunFor(self, "Manager:RunFor(self, ClearAction)") ]])
+        self:SetAttribute("GetAction",  [[ return self:GetFrameRef("_Manager"):RunFor(self, "return Manager:RunFor(self, GetAction)") ]])
+
+        if not self:GetAttribute("actiontype") then
+            self:SetAttribute("actiontype", "empty")
+        end
+
+        self.PreClick           = self.PreClick + PreClick
+        self.PostClick          = self.PostClick+ PostClick
+        self.OnShow             = self.OnShow + OnShow
+        self.OnEnter            = self.OnEnter  + OnEnter
+        self.OnLeave            = self.OnLeave  + OnLeave
+    end
+
+    function SaveAction(self, kind, target, detail)
+        _ManagerFrame:SetFrameRef("UpdatingButton", self)
+        _ManagerFrame:Execute(_SetActionSnippet:format(GetFormatString(kind), GetFormatString(target), GetFormatString(detail)))
+    end
+end
+
+__Sealed__()
+interface "ISecureActionButton" { __init = SetupActionButton }
+
 class "SecureActionButton" (function(_ENV)
     inherit "SecureCheckButton"
-
-    _ManagerFrame               = SecureFrame("Scorpio_SecureActionButton_Manager", UIParent, "SecureHandlerStateTemplate")
-    _ManagerFrame:Hide()
-
-    _IFActionTypeHandler        = {}
-
-    _ActionTypeMap              = {}
-    _ActionTargetMap            = {}
-    _ActionTargetDetail         = {}
-    _ReceiveMap                 = {}
+    extend "ISecureActionButton"
 
     ------------------------------------------------------
-    --               Action Type Handler                --
+    --                 Static Property                  --
     ------------------------------------------------------
-    -- The handler for action types
-    __Sealed__() __AnonymousClass__()
-    interface "ActionTypeHandler" (function(_ENV)
-        extend "IList"
+    --- Whether the action button group is draggable
+    __Static__() __Indexer__(String)
+    property "Draggable"        {
+        type                    = Boolean,
+        get                     = function(self, group) return IsDragEnabled(group) end,
+        set                     = function(self, group, value) DisableDrag(group, not value) end,
+    }
 
-        _RegisterSnippetTemplate= "%s[%q] = %q"
+    --- Whether the action button group use mouse down to trigger
+    __Static__() __Indexer__(String)
+    property "UseMouseDown"     {
+        type                    = Boolean,
+        get                     = function(self, group) return IsButtonDownEnabled(group) end,
+        set                     = function(self, group, value) EnableButtonDown(group, value) end,
+    }
 
-        _ActionButtonMap        = setmetatable({}, META_WEAKALL)
+    ------------------------------------------------------
+    --                     Property                     --
+    ------------------------------------------------------
+    --- The action button group
+    property "ActionButtonGroup"{ default = _GlobalGroup, handler = SetActionButtonGroup }
 
-        __Sealed__() enum "HandleStyle" { "Keep", "Clear", "Block" }
+    --- The action type
+    property "ActionType"       { set = false, field = "__IFActionHandler_Kind" }
 
-        ------------------------------------------------------
-        -- Event
-        ------------------------------------------------------
-        -- Fired when the handler is enabled or disabled
-        event "OnEnableChanged"
+    --- the action content
+    property "ActionTarget"     { set = false, field = "__IFActionHandler_Target" }
 
-        ------------------------------------------------------
-        -- Method
-        ------------------------------------------------------
-        GetIterator             = ipairs
+    --- The action detail
+    property "ActionDetail"     { set = false, field = "__IFActionHandler_Detail" }
 
-        function Insert(self, button)
-            local oldHandler    = _ActionButtonMap[button]
+    --- The gametool tip anchor
+    property "GameTooltipAnchor"{ type = AnchorType }
 
-            if oldHandler and oldHandler == self then return end
-            if oldHandler then oldHandler:Remove(button) end
-
-            _ActionButtonMap[button] = self
-            tinsert(self, button)
-
-            self.Enabled        = true
-        end
-
-        function Remove(self, button)
-            if _ActionButtonMap[button] ~= self then return end
-            _ActionButtonMap[button] = nil
-
-            for i, v in ipairs(self) do if v == button then tremove(self, i) break end end
-
-            if not self[1] then
-                self.Enabled    = false
-            end
-        end
-
-        -- Refresh all action buttons of the same action type
-        __AsyncSingle__(true)
-        function Refresh(self, button, mode)
-            if type(button) ~= "table" then
-                local func      = SecureActionButton[button or "UpdateActionButton"]
-
-                for i = 1, #self do
-                    func(self[i])
-                    Continue()  -- smoothing the operation
-                end
+    ------------------------------------------------------
+    --               Observable Property                --
+    ------------------------------------------------------
+    --- The action button's flyout direction: TOP, RIGHT, BOTTOM, LEFT
+    __Observable__()
+    property "FlyoutDirection"  {
+        type                    = FramePoint,
+        set                     = function(self, dir)
+            if dir == "TOP" or dir == "BOTTOM" or dir == "LEFT" or dir == "RIGHT" then
+                self:SetAttribute("flyoutDirection", dir)
             else
-                return SecureActionButton[mode or "UpdateActionButton"](button)
+                self:SetAttribute("flyoutDirection", "TOP")
+            end
+        end,
+        get                     = function(self)
+            return self:GetAttribute("flyoutDirection") or "TOP"
+        end
+    }
+
+    --- Whether show the button grid
+    __Observable__()
+    property "GridVisible"      { type = Boolean }
+
+    --- Whether the button is actived
+    __Observable__()
+    property "IsActived"        { type = Boolean }
+
+    --- Whether the button is usable
+    __Observable__()
+    property "IsUsable"         { type = Boolean }
+
+    --- The count/charge of the action
+    __Observable__()
+    property "Count"            { type = Number }
+
+    --- The cooldown of the action
+    __Observable__()
+    property "Cooldown"         { type = CooldownStatus, set = Toolset.fakefunc }
+
+    --- Whether show the flashing
+    __Observable__()
+    property "Flashing"         { type = Boolean }
+
+    --- Whether show the overlay glow
+    __Observable__()
+    property "OverlayGlow"      { type = Boolean }
+
+    --- Whether the target is in range
+    __Observable__()
+    property "InRange"          { type = Boolean }
+
+    --- Whether the action is flyout
+    __Observable__()
+    property "IsFlyout"         { type = Boolean }
+
+    --- whether the flyout action bar is shown
+    __Observable__()
+    property "Flyouting"        { type = Boolean }
+
+    --- Whether the action is auto castable
+    __Observable__()
+    property "IsAutoCastable"   { type = Boolean }
+
+    --- Whether the action is auto casting
+    __Observable__()
+    property "IsAutoCasting"    { type = Boolean }
+
+    --- The icon of the action
+    __Observable__()
+    property "Icon"             { type = Boolean }
+
+    --- Whether the action is an equipped item
+    __Observable__()
+    property "IsEquippedItem"   { type = Boolean }
+
+    --- The action text
+    __Observable__()
+    property "Text"             { type = String }
+
+    --- The short key of the action
+    __Observable__()
+    property "HotKey"           { type = String }
+
+    --- Whether the icon should be locked
+    __Observable__()
+    property "IconLocked"       { type = Boolean }
+
+
+    ------------------------------------------------------
+    --                      Method                      --
+    ------------------------------------------------------
+    --- Set action for the actionbutton
+    function SetAction(self, kind, target, detail)
+        if kind and not _IFActionTypeHandler[kind] then
+            error("SecureActionButton:SetAction(kind, target, detail) - no such action kind", 2)
+        end
+
+        if not kind or not target then
+            kind, target, detail= nil, nil, nil
+        else
+            target, default     = _IFActionTypeHandler[kind].Map(self, target, default)
+        end
+
+        NoCombat(SaveAction, self, kind, target, detail)
+    end
+
+    --- Get action for the actionbutton
+    function GetAction(self)
+        return self.ActionType, self.ActionTarget, self.ActionDetail
+    end
+
+    __SecureMethod__()
+    function UpdateTooltip(self)
+        local anchor            = self.GameTooltipAnchor
+
+        if anchor then
+            GameTooltip:SetOwner(self, anchor)
+        else
+            if (GetCVar("UberTooltips") == "1") then
+                GameTooltip_SetDefaultAnchor(GameTooltip, self)
+            else
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             end
         end
 
-        -- Run the snippet in the global environment
-        __NoCombat__()
-        function RunSnippet(self, code)
-            return self.Manager:Execute(code)
-        end
+        _IFActionTypeHandler[self.ActionType].SetTooltip(self, GameTooltip)
 
-        ------------------------------------------------------
-        -- Overridable Method For Buttons
-        ------------------------------------------------------
-        -- Set the action, return new result to replacd the oldest
-        __Abstract__() function SetAction(self, ...) return ... end
-
-        -- Refresh the button
-        __Abstract__() function RefreshButton(self) end
-
-        -- Get the actions's kind, target, detail
-        __Abstract__() function GetActionDetail(self)
-            local name = self:GetAttribute("actiontype")
-            return self:GetAttribute(_ActionTargetMap[name]), _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
-        end
-
-        -- Custom pick up action
-        __Abstract__() function PickupAction(self, target, detail) end
-
-        -- Custom receive action
-        __Abstract__() function ReceiveAction(self, target, detail) end
-
-        -- Whether the action button has an action
-        __Abstract__() function HasAction(self) return true end
-
-        -- Get the action's text
-        __Abstract__() function GetActionText(self) return "" end
-
-        -- Get the action's texture
-        __Abstract__() function GetActionTexture(self) end
-
-        -- Get the action's charges
-        __Abstract__() function GetActionCharges(self) end
-
-        -- Get the action's count
-        __Abstract__() function GetActionCount(self) return 0 end
-
-        -- Get the action's cooldown
-        __Abstract__() function GetActionCooldown(self) return 0, 0, 0 end
-
-        -- Whether the action is attackable
-        __Abstract__() function IsAttackAction(self) return false end
-
-        -- Whether the action is an item and can be equipped
-        __Abstract__() function IsEquippedItem(self) return false end
-
-        -- Whether the action is actived
-        __Abstract__() function IsActivedAction(self) return false end
-
-        -- Whether the action is auto-repeat
-        __Abstract__() function IsAutoRepeatAction(self) return false end
-
-        -- Whether the action is usable
-        __Abstract__() function IsUsableAction(self) return true end
-
-        -- Whether the action is consumable
-        __Abstract__() function IsConsumableAction(self) return false end
-
-        -- Whether the action is in range of the target
-        __Abstract__() function IsInRange(self) return end
-
-        -- Whether the action is auto-castable
-        __Abstract__() function IsAutoCastAction(self) return false end
-
-        -- Whether the action is auto-casting now
-        __Abstract__() function IsAutoCasting(self) return false end
-
-        -- Show the tooltip for the action
-        __Abstract__() function SetTooltip(self, GameTooltip) end
-
-        -- Get the spell id of the action
-        __Abstract__() function GetSpellId(self) end
-
-        -- Whether the action is a flyout spell
-        __Abstract__() function IsFlyout(self) return false end
-
-        ------------------------------------------------------
-        -- Property
-        ------------------------------------------------------
-        -- The manager of the action system
-        property "Manager"          { default = _ManagerFrame, set = false }
-
-        -- Whether the handler is enabled(has buttons)
-        property "Enabled"          { type = Boolean, event = "OnEnableChanged" }
-
-        -- The action's name
-        property "Name"             { type = String }
-
-        -- The action type's type
-        property "Type"             { type = String }
-
-        -- The target attribute name
-        property "Target"           { type = String }
-
-        -- The detail attribute name
-        property "Detail"           { type = String }
-
-        -- Whether the action is player action
-        property "IsPlayerAction"   { type = Boolean, default = true }
-
-        -- Whether the action is pet action
-        property "IsPetAction"      { type = Boolean, default = false }
-
-        -- The drag style of the action type
-        property "DragStyle"        { type = HandleStyle, default = HandleStyle.Clear }
-
-        -- The receive style of the action type
-        property "ReceiveStyle"     { type = HandleStyle, default = HandleStyle.Clear }
-
-        -- The receive map
-        property "ReceiveMap"       { type = String }
-
-        -- The pickup map
-        property "PickupMap"        { type = String }
-
-        -- The snippet to setup environment for the action type
-        property "InitSnippet"      { type = String }
-
-        -- The snippet used when pick up action
-        property "PickupSnippet"    { type = String }
-
-        -- The snippet used to update for new action settings
-        property "UpdateSnippet"    { type = String }
-
-        -- The snippet used to receive action
-        property "ReceiveSnippet"   { type = String }
-
-        -- The snippet used to clear action
-        property "ClearSnippet"     { type = String }
-
-        -- The snippet used for pre click
-        property "PreClickSnippet"  { type = String }
-
-        -- The snippet used for post click
-        property "PostClickSnippet" { type = String }
-
-        ------------------------------------------------------
-        -- Initialize
-        ------------------------------------------------------
-        function __init(self)
-            -- No repeat definition for action types
-            if _IFActionTypeHandler[self.Name] then return end
-
-            -- Register the action type handler
-            _IFActionTypeHandler[self.Name] = self
-
-            -- Default map
-            if self.Type == nil         then self.Type      = self.Name end
-            if self.Target == nil       then self.Target    = self.Type end
-            if self.PickupMap == nil    then self.PickupMap = self.Type end
-            if self.ReceiveMap == nil and self.ReceiveStyle == "Clear" then self.ReceiveMap = self.Type end
-
-            -- Register action type map
-            _ActionTypeMap[self.Name]       = self.Type
-            _ActionTargetMap[self.Name]     = self.Target
-            _ActionTargetDetail[self.Name]  = self.Detail
-
-            self:RunSnippet( _RegisterSnippetTemplate:format("_ActionTypeMap", self.Name, self.Type) )
-            self:RunSnippet( _RegisterSnippetTemplate:format("_ActionTargetMap", self.Name, self.Target) )
-            if self.Detail              then self:RunSnippet( _RegisterSnippetTemplate:format("_ActionTargetDetail", self.Name, self.Detail) ) end
-
-            -- Init the environment
-            if self.InitSnippet         then self:RunSnippet( self.InitSnippet ) end
-
-            -- Register PickupSnippet
-            if self.PickupSnippet       then self:RunSnippet( _RegisterSnippetTemplate:format("_PickupSnippet", self.Name, self.PickupSnippet) ) end
-
-            -- Register UpdateSnippet
-            if self.UpdateSnippet       then self:RunSnippet( _RegisterSnippetTemplate:format("_UpdateSnippet", self.Name, self.UpdateSnippet) ) end
-
-            -- Register ReceiveSnippet
-            if self.ReceiveSnippet      then self:RunSnippet( _RegisterSnippetTemplate:format("_ReceiveSnippet", self.Name, self.ReceiveSnippet) ) end
-
-            -- Register ClearSnippet
-            if self.ClearSnippet        then self:RunSnippet( _RegisterSnippetTemplate:format("_ClearSnippet", self.Name, self.ClearSnippet) ) end
-
-            -- Register DragStyle
-            self:RunSnippet( _RegisterSnippetTemplate:format("_DragStyle", self.Name, self.DragStyle) )
-
-            -- Register ReceiveStyle
-            self:RunSnippet( _RegisterSnippetTemplate:format("_ReceiveStyle", self.Name, self.ReceiveStyle) )
-
-            -- Register ReceiveMap
-            if self.ReceiveMap then
-                self:RunSnippet( _RegisterSnippetTemplate:format("_ReceiveMap", self.ReceiveMap, self.Name) )
-                _ReceiveMap[self.ReceiveMap] = self
-            end
-
-            -- Register PickupMap
-            if self.PickupMap           then self:RunSnippet( _RegisterSnippetTemplate:format("_PickupMap", self.Name, self.PickupMap) ) end
-
-            -- Register PreClickMap
-            if self.PreClickSnippet     then self:RunSnippet( _RegisterSnippetTemplate:format("_PreClickSnippet", self.Name, self.PreClickSnippet) ) end
-
-            -- Register PostClickMap
-            if self.PostClickSnippet    then self:RunSnippet( _RegisterSnippetTemplate:format("_PostClickSnippet", self.Name, self.PostClickSnippet) ) end
-
-            -- Clear
-            self.InitSnippet            = nil
-            self.PickupSnippet          = nil
-            self.UpdateSnippet          = nil
-            self.ReceiveSnippet         = nil
-            self.ClearSnippet           = nil
-            self.PreClickSnippet        = nil
-            self.PostClickSnippet       = nil
-        end
-    end)
-
-    ------------------------------------------------------
-    --              Action Button Manager               --
-    ------------------------------------------------------
-
-    ------------------------------------------------------
-    --                  Static Method                   --
-    ------------------------------------------------------
-
-    ------------------------------------------------------
-    --                   Constructor                    --
-    ------------------------------------------------------
-    function __ctor(self, ...)
-
+        GameTooltip:Show()
     end
 end)

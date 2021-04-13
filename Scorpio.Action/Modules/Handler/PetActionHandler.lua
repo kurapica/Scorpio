@@ -1,200 +1,162 @@
--- Author      : Kurapica
--- Create Date : 2013/11/25
--- Change Log  :
+--========================================================--
+--             Scorpio Secure Pet Action Handler          --
+--                                                        --
+-- Author      :  kurapica125@outlook.com                 --
+-- Create Date :  2021/03/29                              --
+--========================================================--
 
--- Check Version
-local version = 1
-if not IGAS:NewAddon("IGAS.Widget.Action.PetActionHandler", version) then
-	return
-end
+--========================================================--
+Scorpio        "Scorpio.Secure.PetActionHandler"     "1.0.0"
+--========================================================--
 
-import "System.Widget.Action.ActionRefreshMode"
+_Enabled                        = false
 
-_Enabled = false
+------------------------------------------------------
+-- Action Handler
+------------------------------------------------------
+handler                         = ActionTypeHandler {
+    Name                        = "pet",
+    Target                      = "action",
+    DragStyle                   = "Keep",
+    ReceiveStyle                = "Keep",
+    IsPlayerAction              = false,
+    IsPetAction                 = true,
+    PickupSnippet               = [[ return "petaction", ... ]],
+    UpdateSnippet               = [[
+        local target            = ...
 
--- Event handler
-function OnEnable(self)
-	self:RegisterEvent("PET_STABLE_UPDATE")
-	self:RegisterEvent("PET_STABLE_SHOW")
-	self:RegisterEvent("PET_BAR_SHOWGRID")
-	self:RegisterEvent("PET_BAR_HIDEGRID")
-	self:RegisterEvent("PLAYER_CONTROL_LOST")
-	self:RegisterEvent("PLAYER_CONTROL_GAINED")
-	self:RegisterEvent("PLAYER_FARSIGHT_FOCUS_CHANGED")
-	self:RegisterEvent("UNIT_PET")
-	self:RegisterEvent("UNIT_FLAGS")
-	self:RegisterEvent("PET_BAR_UPDATE")
-	self:RegisterEvent("PET_UI_UPDATE")
-	self:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
-	self:RegisterEvent("UNIT_AURA")
-	self:RegisterEvent("PET_BAR_UPDATE_COOLDOWN")
-	self:RegisterEvent("PET_BAR_UPDATE_USABLE")
+        if tonumber(target) then
+            -- Use macro to toggle auto cast
+            self:SetAttribute("type2", "macro")
+            self:SetAttribute("macrotext2", "/click PetActionButton".. target .. " RightButton")
+        end
+    ]],
 
-	OnEnable = nil
+    ClearSnippet                = [[
+        self:SetAttribute("type2", nil)
+        self:SetAttribute("macrotext2", nil)
+    ]],
 
-	return handler:Refresh()
-end
+    PreClickSnippet             = [[
+        local type, action      = GetActionInfo(self:GetAttribute("action"))
+        return nil, format("%s|%s", tostring(type), tostring(action))
+    ]],
 
-function PET_STABLE_UPDATE(self)
-	return handler:Refresh()
-end
+    PostClickSnippet            = [[
+        local message           = ...
+        local type, action      = GetActionInfo(self:GetAttribute("action"))
+        if message ~= format("%s|%s", tostring(type), tostring(action)) then
+            return Manager:RunFor(self, UpdateAction)
+        end
+    ]],
 
-function PET_STABLE_SHOW(self)
-	return handler:Refresh()
-end
-
-
-function PLAYER_CONTROL_LOST(self)
-	return handler:Refresh()
-end
-
-function PLAYER_CONTROL_GAINED(self)
-	return handler:Refresh()
-end
-
-function PLAYER_FARSIGHT_FOCUS_CHANGED(self)
-	return handler:Refresh()
-end
-
-function UNIT_PET(self, unit)
-	if unit == "player" then
-		return handler:Refresh()
-	end
-end
-
-function UNIT_FLAGS(self, unit)
-	if unit == "pet" then
-		return handler:Refresh()
-	end
-end
-
-function PET_BAR_UPDATE(self)
-	return handler:Refresh()
-end
-
-function PET_UI_UPDATE(self)
-	return handler:Refresh()
-end
-
-function UPDATE_VEHICLE_ACTIONBAR(self)
-	return handler:Refresh()
-end
-
-function UNIT_AURA(self, unit)
-	if unit == "pet" then
-		return handler:Refresh()
-	end
-end
-
-function PET_BAR_UPDATE_COOLDOWN(self)
-	return handler:Refresh(RefreshCooldown)
-end
-
-function PET_BAR_UPDATE_USABLE(self)
-	return handler:Refresh(RefreshUsable)
-end
-
--- Pet action type handler
-handler = ActionTypeHandler {
-	Name = "pet",
-
-	Target = "action",
-
-	DragStyle = "Keep",
-
-	ReceiveStyle = "Keep",
-
-	IsPlayerAction = false,
-
-	IsPetAction = true,
-
-	PickupSnippet = [[ return "petaction", ... ]],
-
-	UpdateSnippet = [[
-		local target = ...
-
-		if tonumber(target) then
-			-- Use macro to toggle auto cast
-			self:SetAttribute("type2", "macro")
-			self:SetAttribute("macrotext2", "/click PetActionButton".. target .. " RightButton")
-		end
-	]],
-
-	ClearSnippet = [[
-		self:SetAttribute("type2", nil)
-		self:SetAttribute("macrotext2", nil)
-	]],
-
-	PreClickSnippet = [[
-		local type, action = GetActionInfo(self:GetAttribute("action"))
-		return nil, format("%s|%s", tostring(type), tostring(action))
-	]],
-
-	PostClickSnippet = [[
-		local message = ...
-		local type, action = GetActionInfo(self:GetAttribute("action"))
-		if message ~= format("%s|%s", tostring(type), tostring(action)) then
-			return Manager:RunFor(self, UpdateAction)
-		end
-	]],
-
-	OnEnableChanged = function(self) _Enabled = self.Enabled end,
+    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
--- Overwritde methods
+
+------------------------------------------------------
+-- Addon Event Handler
+------------------------------------------------------
+function OnEnable()
+    OnEnable                    = nil
+
+    Wow.FromEvent("UNIT_AURA"):MatchUnit("pet"):Next(function()
+        return handler:RefreshButtonState()
+    end)
+end
+
+------------------------------------------------------
+-- System Event Handler
+------------------------------------------------------
+__SystemEvent__"PET_STABLE_UPDATE" "PET_STABLE_SHOW" "PLAYER_CONTROL_LOST"
+                "PLAYER_CONTROL_GAINED" "PLAYER_FARSIGHT_FOCUS_CHANGED"
+                "PET_BAR_UPDATE" "PET_UI_UPDATE" "UPDATE_VEHICLE_ACTIONBAR"
+function PET_STABLE_UPDATE()
+    return handler:RefreshAll()
+end
+
+__SystemEvent__()
+function UNIT_PET(unit)
+    if unit == "player" then
+        return handler:RefreshAll()
+    end
+end
+
+__SystemEvent__()
+function UNIT_FLAGS(unit)
+    if unit == "pet" then
+        return handler:RefreshAll()
+    end
+end
+
+__SystemEvent__()
+function PET_BAR_UPDATE_COOLDOWN()
+    return handler:RefreshCooldown()
+end
+
+__SystemEvent__()
+function PET_BAR_UPDATE_USABLE()
+    return handler:RefreshUsable()
+end
+
+
+------------------------------------------------------
+-- Overwrite methods
+------------------------------------------------------
 function handler:PickupAction(target)
-	return PickupPetAction(target)
+    return PickupPetAction(target)
 end
 
 function handler:HasAction()
-	return GetPetActionInfo(self.ActionTarget) and true
+    return GetPetActionInfo(self.ActionTarget) and true
 end
 
 function handler:GetActionTexture()
-	local name, texture, isToken = GetPetActionInfo(self.ActionTarget)
-	if name then
-		return isToken and _G[texture] or texture
-	end
+    local name, texture, isToken = GetPetActionInfo(self.ActionTarget)
+    if name then
+        return isToken and _G[texture] or texture
+    end
 end
 
 function handler:GetActionCooldown()
-	return GetPetActionCooldown(self.ActionTarget)
+    return GetPetActionCooldown(self.ActionTarget)
 end
 
 function handler:IsUsableAction()
-	return GetPetActionSlotUsable(self.ActionTarget)
+    return GetPetActionSlotUsable(self.ActionTarget)
 end
 
 function handler:IsActivedAction()
-	return select(4, GetPetActionInfo(self.ActionTarget))
+    return select(4, GetPetActionInfo(self.ActionTarget))
 end
 
 function handler:IsAutoCastAction()
-	return select(5, GetPetActionInfo(self.ActionTarget))
+    return select(5, GetPetActionInfo(self.ActionTarget))
 end
 
 function handler:IsAutoCasting()
-	return select(6, GetPetActionInfo(self.ActionTarget))
+    return select(6, GetPetActionInfo(self.ActionTarget))
 end
 
 function handler:SetTooltip(GameTooltip)
-	GameTooltip:SetPetAction(self.ActionTarget)
+    return GameTooltip:SetPetAction(self.ActionTarget)
 end
 
--- Expand IFActionHandler
-interface "IFActionHandler"
-	------------------------------------------------------
-	-- Property
-	------------------------------------------------------
-	__Doc__[[The action button's content if its type is 'pet']]
-	property "PetAction" {
-		Get = function(self)
-			return self:GetAttribute("actiontype") == "pet" and tonumber(self:GetAttribute("action")) or nil
-		end,
-		Set = function(self, value)
-			self:SetAction("pet", value)
-		end,
-		Type = NumberNil,
-	}
+function handler:IsRangeSpell()
+    return true
+end
 
-endinterface "IFActionHandler"
+------------------------------------------------------
+-- Extend Definitions
+------------------------------------------------------
+class "SecureActionButton" (function(_ENV)
+    ------------------------------------------------------
+    -- Property
+    ------------------------------------------------------
+    --- The action button's content if its type is 'pet'
+    property "PetAction" {
+        type                    = NumberNil,
+        set                     = function(self, value) self:SetAction("pet", value) end,
+        get                     = function(self) return self:GetAttribute("actiontype") == "pet" and tonumber(self:GetAttribute("action")) or nil end,
+    }
+end)

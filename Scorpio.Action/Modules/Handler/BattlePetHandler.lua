@@ -1,117 +1,137 @@
--- Author      : Kurapica
--- Create Date : 2013/11/25
--- Change Log  :
+--========================================================--
+--             Scorpio Secure Battle Pet Handler          --
+--                                                        --
+-- Author      :  kurapica125@outlook.com                 --
+-- Create Date :  2021/03/29                              --
+--========================================================--
 
--- Check Version
-local version = 2
-if not IGAS:NewAddon("IGAS.Widget.Action.BattlePetHandler", version) then
-	return
-end
+--========================================================--
+Scorpio        "Scorpio.Secure.BattlePetHandler"     "1.0.0"
+--========================================================--
 
-_Enabled = false
-SUMMON_RANDOM_FAVORITE_PET_SPELL = 243819
-SUMMON_RANDOM_ID = 0
+_Enabled                        = false
+
+------------------------------------------------------
+-- Action Handler
+------------------------------------------------------
+handler                         = ActionTypeHandler {
+    Name                        = "battlepet",
+
+    PickupSnippet               = "Custom",
+
+    UpdateSnippet               = [[
+        local target            = ...
+
+        self:SetAttribute("*type*", "macro")
+        self:SetAttribute("*macrotext*", "/summonpet "..target)
+    ]],
+
+    ClearSnippet                = [[
+        self:SetAttribute("*type*", nil)
+        self:SetAttribute("*macrotext*", nil)
+    ]],
+
+    OnEnableChanged             = function(self, value) _Enabled = value end,
+}
+
+------------------------------------------------------
+-- Module Event Handler
+------------------------------------------------------
+SUMMON_RANDOM_FAVORITE_PET_SPELL= 243819
+SUMMON_RANDOM_ID                = 0
 
 -- Event handler
 function OnEnable(self)
-	self:RegisterEvent("PET_JOURNAL_LIST_UPDATE")
+    OnEnable                    = nil
 
-	OnEnable = nil
-	C_PetJournal.PickupSummonRandomPet()
-	local ty, pick = GetCursorInfo()
-	ClearCursor()
-	SUMMON_RANDOM_ID = pick
+    C_PetJournal.PickupSummonRandomPet()
 
-	return handler:Refresh()
+    local ty, pick              = GetCursorInfo()
+    ClearCursor()
+    SUMMON_RANDOM_ID            = pick
+
+    return handler:RefreshAll()
 end
 
-function PET_JOURNAL_LIST_UPDATE(self)
-	return handler:Refresh()
+------------------------------------------------------
+-- System Event Handler
+------------------------------------------------------
+__SystemEvent__()
+function PET_JOURNAL_LIST_UPDATE()
+    return handler:RefreshAll()
 end
 
-local _ForceUpdated = false
-function ForceUpdate()
-	_ForceUpdated = false
-	return handler:Refresh(RefreshIcon)
-end
 
--- Battlepet action type handler
-handler = ActionTypeHandler {
-	Name = "battlepet",
-
-	PickupSnippet = "Custom",
-
-	UpdateSnippet = [[
-		local target = ...
-
-		self:SetAttribute("*type*", "macro")
-		self:SetAttribute("*macrotext*", "/summonpet "..target)
-	]],
-
-	ClearSnippet = [[
-		self:SetAttribute("*type*", nil)
-		self:SetAttribute("*macrotext*", nil)
-	]],
-
-	OnEnableChanged = function(self) _Enabled = self.Enabled end,
-}
-
+------------------------------------------------------
 -- Overwrite methods
+------------------------------------------------------
+function DelayRefreshIcon(self)
+    if self.ActionType == "battlepet" then
+        local target, icon      = self.ActionTarget
+        if target == SUMMON_RANDOM_ID then
+            icon                = GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
+        else
+            icon                = select(9, C_PetJournal.GetPetInfoByPetID(target))
+        end
+
+        self.Icon               = icon
+    end
+end
+
 function handler:PickupAction(target)
-	if target == SUMMON_RANDOM_ID then
-		return C_PetJournal.PickupSummonRandomPet()
-	else
-		return C_PetJournal.PickupPet(target)
-	end
+    if target == SUMMON_RANDOM_ID then
+        return C_PetJournal.PickupSummonRandomPet()
+    else
+        return C_PetJournal.PickupPet(target)
+    end
 end
 
 function handler:GetActionTexture()
-	local target, icon = self.ActionTarget
-	if target == SUMMON_RANDOM_ID then
-		icon = GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
-	else
-		icon = select(9, C_PetJournal.GetPetInfoByPetID(target))
-	end
-	if not icon and not _ForceUpdated then _ForceUpdated = true Task.DelayCall(1, ForceUpdate) end
-	return icon
+    local target, icon          = self.ActionTarget
+    if target == SUMMON_RANDOM_ID then
+        icon                    = GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
+    else
+        icon                    = select(9, C_PetJournal.GetPetInfoByPetID(target))
+    end
+
+    if not icon then Delay(1, DelayRefreshIcon, self) end
+    return icon
 end
 
 function handler:SetTooltip(GameTooltip)
-	local target = self.ActionTarget
-	if target == SUMMON_RANDOM_ID then
-		return GameTooltip:SetSpellByID(SUMMON_RANDOM_FAVORITE_PET_SPELL)
-	else
-		local speciesID, _, _, _, _, _, _, name, _, _, _, sourceText, description, _, _, tradable, unique = C_PetJournal.GetPetInfoByPetID(target)
+    local target                = self.ActionTarget
+    if target == SUMMON_RANDOM_ID then
+        return GameTooltip:SetSpellByID(SUMMON_RANDOM_FAVORITE_PET_SPELL)
+    else
+        local speciesID, _, _, _, _, _, _, name, _, _, _, sourceText, description, _, _, tradable, unique = C_PetJournal.GetPetInfoByPetID(target)
 
-		if speciesID then
-			GameTooltip:SetText(name, 1, 1, 1)
+        if speciesID then
+            GameTooltip:SetText(name, 1, 1, 1)
 
-			if sourceText and sourceText ~= "" then
-				GameTooltip:AddLine(sourceText, 1, 1, 1, true)
-			end
+            if sourceText and sourceText ~= "" then
+                GameTooltip:AddLine(sourceText, 1, 1, 1, true)
+            end
 
-			if description and description ~= "" then
-				GameTooltip:AddLine(" ")
-				GameTooltip:AddLine(description, nil, nil, nil, true)
-			end
-			GameTooltip:Show()
-		end
-	end
+            if description and description ~= "" then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine(description, nil, nil, nil, true)
+            end
+            GameTooltip:Show()
+        end
+    end
 end
 
--- Expand IFActionHandler
-interface "IFActionHandler"
-	------------------------------------------------------
-	-- Property
-	------------------------------------------------------
-	__Doc__[[The action button's content if its type is 'battlepet']]
-	property "BattlePet" {
-		Get = function(self)
-			return self:GetAttribute("actiontype") == "battlepet" and self:GetAttribute("battlepet") or nil
-		end,
-		Set = function(self, value)
-			self:SetAction("battlepet", value)
-		end,
-		Type = String,
-	}
-endinterface "IFActionHandler"
+------------------------------------------------------
+-- Extend Definitions
+------------------------------------------------------
+class "SecureActionButton" (function(_ENV)
+    ------------------------------------------------------
+    -- Property
+    ------------------------------------------------------
+    --- The action button's content if its type is 'battlepet'
+    property "BattlePet" {
+        type                    = String,
+        set                     = function(self, value) self:SetAction("battlepet", value) end,
+        get                     = function(self) return self:GetAttribute("actiontype") == "battlepet" and self:GetAttribute("battlepet") or nil end,
+    }
+end)

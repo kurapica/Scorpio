@@ -1,19 +1,28 @@
--- Author      : Kurapica
--- Create Date : 2013/11/25
--- Change Log  :
+--========================================================--
+--             Scorpio Secure Empty Handler              --
+--                                                        --
+-- Author      :  kurapica125@outlook.com                 --
+-- Create Date :  2021/03/29                              --
+--========================================================--
 
--- Check Version
-local version = 1
-if not IGAS:NewAddon("IGAS.Widget.Action.EmptyHandler", version) then
-	return
-end
+--========================================================--
+Scorpio        "Scorpio.Secure.EmptyHandler"         "1.0.0"
+--========================================================--
 
-handler = ActionTypeHandler {
-	Name = "empty",
-	DragStyle = "Block",
-	ReceiveStyle = "Clear",
+_Enabled                        = false
+
+------------------------------------------------------
+-- Action Handler
+-----------------------------------------------------
+handler 						= ActionTypeHandler {
+	Name 						= "empty",
+	DragStyle 					= "Block",
+	ReceiveStyle 				= "Clear",
 }
 
+------------------------------------------------------
+-- Overwrite methods
+------------------------------------------------------
 function handler:HasAction()
 	return false
 end

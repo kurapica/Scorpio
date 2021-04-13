@@ -190,6 +190,35 @@ do
         end
     end
 
+    --- Filter the unit event with unit, this should be re-usable
+    __Arguments__{ String }
+    function IObservable:MatchUnit(unit)
+        local matchUnits            = self.__MatchUnits
+        if not matchUnits then
+            matchUnits              = {}
+            self.__MatchUnits       = matchUnits
+
+            self:Subscribe(function(unit, ...)
+                if unit == "any" then
+                    for nunit, subject in pairs(matchUnits) do
+                        subject:OnNext(nunit, ...)
+                    end
+                else
+                    local subject   = matchUnits[unit]
+                    return subject and subject:OnNext(unit, ...)
+                end
+            end)
+        end
+
+        local subject               = matchUnits[unit]
+        if not subject then
+            subject                 = Subject()
+            matchUnits[unit]        = subject
+        end
+
+        return subject
+    end
+
     if not IObservable.Throttle then
         __Observable__()
         __Arguments__{ Number }
