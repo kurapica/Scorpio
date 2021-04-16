@@ -967,6 +967,15 @@ do
         get             = function(self) return self:GetFlattensRenderLayers() end,
     }
 
+    --- Whether a frame to be rendered in its own framebuffer
+    UI.Property         {
+        name            = "FrameBuff",
+        type            = Boolean,
+        require         = Frame,
+        default         = false,
+        set             = function(self, val) self:SetFrameBuffer(val) end,
+    }
+
     --- the level at which the frame is layered relative to others in its strata
     UI.Property         {
         name            = "FrameLevel",

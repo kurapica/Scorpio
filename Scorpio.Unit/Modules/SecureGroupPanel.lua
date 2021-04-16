@@ -586,7 +586,7 @@ class "SecureGroupPanel" (function(_ENV)
     -- The group header based on the blizzard's SecureGroupHeader
     property "GroupHeader"      {
         default                 = function(self)
-            return ShadowGroupHeader("ShadowGroupHeader", self, "SecureGroupHeaderTemplate")
+            return ShadowGroupHeader(self:GetName() .. "ShadowGroupHeader", self, "SecureGroupHeaderTemplate")
         end,
         type                    = ShadowGroupHeader
     }
@@ -637,7 +637,7 @@ class "SecureGroupPetPanel" (function(_ENV)
 
     property "GroupHeader"      {
         default                 = function(self)
-            return SecureGroupPanel.ShadowGroupHeader("ShadowGroupHeader", self, "SecureGroupPetHeaderTemplate")
+            return SecureGroupPanel.ShadowGroupHeader(self:GetName() .. "ShadowGroupHeader", self, "SecureGroupPetHeaderTemplate")
         end,
     }
 end)
