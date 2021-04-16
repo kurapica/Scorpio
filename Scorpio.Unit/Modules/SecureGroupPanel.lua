@@ -86,8 +86,6 @@ class "SecureGroupPanel" (function(_ENV)
 
             ShadowUnitMap       = newtable()
 
-            Manager:SetAttribute("useAttributeChildCnt", 0)
-
             Manager:SetAttribute("refreshDeadPlayer", [[
                 for i = 1, #DeadFrames do
                     local unitFrame = UnitFrames[i]
@@ -165,20 +163,6 @@ class "SecureGroupPanel" (function(_ENV)
                 end
             ]])
 
-            Manager:SetAttribute("refreshRestUnitFrame", [[
-                if Manager:GetAttribute("useAttributeChildCnt") >= #ShadowFrames then return end
-
-                local id        = ...
-                if id then
-                    -- To safely clear unit frame generated in combat
-                    for i = id + 1, #UnitFrames do
-                        if UnitFrames[i]:GetAttribute("unit") then
-                            UnitFrames[i]:SetAttribute("unit", nil)
-                        end
-                    end
-                end
-            ]])
-
             Manager:SetAttribute("refreshUnitFrames", [[
                 local count     = #ShadowFrames
                 for i = 1, count do
@@ -206,8 +190,6 @@ class "SecureGroupPanel" (function(_ENV)
                 local frame     = self:GetAttribute("UnitFrame")
 
                 if frame then
-                    -- frame:SetAttribute("unit", unit)
-                    -- self:GetAttribute("Manager"):RunAttribute("refreshRestUnitFrame", self:GetID())
                     self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID(), value)
                 elseif self:GetAttribute("Manager"):GetAttribute("showDeadOnly") then
                     self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
@@ -227,8 +209,6 @@ class "SecureGroupPanel" (function(_ENV)
                 local frame = self:GetAttribute("UnitFrame")
 
                 if frame then
-                    -- frame:SetAttribute("unit", value)
-                    -- self:GetAttribute("Manager"):RunAttribute("refreshRestUnitFrame", self:GetID())
                     self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID(), value)
                 elseif self:GetAttribute("Manager"):GetAttribute("showDeadOnly") then
                     self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
@@ -348,9 +328,8 @@ class "SecureGroupPanel" (function(_ENV)
                 child:SetAttribute("refreshUnitChange", nil)    -- only used for the entering game combat
                 child:SetAttribute("isdead", nil)
                 child:SetAttribute("_onattributechanged", _Onattributechanged)
-
-                self:SetAttribute("useAttributeChildCnt", count)
             end
+
             self.__InitedCount  = count
 
             if panel and count and panel.Count < count then
