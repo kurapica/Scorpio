@@ -1874,7 +1874,8 @@ function ApplyStyleService()
                     _StyleQueue[frame]      = nil
 
                     -- Apply the style settings
-                    if frame:IsProtected() then
+                    local isProtected       = frame.IsProtected
+                    if isProtected and isProtected(frame) then
                         NoCombat(ApplyFrameStyles, frame, styles, debugname)
                     else
                         ApplyFrameStyles(frame, styles, debugname)

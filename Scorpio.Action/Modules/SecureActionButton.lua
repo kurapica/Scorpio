@@ -52,7 +52,7 @@ end
 __Service__(true)
 function RangeChecker()
     while true do
-        for i = 1, 9999 do
+        for i = 1, 99999 do
             local button        = _RangeCheckButtons[i]
             if not button then
                 if i == 1 then NextEvent("SCORPIO_SAB_RANGE_CHECK") end
@@ -60,6 +60,7 @@ function RangeChecker()
             end
 
             _IFActionTypeHandler[button.ActionType]:RefreshRange(button)
+            if i % 20 == 0 do Continue() end
         end
 
         Delay(0.2)
@@ -238,19 +239,10 @@ interface "ActionTypeHandler" (function(_ENV)
     _ActionButtonMap            = Toolset.newtable(true, true)
 
     local function refreshButton(self, button)
-        if self:IsAttackAction(button) then
-            _AutoAttackButtons[button] = true
-        elseif _AutoAttackButtons[button] then
-            _AutoAttackButtons[button] = nil
-        end
+        _AutoAttackButtons[button] = self.IsAttackAction(button) or nil
+        _AutoRepeatButtons[button] = self.IsAutoRepeatAction(button) or nil
 
-        if self:IsAutoRepeatAction(button) then
-            _AutoRepeatButtons[button] = true
-        elseif _AutoRepeatButtons[button] then
-            _AutoRepeatButtons[button] = nil
-        end
-
-        local spell             = self:GetSpellId(button)
+        local spell             = self.GetSpellId(button)
         local ospell            = _Spell4Buttons[button]
 
         if ospell ~= spell then
@@ -280,7 +272,7 @@ interface "ActionTypeHandler" (function(_ENV)
             _Spell4Buttons[button] = spell
         end
 
-        if self:IsRangeSpell(button) then
+        if self.IsRangeSpell(button) then
             if not _RangeCheckButtons[button] then
                 local index     = #_RangeCheckButtons + 1
                 _RangeCheckButtons[button] = index
@@ -418,11 +410,11 @@ interface "ActionTypeHandler" (function(_ENV)
 
     function RefreshOverlayGlow(self, button)
         if button then
-            local spellId       = self:GetSpellId(button)
+            local spellId       = self.GetSpellId(button)
             self.OverlayGlow    = spellId and IsSpellOverlayed(spellId)
         else
             for _, button in self:GetIterator() do
-                local spellId   = self:GetSpellId(button)
+                local spellId   = self.GetSpellId(button)
                 self.OverlayGlow= spellId and IsSpellOverlayed(spellId)
             end
         end
@@ -430,10 +422,10 @@ interface "ActionTypeHandler" (function(_ENV)
 
     function RefreshRange(self, button)
         if button then
-            button.InRange      = self:IsInRange(button)
+            button.InRange      = self.IsInRange(button)
         else
             for _, button in self:GetIterator() do
-                button.InRange  = self:IsInRange(button)
+                button.InRange  = self.IsInRange(button)
             end
         end
     end
@@ -542,15 +534,15 @@ interface "ActionTypeHandler" (function(_ENV)
         return self.Manager:Execute(code)
     end
 
+    ------------------------------------------------------
+    -- Overridable Method For Action Buttons
+    ------------------------------------------------------
     -- Get the actions's kind, target, detail
     function GetActionDetail(self)
         local name              = self:GetAttribute("actiontype")
         return self:GetAttribute(_ActionTargetMap[name]), _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
     end
 
-    ------------------------------------------------------
-    -- Overridable Method For Actions
-    ------------------------------------------------------
     -- Map the action
     function Map(self, ...) return ... end
 
