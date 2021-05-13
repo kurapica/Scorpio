@@ -104,12 +104,17 @@ do
     --- Block the sequence for a frame phase, useful for some events that trigger
     -- multiple-times in one phase(the same value will be blocked until the next phase)
     local _Recyle               = Recycle()
+    local fakefunc              = Toolset.fakefunc
 
     local function onNextSingleProcess(observer, cache, idxmap)
         for i = 1, #cache do
             local single        = cache[i]
             if idxmap[single] == i then
-                observer:OnNext(single)
+                if single == fakefunc then
+                    observer:OnNext(nil)
+                else
+                    observer:OnNext(single)
+                end
             end
         end
 
@@ -181,11 +186,10 @@ do
                     currTime        = now
                     Next(onNextSingleProcess, observer, cache, idxmap)
                 end
-                if single ~= nil then
-                    local idx       = #cache + 1
-                    cache[idx]      = single
-                    idxmap[single]  = idx
-                end
+                if single == nil then single = fakefunc end
+                local idx           = #cache + 1
+                cache[idx]          = single
+                idxmap[single]      = idx
             end)
         end
     end
@@ -233,8 +237,56 @@ do
                 end
             end)
         end
+    end
 
-        IObservable.Debounce    = IObservable.Throttle
+    local DebounceTask              = Toolset.newtable(true)
+    local DebounceCache             = Recycle()
+
+    __Service__(true)
+    function DebounceService()
+        while true do
+            local hasTasks          = false
+            local curr              = GetTime()
+
+            for ob, task in pairs(DebounceTask) do
+                hasTasks            = true
+
+                if task.lasttime <= curr then
+                    DebounceTask[ob] = nil
+                    ob:OnNext(unpack(task))
+
+                    DebounceCache(wipe(task))
+                end
+            end
+
+            if not hasTasks then NextEvent("SCORPIO_DEBOUNCE_SERVICE_START") end
+
+            Delay(0.1)
+        end
+    end
+
+    __Observable__()
+    __Arguments__{ Number }
+    function IObservable:Debounce(dueTime)
+        if dueTime <= 0 then dueTime = 1 end
+
+        return Operator(self, function(observer, ...)
+            local cache             = DebounceTask[observer] or DebounceCache()
+            cache.lasttime          = GetTime() + dueTime
+            local n                 = select("#", ...)
+            local cn                = #cache
+
+            if n <= 5 and cn <= 5 then
+                cache[1], cache[2], cache[3], cache[4], cache[5] = ...
+            else
+                for i = 1, n > cn and n or cn do
+                    cache[i]        = select(i, ...)
+                end
+            end
+
+            if not next(DebounceTask) then FireSystemEvent("SCORPIO_DEBOUNCE_SERVICE_START") end
+            DebounceTask[observer]  = cache
+        end)
     end
 
     function IObservable:ColorString()

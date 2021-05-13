@@ -50,7 +50,7 @@ function OnLoad()
 end
 
 __Service__(true)
-function RangeChecker()
+function RangeCheckerService()
     while true do
         for i = 1, 99999 do
             local button        = _RangeCheckButtons[i]
@@ -63,7 +63,7 @@ function RangeChecker()
             if i % 20 == 0 do Continue() end
         end
 
-        Delay(0.2)
+        Wait(0.2, "PLAYER_TARGET_CHANGED")
     end
 end
 
@@ -134,15 +134,6 @@ function PLAYER_LEAVE_COMBAT()
 end
 
 __SystemEvent__()
-function PLAYER_TARGET_CHANGED()
-    for i = 1, 9999 do
-        local button            = _RangeCheckButtons[i]
-        if not button then return end
-        _IFActionTypeHandler[button.ActionType]:RefreshRange(button)
-    end
-end
-
-__SystemEvent__()
 function SPELL_ACTIVATION_OVERLAY_GLOW_SHOW(spellId)
     local buttons               = _Spell4Buttons[spellId]
     if not buttons then return end
@@ -172,15 +163,8 @@ end
 
 __SystemEvent__()
 function SPELL_UPDATE_CHARGES()
-    local buttons               = _Spell4Buttons[spellId]
-    if not buttons then return end
-
-    if getmetatable(buttons) then
-        _IFActionTypeHandler[buttons.ActionType]:RefreshCount(buttons)
-    else
-        for button in pairs(buttons) do
-            _IFActionTypeHandler[button.ActionType]:RefreshCount(button)
-        end
+    for kind, handler in pairs(_IFActionTypeHandler) do
+        handler:RefreshCount()
     end
 end
 
@@ -275,22 +259,20 @@ interface "ActionTypeHandler" (function(_ENV)
         if self.IsRangeSpell(button) then
             if not _RangeCheckButtons[button] then
                 local index     = #_RangeCheckButtons + 1
-                _RangeCheckButtons[button] = index
+                _RangeCheckButtons[button] = true
                 _RangeCheckButtons[index]  = button
 
                 if index == 1 then FireSystemEvent("SCORPIO_SAB_RANGE_CHECK") end
             end
         else
-            local index         = _RangeCheckButtons[button]
-            if index then
-                _RangeCheckButtons[button] = nil
-
-                for i = index, 1, -1 do
+            if _RangeCheckButtons[button] then
+                for i = 1, #_RangeCheckButtons do
                     if _RangeCheckButtons[i] == button then
                         tremove(_RangeCheckButtons, i)
                         break
                     end
                 end
+                _RangeCheckButtons[button] = nil
             end
         end
 
@@ -327,42 +309,52 @@ interface "ActionTypeHandler" (function(_ENV)
     ------------------------------------------------------
     function RefershGrid(self, button)
         local force             = (self.IsPlayerAction and _GridCounter or _PetGridCounter) > 0
+        local HasAction         = self.HasAction
 
         if button then
-            button.GridVisible  = force or self:HasAction(button)
+            button.GridVisible  = force or HasAction(button)
         else
             for _, button in self:GetIterator() do
-                button.GridVisible = force or self:HasAction(button)
+                button.GridVisible = force or HasAction(button)
             end
         end
     end
 
     function RefreshButtonState(self, button)
+        local IsActivedAction   = self.IsActivedAction
+        local IsAutoRepeatAction= self.IsAutoRepeatAction
+
         if button then
-            button.IsActived    = self:IsActivedAction(button) or self:IsAutoRepeatAction(button)
+            button.IsActived    = IsActivedAction(button) or IsAutoRepeatAction(button)
         else
             for _, button in self:GetIterator() do
-                button.IsActived= self:IsActivedAction(button) or self:IsAutoRepeatAction(button)
+                button.IsActived= IsActivedAction(button) or IsAutoRepeatAction(button)
             end
         end
     end
 
     function RefreshUsable(self, button)
+        local IsUsableAction   = self.IsUsableAction
+
         if button then
-            button.IsUsable    = self:IsUsableAction(button)
+            button.IsUsable    = IsUsableAction(button)
         else
             for _, button in self:GetIterator() do
-                button.IsUsable= self:IsUsableAction(button)
+                button.IsUsable= IsUsableAction(button)
             end
         end
     end
 
     function RefreshCount(self, button)
+        local IsConsumableAction= self.IsConsumableAction
+        local GetActionCount    = self.GetActionCount
+        local GetActionCharges  = self.GetActionCharges
+
         if button then
-            if self:IsConsumableAction(button) then
-                button.Count    = self:GetActionCount(button)
+            if IsConsumableAction(button) then
+                button.Count    = GetActionCount(button)
             else
-                local cha, max  = self:GetActionCharges(button)
+                local cha, max  = GetActionCharges(button)
                 if max and max > 1 then
                     button.Count= cha
                 else
@@ -371,10 +363,10 @@ interface "ActionTypeHandler" (function(_ENV)
             end
         else
             for _, button in self:GetIterator() do
-                if self:IsConsumableAction(button) then
-                    button.Count    = self:GetActionCount(button)
+                if IsConsumableAction(button) then
+                    button.Count    = GetActionCount(button)
                 else
-                    local cha, max  = self:GetActionCharges(button)
+                    local cha, max  = GetActionCharges(button)
                     if max and max > 1 then
                         button.Count= cha
                     else
@@ -387,116 +379,141 @@ interface "ActionTypeHandler" (function(_ENV)
 
     local shareCooldown         = { start = 0, duration = 0 }
     function RefreshCooldown(self, button)
+        local GetActionCooldown = self.GetActionCooldown
+
         if button then
-            shareCooldown.start, shareCooldown.duration = self:GetActionCooldown(button)
+            shareCooldown.start, shareCooldown.duration = GetActionCooldown(button)
             button.Cooldown     = shareCooldown
         else
             for _, button in self:GetIterator() do
-                shareCooldown.start, shareCooldown.duration = self:GetActionCooldown(button)
+                shareCooldown.start, shareCooldown.duration = GetActionCooldown(button)
                 button.Cooldown = shareCooldown
             end
         end
     end
 
     function RefreshFlash(self, button)
+        local IsAttackAction    = self.IsAttackAction
+        local IsActivedAction   = self.IsActivedAction
+        local IsAutoRepeatAction= self.IsAutoRepeatAction
+
         if button then
-            button.Flashing     = (self:IsAttackAction(button) and self:IsActivedAction(button)) or self:IsAutoRepeatAction(button)
+            button.Flashing     = (IsAttackAction(button) and IsActivedAction(button)) or IsAutoRepeatAction(button)
         else
             for _, button in self:GetIterator() do
-                button.Flashing = (self:IsAttackAction(button) and self:IsActivedAction(button)) or self:IsAutoRepeatAction(button)
+                button.Flashing = (IsAttackAction(button) and IsActivedAction(button)) or IsAutoRepeatAction(button)
             end
         end
     end
 
     function RefreshOverlayGlow(self, button)
+        local GetSpellId        = self.GetSpellId
+
         if button then
-            local spellId       = self.GetSpellId(button)
+            local spellId       = GetSpellId(button)
             self.OverlayGlow    = spellId and IsSpellOverlayed(spellId)
         else
             for _, button in self:GetIterator() do
-                local spellId   = self.GetSpellId(button)
+                local spellId   = GetSpellId(button)
                 self.OverlayGlow= spellId and IsSpellOverlayed(spellId)
             end
         end
     end
 
     function RefreshRange(self, button)
+        local IsInRange         = self.IsInRange
+
         if button then
-            button.InRange      = self.IsInRange(button)
+            button.InRange      = IsInRange(button)
         else
             for _, button in self:GetIterator() do
-                button.InRange  = self.IsInRange(button)
+                button.InRange  = IsInRange(button)
             end
         end
     end
 
     function RefreshFlyout(self, button)
+        local IsFlyout          = self.IsFlyout
+
         if button then
-            button.FlyoutVisible= self:IsFlyout(button)
+            button.FlyoutVisible= IsFlyout(button)
         else
             for _, button in self:GetIterator() do
-                button.FlyoutVisible = self:IsFlyout(button)
+                button.FlyoutVisible = IsFlyout(button)
             end
         end
     end
 
     function RefreshAutoCastable(self, button)
+        local IsAutoCastAction  = self.IsAutoCastAction
+
         if button then
-            button.IsAutoCastable= self:IsAutoCastAction(button)
+            button.IsAutoCastable= IsAutoCastAction(button)
         else
             for _, button in self:GetIterator() do
-                button.IsAutoCastable = self:IsAutoCastAction(button)
+                button.IsAutoCastable = IsAutoCastAction(button)
             end
         end
     end
 
     function RefreshAutoCasting(self, button)
+        local IsAutoCasting     = self.IsAutoCasting
+
         if button then
-            button.IsAutoCasting= self:IsAutoCasting(button)
+            button.IsAutoCasting= IsAutoCasting(button)
         else
             for _, button in self:GetIterator() do
-                button.IsAutoCasting = self:IsAutoCasting(button)
+                button.IsAutoCasting = IsAutoCasting(button)
             end
         end
     end
 
     function RefreshIcon(self, button)
+        local GetActionTexture  = self.GetActionTexture
+
         if button then
-            button.Icon         = self:GetActionTexture(button)
+            button.Icon         = GetActionTexture(button)
         else
             for _, button in self:GetIterator() do
-                button.Icon     = self:GetActionTexture(button)
+                button.Icon     = GetActionTexture(button)
             end
         end
     end
 
     function RefreshEquipItem(self, button)
+        local IsEquippedItem    = self.IsEquippedItem
+
         if button then
-            button.IsEquippedItem       = self:IsEquippedItem(button)
+            button.IsEquippedItem       = IsEquippedItem(button)
         else
             for _, button in self:GetIterator() do
-                button.IsEquippedItem   = self:IsEquippedItem(button)
+                button.IsEquippedItem   = IsEquippedItem(button)
             end
         end
     end
 
     function RefreshText(self, button)
+        local IsConsumableAction= self.IsConsumableAction
+        local GetActionText     = self.GetActionText
+
         if button then
-            button.Text         = self:IsConsumableAction(button) and "" or self:GetActionText(button)
+            button.Text         = IsConsumableAction(button) and "" or GetActionText(button)
         else
             for _, button in self:GetIterator() do
-                button.Text     = self:IsConsumableAction(button) and "" or self:GetActionText(button)
+                button.Text     = IsConsumableAction(button) and "" or GetActionText(button)
             end
         end
     end
 
     __Delegate__(Continue)
-    function RefreshAll(self, button)
+    function RefreshActionButton(self, button)
+        local refresh           = refreshButton
+
         if button then
-            return refreshButton(self, button)
+            return refresh(self, button)
         else
             for _, button in self:GetIterator() do
-                refreshButton(self, button)
+                refresh(self, button)
                 Continue()
             end
         end
@@ -510,8 +527,10 @@ interface "ActionTypeHandler" (function(_ENV)
     function Insert(self, button)
         local oldHandler        = _ActionButtonMap[button]
 
-        if oldHandler and oldHandler == self then return end
-        if oldHandler then oldHandler:Remove(button) end
+        if oldHandler then
+            if oldHandler == self then return end
+            oldHandler:Remove(button)
+        end
 
         _ActionButtonMap[button]= self
         tinsert(self, button)
@@ -762,7 +781,8 @@ function _ManagerFrame:UpdateActionButton(name)
     self                        = GetProxyUI(_G[name])
 
     local name                  = self:GetAttribute("actiontype")
-    local target, detail        = _IFActionTypeHandler[name].GetActionDetail(self)
+    local handler               = _IFActionTypeHandler[name]
+    local target, detail        = handler.GetActionDetail(self)
 
     if self.__IFActionHandler_Kind ~= name
         or self.__IFActionHandler_Target ~= target
@@ -772,9 +792,8 @@ function _ManagerFrame:UpdateActionButton(name)
         self.__IFActionHandler_Target   = target
         self.__IFActionHandler_Detail   = detail
 
-        local handler           = _IFActionTypeHandler[name]
         handler:Insert(self)
-        return handler:RefreshAll(self)
+        return handler:RefreshActionButton(self)
     end
 end
 
@@ -984,11 +1003,11 @@ end
 --              Action Script Hanlder               --
 ------------------------------------------------------
 do
-    _GlobalGroup                = "Global"
+    _GlobalGroup                = "GLOBAL"
 
     function GetGroup(group)
         group                   = type(group) == "string" and strtrim(group)
-        return (group and group ~= "" and group or _GlobalGroup):upper()
+        return group and group ~= "" and group:upper() or _GlobalGroup
     end
 
     function GetFormatString(param)
@@ -1001,9 +1020,8 @@ do
             kind, target, detail= target, detail, ...
         end
 
-        if _IFActionTypeHandler[kind] then
-            return _IFActionTypeHandler[kind]:PickupAction(target, detail)
-        end
+        local handler           = _IFActionTypeHandler[kind]
+        return handler and handler.PickupAction(target, detail)
     end
 
     function PreClick(self)
@@ -1021,7 +1039,7 @@ do
     end
 
     function PostClick(self)
-        RefreshButtonState(self)
+        _IFActionTypeHandler[self.ActionType]:RefreshButtonState(self)
 
         -- Restore the action
         if self.__IFActionHandler_PreMsg then
@@ -1126,7 +1144,7 @@ do
         _ManagerFrame:WrapScript(self, "OnReceiveDrag", _WrapDragPrev, _WrapDragPost)
 
         -- Register useful attribute snippets to be used in other addons
-        self:SetFrameRef("_Manager", _ManagerFrame)
+        self:SetFrameRef("_Manager",    _ManagerFrame)
         self:SetAttribute("SetAction",  [[ return self:GetFrameRef("_Manager"):RunFor(self, "Manager:RunFor(self, SetAction, ...)", ...) ]])
         self:SetAttribute("ClearAction",[[ return self:GetFrameRef("_Manager"):RunFor(self, "Manager:RunFor(self, ClearAction)") ]])
         self:SetAttribute("GetAction",  [[ return self:GetFrameRef("_Manager"):RunFor(self, "return Manager:RunFor(self, GetAction)") ]])
@@ -1137,7 +1155,7 @@ do
 
         self.PreClick           = self.PreClick + PreClick
         self.PostClick          = self.PostClick+ PostClick
-        self.OnShow             = self.OnShow + OnShow
+        self.OnShow             = self.OnShow   + OnShow
         self.OnEnter            = self.OnEnter  + OnEnter
         self.OnLeave            = self.OnLeave  + OnLeave
     end
@@ -1292,7 +1310,7 @@ class "SecureActionButton" (function(_ENV)
         if not kind or not target then
             kind, target, detail= nil, nil, nil
         else
-            target, default     = _IFActionTypeHandler[kind].Map(self, target, default)
+            target, detail      = _IFActionTypeHandler[kind].Map(self, target, detail)
         end
 
         NoCombat(SaveAction, self, kind, target, detail)
@@ -1303,7 +1321,6 @@ class "SecureActionButton" (function(_ENV)
         return self.ActionType, self.ActionTarget, self.ActionDetail
     end
 
-    __SecureMethod__()
     function UpdateTooltip(self)
         local anchor            = self.GameTooltipAnchor
 
@@ -1318,7 +1335,6 @@ class "SecureActionButton" (function(_ENV)
         end
 
         _IFActionTypeHandler[self.ActionType].SetTooltip(self, GameTooltip)
-
         GameTooltip:Show()
     end
 end)

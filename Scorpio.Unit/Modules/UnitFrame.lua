@@ -925,34 +925,6 @@ class "UnitFrame" (function(_ENV)
         end,
     }
 
-    --- Whether active the unit frame, deactive it will hide it
-    property "Activated"        {
-        type                    = Boolean,
-        set                     = function(self, active)
-            if self.Activated == active then return end
-
-            NoCombat(function()
-                if active then
-                    local unit  = self:GetAttribute("deactivated")
-                    if unit then
-                        self:SetAttribute("deactivated", nil)
-
-                        if type(unit) == "string" then
-                            self:SetAttribute("unit", unit)
-                        end
-                    end
-                else
-                    self:SetAttribute("deactivated", self:GetAttribute("unit") or true)
-                    self:SetAttribute("unit", nil)
-                end
-            end)
-        end,
-        get                     = function(self)
-            return not self:GetAttribute("deactivated")
-        end,
-        default                 = true,
-    }
-
     --- Whether enable the unit watch
     property "UnitWatchEnabled" {
         type                    = Boolean,
