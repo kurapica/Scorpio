@@ -21,19 +21,13 @@ handler                         = ActionTypeHandler {
     OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
-------------------------------------------------------
--- Module Event Handler
-------------------------------------------------------
-function OnEnable()
-    return handler:RefreshAll()
-end
 
 ------------------------------------------------------
 -- System Event Handler
 ------------------------------------------------------
 __SystemEvent__()
 function UPDATE_MACROS()
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 

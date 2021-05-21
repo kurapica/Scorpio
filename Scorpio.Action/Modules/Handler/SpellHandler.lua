@@ -9,8 +9,6 @@
 Scorpio        "Scorpio.Secure.SpellHandler"         "1.0.0"
 --========================================================--
 
-_Enabled                        = false
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -44,15 +42,13 @@ handler                         = ActionTypeHandler {
         self:SetAttribute("*type*", nil)
         self:SetAttribute("*macrotext*", nil)
     ]],
-
-    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
 ------------------------------------------------------
 -- Module Event Handler
 ------------------------------------------------------
 _StanceMapTemplate              = "_StanceMap[%d] = %d\n"
-_MacroMapTemplate               = "_MacroMap[%d]=%q\n"
+_MacroMapTemplate               = "_MacroMap[%d]  = %q\n"
 
 _StanceMap                      = {}
 _Profession                     = {}
@@ -64,15 +60,17 @@ function OnEnable()
     UpdateStanceMap()
     UpdateMacroMap()
 
-    Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Next(function()
+    Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Next():Subscribe(function()
         if not next(_StanceMap) then return end
 
         for _, btn in handler:GetIterator() do
-            if _StanceMap[btn.ActionTarget] then handler:RefreshAll(btn) end
+            if _StanceMap[btn.ActionTarget] then
+                handler:RefreshActionButtons(btn)
+            end
         end
     end)
 
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 ------------------------------------------------------
@@ -97,19 +95,19 @@ end
 
 __SystemEvent__"UPDATE_SHAPESHIFT_FORM" "PLAYER_ENTERING_WORLD" "SPELL_FLYOUT_UPDATE"
 function UPDATE_SHAPESHIFT_FORM()
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 __SystemEvent__()
 function UPDATE_SHAPESHIFT_FORMS()
     UpdateStanceMap()
 
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 __SystemEvent__()
 function SPELL_UPDATE_COOLDOWN()
-    return handler:Refresh(RefreshCooldown)
+    return handler:RefreshCooldown()
 end
 
 __SystemEvent__"SPELL_UPDATE_USABLE" "PLAYER_ALIVE" "PLAYER_DEAD"
@@ -309,8 +307,8 @@ function handler:IsInRange()
     end
 end
 
-function handler:SetTooltip(GameTooltip)
-    return GameTooltip:SetSpellByID(self.ActionTarget)
+function handler:SetTooltip(tip)
+    return tip:SetSpellByID(self.ActionTarget)
 end
 
 function handler:GetSpellId()

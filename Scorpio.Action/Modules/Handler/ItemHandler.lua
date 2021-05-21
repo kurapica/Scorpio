@@ -51,34 +51,31 @@ handler                         = ActionTypeHandler {
 ------------------------------------------------------
 -- Module Event Handler
 ------------------------------------------------------
+function OnLoad(self)
+    -- Need save the toy data to avoid the in-game scan
+    _SVData:SetDefault{ ToyItems= {} }
+    ToyData                     = _SVData.ToyItems
+end
+
 function OnEnable(self)
     OnEnable                    = nil
-
-    -- Need save the toy data to avoid the in-game scan
-    _SVData.ToyItems            = _SVData.ToyItems or {}
-    ToyData                     = _SVData.ToyItems
 
     -- Load toy informations
     C_ToyBox.ForceToyRefilter()
 
-    return handler:RefreshAll()
+    UpdateToys()
+
+    return handler:RefreshActionButtons()
 end
 
 ------------------------------------------------------
 -- System Event Handler
 ------------------------------------------------------
 __SystemEvent__()
-function PLAYER_ENTERING_WORLD(isInitialLogin)
-    if isInitialLogin and not next(_ToyFilter) then
-        return UpdateToys()
-    end
-end
-
-__SystemEvent__()
 function SPELLS_CHANGED()
     for _, btn in handler:GetIterator() do
         if _ToyFilter[btn.ActionTarget] then
-            handler:RefreshAll(btn)
+            handler:RefreshActionButtons(btn)
         end
     end
 end
@@ -87,7 +84,7 @@ __SystemEvent__()
 function UPDATE_SHAPESHIFT_FORM()
     for _, btn in handler:GetIterator() do
         if _ToyFilter[btn.ActionTarget] then
-            handler:RefreshAll(btn)
+            handler:RefreshActionButtons(btn)
         end
     end
 end
@@ -119,7 +116,7 @@ end
 
 __SystemEvent__()
 function PLAYER_EQUIPMENT_CHANGED()
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 __SystemEvent__()
@@ -140,7 +137,7 @@ function UpdateToys()
     if not next(_ToyFilter) then
         for _, item in ipairs(ToyData) do
             if not _ToyFilter[item] then
-                _ToyFilter[item] = true
+                _ToyFilter[item]= true
                 tinsert(cache, _ToyFilterTemplate:format(item))
             end
         end
@@ -172,7 +169,7 @@ function UpdateToys()
                     btn:SetAttribute("*type*", "toy")
                     btn:SetAttribute("*toy*", target)
 
-                    handler:RefreshAll(btn)
+                    handler:RefreshActionButtons(btn)
                 end
             end
         end)
@@ -240,12 +237,12 @@ function handler:IsInRange()
     return IsItemInRange(self.ActionTarget, self:GetAttribute("unit"))
 end
 
-function handler:SetTooltip(GameTooltip)
+function handler:SetTooltip(tip)
     local target                = self.ActionTarget
     if _ToyFilter[target] then
-        GameTooltip:SetToyByItemID(target)
+        tip:SetToyByItemID(target)
     else
-        GameTooltip:SetHyperlink(select(2, GetItemInfo(self.ActionTarget)))
+        tip:SetHyperlink(select(2, GetItemInfo(self.ActionTarget)))
     end
 end
 

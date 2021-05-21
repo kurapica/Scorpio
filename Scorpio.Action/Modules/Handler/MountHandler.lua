@@ -11,8 +11,6 @@ Scorpio        "Scorpio.Secure.MountHandler"         "1.0.0"
 
 export { GetProxyUI             = UI.GetProxyUI }
 
-_Enabled                        = false
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -40,8 +38,6 @@ handler                         = ActionTypeHandler {
     PreClickSnippet             = [=[
         self:GetFrameRef("_Manager"):RunFor(self, [[ Manager:CallMethod("SummonMount", self:GetName()) ]])
     ]=],
-
-    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
 
@@ -62,7 +58,7 @@ function OnEnable()
 
     SUMMON_RANDOM_ID            = pick
 
-    Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Next(function()
+    Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Next():Subscribe(function()
         return handler:RefreshButtonState()
     end)
 end
@@ -77,7 +73,7 @@ function COMPANION_UPDATE(companionType)
     if not companionType or companionType == "MOUNT" then
         if firstUpdate then
             firstUpdate         = true
-            return handler:RefreshAll()
+            return handler:RefreshActionButtons()
         else
             return handler:RefreshUsable()
         end
@@ -94,7 +90,7 @@ end
 ------------------------------------------------------
 __SecureMethod__()
 function handler.Manager:SummonMount(btnName)
-    local mountID               = GetProxyUI(_G[btnName]).Mount
+    local mountID               = GetProxyUI(_G[btnName]).ActionTarget
 
     if mountID then
         if select(4, C_MountJournal.GetMountInfoByID(mountID)) then
@@ -168,13 +164,13 @@ function handler:IsUsableAction()
     end
 end
 
-function handler:SetTooltip(GameTooltip)
+function handler:SetTooltip(tip)
     local target                = self.ActionTarget
     if target == SUMMON_RANDOM_ID then
-        return GameTooltip:SetSpellByID(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
+        return tip:SetSpellByID(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
     else
         local _, spell = C_MountJournal.GetMountInfoByID(target)
-        return GameTooltip:SetMountBySpellID(spell)
+        return tip:SetMountBySpellID(spell)
     end
 end
 

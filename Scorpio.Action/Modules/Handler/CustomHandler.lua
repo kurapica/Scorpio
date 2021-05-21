@@ -33,9 +33,9 @@ function handler:GetActionTexture()
     return self.CustomTexture
 end
 
-function handler:SetTooltip(GameTooltip)
+function handler:SetTooltip(tip)
     if self.CustomTooltip then
-        GameTooltip:SetText(self.CustomTooltip)
+        tip:SetText(self.CustomTooltip)
     end
 end
 
@@ -57,17 +57,16 @@ class "SecureActionButton" (function(_ENV)
     ------------------------------------------------------
     --- The custom action
     property "Custom" {
-        set                     = function(self, value) return self:SetAction("custom", value) end
-        get                     = function(self) return self:GetAttribute("actiontype") == "custom" and self:GetAttribute("_custom") or nil end
-        end,
+        set                     = function(self, value) return self:SetAction("custom", value) end,
+        get                     = function(self) return self:GetAttribute("actiontype") == "custom" and self:GetAttribute("_custom") or nil end,
+        type                    = Function,
     }
 
     --- The custom text
     property "CustomText"       { Type = String }
 
     --- The custom texture path
-    __Handler__("Refresh")
-    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshAll(self) end }
+    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshActionButtons(self) end }
 
     --- The custom tooltip
     property "CustomTooltip"    { Type = String }

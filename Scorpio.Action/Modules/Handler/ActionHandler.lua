@@ -10,6 +10,7 @@ Scorpio        "Scorpio.Secure.ActionHandler"        "1.0.0"
 --========================================================--
 
 _Enabled                        = false
+NUM_ACTIONBAR_BUTTONS           = 12
 
 ------------------------------------------------------
 -- Action Handler
@@ -81,12 +82,12 @@ handler                         = ActionTypeHandler {
 ------------------------------------------------------
 __SystemEvent__()
 function ACTIONBAR_SLOT_CHANGED(slot)
-    if slot == 0 then
-        return handler:RefreshAll()
+    if not slot or slot == 0 then
+        return handler:RefreshActionButtons()
     else
         for _, button in handler:GetIterator() do
             if slot == button.ActionTarget then
-                handler:RefreshAll(button)
+                handler:RefreshActionButtons(button)
             end
         end
     end
@@ -118,7 +119,7 @@ end
 
 __SystemEvent__"UPDATE_SHAPESHIFT_FORM" "UPDATE_SHAPESHIFT_FORMS"
 function UPDATE_SHAPESHIFT_FORM(self)
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 ------------------------------------------------------
@@ -168,18 +169,18 @@ end
 -- Overwrite methods
 ------------------------------------------------------
 function handler:GetActionDetail()
-    local target                = self:CalculateAction()
-    local desc
+    if self:GetAttribute("actionpage") and self:GetID() > 0 then
+        local target, desc      = self:GetID() + (tonumber(self:GetAttribute("actionpage"))-1) * NUM_ACTIONBAR_BUTTONS
 
-    if target then
-        local type, id          = GetActionInfo(target)
-
-        if type and id then
-            desc                = ""..type.."_"..id
+        if target then
+            local type, id      = GetActionInfo(target)
+            if type and id then
+                desc             = ""..type.."_"..id
+            end
         end
-    end
 
-    return target, desc
+        return target, desc
+    end
 end
 
 function handler:PickupAction(target)
@@ -239,12 +240,12 @@ function handler:IsInRange()
     return IsActionInRange(self.ActionTarget, self:GetAttribute("unit"))
 end
 
-function handler:SetTooltip(GameTooltip)
-    return GameTooltip:SetAction(self.ActionTarget)
+function handler:SetTooltip(tip)
+    return tip:SetAction(self.ActionTarget)
 end
 
 function handler:GetSpellId()
-    local type, id = GetActionInfo(self.ActionTarget)
+    local type, id              = GetActionInfo(self.ActionTarget)
     if type == "spell" then
         return id
     elseif type == "macro" then
@@ -264,9 +265,6 @@ class "SecureActionButton" (function(_ENV)
     ------------------------------------------------------
     -- Method
     ------------------------------------------------------
-    __SecureMethod__()
-    CalculateAction             = _G.SecureActionButtonMixin.CalculateAction
-
     --- Set the action page of the button
     __NoCombat__()
     function SetActionPage(self, page)

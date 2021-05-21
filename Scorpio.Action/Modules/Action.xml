@@ -1,6 +1,25 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
 	<Script file="SecureActionButton.lua"/>
 
-	<!-- Action Handlers -->
-	<Include file="Handler/Handler.xml"/>
+	<!-- Action Type handler -->
+	<Script file="Handler/ActionHandler.lua"/>
+	<Script file="Handler/PetActionHandler.lua"/>
+	<Script file="Handler/SpellHandler.lua"/>
+	<Script file="Handler/FlyoutHandler.lua"/>
+	<Script file="Handler/ItemHandler.lua"/>
+	<Script file="Handler/MacroHandler.lua"/>
+	<Script file="Handler/MacroTextHandler.lua"/>
+	<Script file="Handler/EquipSetHandler.lua"/>
+	<Script file="Handler/BattlePetHandler.lua"/>
+	<Script file="Handler/MountHandler.lua"/>
+	<Script file="Handler/WorldMarkerHandler.lua"/>
+	<Script file="Handler/EmptyHandler.lua"/>
+	<Script file="Handler/CustomHandler.lua"/>
+	<Script file="Handler/RaidTargetHandler.lua"/>
+
+	<!--Script file="BagHandler.lua"/-->
+	<!--Script file="InventoryHandler.lua"/ -->
+	<!--Script file="BagSlotHandler.lua"/-->
+
+	<Script file="Seal.lua"/>
 </Ui>

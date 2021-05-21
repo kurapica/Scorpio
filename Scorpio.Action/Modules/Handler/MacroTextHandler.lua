@@ -9,8 +9,6 @@
 Scorpio        "Scorpio.Secure.MacroTextHandler"     "1.0.0"
 --========================================================--
 
-_Enabled                        = false
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -35,9 +33,9 @@ function handler:GetActionTexture()
     return self.CustomTexture
 end
 
-function handler:SetTooltip(GameTooltip)
+function handler:SetTooltip(tip)
     if self.CustomTooltip then
-        GameTooltip:SetText(self.CustomTooltip)
+        tip:SetText(self.CustomTooltip)
     end
 end
 
@@ -59,8 +57,7 @@ class "SecureActionButton" (function(_ENV)
     property "CustomText"       { Type = String }
 
     --- The custom texture path
-    __Handler__("Refresh")
-    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshAll(self) end }
+    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshActionButtons(self) end }
 
     --- The custom tooltip
     property "CustomTooltip"    { Type = String }

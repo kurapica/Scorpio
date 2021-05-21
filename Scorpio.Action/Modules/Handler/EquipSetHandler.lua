@@ -9,8 +9,6 @@
 Scorpio        "Scorpio.Secure.EquipSetHandler"      "1.0.0"
 --========================================================--
 
-_Enabled                        = false
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -35,8 +33,6 @@ handler                         = ActionTypeHandler {
         self:SetAttribute("*type*", nil)
         self:SetAttribute("*macrotext*", nil)
     ]],
-
-    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
 ------------------------------------------------------
@@ -53,7 +49,7 @@ GetEquipmentSetInfo             = C_EquipmentSet.GetEquipmentSetInfo
 ------------------------------------------------------
 __SystemEvent__()
 function PLAYER_EQUIPMENT_CHANGED()
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 __SystemEvent__"PLAYER_ENTERING_WORLD" "EQUIPMENT_SETS_CHANGED"
@@ -76,7 +72,7 @@ function UpdateEquipmentSet()
         NoCombat(function ()
             handler:RunSnippet( str )
 
-            return handler:RefreshAll()
+            return handler:RefreshActionButtons()
         end)
     end
 end
@@ -107,9 +103,9 @@ function handler:IsActivedAction()
     return _EquipSetMap[target] and select(4, GetEquipmentSetInfo(_EquipSetMap[target]))
 end
 
-function handler:SetTooltip(GameTooltip)
+function handler:SetTooltip(tip)
     if _EquipSetMap[self.ActionTarget] then
-        GameTooltip:SetEquipmentSet(_EquipSetMap[self.ActionTarget])
+        tip:SetEquipmentSet(_EquipSetMap[self.ActionTarget])
     end
 end
 

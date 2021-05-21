@@ -24,16 +24,16 @@ handler                         = ActionTypeHandler {
 ------------------------------------------------------
 -- Manager Init
 ------------------------------------------------------
-_RaidTargetTextureMap = {
-    [0] = [[Interface\Buttons\UI-GroupLoot-Pass-Up]],
-    [1] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_1]],
-    [2] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_2]],
-    [3] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_3]],
-    [4] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_4]],
-    [5] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_5]],
-    [6] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_6]],
-    [7] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_7]],
-    [8] = [[Interface\TargetingFrame\UI-RaidTargetingIcon_8]],
+_RaidTargetTextureMap           = {
+    [0]                         = [[Interface\Buttons\UI-GroupLoot-Pass-Up]],
+    [1]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_1]],
+    [2]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_2]],
+    [3]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_3]],
+    [4]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_4]],
+    [5]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_5]],
+    [6]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_6]],
+    [7]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_7]],
+    [8]                         = [[Interface\TargetingFrame\UI-RaidTargetingIcon_8]],
 }
 
 __SecureMethod__()

@@ -1,0 +1,11 @@
+## Interface: 11307
+## Title: [Lib] Scorpio.Widget
+## Author: kurapica125@outlook.com
+## Version: v001
+## Notes: Scorpio Widget FrameWork
+## URL: http://github.com/kurapica/Scorpio
+## Dependencies: Scorpio.UI
+## DefaultState: Enabled
+## LoadOnDemand: 1
+
+Modules\Widget.xml

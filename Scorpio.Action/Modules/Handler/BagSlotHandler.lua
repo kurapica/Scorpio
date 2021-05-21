@@ -75,7 +75,7 @@ _BankBag                        = { BANK_CONTAINER, 5, 6, 7, 8, 9, 10, 11 }
 function OnEnable()
     OnEnable                    = nil
 
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 ------------------------------------------------------
@@ -86,7 +86,7 @@ function QUEST_ACCEPTED()
     for _, bag in ipairs(_ContainerBag) do
         if _BagCache[bag] then
             for btn in pairs(_BagCache[bag]) do
-                handler:RefreshAll(btn)
+                handler:RefreshActionButtons(btn)
             end
         end
     end
@@ -99,7 +99,7 @@ function UNIT_QUEST_LOG_CHANGED(unit)
     for _, bag in ipairs(_ContainerBag) do
         if _BagCache[bag] then
             for btn in pairs(_BagCache[bag]) do
-                handler:RefreshAll(btn)
+                handler:RefreshActionButtons(btn)
             end
         end
     end
@@ -118,7 +118,7 @@ __SystemEvent__()
 function BAG_UPDATE_DELAYED()
     for bag in pairs(bagUpdateCache) do
         for btn in pairs(_BagCache[bag]) do
-            handler:RefreshAll(btn)
+            handler:RefreshActionButtons(btn)
         end
     end
     wipe(bagUpdateCache)
@@ -163,7 +163,7 @@ function BAG_NEW_ITEMS_UPDATED()
         if _BagCache[bag] then
             for btn, slot in pairs(_BagCache[bag]) do
                 if C_NewItems.IsNewItem(bag, slot) then
-                    handler:RefreshAll(btn)
+                    handler:RefreshActionButtons(btn)
                 end
             end
         end
@@ -204,7 +204,7 @@ function PLAYERBANKSLOTS_CHANGED(slot)
         if _BagCache[BANK_CONTAINER] then
             for btn, bslot in pairs(_BagCache[BANK_CONTAINER]) do
                 if bslot == slot then
-                    handler:RefreshAll(btn)
+                    handler:RefreshActionButtons(btn)
                 end
             end
         end
@@ -216,7 +216,7 @@ function PLAYERREAGENTBANKSLOTS_CHANGED(slot)
     if _BagCache[REAGENTBANK_CONTAINER] then
         for btn, bslot in pairs(_BagCache[REAGENTBANK_CONTAINER]) do
             if bslot == slot then
-                handler:RefreshAll(btn)
+                handler:RefreshActionButtons(btn)
             end
         end
     end
@@ -308,7 +308,7 @@ local function OnShow(self)
         _BagCache[bag] = _BagCache[bag] or {}
         _BagCache[bag][self] = self.ItemSlot
     end
-    return handler:RefreshAll(self)
+    return handler:RefreshActionButtons(self)
 end
 
 local function OnHide(self)

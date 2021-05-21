@@ -60,7 +60,7 @@ function RangeCheckerService()
             end
 
             _IFActionTypeHandler[button.ActionType]:RefreshRange(button)
-            if i % 20 == 0 do Continue() end
+            if i % 20 == 0 then Continue() end
         end
 
         Wait(0.2, "PLAYER_TARGET_CHANGED")
@@ -506,7 +506,7 @@ interface "ActionTypeHandler" (function(_ENV)
     end
 
     __Delegate__(Continue)
-    function RefreshActionButton(self, button)
+    function RefreshActionButtons(self, button)
         local refresh           = refreshButton
 
         if button then
@@ -793,7 +793,7 @@ function _ManagerFrame:UpdateActionButton(name)
         self.__IFActionHandler_Detail   = detail
 
         handler:Insert(self)
-        return handler:RefreshActionButton(self)
+        return handler:RefreshActionButtons(self)
     end
 end
 
@@ -1124,7 +1124,7 @@ do
         if old and _ActionButtonGroupList[old] then
             _ActionButtonGroupList[old][self]   = nil
         end
-        _ActionButtonGroupList[group]           = _ActionButtonGroupList[group] or {}
+        _ActionButtonGroupListRefreshButton[group]           = _ActionButtonGroupList[group] or {}
         _ActionButtonGroupList[group][self]     = true
 
         self:SetAttribute("IFActionHandlerGroup", group)
@@ -1172,6 +1172,8 @@ interface "ISecureActionButton" { __init = SetupActionButton }
 class "SecureActionButton" (function(_ENV)
     inherit "SecureCheckButton"
     extend "ISecureActionButton"
+
+    import "System.Reactive"
 
     ------------------------------------------------------
     --                 Static Property                  --

@@ -9,8 +9,6 @@
 Scorpio        "Scorpio.Secure.BattlePetHandler"     "1.0.0"
 --========================================================--
 
-_Enabled                        = false
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -30,8 +28,6 @@ handler                         = ActionTypeHandler {
         self:SetAttribute("*type*", nil)
         self:SetAttribute("*macrotext*", nil)
     ]],
-
-    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
 ------------------------------------------------------
@@ -50,7 +46,7 @@ function OnEnable(self)
     ClearCursor()
     SUMMON_RANDOM_ID            = pick
 
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 ------------------------------------------------------
@@ -58,7 +54,7 @@ end
 ------------------------------------------------------
 __SystemEvent__()
 function PET_JOURNAL_LIST_UPDATE()
-    return handler:RefreshAll()
+    return handler:RefreshActionButtons()
 end
 
 
@@ -98,25 +94,25 @@ function handler:GetActionTexture()
     return icon
 end
 
-function handler:SetTooltip(GameTooltip)
+function handler:SetTooltip(tip)
     local target                = self.ActionTarget
     if target == SUMMON_RANDOM_ID then
-        return GameTooltip:SetSpellByID(SUMMON_RANDOM_FAVORITE_PET_SPELL)
+        return tip:SetSpellByID(SUMMON_RANDOM_FAVORITE_PET_SPELL)
     else
         local speciesID, _, _, _, _, _, _, name, _, _, _, sourceText, description, _, _, tradable, unique = C_PetJournal.GetPetInfoByPetID(target)
 
         if speciesID then
-            GameTooltip:SetText(name, 1, 1, 1)
+            tip:SetText(name, 1, 1, 1)
 
             if sourceText and sourceText ~= "" then
-                GameTooltip:AddLine(sourceText, 1, 1, 1, true)
+                tip:AddLine(sourceText, 1, 1, 1, true)
             end
 
             if description and description ~= "" then
-                GameTooltip:AddLine(" ")
-                GameTooltip:AddLine(description, nil, nil, nil, true)
+                tip:AddLine(" ")
+                tip:AddLine(description, nil, nil, nil, true)
             end
-            GameTooltip:Show()
+            tip:Show()
         end
     end
 end

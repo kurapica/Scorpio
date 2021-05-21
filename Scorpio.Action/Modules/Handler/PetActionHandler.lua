@@ -60,8 +60,16 @@ handler                         = ActionTypeHandler {
 function OnEnable()
     OnEnable                    = nil
 
-    Wow.FromEvent("UNIT_AURA"):MatchUnit("pet"):Next(function()
+    Wow.FromEvent("UNIT_AURA"):MatchUnit("pet"):Next():Subscribe(function()
         return handler:RefreshButtonState()
+    end)
+
+    Wow.FromEvent("UNIT_PET"):MatchUnit("player"):Subscribe(function()
+        return handler:RefreshActionButtons()
+    end)
+
+    Wow.FromEvent("UNIT_FLAGS"):MatchUnit("pet"):Next():Subscribe(function()
+        return handler:RefreshActionButtons()
     end)
 end
 
@@ -72,21 +80,7 @@ __SystemEvent__"PET_STABLE_UPDATE" "PET_STABLE_SHOW" "PLAYER_CONTROL_LOST"
                 "PLAYER_CONTROL_GAINED" "PLAYER_FARSIGHT_FOCUS_CHANGED"
                 "PET_BAR_UPDATE" "PET_UI_UPDATE" "UPDATE_VEHICLE_ACTIONBAR"
 function PET_STABLE_UPDATE()
-    return handler:RefreshAll()
-end
-
-__SystemEvent__()
-function UNIT_PET(unit)
-    if unit == "player" then
-        return handler:RefreshAll()
-    end
-end
-
-__SystemEvent__()
-function UNIT_FLAGS(unit)
-    if unit == "pet" then
-        return handler:RefreshAll()
-    end
+    return handler:RefreshActionButtons()
 end
 
 __SystemEvent__()
