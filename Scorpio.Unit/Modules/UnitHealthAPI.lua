@@ -17,6 +17,7 @@ import "System.Toolset"
 ------------------------------------------------------------
 --                      UNIT HEALTH                       --
 ------------------------------------------------------------
+local _PlayerClass              = select(2, UnitClass("player"))
 local _DISPELLABLE              = ({
     ["MAGE"]                    = { Curse   = Color.CURSE, },
     ["DRUID"]                   = { Poison  = Color.POISON, Curse   = Color.CURSE,   Magic = Color.MAGIC },

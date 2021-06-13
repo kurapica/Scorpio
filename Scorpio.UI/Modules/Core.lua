@@ -1441,10 +1441,7 @@ local SkinSettings              = struct { [ - UIObject ] = Table }
 __Arguments__{ NEString, SkinSettings/nil }:Throwable()
 function Style.RegisterSkin(name, settings)
     name                        = strlower(name)
-
-    if _Skins[name] then
-        throw("Usage: Style.RegisterSkin(name, settings) - the name is already used")
-    end
+    if _Skins[name] then return false end
 
     local skins                 = {}
     _Skins[name]                = skins
@@ -1457,6 +1454,8 @@ function Style.RegisterSkin(name, settings)
             saveSkinSettings({class}, {}, skin, setting)
         end
     end
+
+    return true
 end
 
 __Arguments__{ NEString, SkinSettings }:Throwable()

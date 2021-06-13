@@ -300,6 +300,8 @@ end
 ------------------------------------------------------------
 if Scorpio.IsRetail then return end
 
+UnitHasVehicleUI                = UnitHasVehicleUI or Toolset.fakefunc
+
 function GetThreatStatusColor(index)
     if index == 3 then
         return 1, 0, 0

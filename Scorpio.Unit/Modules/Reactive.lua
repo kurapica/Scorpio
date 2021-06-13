@@ -51,7 +51,7 @@ class "UnitFrameSubject" (function(_ENV)
     local _GuidUnitMap          = {}
 
     local NAMEPLATE_SUBJECT     = FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED")
-    local RAID_UNIT_SUBJECT     = FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function(unit) return unit or "any" end)
+    local RAID_UNIT_SUBJECT     = FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next() -- Force All
 
     local function refreshUnitGuidMap(unit)
         local guid              = UnitGUID(unit)
@@ -180,7 +180,13 @@ class "UnitFrameSubject" (function(_ENV)
             while task == self.TaskId do
                 refreshUnitGuidMap(unit)
                 self:OnNext(unit)
-                Next(RAID_UNIT_SUBJECT:MatchUnit(unit))
+
+                if (UnitHealthMax(unit) or 0) > 0 then
+                    Next(RAID_UNIT_SUBJECT:MatchUnit(unit))
+                else
+                    -- Waiting the unit's info
+                    Delay(0.1)
+                end
             end
         else
             -- Other units: arenaN, bossN, vehicle, spectated<T><N>

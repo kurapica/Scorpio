@@ -8,4 +8,6 @@
 ## DefaultState: Enabled
 ## LoadOnDemand: 1
 
+Localization\zhCN.lua
+
 Modules\Action.xml

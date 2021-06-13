@@ -1166,14 +1166,36 @@ do
     end
 end
 
-__Sealed__()
-interface "ISecureActionButton" { __init = SetupActionButton }
-
 class "SecureActionButton" (function(_ENV)
     inherit "SecureCheckButton"
-    extend "ISecureActionButton"
 
     import "System.Reactive"
+
+    export {
+        GetRawUI                = UI.GetRawUI,
+        IsObjectType            = Class.IsObjectType,
+    }
+
+    local _KeyBindingMap        = {}
+    local _KeyBindingMask       = Mask("Scorpio_SecureActionButton_KeyBindingMask")
+    local _KeyBindingMode       = false
+
+    _KeyBindingMask:Hide()
+    _KeyBindingMask.EnableKeyBinding = true
+
+    function _KeyBindingMask:OnKeySet(key, old)
+        local parent            = self:GetParent()
+        if IsObjectType(parent, SecureActionButton) then
+            parent.HotKey       = key
+        end
+    end
+
+    function _KeyBindingMask:OnKeyClear()
+        local parent            = self:GetParent()
+        if IsObjectType(parent, SecureActionButton) then
+            parent.HotKey       = nil
+        end
+    end
 
     ------------------------------------------------------
     --                 Static Property                  --
@@ -1293,11 +1315,40 @@ class "SecureActionButton" (function(_ENV)
 
     --- The short key of the action
     __Observable__()
-    property "HotKey"           { type = String }
+    property "HotKey"           { type = String, handler = function(self, key)
+            if key then
+                key             = key:upper()
+
+                if _KeyBindingMap[key] == self then return end
+                if _KeyBindingMap[key] then _KeyBindingMap[key].HotKey = nil end
+                _KeyBindingMap[key] = self
+
+                SetOverrideBindingClick(GetRawUI(self), false, key, self:GetName(), "LeftButton")
+            else
+                ClearOverrideBindings(GetRawUI(self))
+            end
+        end
+    }
 
     --- Whether the icon should be locked
     __Observable__()
     property "IconLocked"       { type = Boolean }
+
+
+    ------------------------------------------------------
+    --                  Static Method                   --
+    ------------------------------------------------------
+    --- Start the key binding for all secure action buttons
+    __Static__() __Async__()
+    function StartKeyBinding()
+        _KeyBindingMode         = true
+
+        Confirm(_Locale["Confirm when you finished the key binding"])
+        _KeyBindingMode         = false
+
+        _KeyBindingMask:Hide()
+        _KeyBindingMask:SetParent(nil)
+    end
 
 
     ------------------------------------------------------
@@ -1339,4 +1390,38 @@ class "SecureActionButton" (function(_ENV)
         _IFActionTypeHandler[self.ActionType].SetTooltip(self, GameTooltip)
         GameTooltip:Show()
     end
+
+    ------------------------------------------------------
+    --                   Initializer                    --
+    ------------------------------------------------------
+    local function OnEnter(self)
+        if not _KeyBindingMode then return end
+
+        _KeyBindingMask:SetParent(self)
+        _KeyBindingMask:SetBindingKey(self.HotKey)
+        _KeyBindingMask:Show()
+
+        return true
+    end
+
+    local function OnLeave(self)
+        if not _KeyBindingMode then return end
+
+        if _KeyBindingMask:GetParent() == self then
+            _KeyBindingMask:Hide()
+            _KeyBindingMask:SetParent(nil)
+        end
+    end
+
+    __Sealed__()
+    ISecureActionButton         = interface {
+        __init                  = function(self)
+            self.OnEnter        = self.OnEnter + OnEnter
+            self.OnLeave        = self.OnEnter + OnLeave
+
+            SetupActionButton(self)
+        end
+    }
+
+    extend(ISecureActionButton)
 end)
