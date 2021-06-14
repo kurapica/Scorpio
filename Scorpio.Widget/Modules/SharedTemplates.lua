@@ -547,17 +547,15 @@ __Sealed__() class "InputBox" (function(_ENV)
     __InstantApplyStyle__()
     function __ctor(self)
         Next(function()
-            while true do
-                local orgText   = self:GetText() or ""
+            local orgText   = self:GetText() or ""
 
-                local rtext     = Guid.New()
-                self:SetText(rtext)
+            local rtext     = Guid.New()
+            self:SetText(rtext)
 
-                Next()
+            Next()
 
-                if self:GetText() == rtext then
-                    return self:SetText(orgText)
-                end
+            if self:GetText() == rtext then
+                return self:SetText(orgText)
             end
         end)
 
