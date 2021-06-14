@@ -544,20 +544,41 @@ __Sealed__() class "InputBox" (function(_ENV)
         self:HighlightText(0, 0)
     end
 
+    local function OnTextChanged(self)
+        return true
+    end
+
     __InstantApplyStyle__()
     function __ctor(self)
         Next(function()
-            local orgText   = self:GetText() or ""
+            if self:IsNumeric() then
+                local orgVal    = self:GetNumber() or 0
+                local rval      = orgVal + 111111
+                self:SetNumber(rval)
 
-            local rtext     = Guid.New()
-            self:SetText(rtext)
+                Next()
 
-            Next()
+                if self:IsNumeric() and self:GetNumber() == rval then
+                    self:SetNumber(orgVal)
+                end
 
-            if self:GetText() == rtext then
-                return self:SetText(orgText)
+                self.OnTextChanged = self.OnTextChanged - OnTextChanged
+            else
+                local orgText   = self:GetText() or ""
+                local rtext     = Guid.New()
+                self:SetText(rtext)
+
+                Next()
+
+                if not self:IsNumeric() and self:GetText() == rtext then
+                    self:SetText(orgText)
+                end
+
+                self.OnTextChanged = self.OnTextChanged - OnTextChanged
             end
         end)
+
+        self.OnTextChanged      = self.OnTextChanged + OnTextChanged
 
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
         self.OnEditFocusGained  = self.OnEditFocusGained + OnEditFocusGained
