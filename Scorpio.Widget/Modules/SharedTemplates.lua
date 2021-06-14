@@ -544,8 +544,22 @@ __Sealed__() class "InputBox" (function(_ENV)
         self:HighlightText(0, 0)
     end
 
+    __InstantApplyStyle__()
     function __ctor(self)
-        self:InstantApplyStyle() -- Fix for classic version
+        Next(function()
+            while true do
+                local orgText   = self:GetText() or ""
+
+                local rtext     = Guid.New()
+                self:SetText(rtext)
+
+                Next()
+
+                if self:GetText() == rtext then
+                    return self:SetText(orgText)
+                end
+            end
+        end)
 
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
         self.OnEditFocusGained  = self.OnEditFocusGained + OnEditFocusGained
@@ -601,6 +615,7 @@ __Sealed__() class "TrackBar" (function(_ENV)
         MinText                 = FontString,
         MaxText                 = FontString,
     }
+    __InstantApplyStyle__()
     function __ctor(self)
         self.OnValueChanged     = self.OnValueChanged + OnValueChanged
     end
