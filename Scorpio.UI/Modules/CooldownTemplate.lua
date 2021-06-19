@@ -231,6 +231,9 @@ UI.Property                     {
 -- Default Style
 ----------------------------------------------
 Style.UpdateSkin("Default",     {
+    [Cooldown]                  = {
+        hideCountdownNumbers    = true,
+    },
     [CooldownLabel]             = {
         drawLayer               = "ARTWORK",
         fontObject              = CombatTextFont,

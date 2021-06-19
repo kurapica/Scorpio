@@ -31,6 +31,7 @@ _Spell4Buttons                  = {}
 local _GridCounter              = 0
 local _PetGridCounter           = 0
 local _OnTooltipButton
+local _KeyBindingMap            = {}
 
 ------------------------------------------------------
 --               Module Event Handler               --
@@ -205,6 +206,23 @@ end
 __SystemEvent__"UNIT_INVENTORY_CHANGED" "LEARNED_SPELL_IN_TAB" "ACTIONBAR_UPDATE_COOLDOWN"
 function UNIT_INVENTORY_CHANGED(unit)
     return (not unit or unit == "player") and _OnTooltipButton and _OnTooltipButton:UpdateTooltip()
+end
+
+__SystemEvent__() __Async__()
+function PET_BATTLE_OPENING_START()
+    for i = 1, 6 do
+        local key               = tostring(i)
+        local button            = _KeyBindingMap[key]
+        if button then ClearOverrideBindings(GetRawUI(button)) end
+    end
+
+    NextEvent("PET_BATTLE_CLOSE") NoCombat()
+
+    for i = 1, 6 do
+        local key               = tostring(i)
+        local button            = _KeyBindingMap[key]
+        if button then SetOverrideBindingClick(GetRawUI(button), false, key, button:GetName(), "LeftButton") end
+    end
 end
 
 ------------------------------------------------------
@@ -997,6 +1015,10 @@ do
     _WrapDragPrev               = [[ return "message", "update" ]]
 
     _WrapDragPost               = [[ Manager:RunFor(self, UpdateAction) ]]
+
+    _OnShowSnippet              = [[ if self:GetAttribute("autoKeyBinding") and self:GetAttribute("hotKey") then self:SetBindingClick(true, self:GetAttribute("hotKey"), self:GetName(), "LeftButton") end ]]
+
+    _OnHideSnippet              = [[ if self:GetAttribute("autoKeyBinding") then self:ClearBindings() end ]]
 end
 
 ------------------------------------------------------
@@ -1136,6 +1158,10 @@ do
 
         self:RegisterForDrag("LeftButton", "RightButton")
 
+
+        _ManagerFrame:WrapScript(self, "OnShow",   _OnShowSnippet)
+        _ManagerFrame:WrapScript(self, "OnHide",   _OnHideSnippet)
+
         _ManagerFrame:WrapScript(self, "OnDragStart",   _OnDragStartSnippet)
         _ManagerFrame:WrapScript(self, "OnReceiveDrag", _OnReceiveDragSnippet)
 
@@ -1176,7 +1202,6 @@ class "SecureActionButton" (function(_ENV)
         IsObjectType            = Class.IsObjectType,
     }
 
-    local _KeyBindingMap        = {}
     local _KeyBindingMask       = Mask("Scorpio_SecureActionButton_KeyBindingMask")
     local _KeyBindingMode       = false
 
@@ -1194,6 +1219,14 @@ class "SecureActionButton" (function(_ENV)
         local parent            = self:GetParent()
         if IsObjectType(parent, SecureActionButton) then
             parent.HotKey       = nil
+        end
+    end
+
+    local function handleKeyBinding(self)
+        if self.HotKey and (not self.AutoKeyBinding or self:IsVisible()) then
+            SetOverrideBindingClick(GetRawUI(self), self.AutoKeyBinding, self.HotKey, self:GetName(), "LeftButton")
+        else
+            ClearOverrideBindings(GetRawUI(self))
         end
     end
 
@@ -1313,26 +1346,51 @@ class "SecureActionButton" (function(_ENV)
     __Observable__()
     property "Text"             { type = String }
 
-    --- The short key of the action
-    __Observable__()
-    property "HotKey"           { type = String, handler = function(self, key)
-            if key then
-                key             = key:upper()
-
-                if _KeyBindingMap[key] == self then return end
-                if _KeyBindingMap[key] then _KeyBindingMap[key].HotKey = nil end
-                _KeyBindingMap[key] = self
-
-                SetOverrideBindingClick(GetRawUI(self), false, key, self:GetName(), "LeftButton")
-            else
-                ClearOverrideBindings(GetRawUI(self))
-            end
-        end
-    }
-
     --- Whether the icon should be locked
     __Observable__()
     property "IconLocked"       { type = Boolean }
+
+    --- The short key of the action
+    __Observable__()
+    property "HotKey"           { type = String, handler = function(self, key, old)
+            if old and _KeyBindingMap[old] == self then
+                _KeyBindingMap[old] = nil
+            end
+
+            if key and key:upper() ~= key then
+                self.HotKey     = key:upper()
+                return
+            end
+
+            self:SetAttribute("hotKey", key)
+
+            if key and not self.AutoKeyBinding and _KeyBindingMap[key] ~= self then
+                if _KeyBindingMap[key] then _KeyBindingMap[key].HotKey = nil end
+                _KeyBindingMap[key] = self
+            end
+
+            return handleKeyBinding(self)
+        end
+    }
+
+    --- Whether only bind keys when the button is shown
+    property "AutoKeyBinding"   { type = Boolean, handler = function(self, flag)
+            self:SetAttribute("autoKeyBinding", flag and true or nil)
+
+            if self.HotKey then
+                if flag then
+                    if _KeyBindingMap[self.HotKey] == self then
+                        _KeyBindingMap[self.HotKey] = nil
+                    end
+                elseif _KeyBindingMap[self.HotKey] and _KeyBindingMap[self.HotKey] ~= self then
+                    self.HotKey = nil
+                    return
+                end
+            end
+
+            return handleKeyBinding(self)
+        end
+    }
 
 
     ------------------------------------------------------
@@ -1343,7 +1401,7 @@ class "SecureActionButton" (function(_ENV)
     function StartKeyBinding()
         _KeyBindingMode         = true
 
-        Confirm(_Locale["Confirm when you finished the key binding"])
+        Alert(_Locale["Confirm when you finished the key binding"])
         _KeyBindingMode         = false
 
         _KeyBindingMask:Hide()

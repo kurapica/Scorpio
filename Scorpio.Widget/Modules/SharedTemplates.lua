@@ -242,6 +242,8 @@ class "Mask" (function(_ENV)
         RCTRL                   = true,
         LALT                    = true,
         RALT                    = true,
+        ESCAPE                  = true,
+        PRINTSCREEN             = true,
     }
 
     local _ReplaceKey           = {

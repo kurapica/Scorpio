@@ -28,6 +28,7 @@ local _UnitCastChannel          = Subject()
 __SystemEvent__()
 function UNIT_SPELLCAST_START(unit, castID)
     local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
+    if not n then return end
     s, e                        = s / 1000, e / 1000
 
     _CurrentCastID[unit]        = castID
@@ -63,6 +64,7 @@ __SystemEvent__()
 function UNIT_SPELLCAST_DELAYED(unit, castID)
     if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
         local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
+        if not n then return end
         s, e                        = s / 1000, e / 1000
 
         _UnitCastSubject:OnNext(unit, n, t, s, e - s)
@@ -73,6 +75,7 @@ end
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_START(unit)
     local n, _, t, s, e, _, i   = UnitChannelInfo(unit)
+    if not n then return end
     s, e                        = s / 1000, e / 1000
 
     _CurrentCastID[unit]        = nil
@@ -87,6 +90,7 @@ end
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_UPDATE(unit)
     local n, _, t, s, e         = UnitChannelInfo(unit)
+    if not n then return end
     s, e                        = s / 1000, e / 1000
 
     _UnitCastSubject:OnNext(unit, n, t, s, e - s)

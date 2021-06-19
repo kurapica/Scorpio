@@ -46,6 +46,11 @@ class "SecurePanel" (function(_ENV)
             Manager:SetAttribute("state-timer", "reset")
         ]=]
 
+        UnQueueUpdatePanel = [=[
+            local panel     = _Map[self] or self
+            _Queue[panel]   = nil
+        ]=]
+
         UpdatePanelSize = [=[
             local noForce   = ...
             local panel     = _Map[self] or self
@@ -211,6 +216,14 @@ class "SecurePanel" (function(_ENV)
         Manager:RunFor(panel, QueueUpdatePanel)
     ]=]
 
+    _ForceUpdatePanel           = [=[
+        local panel = Manager:GetFrameRef("SecurePanel")
+
+        _Cache[panel] = nil
+        Manager:RunFor(panel, UnQueueUpdatePanel)
+        Manager:RunFor(panel, UpdatePanelSize)
+    ]=]
+
     local function registerPanel(self)
         _ManagerFrame:SetFrameRef("SecurePanel", self)
         _ManagerFrame:Execute(_RegisterPanel)
@@ -259,7 +272,7 @@ class "SecurePanel" (function(_ENV)
                 ele:Hide()
                 OnElementRemove(self, ele)
 
-                self.ElementRecycle(ele)
+                self.ElementPool(ele)
                 self:SetAttribute("IFSecurePanel_Count", i - 1)
             end
 
@@ -269,10 +282,8 @@ class "SecurePanel" (function(_ENV)
 
     local function generate(self, index)
         if self.ElementType and index > self.Count then
-            self.ElementRecycle = self.ElementRecycle or Recycle(self.ElementType, self.ElementPrefix .. "%d", self)
-
             for i = self.Count + 1, index do
-                local ele       = self.ElementRecycle()
+                local ele       = self.ElementPool()
                 ele.ID          = i
 
                 ele:Show()
@@ -316,9 +327,22 @@ class "SecurePanel" (function(_ENV)
     __NoCombat__()
     RefreshLayout               = secureUpdatePanelSize
 
+    function ForceRefreshLayout(self)
+        if not InCombatLockdown() then
+            _ManagerFrame:SetFrameRef("SecurePanel", self)
+            _ManagerFrame:Execute(_ForceUpdatePanel)
+        end
+    end
+
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
+    --- The Element Pool
+    property "ElementPool"      { type = Recycle, default = function(self) return Recycle(self.ElementType, self.ElementPrefix .. "%d", self) end }
+
+    -- The element's type
+    property "ElementType"      { type = ClassType }
+
     -- The Element accessor, used like obj.Elements[i].
     __Indexer__(NaturalNumber)
     property "Elements"         {
@@ -383,9 +407,6 @@ class "SecurePanel" (function(_ENV)
 
     -- Whether the elements start from top to bottom
     property "TopToBottom"      { type = Boolean, default = true, handler = onPropertyChanged }
-
-    -- The element's type
-    property "ElementType"      { type = ClassType }
 
     -- The horizontal spacing
     property "HSpacing"         { type = Number, handler = onPropertyChanged }
