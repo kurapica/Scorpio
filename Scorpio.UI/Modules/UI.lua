@@ -556,6 +556,16 @@ do
     }
 
     __Sealed__()
+    struct "AnimateTexCoords" {
+        { name = "textureWidth",type = Number, require = true },
+        { name ="textureHeight",type = Number, require = true },
+        { name = "frameWidth",  type = Number, require = true },
+        { name = "frameHeight", type = Number, require = true },
+        { name = "numFrames",   type = Number, require = true },
+        { name = "throttle",    type = Number, require = true },
+    }
+
+    __Sealed__()
     struct "PropertyAccessor" {
         { name = "set",         type = Function, require = true },
         { name = "get",         type = Any }

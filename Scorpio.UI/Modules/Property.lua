@@ -54,6 +54,46 @@ do
             end
         end
     end
+
+    __Async__() function animateTexCoords(self, settings)
+        self.__AnimateTexCoords = ((self.__AnimateTexCoords or 0) + 1) % 10000
+
+        if settings then
+            -- initialize everything
+            local task          = self.__AnimateTexCoords
+            local frame         = 1
+            local throttle      = settings.throttle
+            local total         = throttle
+            local numColumns    = floor(settings.textureWidth/settings.frameWidth)
+            local numRows       = floor(settings.textureHeight/settings.frameHeight)
+            local columnWidth   = settings.frameWidth/settings.textureWidth
+            local rowHeight     = settings.frameHeight/settings.textureHeight
+            local numFrames     = settings.numFrames
+            local prev          = GetTime()
+
+            while self.__AnimateTexCoords == task do
+                if total > throttle then
+                    local adv   = floor(total / throttle)
+                    while ( frame + adv > numFrames ) do
+                        frame   = frame - numFrames
+                    end
+                    frame       = frame + adv
+                    total       = 0
+                    local left  = mod(frame-1, numColumns)*columnWidth
+                    local right = left + columnWidth
+                    local bottom= ceil(frame/numColumns)*rowHeight
+                    local top   = bottom - rowHeight
+                    self:SetTexCoord(left, right, top, bottom)
+                end
+
+                Next()
+
+                local now       = GetTime()
+                total           = total + now - prev
+                prev            = now
+            end
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -151,7 +191,7 @@ do
     UI.Property         {
         name            = "Scale",
         type            = PositiveNumber,
-        require         = { LayoutFrame, Scale },
+        require         = LayoutFrame,
         default         = 1,
         get             = function(self) return self:GetScale() end,
         set             = function(self, scale) self:SetScale(scale) end,
@@ -617,6 +657,24 @@ do
         clear           = function(self) self:SetVertexOffset(VertexIndexType.LowerRight, 0, 0) end,
         depends         = _Texture_Deps,
     }
+
+    --- The animation texcoords
+    UI.Property         {
+        name            = "AnimateTexCoords",
+        type            = AnimateTexCoords,
+        require         = Texture,
+        nilable         = true,
+        set             = animateTexCoords,
+    }
+
+    --- Rotate, only works for 0, 90, 180, 270
+    UI.Property         {
+        name            = "RotateDegree",
+        type            = Number,
+        require         = Texture,
+        clear           = ClearClampedTextureRotation,
+        set             = SetClampedTextureRotation,
+    }
 end
 
 ------------------------------------------------------------
@@ -729,6 +787,16 @@ end
 --                      Animation                         --
 ------------------------------------------------------------
 do
+    --- the playing state of the animation or animation group
+    UI.Property         {
+        name            = "Playing",
+        type            = Boolean,
+        require         = { Animation, AnimationGroup },
+        default         = false,
+        set             = function(self, val) if val then return self:IsPlaying() or self:Play() else return self:IsPlaying() and self:Stop() end end,
+        get             = function(self) return self:IsPlaying() end,
+    }
+
     --- looping type for the animation group: BOUNCE , NONE  , REPEAT
     UI.Property         {
         name            = "Looping",
@@ -900,6 +968,16 @@ do
         default         = Dimension(1, 1),
         set             = function(self, val) self:SetToScale(val.x, val.y) end,
         get             = function(self) return Dimension(self:GetToScale()) end,
+    }
+
+    --- the animation's scaling factors
+    UI.Property         {
+        name            = "Scale",
+        type            = Dimension,
+        require         = Scale,
+        default         = Dimension(1, 1),
+        set             = function(self, val) self:SetScale(val.x, val.y) end,
+        get             = function(self) return Dimension(self:GetScale()) end,
     }
 end
 
@@ -2437,11 +2515,87 @@ do
     }
 end
 
------------------------------------------------------------
---                     Label Widget                      --
------------------------------------------------------------
+------------------------------------------------------------
+--          Useful Child Properties - Animation           --
+------------------------------------------------------------
+do
+    --- The animation group
+    UI.Property         {
+        name            = "AnimationGroup",
+        require         = LayoutFrame,
+        childtype       = AnimationGroup,
+    }
+
+    UI.Property         {
+        name            = "AnimationGroupIn",
+        require         = LayoutFrame,
+        childtype       = AnimationGroup,
+    }
+
+    UI.Property         {
+        name            = "AnimationGroupOut",
+        require         = LayoutFrame,
+        childtype       = AnimationGroup,
+    }
+
+    --- The animations
+    for i = 0, 3 do
+        UI.Property     {
+            name        = "Alpha" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = Alpha,
+        }
+
+        UI.Property     {
+            name        = "Path" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = Path,
+        }
+
+        UI.Property     {
+            name        = "ControlPoint" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = ControlPoint,
+        }
+
+        UI.Property     {
+            name        = "Rotation" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = Rotation,
+        }
+
+        UI.Property     {
+            name        = "Scale" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = Scale,
+        }
+
+        UI.Property     {
+            name        = "LineScale" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = LineScale,
+        }
+
+        UI.Property     {
+            name        = "Translation" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = Translation,
+        }
+
+        UI.Property     {
+            name        = "LineTranslation" .. (i == 0 and "" or i),
+            require     = AnimationGroup,
+            childtype   = LineTranslation,
+        }
+    end
+end
+
+------------------------------------------------------------
+--                     Label Widget                       --
+------------------------------------------------------------
 __Sealed__()
 __ChildProperty__(Frame, "Label")
+__ChildProperty__(Frame, "Label1")
 __ChildProperty__(Frame, "Label2")
 __ChildProperty__(Frame, "Label3")
 class "UIPanelLabel"    { FontString }
