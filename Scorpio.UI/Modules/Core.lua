@@ -21,6 +21,7 @@ local isObjectType              = Class.IsObjectType
 local isTypeValidDisabled       = System.Platform.TYPE_VALIDATION_DISABLED
 local isUIObject                = UI.IsUIObject
 local isUIObjectType            = UI.IsUIObjectType
+local isSubType                 = Class.IsSubType
 local clone                     = Toolset.clone
 local yield                     = coroutine.yield
 local tinsert                   = table.insert
@@ -46,12 +47,18 @@ local _PropertyChildName        = setmetatable({}, META_WEAKKEY)
 local _PropertyChildMap         = setmetatable({}, { __index = function(self, prop) local val = setmetatable({}, META_WEAKALL) rawset(self, prop, val) return val end })
 local _PropertyChildRecycle     = setmetatable({}, {
     __index                     = function(self, type)
-        local recycle           = Recycle(type, "__" .. Namespace.GetNamespaceName(type):gsub("%.", "_") .. "%d", _RecycleHolder)
-        rawset(self, type, recycle)
-        return recycle
+        if type == AnimationGroup or type == ControlPoint or isSubType(type, Animation) then
+            -- No recycle for the animation type, since they can't change their parent
+            rawset(self, type, false)
+            return false
+        else
+            local recycle       = Recycle(type, "__" .. Namespace.GetNamespaceName(type):gsub("%.", "_") .. "%d", _RecycleHolder)
+            rawset(self, type, recycle)
+            return recycle
+        end
     end,
     __call                      = function(self, obj)
-        if obj.Disposed then return end
+        if obj.Disposed then return true end
 
         local cls               = getmetatable(obj)
         local recycle           = cls and rawget(self, cls)
@@ -122,7 +129,7 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
     end
 end
 
-local applyStylesOnFrame
+local applyStylesOnFrame, setCustomStyle
 
 local function applyProperty(self, prop, value)
     --Trace("[Scorpio.UI]Apply Property:%s - %s", prop.name, tostring(value))
@@ -135,6 +142,7 @@ local function applyProperty(self, prop, value)
     end
 
     if value == nil then
+        if map then map[prop]   = nil
         if prop.clear then return prop.clear(self) end
         if prop.default ~= nil then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
@@ -147,7 +155,23 @@ local function applyProperty(self, prop, value)
             end
 
             if not map[prop] then
-                if prop.clear then
+                if prop.childtype then
+                    map[prop]   = Observer(function(val)
+                        if type(val) == "table" and getmetatable(val) == nil then
+                            local child, new    = prop.get(self)
+                            if child then
+                                local ok, err   = pcall(setCustomStyle, child, nil, val, 1, new)
+                                if not ok then
+                                    Error("[Scorpio.UI]Set custom style to child %q of %s failed - %s", prop.name, self:GetName(true), err)
+                                end
+                            else
+                                Error("[Scorpio.UI]Auto-gen property child %q for %s failed", prop.name, self:GetName(true))
+                            end
+                        else
+                            prop.clear(self)
+                        end
+                    end)
+                elseif prop.clear then
                     local clear = prop.clear
                     map[prop]   = Observer(function(val) if val ~= nil then return pset(self, val) else return clear(self) end end)
                 elseif prop.nilable then
@@ -164,6 +188,7 @@ local function applyProperty(self, prop, value)
         else
             -- Check for the child type
             if value == true and prop.childtype then return end
+            if map then map[prop] = nil end
             pset(self, clone(value, true))
         end
     end
@@ -261,9 +286,9 @@ local function prepareSettings(settings, target, final, cache, paths)
                     if not ek then
                         cache[lk]   = k
                         if type(v) == "table" and getmetatable(v) == nil then
-                            final[k]= prepareSettings(v, { prop.childtype} )
+                            final[k]= prepareSettings(v, { prop.childtype } )
                         else
-                            -- Error but will be checked later
+                            -- Error or observable object will be checked later
                             final[k]= v
                         end
                     elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
@@ -284,7 +309,7 @@ local function prepareSettings(settings, target, final, cache, paths)
                         if type(v) == "table" and getmetatable(v) == nil then
                             final[k]= prepareSettings(v, element)
                         else
-                            -- Error but will be checked later
+                            -- Error or observable object will be checked later
                             final[k]= v
                         end
                     elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
@@ -356,7 +381,7 @@ local function emptyDefaultStyle(settings)
     return settings
 end
 
-local function setCustomStyle(target, pname, value, stack, nodirectapply)
+function setCustomStyle(target, pname, value, stack, nodirectapply)
     local custom                = gettable(_CustomStyle, target)
     local haschanges            = false
     local directapply           = not _StyleQueue[target] and not nodirectapply
@@ -381,6 +406,10 @@ local function setCustomStyle(target, pname, value, stack, nodirectapply)
                 else
                     error(strformat("The target has no child element from %q", pname), stack + 1)
                 end
+            elseif isObservable(value) then
+                -- So the property child could be generatd dynamically
+                cval            = value
+                directapply     = true
             else
                 error(strformat("The %q is a child poperty, its setting should be a table", pname), stack + 1)
             end
@@ -589,7 +618,7 @@ local function saveSkinSettings(classes, paths, container, settings)
             if prop.childtype then
                 container[name] = true -- So we can easily track the child property settings
 
-                if value == NIL or value == CLEAR then
+                if value == NIL or value == CLEAR or isObservable(value) then
                     if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
                     container[name]     = value
                 elseif type(value) == "table" and getmetatable(value) == nil then
@@ -759,13 +788,16 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     end
 
     --- Sets the ui object's parent
-    __Final__() __Arguments__{ UI/nil }
+    __Final__()
     function SetParent(self, parent)
+        if parent and not isUIObject(parent) then error("Usage : UI:SetParent([parent]) : the parent is not valid.", 2) end
+
         local oparent           = self:GetParent()
         if oparent == parent or IsSameUI(oparent, parent) then return end
 
         local name              = _NameMap[self[0]]
         local setParent         = _SetParent[getmetatable(self)]
+        if not setParent then error("Usage : UI:SetParent([parent]) : the ui element can't change its parent.", 2) end
 
         if oparent then
             local pui           = oparent[0]
@@ -779,9 +811,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         local pui               = parent[0]
         local children          = _ChildMap[pui]
 
-        if children and children[name] and children[name] ~= self then
-            error("Usage : UI:SetParent([parent]) : parent has another child with the same name.", 2)
-        end
+        if children and children[name] and children[name] ~= self then error("Usage : UI:SetParent([parent]) : parent has another child with the same name.", 2) end
 
         setParent(self, GetRawUI(parent))
 
@@ -1219,12 +1249,17 @@ __Sealed__() struct "Scorpio.UI.Property" {
                 local child     = _PropertyChildMap[setting][self]
                 if child or try then return child, false end
 
-                child           = _PropertyChildRecycle[childtype]()
+                local recycle   = _PropertyChildRecycle[childtype]
+
+                if recycle then
+                    child       = recycle()
+                    if child then child:SetParent(self) end
+                else
+                    child       = childtype(childname, self)
+                end
 
                 if child then
-                    child:SetParent(self)
                     if set then set(self, child) end
-
                     _PropertyChildMap[setting][self]= child
                     _PropertyChildName[child]       = childname
                 end
@@ -1238,7 +1273,10 @@ __Sealed__() struct "Scorpio.UI.Property" {
 
                 collectPropertyChild(child)
 
-                _PropertyChildMap[setting][self]    = nil
+                if _PropertyChildRecycle[childtype] then
+                    _PropertyChildMap[setting][self] = nil
+                end
+
                 if nilable and set then set(self, nil) end
             end
         end
@@ -1823,9 +1861,8 @@ local function clearStyle(frame)
     end
 
     _CustomStyle[frame]                     = nil
-    if _PropertyChildName[frame] then
+    if _PropertyChildName[frame] and _PropertyChildRecycle(frame) then
         _PropertyChildName[frame]           = nil
-        _PropertyChildRecycle(frame)
     end
 
     Continue() -- Smoothing the process
