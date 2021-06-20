@@ -244,6 +244,8 @@ interface "ActionTypeHandler" (function(_ENV)
         _AutoAttackButtons[button] = self.IsAttackAction(button) or nil
         _AutoRepeatButtons[button] = self.IsAutoRepeatAction(button) or nil
 
+        self.CanFlashing        = _AutoAttackButtons[button] or _AutoRepeatButtons[button]
+
         local spell             = self.GetSpellId(button)
         local ospell            = _Spell4Buttons[button]
 
@@ -297,6 +299,8 @@ interface "ActionTypeHandler" (function(_ENV)
         if self.ReceiveStyle ~= "Block" then
             self:RefershGrid(button)
         end
+
+        button.HasAction        = self.HasAction(button)
 
         self:RefreshButtonState(button)
         self:RefreshUsable(button)
@@ -454,10 +458,10 @@ interface "ActionTypeHandler" (function(_ENV)
         local IsFlyout          = self.IsFlyout
 
         if button then
-            button.FlyoutVisible= IsFlyout(button)
+            button.IsFlyout     = IsFlyout(button)
         else
             for _, button in self:GetIterator() do
-                button.FlyoutVisible = IsFlyout(button)
+                button.IsFlyout = IsFlyout(button)
             end
         end
     end
@@ -1298,6 +1302,10 @@ class "SecureActionButton" (function(_ENV)
     __Observable__()
     property "IsUsable"         { type = Boolean }
 
+    --- Whether the button has action
+    __Observable__()
+    property "HasAction"        { type = Boolean }
+
     --- The count/charge of the action
     __Observable__()
     property "Count"            { type = Number }
@@ -1305,6 +1313,10 @@ class "SecureActionButton" (function(_ENV)
     --- The cooldown of the action
     __Observable__()
     property "Cooldown"         { type = CooldownStatus, set = Toolset.fakefunc }
+
+    --- Whether the action is auto attack or auto repeat
+    __Observable__()
+    property "CanFlashing"      { type = Boolean }
 
     --- Whether show the flashing
     __Observable__()
