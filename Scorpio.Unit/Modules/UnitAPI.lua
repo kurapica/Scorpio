@@ -301,25 +301,14 @@ end
 if Scorpio.IsRetail then return end
 
 UnitHasVehicleUI                = UnitHasVehicleUI or Toolset.fakefunc
+GetThreatStatusColor            = GetThreatStatusColor or function (index) if index == 3 then return 1, 0, 0 elseif index == 2 then return 1, 0.6, 0 elseif index == 1 then return 1, 1, 0.47 else return 0.69, 0.69, 0.69 end end
 
-function GetThreatStatusColor(index)
-    if index == 3 then
-        return 1, 0, 0
-    elseif index == 2 then
-        return 1, 0.6, 0
-    elseif index == 1 then
-        return 1, 1, 0.47
-    else
-        return 0.69, 0.69, 0.69
-    end
-end
+if Scorpio.IsBCC then return end
 
-if IsAddOnLoaded("LibClassicDurations") or (LibStub and LibStub("LibClassicDurations")) then
-    LibClassicDurations         = LibStub("LibClassicDurations")
-    LibClassicDurations:Register("Scorpio") -- tell library it's being used and should start working
-    _Parent.UnitAura            = LibClassicDurations.UnitAuraWithBuffs
+local ok, LibClassicDurations   = pcall(_G.LibStub, "LibClassicDurations")
+if not (ok and LibClassicDurations) then return end
 
-    LibClassicDurations.RegisterCallback("Scorpio", "UNIT_BUFF", function(event, unit)
-        return FireSystemEvent("UNIT_AURA", unit)
-    end)
-end
+LibClassicDurations:Register("Scorpio") -- tell library it's being used and should start working
+_Parent.UnitAura                = LibClassicDurations.UnitAuraWithBuffs
+
+LibClassicDurations.RegisterCallback("Scorpio", "UNIT_BUFF", function(event, unit) return FireSystemEvent("UNIT_AURA", unit) end)

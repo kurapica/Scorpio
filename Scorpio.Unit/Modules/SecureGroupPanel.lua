@@ -594,6 +594,23 @@ class "SecureGroupPanel" (function(_ENV)
     function __ctor(self, ...)
         super(self, ...)
 
+        Next(function(self)
+            while true do
+                if not self:IsShown() then
+                    Next(Observable.From(self.OnShow))
+                else
+                    Next(Wow.FromEvent("GROUP_ROSTER_UPDATE"))
+                end
+
+                Delay(0.2) -- Just enough
+                NoCombat()
+
+                if self:IsShown() then
+                    self.GroupHeader:Refresh()
+                end
+            end
+        end, self)
+
         self.OnElementAdd       = self.OnElementAdd + OnElementAdd
         setupGroupFilter(self)
     end

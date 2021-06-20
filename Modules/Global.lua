@@ -80,6 +80,7 @@ log                             = math.log
 pow                             = math.pow
 min                             = math.min
 max                             = math.max
+mod                             = math.mod
 random                          = math.random
 abs                             = math.abs
 clamp                           = function(value, min, max) return value > max and max or value < min and min or value end

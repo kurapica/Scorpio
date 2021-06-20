@@ -61,9 +61,11 @@ function OnEnable(self)
     OnEnable                    = nil
 
     -- Load toy informations
-    C_ToyBox.ForceToyRefilter()
+    if Scorpio.IsRetail then
+        C_ToyBox.ForceToyRefilter()
 
-    UpdateToys()
+        UpdateToys()
+    end
 
     return handler:RefreshActionButtons()
 end
@@ -71,34 +73,82 @@ end
 ------------------------------------------------------
 -- System Event Handler
 ------------------------------------------------------
-__SystemEvent__()
-function SPELLS_CHANGED()
-    for _, btn in handler:GetIterator() do
-        if _ToyFilter[btn.ActionTarget] then
-            handler:RefreshActionButtons(btn)
+if Scorpio.IsRetail then
+    __SystemEvent__()
+    function SPELLS_CHANGED()
+        for _, btn in handler:GetIterator() do
+            if _ToyFilter[btn.ActionTarget] then
+                handler:RefreshActionButtons(btn)
+            end
         end
     end
-end
 
-__SystemEvent__()
-function UPDATE_SHAPESHIFT_FORM()
-    for _, btn in handler:GetIterator() do
-        if _ToyFilter[btn.ActionTarget] then
-            handler:RefreshActionButtons(btn)
+    __SystemEvent__()
+    function UPDATE_SHAPESHIFT_FORM()
+        for _, btn in handler:GetIterator() do
+            if _ToyFilter[btn.ActionTarget] then
+                handler:RefreshActionButtons(btn)
+            end
         end
     end
-end
 
-__SystemEvent__()
-function TOYS_UPDATED(itemID, new)
-    return UpdateToys()
-end
+    __SystemEvent__()
+    function TOYS_UPDATED(itemID, new)
+        return UpdateToys()
+    end
 
-__SystemEvent__()
-function SPELL_UPDATE_COOLDOWN()
-    for _, btn in handler:GetIterator() do
-        if _ToyFilter[btn.ActionTarget] then
-            handler:RefreshCooldown(btn)
+    __SystemEvent__()
+    function SPELL_UPDATE_COOLDOWN()
+        for _, btn in handler:GetIterator() do
+            if _ToyFilter[btn.ActionTarget] then
+                handler:RefreshCooldown(btn)
+            end
+        end
+    end
+
+    __Async__()
+    function UpdateToys()
+        local cache                 = {}
+
+        if not next(_ToyFilter) then
+            for _, item in ipairs(ToyData) do
+                if not _ToyFilter[item] then
+                    _ToyFilter[item]= true
+                    tinsert(cache, _ToyFilterTemplate:format(item))
+                end
+            end
+        end
+
+        for i = 1, C_ToyBox.GetNumToys() do
+            if i % 20 == 0 then Continue() end
+
+            local index             = C_ToyBox.GetToyFromIndex(i)
+
+            if index > 0 then
+                local item          = C_ToyBox.GetToyInfo(index)
+                if item and item > 0 and not _ToyFilter[item] then
+                    tinsert(ToyData, item)
+                    _ToyFilter[item]= true
+                    tinsert(cache, _ToyFilterTemplate:format(item))
+                end
+            end
+        end
+
+        if next(cache) then
+            NoCombat(function ()
+                handler:RunSnippet( tblconcat(cache, ";") )
+
+                for _, btn in handler:GetIterator() do
+                    local target    = btn.ActionTarget
+                    if _ToyFilter[target] then
+                        btn:SetAttribute("*item*", nil)
+                        btn:SetAttribute("*type*", "toy")
+                        btn:SetAttribute("*toy*", target)
+
+                        handler:RefreshActionButtons(btn)
+                    end
+                end
+            end)
         end
     end
 end
@@ -128,52 +178,6 @@ end
 __SystemEvent__()
 function PLAYER_REGEN_DISABLED()
     handler:RefreshUsable()
-end
-
-__Async__()
-function UpdateToys()
-    local cache                 = {}
-
-    if not next(_ToyFilter) then
-        for _, item in ipairs(ToyData) do
-            if not _ToyFilter[item] then
-                _ToyFilter[item]= true
-                tinsert(cache, _ToyFilterTemplate:format(item))
-            end
-        end
-    end
-
-    for i = 1, C_ToyBox.GetNumToys() do
-        if i % 20 == 0 then Continue() end
-
-        local index             = C_ToyBox.GetToyFromIndex(i)
-
-        if index > 0 then
-            local item          = C_ToyBox.GetToyInfo(index)
-            if item and item > 0 and not _ToyFilter[item] then
-                tinsert(ToyData, item)
-                _ToyFilter[item]= true
-                tinsert(cache, _ToyFilterTemplate:format(item))
-            end
-        end
-    end
-
-    if next(cache) then
-        NoCombat(function ()
-            handler:RunSnippet( tblconcat(cache, ";") )
-
-            for _, btn in handler:GetIterator() do
-                local target    = btn.ActionTarget
-                if _ToyFilter[target] then
-                    btn:SetAttribute("*item*", nil)
-                    btn:SetAttribute("*type*", "toy")
-                    btn:SetAttribute("*toy*", target)
-
-                    handler:RefreshActionButtons(btn)
-                end
-            end
-        end)
-    end
 end
 
 ------------------------------------------------------

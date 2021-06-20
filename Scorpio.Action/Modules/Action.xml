@@ -22,4 +22,5 @@
 	<!--Script file="BagSlotHandler.lua"/-->
 
 	<Script file="Seal.lua"/>
+	<Script file="Indicator.lua"/>
 </Ui>
