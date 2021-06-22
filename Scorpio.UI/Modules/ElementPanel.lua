@@ -19,7 +19,7 @@ __Sealed__() class "ElementPanel" (function(_ENV)
     end
 
     local function adjustElement(element, self)
-        local id                = element.ID
+        local id                = element:GetID()
         if not id then return end
 
         element:SetSize(self.ElementWidth, self.ElementHeight)
@@ -55,9 +55,7 @@ __Sealed__() class "ElementPanel" (function(_ENV)
             local i             = self.Count
 
             while i > 0 do
-                if self:GetChild(self.ElementPrefix .. i):IsShown() then
-                    break
-                end
+                if self[i]:IsShown() then break end
                 i               = i - 1
             end
 
@@ -106,7 +104,7 @@ __Sealed__() class "ElementPanel" (function(_ENV)
 
         if index < self.Count then
             for i = self.Count, index + 1, -1 do
-                local ele       = self:GetChild(self.ElementPrefix .. i)
+                local ele       = self[i]
 
                 -- still keep them to be re-use
                 ele:ClearAllPoints()
@@ -130,11 +128,12 @@ __Sealed__() class "ElementPanel" (function(_ENV)
             local ele
 
             for i = self.Count + 1, index do
-                local ele       = self:GetChild(self.ElementPrefix .. i)
+                local ele       = self[i]
 
                 if not ele then
                     ele         = self.ElementType(self.ElementPrefix .. i, self)
-                    ele.ID      = i
+                    self[i]     = ele
+                    ele:SetID(i)
 
                     OnElementCreated(self, ele)
                 end
@@ -157,7 +156,7 @@ __Sealed__() class "ElementPanel" (function(_ENV)
 
     local function nextItem(self, index)
         index                   = index + 1
-        local ele               = self:GetChild(self.ElementPrefix .. index)
+        local ele               = self[index]
         if ele then return index, ele end
     end
 
@@ -228,13 +227,12 @@ __Sealed__() class "ElementPanel" (function(_ENV)
     property "Elements"         {
         get                     = function(self, index)
             if index >= 1 and index <= self.ColumnCount * self.RowCount then
-
-                if self:GetChild(self.ElementPrefix .. index) then return self:GetChild(self.ElementPrefix .. index) end
+                if self[index] then return self[index] end
 
                 if self.ElementType then
                     generate(self, index)
 
-                    return self:GetChild(self.ElementPrefix .. index)
+                    return self[index]
                 else
                     return nil
                 end

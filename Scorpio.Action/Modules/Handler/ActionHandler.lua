@@ -169,8 +169,8 @@ end
 -- Overwrite methods
 ------------------------------------------------------
 function handler:GetActionDetail()
-    if self:GetAttribute("actionpage") and self:GetID() > 0 then
-        local target, desc      = self:GetID() + (tonumber(self:GetAttribute("actionpage"))-1) * NUM_ACTIONBAR_BUTTONS
+    if self:GetID() > 0 then
+        local target, desc      = self:GetID() + (tonumber(self:GetAttribute("actionpage") or 1)-1) * NUM_ACTIONBAR_BUTTONS
 
         if target then
             local type, id      = GetActionInfo(target)
@@ -305,7 +305,7 @@ class "SecureActionButton" (function(_ENV)
                         btn:SetAttribute("actionpage", MainPage[0] or 1)
                     end
                 ]])
-                self:SetAction("action", tonumber(self:GetAttribute("action")) or self.ID or 1)
+                self:SetAction("action", tonumber(self:GetAttribute("action")) or self:GetID() or 1)
             else
                 handler.Manager:SetFrameRef("MainPageButton", self)
                 handler.Manager:Execute([[

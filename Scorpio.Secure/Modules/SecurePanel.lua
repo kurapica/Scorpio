@@ -73,9 +73,12 @@ class "SecurePanel" (function(_ENV)
             local leftToRight   = panel:GetAttribute("IFSecurePanel_LeftToRight")
             local topToBottom   = panel:GetAttribute("IFSecurePanel_TopToBottom")
             local autoPos       = panel:GetAttribute("IFSecurePanel_AutoPosition")
+            local autoSize      = panel:GetAttribute("IFSecurePanel_AutoSize")
 
             if leftToRight == nil then leftToRight = true end
             if topToBottom == nil then topToBottom = true end
+            if     autoPos == nil then autoPos     = true end
+            if     autoSize== nil then autoSize    = true end
 
             if elements then
                 for i = 1, #elements do
@@ -108,7 +111,7 @@ class "SecurePanel" (function(_ENV)
             end
 
             if not panel:GetAttribute("IFSecurePanel_KeepMaxSize") then
-                if not noForce or panel:GetAttribute("IFSecurePanel_AutoSize") then
+                if not noForce or autoSize then
                     if count ~= _Cache[panel] then
                         _Cache[panel] = count
 
@@ -259,7 +262,7 @@ class "SecurePanel" (function(_ENV)
 
     local function nextItem(self, index)
         index                   = index + 1
-        local ele               = self:GetChild(self.ElementPrefix .. index)
+        local ele               = self[index]
         if ele then return index, ele end
     end
 
@@ -268,7 +271,9 @@ class "SecurePanel" (function(_ENV)
 
         if index < self.Count then
             for i = self.Count, index + 1, -1 do
-                local ele       = self:GetChild(self.ElementPrefix .. i)
+                local ele       = self[i]
+                self[i]         = nil
+
                 ele:Hide()
                 OnElementRemove(self, ele)
 
@@ -281,10 +286,12 @@ class "SecurePanel" (function(_ENV)
     end
 
     local function generate(self, index)
-        if self.ElementType and index > self.Count then
+        if self.ElementPool and index > self.Count then
             for i = self.Count + 1, index do
                 local ele       = self.ElementPool()
-                ele.ID          = i
+                self[i]         = ele
+                ele:SetParent(self)
+                ele:SetID(i)
 
                 ele:Show()
                 OnElementAdd(self, ele)
@@ -338,22 +345,25 @@ class "SecurePanel" (function(_ENV)
     -- Property
     ------------------------------------------------------
     --- The Element Pool
-    property "ElementPool"      { type = Recycle, default = function(self) return Recycle(self.ElementType, self.ElementPrefix .. "%d", self) end }
+    property "ElementPool"      { type = Recycle, default = function(self) return self.ElementType and Recycle(self.ElementType, self.ElementPrefix .. "%d", self) end }
 
     -- The element's type
     property "ElementType"      { type = ClassType }
+
+    -- The prefix for the element's name
+    property "ElementPrefix"    { type = String, default = "Element" }
 
     -- The Element accessor, used like obj.Elements[i].
     __Indexer__(NaturalNumber)
     property "Elements"         {
         get                     = function(self, index)
             if index >= 1 and index <= self.ColumnCount * self.RowCount then
-                if self:GetChild(self.ElementPrefix .. index) then return self:GetChild(self.ElementPrefix .. index) end
+                if self[index] then return self[index] end
 
-                if self.ElementType and not InCombatLockdown() then
+                if self.ElementPool and not InCombatLockdown() then
                     generate(self, index)
 
-                    return self:GetChild(self.ElementPrefix .. index)
+                    return self[index]
                 else
                     return nil
                 end
@@ -387,7 +397,7 @@ class "SecurePanel" (function(_ENV)
             end
 
             if cnt > self.Count then
-                if self.ElementType then
+                if self.ElementPool then
                     NoCombat(generate, self, cnt)
                 else
                     error("ElementType not set.", 2)
@@ -415,7 +425,7 @@ class "SecurePanel" (function(_ENV)
     property "VSpacing"         { type = Number, handler = onPropertyChanged }
 
     -- Whether the elementPanel is autosize
-    property "AutoSize"         { type = Boolean, handler = onPropertyChanged }
+    property "AutoSize"         { type = Boolean, default = true, handler = onPropertyChanged }
 
     -- The top margin
     property "MarginTop"        { type = Number, handler = onPropertyChanged }
@@ -429,14 +439,11 @@ class "SecurePanel" (function(_ENV)
     -- The right margin
     property "MarginRight"      { type = Number, handler = onPropertyChanged }
 
-    -- The prefix for the element's name
-    property "ElementPrefix"    { type = String, default = "Element" }
-
     -- Whether the elementPanel should keep it's max size
     property "KeepMaxSize"      { type = Boolean, handler = onPropertyChanged }
 
     -- Whether adjust the elements position automatically
-    property "AutoPosition"     { type = Boolean, handler = onPropertyChanged }
+    property "AutoPosition"     { type = Boolean, default = true, handler = onPropertyChanged }
 
     -- Whether keep the max size for columns
     property "KeepColumnSize"   { type = Boolean, handler = onPropertyChanged }
@@ -455,13 +462,3 @@ class "SecurePanel" (function(_ENV)
         registerPanel(self)
     end
 end)
-
------------------------------------------------------------
---                     Default Style                     --
------------------------------------------------------------
-Style.UpdateSkin("Default",     {
-    [SecurePanel]               = {
-        autoPosition            = true,
-        autoSize                = true,
-    }
-})

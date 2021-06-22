@@ -95,7 +95,7 @@ end
 ------------------------------------------------------------
 --                       Indicator                        --
 ------------------------------------------------------------
-__Sealed__() __ChildProperty__(SecureActionButton, "SpellActivationAlert")
+__Sealed__()
 class "SpellActivationAlert" (function(_ENV)
     inherit "Frame"
 
@@ -103,6 +103,12 @@ class "SpellActivationAlert" (function(_ENV)
 
     __Bubbling__{ ["OuterGlowOver.Out"] = "OnFinished" }
     event "OnFinished"
+
+    ------------------------------------------------------
+    --                     Helpers                      --
+    ------------------------------------------------------
+    local hiddenFrame           = CreateFrame("Frame") hiddenFrame:Hide()
+    local recycle               = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d")
 
     local function OnHide(self)
         self.AinmationState     = "STOP"
@@ -112,6 +118,29 @@ class "SpellActivationAlert" (function(_ENV)
         local w, h              = self:GetSize()
         self:GetChild("Ants"):SetSize(w * 0.85, h * 0.85)
     end
+
+    local function OnFinished(self)
+        print(self:GetName(), "Finished")
+        return recycle(self)
+    end
+
+    function recycle:OnInit(alert)
+        alert.OnFinished        = OnFinished
+    end
+
+    function recycle:OnPush(alert)
+        alert:SetParent(hiddenFrame)
+        alert.AinmationState    = "STOP"
+    end
+
+    function recycle:OnPop(alert)
+        print("Use Alert " .. alert:GetName())
+    end
+
+    ------------------------------------------------------
+    --                 Static Property                  --
+    ------------------------------------------------------
+    __Static__() property "Pool" { set = false, default = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d") }
 
     ------------------------------------------------------
     --               Observable Property                --
@@ -237,6 +266,36 @@ class "AutoCastShine" (function(_ENV)
     end
 end)
 
+--- SpellActivationAlert
+UI.Property                     {
+    name                        = "SpellActivationAlert",
+    require                     = SecureActionButton,
+    type                        = Boolean,
+    default                     = false,
+    set                         = function(self, value)
+        local alert             = self.__SpellActivationAlert
+        if value then
+            if not alert then
+                local alert     = SpellActivationAlert.Pool()
+                local w, h      = self:GetSize()
+
+                alert:SetParent(self)
+                alert:ClearAllPoints()
+                alert:SetPoint("CENTER")
+                alert:SetSize(w * 1.4, h * 1.4)
+                self.__SpellActivationAlert = alert
+            end
+
+            alert.AinmationState= "IN"
+        else
+            if alert then
+                alert.AinmationState = "OUT"
+                self.__SpellActivationAlert = nil
+            end
+        end
+    end,
+}
+
 -- The bottom background texture
 UI.Property                     {
     name                        = "CountLabel",
@@ -272,7 +331,6 @@ UI.Property                     {
     childtype                   = Texture,
 }
 
-
 -- The flyout border
 UI.Property                     {
     name                        = "FlyoutBorder",
@@ -295,11 +353,12 @@ UI.Property                     {
 }
 
 --- The Auto castable texture
-UI.Property                     = {
+UI.Property                     {
     name                        = "AutoCastableTexture",
     require                     = SecureActionButton,
     childtype                   = Texture,
 }
+
 
 ------------------------------------------------------------
 --                     Default Style                      --
@@ -311,12 +370,7 @@ local RANGE_INDICATOR           = "●"
 local isInState                 = function(s) return s == "IN" end
 local isOutState                = function(s) return s == "OUT" end
 local isPlaying                 = function(s) return s ~= "STOP" and antAnimate or nil end
-local flyoutArrowLocation       = {
-    TOP                         = { Anchor("BOTTOM", 0, 0, "TOP") },
-    BOTTOM                      = { Anchor("TOP", 0, 0, "BOTTOM") },
-    LEFT                        = { Anchor("RIGHT", 0, 0, "LEFT") },
-    RIGHT                       = { Anchor("LEFT", 0, 0, "RIGHT") },
-}
+local flyoutArrowLocation       = { TOP = { Anchor("BOTTOM", 0, 0, nil, "TOP") }, BOTTOM = { Anchor("TOP", 0, 0, nil, "BOTTOM") }, LEFT = { Anchor("RIGHT", 0, 0, nil, "LEFT") }, RIGHT = { Anchor("LEFT", 0, 0, nil, "RIGHT") } }
 
 Style.UpdateSkin("Default",     {
     [SpellActivationAlert]      = {
@@ -517,6 +571,7 @@ Style.UpdateSkin("Default",     {
 
     [SecureActionButton]        = {
         size                    = Size(36, 36),
+        --alpha                   = Wow.FromUIProperty("GridVisible"):Map(function(v) return v and 1 or 0),
 
         NormalTexture           = {
             file                = Wow.FromUIProperty("HasAction"):Map(function(v) return v and [[Interface\Buttons\UI-Quickslot2]] or [[Interface\Buttons\UI-Quickslot]] end),
@@ -559,14 +614,6 @@ Style.UpdateSkin("Default",     {
             location            = { Anchor("BOTTOMLEFT", 0, 2), Anchor("BOTTOMRIGHT", 0, 2) },
             text                = Wow.FromUIProperty("Text"),
         },
-        EquippedItemTexture     = {
-            file                = [[Interface\Buttons\UI-ActionButton-Border]],
-            drawLayer           = "OVERLAY",
-            alphaMode           = "ADD",
-            location            = { Anchor("TOPLEFT", -8, 8), Anchor("BOTTOMRIGHT", 8, -8) },
-            visible             = Wow.FromUIProperty("IsEquippedItem"),
-            vertexColor         = Color(0, 1.0, 0, 0.7),
-        },
         HotKeyLabel             = {
             drawLayer           = "ARTWORK",
             subLevel            = 2,
@@ -575,24 +622,66 @@ Style.UpdateSkin("Default",     {
             height              = 10,
             location            = { Anchor("TOPLEFT", 1, -3), Anchor("TOPRIGHT", -1, -3) },
             text                = Wow.FromUIProperty("HotKey"):Map(function(val) return val or RANGE_INDICATOR end),
+            vertexColor         = Wow.FromUIProperty("InRange"):Map(function(ir) return ir == false and Color.RED or Color.WHITE end),
+            visible             = Wow.FromUIProperty("HotKey", "InRange"):Map(function(key, ir) return key or ir ~= nil end),
+        },
+        Cooldown                = {
+            setAllPoints        = true,
+            cooldown            = Wow.FromUIProperty("Cooldown"),
         },
 
         -- For non-frequently used
-        FlashTexture            = Wow.FromUIProperty("CanFlashing"):Map(function(val) return val and FlashTextureSkin or nil end),
+        SpellActivationAlert    = Wow.FromUIProperty("OverlayGlow"),
+        EquippedItemTexture     = Wow.FromUIProperty("IsEquippedItem"):Map(function(val) return val and EquippedItemTextureSkin or nil end),
+        FlashTexture            = Wow.FromUIProperty("IsAutoAttack"):Map(function(val) return val and FlashTextureSkin or nil end),
         FlyoutArrow             = Wow.FromUIProperty("IsFlyout"):Map(function(val) return val and FlyoutArrowSkin or nil end),
         FlyoutBorder            = Wow.FromUIProperty("IsFlyout"):Map(function(val) return val and FlyoutBorderSkin or nil end),
         FlyoutBorderShadow      = Wow.FromUIProperty("IsFlyout"):Map(function(val) return val and FlyoutBorderShadowSkin or nil end),
         AutoCastableTexture     = Wow.FromUIProperty("IsAutoCastable"):Map(function(val) return val and AutoCastableTextureSkin or nil end),
-        AutoCastShine           = Wow.FromUIProperty("IsAutoCasting"):Map(function(val) return val and AutoCastShineSkin or nil end),
+        AutoCastShine           = Wow.FromUIProperty("IsAutoCastable"):Map(function(val) return val and AutoCastShineSkin or nil end),
     },
 })
+
+EquippedItemTextureSkin         = {
+    file                        = [[Interface\Buttons\UI-ActionButton-Border]],
+    drawLayer                   = "OVERLAY",
+    alphaMode                   = "ADD",
+    location                    = { Anchor("TOPLEFT", -8, 8), Anchor("BOTTOMRIGHT", 8, -8) },
+    vertexColor                 = Color(0, 1.0, 0, 0.7),
+}
 
 FlashTextureSkin                = {
     drawLayer                   = "ARTWORK",
     subLevel                    = 1,
     file                        = [[Interface\Buttons\UI-QuickslotRed]],
     setAllPoints                = true,
-    visible                     = Wow.FromUIProperty("Flashing"), -- @todo
+    alpha                       = 0,
+
+    AnimationGroup              = {
+        playing                 = Wow.FromUIProperty("IsAutoAttacking"),
+        looping                 = "REPEAT",
+
+        Alpha1                  = {
+            order               = 1,
+            duration            = 0.01,
+            fromAlpha           = 0,
+            toAlpha             = 1,
+        },
+        Alpha2                  = {
+            order               = 1,
+            duration            = 0.01,
+            startDelay          = 0.4,
+            fromAlpha           = 1,
+            toAlpha             = 0,
+        },
+        Alpha3                  = {
+            order               = 1,
+            duration            = 0.01,
+            startDelay          = 0.8,
+            fromAlpha           = 0,
+            toAlpha             = 0,
+        },
+    }
 }
 
 FlyoutArrowSkin                 = {
@@ -601,9 +690,8 @@ FlyoutArrowSkin                 = {
     file                        = [[Interface\Buttons\ActionBarFlyoutButton]],
     texCoords                   = RectType(0.62500000, 0.98437500, 0.74218750, 0.82812500),
     size                        = Size(23, 11),
-    visible                     = Wow.FromUIProperty("IsFlyout"),
     location                    = Wow.FromUIProperty("FlyoutDirection"):Map(function(dir) return flyoutArrowLocation[dir or "TOP"] end),
-    rotateDegree                = Wow.FromUIProperty("FlyoutDirection"):Map(function(dir) return dir == "RIGHT" and 90 or dir == "BOTTOM" and 180 or dir == "LEFT" and 270 or 0  end),
+    rotateDegree                = Wow.FromUIProperty("FlyoutDirection"):Next():Map(function(dir) return dir == "RIGHT" and 90 or dir == "BOTTOM" and 180 or dir == "LEFT" and 270 or 0  end),
 }
 
 FlyoutBorderSkin                = {
@@ -628,9 +716,9 @@ AutoCastableTextureSkin         = {
     drawLayer                   = "OVERLAY",
     file                        = [[Interface\Buttons\UI-AutoCastableOverlay]],
     location                    = { Anchor("TOPLEFT", -14, 14), Anchor("BOTTOMRIGHT", 14, -14) },
-    visible                     = Wow.FromUIProperty("IsAutoCastable"),
 }
 
 AutoCastShineSkin               = {
     location                    = { Anchor("TOPLEFT", 1, -1), Anchor("BOTTOMRIGHT", -1, 1) },
+    isAutoCast                  = Wow.FromUIProperty("IsAutoCasting"),
 }

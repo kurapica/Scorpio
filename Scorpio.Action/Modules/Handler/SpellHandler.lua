@@ -76,21 +76,23 @@ end
 ------------------------------------------------------
 -- System Event Handler
 ------------------------------------------------------
-__SystemEvent__"LEARNED_SPELL_IN_TAB"
-function LEARNED_SPELL_IN_TAB()
-    return UpdateProfession()
-end
+if Scorpio.IsRetail then
+    __SystemEvent__"LEARNED_SPELL_IN_TAB"
+    function LEARNED_SPELL_IN_TAB()
+        return UpdateProfession()
+    end
 
-__SystemEvent__"SKILL_LINES_CHANGED" "PLAYER_GUILD_UPDATE" "PLAYER_SPECIALIZATION_CHANGED"
-function SKILL_LINES_CHANGED(unit)
-    return (not unit or unit == "player") and UpdateProfession()
+    __SystemEvent__"SKILL_LINES_CHANGED" "PLAYER_GUILD_UPDATE" "PLAYER_SPECIALIZATION_CHANGED"
+    function SKILL_LINES_CHANGED(unit)
+        return (not unit or unit == "player") and UpdateProfession()
+    end
 end
 
 __SystemEvent__()
 function SPELLS_CHANGED()
     UpdateMacroMap()
-    UpdateProfession()
     UpdateStanceMap()
+    return Scorpio.IsRetail and UpdateProfession()
 end
 
 __SystemEvent__"UPDATE_SHAPESHIFT_FORM" "PLAYER_ENTERING_WORLD" "SPELL_FLYOUT_UPDATE"

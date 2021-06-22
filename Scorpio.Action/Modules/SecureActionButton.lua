@@ -32,6 +32,9 @@ local _GridCounter              = 0
 local _PetGridCounter           = 0
 local _OnTooltipButton
 local _KeyBindingMap            = {}
+local _Locale                   = _Locale
+
+IsSpellOverlayed                = _G.IsSpellOverlayed or Toolset.fakefunc
 
 ------------------------------------------------------
 --               Module Event Handler               --
@@ -123,14 +126,14 @@ end
 __SystemEvent__()
 function PLAYER_ENTER_COMBAT()
     for button in pairs(_AutoAttackButtons) do
-        button.Flashing         = true
+        button.IsAutoAttacking = true
     end
 end
 
 __SystemEvent__()
 function PLAYER_LEAVE_COMBAT()
     for button in pairs(_AutoAttackButtons) do
-        button.Flashing         = false
+        button.IsAutoAttacking = false
     end
 end
 
@@ -173,7 +176,7 @@ __SystemEvent__()
 function START_AUTOREPEAT_SPELL()
     for button in pairs(_AutoRepeatButtons) do
         if not _AutoAttackButtons[button] then
-            button.Flashing     = true
+            button.IsAutoAttacking = true
         end
     end
 end
@@ -181,8 +184,8 @@ end
 __SystemEvent__()
 function STOP_AUTOREPEAT_SPELL()
     for button in pairs(_AutoRepeatButtons) do
-        if button.Flashing and not _AutoAttackButtons[button] then
-            button.Flashing     = false
+        if button.IsAutoAttacking and not _AutoAttackButtons[button] then
+            button.IsAutoAttacking = false
         end
     end
 end
@@ -244,7 +247,8 @@ interface "ActionTypeHandler" (function(_ENV)
         _AutoAttackButtons[button] = self.IsAttackAction(button) or nil
         _AutoRepeatButtons[button] = self.IsAutoRepeatAction(button) or nil
 
-        self.CanFlashing        = _AutoAttackButtons[button] or _AutoRepeatButtons[button]
+        button.HasAction        = self.HasAction(button)
+        button.IsAutoAttack     = _AutoAttackButtons[button] or _AutoRepeatButtons[button]
 
         local spell             = self.GetSpellId(button)
         local ospell            = _Spell4Buttons[button]
@@ -300,8 +304,6 @@ interface "ActionTypeHandler" (function(_ENV)
             self:RefershGrid(button)
         end
 
-        button.HasAction        = self.HasAction(button)
-
         self:RefreshButtonState(button)
         self:RefreshUsable(button)
         self:RefreshCooldown(button)
@@ -347,10 +349,10 @@ interface "ActionTypeHandler" (function(_ENV)
         local IsAutoRepeatAction= self.IsAutoRepeatAction
 
         if button then
-            button.IsActived    = IsActivedAction(button) or IsAutoRepeatAction(button)
+            button:SetChecked(IsActivedAction(button) or IsAutoRepeatAction(button))
         else
             for _, button in self:GetIterator() do
-                button.IsActived= IsActivedAction(button) or IsAutoRepeatAction(button)
+                button:SetChecked(IsActivedAction(button) or IsAutoRepeatAction(button))
             end
         end
     end
@@ -420,10 +422,10 @@ interface "ActionTypeHandler" (function(_ENV)
         local IsAutoRepeatAction= self.IsAutoRepeatAction
 
         if button then
-            button.Flashing     = (IsAttackAction(button) and IsActivedAction(button)) or IsAutoRepeatAction(button)
+            button.IsAutoAttacking = (IsAttackAction(button) and IsActivedAction(button)) or IsAutoRepeatAction(button)
         else
             for _, button in self:GetIterator() do
-                button.Flashing = (IsAttackAction(button) and IsActivedAction(button)) or IsAutoRepeatAction(button)
+                button.IsAutoAttacking = (IsAttackAction(button) and IsActivedAction(button)) or IsAutoRepeatAction(button)
             end
         end
     end
@@ -458,10 +460,13 @@ interface "ActionTypeHandler" (function(_ENV)
         local IsFlyout          = self.IsFlyout
 
         if button then
+            if button.IsCustomFlyout then return end
             button.IsFlyout     = IsFlyout(button)
         else
             for _, button in self:GetIterator() do
-                button.IsFlyout = IsFlyout(button)
+                if not button.IsCustomFlyout then
+                    button.IsFlyout = IsFlyout(button)
+                end
             end
         end
     end
@@ -532,7 +537,8 @@ interface "ActionTypeHandler" (function(_ENV)
         local refresh           = refreshButton
 
         if button then
-            return refresh(self, button)
+            -- The button may change its action type when waiting
+            return button.ActionType == self.Type and refresh(self, button)
         else
             for _, button in self:GetIterator() do
                 refresh(self, button)
@@ -809,6 +815,10 @@ function _ManagerFrame:UpdateActionButton(name)
     if self.__IFActionHandler_Kind ~= name
         or self.__IFActionHandler_Target ~= target
         or self.__IFActionHandler_Detail ~= detail then
+
+        if self.__IFActionHandler_Kind and self.__IFActionHandler_Kind ~= name then
+            _IFActionTypeHandler[self.__IFActionHandler_Kind]:Remove(self)
+        end
 
         self.__IFActionHandler_Kind     = name
         self.__IFActionHandler_Target   = target
@@ -1150,7 +1160,7 @@ do
         if old and _ActionButtonGroupList[old] then
             _ActionButtonGroupList[old][self]   = nil
         end
-        _ActionButtonGroupListRefreshButton[group]           = _ActionButtonGroupList[group] or {}
+        _ActionButtonGroupList[group]           = _ActionButtonGroupList[group] or {}
         _ActionButtonGroupList[group][self]     = true
 
         self:SetAttribute("IFActionHandlerGroup", group)
@@ -1260,7 +1270,7 @@ class "SecureActionButton" (function(_ENV)
     property "ActionButtonGroup"{ default = _GlobalGroup, handler = SetActionButtonGroup }
 
     --- The action type
-    property "ActionType"       { set = false, field = "__IFActionHandler_Kind" }
+    property "ActionType"       { set = false, field = "__IFActionHandler_Kind", default = "empty" }
 
     --- the action content
     property "ActionTarget"     { set = false, field = "__IFActionHandler_Target" }
@@ -1271,32 +1281,15 @@ class "SecureActionButton" (function(_ENV)
     --- The gametool tip anchor
     property "GameTooltipAnchor"{ type = AnchorType }
 
+    --- Whether use custom flyout logic
+    property "IsCustomFlyout"   { type = Boolean }
+
     ------------------------------------------------------
     --               Observable Property                --
     ------------------------------------------------------
-    --- The action button's flyout direction: TOP, RIGHT, BOTTOM, LEFT
-    __Observable__()
-    property "FlyoutDirection"  {
-        type                    = FramePoint,
-        set                     = function(self, dir)
-            if dir == "TOP" or dir == "BOTTOM" or dir == "LEFT" or dir == "RIGHT" then
-                self:SetAttribute("flyoutDirection", dir)
-            else
-                self:SetAttribute("flyoutDirection", "TOP")
-            end
-        end,
-        get                     = function(self)
-            return self:GetAttribute("flyoutDirection") or "TOP"
-        end
-    }
-
     --- Whether show the button grid
     __Observable__()
     property "GridVisible"      { type = Boolean }
-
-    --- Whether the button is actived
-    __Observable__()
-    property "IsActived"        { type = Boolean }
 
     --- Whether the button is usable
     __Observable__()
@@ -1316,11 +1309,11 @@ class "SecureActionButton" (function(_ENV)
 
     --- Whether the action is auto attack or auto repeat
     __Observable__()
-    property "CanFlashing"      { type = Boolean }
+    property "IsAutoAttack"     { type = Boolean }
 
-    --- Whether show the flashing
+    --- Whether show the IsAutoAttacking
     __Observable__()
-    property "Flashing"         { type = Boolean }
+    property "IsAutoAttacking"  { type = Boolean }
 
     --- Whether show the overlay glow
     __Observable__()
@@ -1328,7 +1321,11 @@ class "SecureActionButton" (function(_ENV)
 
     --- Whether the target is in range
     __Observable__()
-    property "InRange"          { type = Boolean }
+    property "InRange"          { type = Any }
+
+    --- The action button's flyout direction: TOP, RIGHT, BOTTOM, LEFT
+    __Observable__()
+    property "FlyoutDirection"  { type = FlyoutDirection, default = "TOP" }
 
     --- Whether the action is flyout
     __Observable__()
@@ -1348,7 +1345,7 @@ class "SecureActionButton" (function(_ENV)
 
     --- The icon of the action
     __Observable__()
-    property "Icon"             { type = Boolean }
+    property "Icon"             { type = Any }
 
     --- Whether the action is an equipped item
     __Observable__()
@@ -1385,6 +1382,9 @@ class "SecureActionButton" (function(_ENV)
         end
     }
 
+    ------------------------------------------------------
+    --                     Property                     --
+    ------------------------------------------------------
     --- Whether only bind keys when the button is shown
     property "AutoKeyBinding"   { type = Boolean, handler = function(self, flag)
             self:SetAttribute("autoKeyBinding", flag and true or nil)
@@ -1445,6 +1445,8 @@ class "SecureActionButton" (function(_ENV)
     end
 
     function UpdateTooltip(self)
+        if not self.ActionType then return end
+
         local anchor            = self.GameTooltipAnchor
 
         if anchor then

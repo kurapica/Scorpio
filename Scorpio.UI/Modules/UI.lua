@@ -117,6 +117,14 @@ do
     }
 
     __Sealed__()
+    enum "FlyoutDirection" {
+        "TOP",
+        "BOTTOM",
+        "LEFT",
+        "RIGHT",
+    }
+
+    __Sealed__()
     enum "FrameStrata" {
         "PARENT",
         "BACKGROUND",

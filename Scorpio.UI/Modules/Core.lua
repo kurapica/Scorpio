@@ -142,7 +142,7 @@ local function applyProperty(self, prop, value)
     end
 
     if value == nil then
-        if map then map[prop]   = nil
+        if map then map[prop]   = nil end
         if prop.clear then return prop.clear(self) end
         if prop.default ~= nil then return prop.set(self, clone(prop.default, true)) end
         if prop.nilable then return prop.set(self, nil) end
@@ -155,23 +155,7 @@ local function applyProperty(self, prop, value)
             end
 
             if not map[prop] then
-                if prop.childtype then
-                    map[prop]   = Observer(function(val)
-                        if type(val) == "table" and getmetatable(val) == nil then
-                            local child, new    = prop.get(self)
-                            if child then
-                                local ok, err   = pcall(setCustomStyle, child, nil, val, 1, new)
-                                if not ok then
-                                    Error("[Scorpio.UI]Set custom style to child %q of %s failed - %s", prop.name, self:GetName(true), err)
-                                end
-                            else
-                                Error("[Scorpio.UI]Auto-gen property child %q for %s failed", prop.name, self:GetName(true))
-                            end
-                        else
-                            prop.clear(self)
-                        end
-                    end)
-                elseif prop.clear then
+                if prop.clear then
                     local clear = prop.clear
                     map[prop]   = Observer(function(val) if val ~= nil then return pset(self, val) else return clear(self) end end)
                 elseif prop.nilable then
@@ -191,6 +175,29 @@ local function applyProperty(self, prop, value)
             if map then map[prop] = nil end
             pset(self, clone(value, true))
         end
+    elseif prop.childtype and isObservable(value) then
+        if not map then
+            map                 = {}
+            _ObsProp[self]      = map
+        end
+        if not map[prop] then
+            map[prop]           = Observer(function(val)
+                if type(val) == "table" and getmetatable(val) == nil then
+                    local child, new    = prop.get(self)
+                    if child then
+                        local ok, err   = pcall(setCustomStyle, child, nil, val, 1, new)
+                        if not ok then
+                            Error("[Scorpio.UI]Set custom style to child %q of %s failed - %s", prop.name, self:GetName(true), err)
+                        end
+                    else
+                        Error("[Scorpio.UI]Auto-gen property child %q for %s failed", prop.name, self:GetName(true))
+                    end
+                else
+                    prop.clear(self)
+                end
+            end)
+        end
+        value:Subscribe(map[prop])
     end
 end
 
@@ -610,10 +617,7 @@ local function saveSkinSettings(classes, paths, container, settings)
         elseif props then
             name                = strlower(name)
             local prop          = props[name]
-
-            if not prop then
-                throw(strformat("The %q isn't a valid property for %s", name, tostring(class)))
-            end
+            if not prop then throw(strformat("The %q isn't a valid property for %s", name, tostring(class))) end
 
             if prop.childtype then
                 container[name] = true -- So we can easily track the child property settings

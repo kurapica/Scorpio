@@ -667,13 +667,111 @@ do
         set             = animateTexCoords,
     }
 
-    --- Rotate, only works for 0, 90, 180, 270
+    --- Rotate degree
     UI.Property         {
         name            = "RotateDegree",
         type            = Number,
         require         = Texture,
-        clear           = ClearClampedTextureRotation,
-        set             = SetClampedTextureRotation,
+        clear           = function(self)
+            if self.__OriginTexCoord then
+                self:SetTexCoord(unpack( self.__OriginTexCoord))
+                self:SetSize(self.__OriginWidth, self.__OriginHeight)
+
+                self.__OriginTexCoord   = nil
+                self.__OriginWidth      = nil
+                self.__OriginHeight     = nil
+            end
+        end,
+        set             = function(self, degree)
+            local radian= math.rad(degree or 0)
+
+            if not self.__OriginTexCoord then
+                self.__OriginTexCoord   = { self:GetTexCoord() }
+                self.__OriginWidth      = self:GetWidth()
+                self.__OriginHeight     = self:GetHeight()
+            end
+
+            while radian < 0 do radian  = radian + 2 * math.pi end
+            radian      = radian % (2 * math.pi)
+
+            local angle = radian % (math.pi /2)
+
+            local left  = self.__OriginTexCoord[1]
+            local top   = self.__OriginTexCoord[2]
+            local right = self.__OriginTexCoord[7]
+            local bottom= self.__OriginTexCoord[8]
+
+            local dy    = self.__OriginWidth * math.cos(angle) * math.sin(angle) * (bottom-top) / self.__OriginHeight
+            local dx    = self.__OriginHeight * math.cos(angle) * math.sin(angle) * (right - left) / self.__OriginWidth
+            local ox    = math.cos(angle) * math.cos(angle) * (right-left)
+            local oy    = math.cos(angle) * math.cos(angle) * (bottom-top)
+
+            local newWidth  = self.__OriginWidth*math.cos(angle) + self.__OriginHeight*math.sin(angle)
+            local newHeight = self.__OriginWidth*math.sin(angle) + self.__OriginHeight*math.cos(angle)
+
+            local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy
+
+            if radian < math.pi / 2 then
+                -- 0 ~ 90
+                ULx     = left - dx
+                ULy     = bottom - oy
+
+                LLx     = right - ox
+                LLy     = bottom + dy
+
+                URx     = left + ox
+                URy     = top - dy
+
+                LRx     = right + dx
+                LRy     = top + oy
+            elseif radian < math.pi then
+                -- 90 ~ 180
+                URx     = left - dx
+                URy     = bottom - oy
+
+                ULx     = right - ox
+                ULy     = bottom + dy
+
+                LRx     = left + ox
+                LRy     = top - dy
+
+                LLx     = right + dx
+                LLy     = top + oy
+
+                newHeight, newWidth = newWidth, newHeight
+            elseif radian < 3 * math.pi / 2 then
+                -- 180 ~ 270
+                LRx     = left - dx
+                LRy     = bottom - oy
+
+                URx     = right - ox
+                URy     = bottom + dy
+
+                LLx     = left + ox
+                LLy     = top - dy
+
+                ULx     = right + dx
+                ULy     = top + oy
+            else
+                -- 270 ~ 360
+                LLx     = left - dx
+                LLy     = bottom - oy
+
+                LRx     = right - ox
+                LRy     = bottom + dy
+
+                ULx     = left + ox
+                ULy     = top - dy
+
+                URx     = right + dx
+                URy     = top + oy
+
+                newHeight, newWidth = newWidth, newHeight
+            end
+
+            self:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
+            self:SetSize(newWidth, newHeight)
+        end,
     }
 end
 

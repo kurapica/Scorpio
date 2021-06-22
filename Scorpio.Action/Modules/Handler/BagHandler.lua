@@ -255,7 +255,7 @@ function handler:IsActivedAction()
     local flag                  = containers and containers[1] and containers[1].Visible
     if not flag and _ContainerMap[100] then
         for _, container in ipairs(_ContainerMap[100]) do
-            if container.ID == id and container.Visible then
+            if container:GetID() == id and container.Visible then
                 return true
             end
         end
