@@ -550,7 +550,7 @@ do
 
     __Sealed__()
     struct "TextureType" {
-        { name = "file",        type = String + Number,  require = true },
+        { name = "file",        type = String + Number },
         { name = "color",       type = ColorType },
     }
 

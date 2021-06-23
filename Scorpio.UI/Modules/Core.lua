@@ -47,8 +47,9 @@ local _PropertyChildName        = setmetatable({}, META_WEAKKEY)
 local _PropertyChildMap         = setmetatable({}, { __index = function(self, prop) local val = setmetatable({}, META_WEAKALL) rawset(self, prop, val) return val end })
 local _PropertyChildRecycle     = setmetatable({}, {
     __index                     = function(self, type)
-        if type == AnimationGroup or type == ControlPoint or isSubType(type, Animation) then
+        if isSubType(type, AnimationGroup) or isSubType(type, ControlPoint) or isSubType(type, Animation) then
             -- No recycle for the animation type, since they can't change their parent
+            -- No recycle to the mask texture, it's very special since its parent should be the texture's parent
             rawset(self, type, false)
             return false
         else
@@ -110,7 +111,7 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
 
         -- Scan the class's property
         for name, feature in Class.GetFeatures(cls) do
-            if _Prop.Validate(feature) and not _Prop.IsStatic(feature) and _Prop.IsWritable(feature) then
+            if _Prop.Validate(feature) and not _Prop.IsStatic(feature) and _Prop.IsWritable(feature) and not _Prop.IsIndexer(feature) and not __Observable__.IsObservableProperty(feature) then
                 Trace("[Scorpio.UI]Define Property %s for %s", name, tostring(cls))
 
                 local ptype     = _Prop.GetType(feature)
@@ -1247,6 +1248,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
             local childtype     = self.childtype
             local set           = self.set
             local nilable       = self.nilable
+            local clear         = self.clear
             local childname     = strlower(self.name)
 
             setting.get         = function(self, try)
@@ -1281,7 +1283,11 @@ __Sealed__() struct "Scorpio.UI.Property" {
                     _PropertyChildMap[setting][self] = nil
                 end
 
-                if nilable and set then set(self, nil) end
+                if clear then
+                    clear(self, child)
+                elseif nilable and set then
+                    set(self, nil)
+                end
             end
         end
 
@@ -1719,10 +1725,21 @@ local function buildTempStyle(frame)
                         if prop == CHILD_SETTING then
                             for name in pairs(value) do
                                 children[name]      = true
+
+                                if styles[name] and styles[name] ~= true and isObservable(styles[name]) then
+                                    -- So don't create the property child dynamicly
+                                    styles[name]    = true
+                                end
                             end
                         else
                             if value ~= CLEAR or styles[prop] == nil then
                                 styles[prop]        = value
+
+                                -- Check childtype
+                                if props[prop].childtype and isObservable(value) then
+                                    -- So we need create the property child dynamicly
+                                    children[prop]  = nil
+                                end
 
                                 -- Check override
                                 if props[prop].override then
@@ -1760,6 +1777,11 @@ local function buildTempStyle(frame)
             if value ~= CLEAR or styles[prop] == nil then
                 styles[prop]                = value
 
+                -- Check dynamic property child
+                if props[prop].childtype and isObservable(value) then
+                    children[prop]          = nil
+                end
+
                 -- Check override
                 if props[prop].override then
                     if value ~= CLEAR then
@@ -1791,7 +1813,9 @@ local function buildTempStyle(frame)
                 for prop, value in pairs(default) do
                     if prop == CHILD_SETTING then
                         for name in pairs(value) do
-                            children[name]  = true
+                            if not isObservable(styles[name]) then
+                                children[name] = true
+                            end
                         end
                     elseif styles[prop] == nil or styles[prop] == CLEAR then
                         local noOverride    = true

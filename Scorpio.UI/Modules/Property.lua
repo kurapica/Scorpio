@@ -254,7 +254,7 @@ do
 
     UI.Property         {
         name            = "SubLevel",
-        type            = NaturalNumber,
+        type            = Integer,
         require         = { Texture, FontString, Line },
         default         = 0,
         depends         = { "DrawLayer" },
@@ -666,6 +666,18 @@ do
         nilable         = true,
         set             = animateTexCoords,
     }
+
+    --- The mask texture
+    for i = 0, 3 do
+        UI.Property     {
+            name        = "MaskTexture" .. (i == 0 and "" or i),
+            type        = MaskTexture,
+            childtype   = MaskTexture,
+            require     = { Frame, Texture },
+            clear       = function(self, mask) return self.RemoveMaskTexture and self:RemoveMaskTexture(mask) end,
+            set         = function(self, mask) return self.AddMaskTexture and self:AddMaskTexture(mask) end,
+        }
+    end
 
     --- Rotate degree
     UI.Property         {
@@ -1595,7 +1607,7 @@ do
         name            = "BlingTexture",
         type            = TextureType,
         require         = Cooldown,
-        set             = function(self, val) if val.color then self:SetBlingTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetBlingTexture(val.file) end end,
+        set             = function(self, val) if val.color and val.file then self:SetBlingTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) elseif val.color then self:SetBlingTexture(val.color.r, val.color.g, val.color.b, val.color.a) else self:SetBlingTexture(val.file) end end,
     }
 
     --- the duration currently shown by the cooldown frame in milliseconds
@@ -1653,7 +1665,7 @@ do
         name            = "EdgeTexture",
         type            = TextureType,
         require         = Cooldown,
-        set             = function(self, val) if val.color then self:SetEdgeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetEdgeTexture(val.file) end end,
+        set             = function(self, val) if val.color and val.file then self:SetEdgeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) elseif val.color then self:SetEdgeTexture(val.color.r, val.color.g, val.color.b, val.color.a) else self:SetEdgeTexture(val.file) end end,
     }
 
     --- Whether hide count down numbers
@@ -1689,7 +1701,7 @@ do
         name            = "SwipeTexture",
         type            = TextureType,
         require         = Cooldown,
-        set             = function(self, val) if val.color then self:SetSwipeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) else self:SetSwipeTexture(val.file) end end,
+        set             = function(self, val) if val.color and val.file then self:SetSwipeTexture(val.file, val.color.r, val.color.g, val.color.b, val.color.a) elseif val.color then self:SetSwipeTexture(val.color.r, val.color.g, val.color.b, val.color.a) else self:SetSwipeTexture(val.file) end end,
     }
 
     --- Whether use circular edge

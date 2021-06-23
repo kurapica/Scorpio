@@ -120,7 +120,6 @@ class "SpellActivationAlert" (function(_ENV)
     end
 
     local function OnFinished(self)
-        print(self:GetName(), "Finished")
         return recycle(self)
     end
 
@@ -131,10 +130,6 @@ class "SpellActivationAlert" (function(_ENV)
     function recycle:OnPush(alert)
         alert:SetParent(hiddenFrame)
         alert.AinmationState    = "STOP"
-    end
-
-    function recycle:OnPop(alert)
-        print("Use Alert " .. alert:GetName())
     end
 
     ------------------------------------------------------
@@ -371,6 +366,37 @@ local isInState                 = function(s) return s == "IN" end
 local isOutState                = function(s) return s == "OUT" end
 local isPlaying                 = function(s) return s ~= "STOP" and antAnimate or nil end
 local flyoutArrowLocation       = { TOP = { Anchor("BOTTOM", 0, 0, nil, "TOP") }, BOTTOM = { Anchor("TOP", 0, 0, nil, "BOTTOM") }, LEFT = { Anchor("RIGHT", 0, 0, nil, "LEFT") }, RIGHT = { Anchor("LEFT", 0, 0, nil, "RIGHT") } }
+local replaceKey                = {
+    ['ALT']                     = 'A',
+    ['CTRL']                    = 'C',
+    ['SHIFT']                   = 'S',
+    ['NUMPAD']                  = 'N',
+    ['PLUS']                    = '+',
+    ['MINUS']                   = '-',
+    ['MULTIPLY']                = '*',
+    ['DIVIDE']                  = '/',
+    ['BACKSPACE']               = 'BAK',
+    ['BUTTON']                  = 'B',
+    ['CAPSLOCK']                = 'CAPS',
+    ['CLEAR']                   = 'CLR',
+    ['DELETE']                  = 'DEL',
+    ['END']                     = 'END',
+    ['HOME']                    = 'HME',
+    ['INSERT']                  = 'INS',
+    ['MOUSEWHEELDOWN']          = 'WD',
+    ['MOUSEWHEELUP']            = 'WU',
+    ['NUMLOCK']                 = 'NL',
+    ['PAGEDOWN']                = 'PD',
+    ['PAGEUP']                  = 'PU',
+    ['SCROLLLOCK']              = 'SL',
+    ['SPACEBAR']                = 'SP',
+    ['SPACE']                   = 'SP',
+    ['TAB']                     = '↦',
+    ['DOWNARROW']               = '↓',
+    ['LEFTARROW']               = '←',
+    ['RIGHTARROW']              = '→',
+    ['UPARROW']                 = '↑',
+}
 
 Style.UpdateSkin("Default",     {
     [SpellActivationAlert]      = {
@@ -621,7 +647,7 @@ Style.UpdateSkin("Default",     {
             justifyH            = "RIGHT",
             height              = 10,
             location            = { Anchor("TOPLEFT", 1, -3), Anchor("TOPRIGHT", -1, -3) },
-            text                = Wow.FromUIProperty("HotKey"):Map(function(val) return val or RANGE_INDICATOR end),
+            text                = Wow.FromUIProperty("HotKey"):Map(function(val) return val and val:upper():gsub(' ', ''):gsub("%a+", replaceKey) or RANGE_INDICATOR end),
             vertexColor         = Wow.FromUIProperty("InRange"):Map(function(ir) return ir == false and Color.RED or Color.WHITE end),
             visible             = Wow.FromUIProperty("HotKey", "InRange"):Map(function(key, ir) return key or ir ~= nil end),
         },

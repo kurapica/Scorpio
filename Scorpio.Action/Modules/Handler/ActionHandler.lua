@@ -80,6 +80,22 @@ handler                         = ActionTypeHandler {
 ------------------------------------------------------
 -- System Event Handler
 ------------------------------------------------------
+function OnEnable()
+    OnEnable                    = nil
+
+    Wow.FromEvent("ACTIONBAR_UPDATE_COOLDOWN"):Next():Subscribe(function()
+        return handler:RefreshCooldown()
+    end)
+
+    Wow.FromEvent("ACTIONBAR_UPDATE_STATE"):Next():Subscribe(function()
+        return handler:RefreshButtonState()
+    end)
+
+    Wow.FromEvent("ACTIONBAR_UPDATE_USABLE"):Next():Subscribe(function()
+        return handler:RefreshUsable()
+    end)
+end
+
 __SystemEvent__()
 function ACTIONBAR_SLOT_CHANGED(slot)
     if not slot or slot == 0 then
@@ -91,21 +107,6 @@ function ACTIONBAR_SLOT_CHANGED(slot)
             end
         end
     end
-end
-
-__SystemEvent__()
-function ACTIONBAR_UPDATE_STATE()
-    return handler:RefreshButtonState()
-end
-
-__SystemEvent__()
-function ACTIONBAR_UPDATE_USABLE(self)
-    return handler:RefreshUsable()
-end
-
-__SystemEvent__()
-function ACTIONBAR_UPDATE_COOLDOWN(self)
-    return handler:RefreshCooldown()
 end
 
 __SystemEvent__()

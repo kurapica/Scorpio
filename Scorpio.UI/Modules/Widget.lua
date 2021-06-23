@@ -191,7 +191,45 @@ __Sealed__() class "FontString"             (function(_ENV) inherit(LayoutFrame)
 __Sealed__() class "Texture"                (function(_ENV) inherit(LayoutFrame)__new = function (_, name, parent, layer, inherits, sublevel) return parent:CreateTexture(nil, layer or "ARTWORK", inherits, sublevel or 0) end InstallPrototype(_ENV, nil, _G.WorldStateScoreFrameSeparator) end)
 
 --- MaskTextures are used to mask other textures
-__Sealed__() class "MaskTexture"            (function(_ENV) inherit(Texture)    __new = function (_, name, parent, layer, inherits, sublevel) return parent:CreateMaskTexture(nil, layer or "ARTWORK", inherits, sublevel or 0) end InstallPrototype(_ENV) end)
+__Sealed__() class "MaskTexture"            (function(_ENV)
+    inherit(Texture)
+
+    local _OriginalParent                   = {}
+
+    function __new(_, name, parent, layer, inherits, sublevel)
+        local originalParent                = parent
+        while parent and not parent.CreateMaskTexture do parent = parent:GetParent() end
+
+        local self                          = parent and parent:CreateMaskTexture(nil, layer or "ARTWORK", inherits, sublevel or 0)
+        if self and parent ~= originalParent then
+            _OriginalParent[self]           = originalParent
+        end
+
+        return self
+    end
+
+    InstallPrototype(_ENV)
+
+    local oldGetParent                      = _ENV.GetParent
+    local oldSetParent                      = _ENV.SetParent
+
+    function GetParent(self)
+        return _OriginalParent[self] or oldGetParent(self)
+    end
+
+    function SetParent(self, parent)
+        local originalParent                = parent
+        while parent and not parent.CreateMaskTexture do parent = parent:GetParent() end
+
+        if originalParent ~= parent then
+            _OriginalParent[self]           = originalParent
+        else
+            _OriginalParent[self]           = nil
+        end
+
+        return oldSetParent(self, parent)
+    end
+end)
 
 --- Lines are used to link two anchor points.
 __Sealed__() class "Line"                   (function(_ENV) inherit(UIObject)   __new = function (_, name, parent, ...) return parent:CreateLine(nil, ...) end InstallPrototype(_ENV) end)

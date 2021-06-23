@@ -34,6 +34,8 @@ local _OnTooltipButton
 local _KeyBindingMap            = {}
 local _Locale                   = _Locale
 
+local _KeyBindingMode           = false
+
 IsSpellOverlayed                = _G.IsSpellOverlayed or Toolset.fakefunc
 
 ------------------------------------------------------
@@ -1107,6 +1109,8 @@ do
     end
 
     function OnEnter(self)
+        if _KeyBindingMode then return true end
+
         _OnTooltipButton        = self
         return self:UpdateTooltip()
     end
@@ -1217,7 +1221,6 @@ class "SecureActionButton" (function(_ENV)
     }
 
     local _KeyBindingMask       = Mask("Scorpio_SecureActionButton_KeyBindingMask")
-    local _KeyBindingMode       = false
 
     _KeyBindingMask:Hide()
     _KeyBindingMask.EnableKeyBinding = true
@@ -1417,11 +1420,38 @@ class "SecureActionButton" (function(_ENV)
     function StartKeyBinding()
         _KeyBindingMode         = true
 
+        Next(function()
+            local current
+
+            while _KeyBindingMode do
+                local button    = GetMouseFocus()
+
+                if button then
+                    button      = GetProxyUI(button)
+
+                    if IsObjectType(button, SecureActionButton) then
+                        _KeyBindingMask:SetParent(button)
+                        _KeyBindingMask:SetBindingKey(button.HotKey)
+                        _KeyBindingMask:Show()
+
+                        while button:IsMouseOver() and _KeyBindingMode do
+                            Next()
+                        end
+
+                        _KeyBindingMask:Hide()
+                        _KeyBindingMask:SetParent(_ManagerFrame)
+                    end
+                end
+
+                Next()
+            end
+        end)
+
         Alert(_Locale["Confirm when you finished the key binding"])
         _KeyBindingMode         = false
 
         _KeyBindingMask:Hide()
-        _KeyBindingMask:SetParent(nil)
+        _KeyBindingMask:SetParent(_ManagerFrame)
     end
 
 
@@ -1467,37 +1497,8 @@ class "SecureActionButton" (function(_ENV)
         GameTooltip:Show()
     end
 
-    ------------------------------------------------------
-    --                   Initializer                    --
-    ------------------------------------------------------
-    local function OnEnter(self)
-        if not _KeyBindingMode then return end
-
-        _KeyBindingMask:SetParent(self)
-        _KeyBindingMask:SetBindingKey(self.HotKey)
-        _KeyBindingMask:Show()
-
-        return true
-    end
-
-    local function OnLeave(self)
-        if not _KeyBindingMode then return end
-
-        if _KeyBindingMask:GetParent() == self then
-            _KeyBindingMask:Hide()
-            _KeyBindingMask:SetParent(nil)
-        end
-    end
-
     __Sealed__()
-    ISecureActionButton         = interface {
-        __init                  = function(self)
-            self.OnEnter        = self.OnEnter + OnEnter
-            self.OnLeave        = self.OnLeave + OnLeave
-
-            SetupActionButton(self)
-        end
-    }
+    ISecureActionButton = interface { __init = SetupActionButton }
 
     extend(ISecureActionButton)
 end)
