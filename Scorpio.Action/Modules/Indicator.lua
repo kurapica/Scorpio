@@ -571,7 +571,7 @@ Style.UpdateSkin("Default",     {
 
     [SecureActionButton]        = {
         size                    = Size(36, 36),
-        --alpha                   = Wow.FromUIProperty("GridVisible"):Map(function(v) return v and 1 or 0),
+        alpha                   = Wow.FromUIProperty("GridVisible", "GridAlwaysShow"):Map(function(v, a) return (v or a) and 1 or 0 end),
 
         NormalTexture           = {
             file                = Wow.FromUIProperty("HasAction"):Map(function(v) return v and [[Interface\Buttons\UI-Quickslot2]] or [[Interface\Buttons\UI-Quickslot]] end),

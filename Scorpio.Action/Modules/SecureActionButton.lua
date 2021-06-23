@@ -1291,6 +1291,10 @@ class "SecureActionButton" (function(_ENV)
     __Observable__()
     property "GridVisible"      { type = Boolean }
 
+    --- Whether always show the button grid
+    __Observable__()
+    property "GridAlwaysShow"   { type = Boolean }
+
     --- Whether the button is usable
     __Observable__()
     property "IsUsable"         { type = Boolean }
@@ -1489,7 +1493,7 @@ class "SecureActionButton" (function(_ENV)
     ISecureActionButton         = interface {
         __init                  = function(self)
             self.OnEnter        = self.OnEnter + OnEnter
-            self.OnLeave        = self.OnEnter + OnLeave
+            self.OnLeave        = self.OnLeave + OnLeave
 
             SetupActionButton(self)
         end
