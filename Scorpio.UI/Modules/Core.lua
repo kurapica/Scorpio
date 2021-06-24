@@ -3,10 +3,11 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2020/07/13                              --
+-- Update Date :  2021/06/24                              --
 --========================================================--
 
 --========================================================--
-Scorpio           "Scorpio.UI.Core"                  "1.0.0"
+Scorpio           "Scorpio.UI.Core"                  "1.1.0"
 --========================================================--
 
 import "System.Reactive"
@@ -1680,7 +1681,7 @@ local function clearStylesOnFrame(frame, styles)
     _Recycle(wipe(styles))
 end
 
-local function buildTempStyle(frame)
+local function buildTempStyle(frame, forClear)
     local styles                            = _Recycle()
     local paths                             = _Recycle()
     local children                          = _Recycle()
@@ -1736,9 +1737,13 @@ local function buildTempStyle(frame)
                                 styles[prop]        = value
 
                                 -- Check childtype
-                                if props[prop].childtype and isObservable(value) then
+                                if props[prop].childtype then
                                     -- So we need create the property child dynamicly
-                                    children[prop]  = nil
+                                    if forClear then
+                                        children[prop]      = true
+                                    elseif isObservable(value) then
+                                        children[prop]      = nil
+                                    end
                                 end
 
                                 -- Check override
@@ -1778,8 +1783,12 @@ local function buildTempStyle(frame)
                 styles[prop]                = value
 
                 -- Check dynamic property child
-                if props[prop].childtype and isObservable(value) then
-                    children[prop]          = nil
+                if props[prop].childtype then
+                    if forClear then
+                        children[prop]      = true
+                    elseif isObservable(value) then
+                        children[prop]      = nil
+                    end
                 end
 
                 -- Check override
@@ -1813,12 +1822,17 @@ local function buildTempStyle(frame)
                 for prop, value in pairs(default) do
                     if prop == CHILD_SETTING then
                         for name in pairs(value) do
-                            if not isObservable(styles[name]) then
+                            if forClear or not isObservable(styles[name]) then
                                 children[name] = true
                             end
                         end
                     elseif styles[prop] == nil or styles[prop] == CLEAR then
                         local noOverride    = true
+
+                        -- Check property child
+                        if forClear and props[prop].childtype then
+                            children[prop]  = true
+                        end
 
                         -- Check override
                         if props[prop].override then
@@ -1855,7 +1869,7 @@ local function clearStyle(frame)
 
         Trace("[Scorpio.UI]Clear Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-        local styles, children              = buildTempStyle(frame)
+        local styles, children              = buildTempStyle(frame, true)
 
         -- Clear the children
         for name in pairs(children) do
@@ -1970,10 +1984,12 @@ function CollectPropertyChildService()
                 clearStyle(frame)
             end
 
-            frame                           = _ClearQueue:Dequeue()
-
             Continue()
+            frame                           = _ClearQueue:Dequeue()
         end
+
+        -- For safe
+        for k, v in pairs(_ClearQueue) do if v == true then _ClearQueue[k] = nil end end
 
         NextEvent("SCORPIO_UI_COLLECT_PROPERTY_CHILD")
     end
