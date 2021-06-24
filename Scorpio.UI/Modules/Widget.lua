@@ -194,6 +194,8 @@ __Sealed__() class "Texture"                (function(_ENV) inherit(LayoutFrame)
 __Sealed__() class "MaskTexture"            (function(_ENV)
     inherit(Texture)
 
+    -- Since the mask texture is applied to the texture, but created on texture's owner
+    -- We need expand the SetParent/GetParent to support that
     local _OriginalParent                   = {}
 
     function __new(_, name, parent, layer, inherits, sublevel)
