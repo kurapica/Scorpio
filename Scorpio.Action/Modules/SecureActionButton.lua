@@ -319,6 +319,8 @@ interface "ActionTypeHandler" (function(_ENV)
         self:RefreshOverlayGlow(button)
         self:Refresh(button)
 
+        button:Refresh()
+
         if _OnTooltipButton == button then
             return button:UpdateTooltip()
         end
@@ -1476,6 +1478,10 @@ class "SecureActionButton" (function(_ENV)
     --- Get action for the actionbutton
     function GetAction(self)
         return self.ActionType, self.ActionTarget, self.ActionDetail
+    end
+
+    --- Be called when the action content is changed
+    function Refresh(self)
     end
 
     function UpdateTooltip(self)

@@ -108,7 +108,7 @@ class "SpellActivationAlert" (function(_ENV)
     --                     Helpers                      --
     ------------------------------------------------------
     local hiddenFrame           = CreateFrame("Frame") hiddenFrame:Hide()
-    local recycle               = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d")
+    local recycle               = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d", hiddenFrame)
 
     local function OnHide(self)
         self.AinmationState     = "STOP"
@@ -120,10 +120,12 @@ class "SpellActivationAlert" (function(_ENV)
     end
 
     local function OnFinished(self)
+        print("OnFinished", self:GetName())
         return recycle(self)
     end
 
     function recycle:OnInit(alert)
+        print("Init alert")
         alert.OnFinished        = OnFinished
     end
 
@@ -135,7 +137,7 @@ class "SpellActivationAlert" (function(_ENV)
     ------------------------------------------------------
     --                 Static Property                  --
     ------------------------------------------------------
-    __Static__() property "Pool" { set = false, default = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d") }
+    __Static__() property "Pool" { set = false, default = recycle }
 
     ------------------------------------------------------
     --               Observable Property                --
@@ -271,7 +273,7 @@ UI.Property                     {
         local alert             = self.__SpellActivationAlert
         if value then
             if not alert then
-                local alert     = SpellActivationAlert.Pool()
+                alert           = SpellActivationAlert.Pool()
                 local w, h      = self:GetSize()
 
                 alert:SetParent(self)

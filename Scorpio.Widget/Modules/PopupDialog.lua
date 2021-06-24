@@ -433,7 +433,7 @@ Style.UpdateSkin("Default",     {
         size                    = Size(320, 120),
         resizable               = false,
         frameStrata             = "FULLSCREEN_DIALOG",
-        location                = { Anchor("CENTER") },
+        location                = { Anchor("TOP", 0, -120) },
 
         -- Childs
         Message                 = {
@@ -451,7 +451,7 @@ Style.UpdateSkin("Default",     {
         size                    = Size(360, 130),
         resizable               = false,
         frameStrata             = "FULLSCREEN_DIALOG",
-        location                = { Anchor("CENTER") },
+        location                = { Anchor("TOP", 0, -120) },
 
         -- Childs
         Message                 = {
@@ -478,7 +478,7 @@ Style.UpdateSkin("Default",     {
         size                    = Size(360, 100),
         resizable               = false,
         frameStrata             = "FULLSCREEN_DIALOG",
-        location                = { Anchor("CENTER") },
+        location                = { Anchor("TOP", 0, -120) },
 
         -- Childs
         Message                 = {
@@ -500,7 +500,7 @@ Style.UpdateSkin("Default",     {
         size                    = Size(360, 130),
         resizable               = false,
         frameStrata             = "FULLSCREEN_DIALOG",
-        location                = { Anchor("CENTER") },
+        location                = { Anchor("TOP", 0, -120) },
 
         -- Childs
         Message                 = {
@@ -526,7 +526,7 @@ Style.UpdateSkin("Default",     {
         size                    = Size(560, 430),
         resizable               = false,
         frameStrata             = "FULLSCREEN_DIALOG",
-        location                = { Anchor("CENTER") },
+        location                = { Anchor("TOP", 0, -120) },
 
         -- Childs
         Message                 = {
