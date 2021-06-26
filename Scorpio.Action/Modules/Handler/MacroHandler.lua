@@ -45,18 +45,3 @@ end
 function handler:GetActionTexture()
     return (select(2, GetMacroInfo(self.ActionTarget)))
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'macro'
-    property "Macro" {
-        type                    = String + Number,
-        set                     = function(self, value) self:SetAction("macro", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "macro" and self:GetAttribute("macro") or nil end,
-    }
-end)

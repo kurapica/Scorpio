@@ -53,26 +53,3 @@ function handler:IsActivedAction()
     local target                = self.ActionTarget
     return target and target >= 1 and target <= NUM_WORLD_RAID_MARKERS and IsRaidMarkerActive(target)
 end
-
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'worldmarker'
-    property "WorldMarker"      {
-        type                    = Number,
-        set                     = function(self, value) self:SetAction("worldmarker", value, self.WorldMarkerActionType) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "worldmarker" and tonumber(self:GetAttribute("marker")) or nil end,
-    }
-
-    --- The world marker action type
-    property "WorldMarkerActionType" {
-        type                    = WorldMarkerActionType,
-        set                     = function (self, type) self:SetAction("worldmarker", self.WorldMarker, type) end,
-        get                     = function (self) return self:GetAttribute("actiontype") == "worldmarker" and self:GetAttribute("action") or "toggle" end,
-    }
-end)

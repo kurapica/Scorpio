@@ -11,6 +11,8 @@ Scorpio        "Scorpio.Secure.BagHandler"           "1.0.0"
 
 __Sealed__() enum "BagSlotCountStyle" { "Hidden", "Empty", "Total", "AllEmpty", "All" }
 
+_Enabled                        = false
+
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -56,6 +58,8 @@ handler                         = ActionTypeHandler {
         self:SetAttribute("*macrotext*", nil)
         Manager:CallMethod("UnregisterBankBag", self:GetName())
     ]],
+
+    OnEnableChanged             = function(self, value) _Enabled = value end,
 }
 
 ------------------------------------------------------
@@ -66,6 +70,8 @@ _BagSlotMapTemplate             = "_BagSlotMap[%d] = %d"
 _, _EmptyTexture                = GetInventorySlotInfo("Bag0Slot")
 _BagSlotMap                     = {}
 _ContainerMap                   = {}
+
+_IconLocked                     = {}
 
 function OnEnable(self)
     OnEnable                    = nil
@@ -81,31 +87,11 @@ function OnEnable(self)
     end
 
     handler:RunSnippet( tblconcat(cache, ";") )
-
-    for _, btn in handler:GetIterator() do
-        local target            = tonumber(btn.ActionTarget)
-
-        if target == 0 then
-            btn:SetAttribute("*type*", "macro")
-            btn:SetAttribute("*macrotext*", "/click MainMenuBarBackpackButton")
-        elseif target and target <= 4 then
-            btn:SetAttribute("*type*", "macro")
-            btn:SetAttribute("*macrotext*", "/click CharacterBag".. tostring(target-1) .."Slot")
-        elseif target and target <= 11 then
-            btn:SetAttribute("*type*", "openbank")
-            btn:SetAttribute("_openbank", [=[ self:GetFrameRef("_Manager"):RunFor(self, [[ Manager:CallMethod("OpenBankBag", self:GetName()) ]]) ]=])
-        else
-            btn:SetAttribute("*type*", nil)
-            btn:SetAttribute("*macrotext*", nil)
-            btn:SetAttribute("_openbank", nil)
-        end
-        if target <= 4 then
-            local id    = target ~= 0 and _BagSlotMap[target] or target or false
-            IFPushItemAnim.AttachBag(btn, id)
-        end
-    end
-
     handler:RefreshActionButtons()
+
+    for i = 1, NUM_CONTAINER_FRAMES do
+        SecureActionButton.RegisterContainer(_G["ContainerFrame"..i])
+    end
 end
 
 ------------------------------------------------------
@@ -116,11 +102,9 @@ function ITEM_LOCK_CHANGED(bag, slot)
     if not slot then
         for i, map in pairs(_BagSlotMap) do
             if map == bag then
-                local flag = IsInventoryItemLocked(bag)
-                for _, btn in handler:GetIterator() do
-                    if btn.ActionTarget == i then btn.IconLocked = flag end
-                end
-                break
+                _IconLocked[i]  = IsInventoryItemLocked(bag)
+
+                return handler:RefreshIconLocked()
             end
         end
     end
@@ -128,7 +112,7 @@ end
 
 __SystemEvent__"BAG_UPDATE_DELAYED" "PLAYERBANKBAGSLOTS_CHANGED"
 function BAG_UPDATE_DELAYED()
-    handler:RefreshActionButtons()
+    return handler:RefreshActionButtons()
 end
 
 __SystemEvent__()
@@ -146,9 +130,7 @@ end
 
 __SystemEvent__()
 function INVENTORY_SEARCH_UPDATE()
-    for _, btn in handler:GetIterator() do
-        btn.ShowSearchOverlay   = IsContainerFiltered(btn.ActionTarget)
-    end
+    return handler:RefreshShowSearchOverlay()
 end
 
 __SecureMethod__() __NoCombat__()
@@ -157,17 +139,17 @@ function handler.Manager:RegisterBankBag(btnName)
 end
 
 __SecureMethod__() __NoCombat__()
-function handler:Manager:UnregisterBankBag(btnName)
+function handler.Manager:UnregisterBankBag(btnName)
     _G[btnName]:SetAttribute("_openbank",  nil)
 end
 
 __SecureMethod__()
-function handler:Manager:OpenBankBag(btnName)
+function handler.Manager:OpenBankBag(btnName)
     local button                = UI.GetProxyUI(_G[btnName])
     local bankID                = button.BagSlot
 
     if bankID and not InCombatLockdown() then
-        local inventoryID       = BankButtonIDToInvSlotID(bankID-4, 1)
+        local inventoryID       = BankButtonIDToInvSlotID(bankID - 4, 1)
         if not PutItemInBag(inventoryID) then
             -- open bag
             ToggleBag(bankID)
@@ -176,20 +158,16 @@ function handler:Manager:OpenBankBag(btnName)
 end
 
 __SecureMethod__()
-function handler:Manager:CloseContainerForSafe(id)
+function handler.Manager:CloseContainerForSafe(id)
     if id and not InCombatLockdown() then
         CloseBag(id)
     end
 end
 
 -- Overridable Methods
-function handler:Refresh()
-    local bag                   = self.ActionTarget
-
-    self.BagUsable              = bag - 4 <= GetNumBankSlots()
-    self.IconLocked             = _BagSlotMap[bag] and IsInventoryItemLocked(_BagSlotMap[bag])
+function handler:IsUsableAction()
+    return self.ActionTarget - 4 <= GetNumBankSlots()
 end
-
 
 function handler:ReceiveAction(target, detail)
     if target == 0 then
@@ -201,6 +179,14 @@ end
 
 function handler:HasAction()
     return _BagSlotMap[self.ActionTarget] and true or false
+end
+
+function handler:IsSearchOverlayShow()
+    return IsContainerFiltered(self.ActionTarget)
+end
+
+function handler:IsIconLocked()
+    return _IconLocked[self.ActionTarget] or false
 end
 
 function handler:GetActionTexture()
@@ -251,30 +237,26 @@ end
 
 function handler:IsActivedAction()
     local id                    = self.ActionTarget
-    local containers            = _ContainerMap[id]
-    local flag                  = containers and containers[1] and containers[1].Visible
-    if not flag and _ContainerMap[100] then
-        for _, container in ipairs(_ContainerMap[100]) do
-            if container:GetID() == id and container.Visible then
-                return true
-            end
+    for container in pairs(_ContainerMap) do
+        if container:GetID() == id and container:IsVisible() then
+            return true
         end
     end
-    return flag
+    return false
 end
 
 function handler:SetTooltip(tip)
-    local target = self.ActionTarget
+    local target                = self.ActionTarget
     if target == 0 then
         tip:SetText(BACKPACK_TOOLTIP, 1.0, 1.0, 1.0)
-        local keyBinding = GetBindingKey("TOGGLEBACKPACK")
+        local keyBinding        = GetBindingKey("TOGGLEBACKPACK")
         if ( keyBinding ) then
             tip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..keyBinding..")"..FONT_COLOR_CODE_CLOSE)
         end
         tip:AddLine(string.format(NUM_FREE_SLOTS, (self.__BagHandler_FreeSlots or 0)))
         tip:Show()
     elseif _BagSlotMap[target] then
-        local id = _BagSlotMap[target]
+        local id                = _BagSlotMap[target]
         if ( tip:SetInventoryItem("player", id) ) then
             if id <= 4 then
                 local bindingKey = GetBindingKey("TOGGLEBAG"..(5 -  target))
@@ -302,90 +284,24 @@ end
 -- Expand IFActionHandler
 class "SecureActionButton" (function(_ENV)
     local function OnShowOrHide(self)
-        return handler:Refresh(RefreshButtonState)
+        return handler:RefreshButtonState()
     end
 
     ------------------------------------------------------
     -- Static Method
     ------------------------------------------------------
-    __Doc__[[
-        <desc>Register container to control the bag slot button's button state</desc>
-        <param name="container">the container frame</param>
-        <param name="id" optional="true">the container index, un-register if false, use container's id if true</param>
-    ]]
-    __Static__()  __Arguments__{ Region, Argument(Number) }
-    function RegisterContainer(container, id)
-        container.OnShow = container.OnShow - OnShowOrHide
-        container.OnHide = container.OnHide - OnShowOrHide
-        for k, v in pairs(_ContainerMap) do
-            for i, c in ipairs(v) do
-                if c == container then
-                    tremove(c, i)
-                    break
-                end
-            end
-        end
+    __Static__() __Arguments__{ UI }
+    function RegisterContainer(container)
+        if _ContainerMap[container] then return end
+        _ContainerMap[container]= true
 
-        _ContainerMap[id] = _ContainerMap[id] or {}
-        tinsert(_ContainerMap[id], 1, container)
-
-        container.OnShow = container.OnShow + OnShowOrHide
-        container.OnHide = container.OnHide + OnShowOrHide
-    end
-
-    __Static__()  __Arguments__{ Region, Argument(Boolean, true, true) }
-    function RegisterContainer(container, id)
-        container.OnShow = container.OnShow - OnShowOrHide
-        container.OnHide = container.OnHide - OnShowOrHide
-        for k, v in pairs(_ContainerMap) do
-            for i, c in ipairs(v) do
-                if c == container then
-                    tremove(c, i)
-                    break
-                end
-            end
-        end
-        if id ~= false then
-            id = 100
-
-            _ContainerMap[id] = _ContainerMap[id] or {}
-            tinsert(_ContainerMap[id], container)
-
-            container.OnShow = container.OnShow + OnShowOrHide
-            container.OnHide = container.OnHide + OnShowOrHide
-        end
+        container:HookScript("OnShow", OnShowOrHide)
+        container:HookScript("OnHide", OnShowOrHide)
     end
 
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
-    __Doc__[[The action button's content if its type is 'bag']]
-    property "BagSlot" {
-        Get = function(self)
-            return self:GetAttribute("actiontype") == "bag" and tonumber(self:GetAttribute("bag"))
-        end,
-        Set = function(self, value)
-            self:SetAction("bag", value)
-        end,
-        Type = struct { 0,
-            function (value)
-                assert(type(value) == "number", "%s must be number.")
-                assert(value >= 0 and value <= 11, "%s must between [0-11]")
-                return math.floor(value)
-            end
-        },
-    }
-
-    __Doc__[[Whether the bag is usable]]
-    property "BagUsable" { Type = Boolean, Default = true }
-
-    __Doc__[[What to be shown as the count]]
-    __Handler__(RefreshCount)
-    property "BagSlotCountStyle" { Type = BagSlotCountStyle, Default = "Hidden" }
-
-    __Observable__()
-    property "ShowSearchOverlay" { set = Toolset.fakefunc }
+    --- What to be shown as the count
+    property "BagSlotCountStyle" { type = BagSlotCountStyle, default = "Hidden", handler = function(self) return handler:RefreshCount(self) end }
 end)
-
--- Init the _ContainerMap
-for i=1, NUM_CONTAINER_FRAMES do IFActionHandler.RegisterContainer(_G["ContainerFrame"..i]) end

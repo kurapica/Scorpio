@@ -47,18 +47,3 @@ end
 function handler:GetActionTexture()
     return _RaidTargetTextureMap[self.ActionTarget]
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The raidtarget index
-    property "RaidTarget" {
-        type                    = Number,
-        set                     = function(self, value) self:SetAction("raidtarget", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "raidtarget" and self:GetAttribute("raidtarget") end,
-    }
-end)

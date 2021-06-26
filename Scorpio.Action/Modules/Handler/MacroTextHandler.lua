@@ -43,16 +43,6 @@ end
 -- Extend Definitions
 ------------------------------------------------------
 class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'macrotext'
-    property "MacroText"        {
-        type                    = String,
-        set                     = function(self, value) self:SetAction("macrotext", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "macrotext" and self:GetAttribute("macrotext") or nil end,
-    }
-
     --- The custom text
     property "CustomText"       { Type = String }
 

@@ -118,18 +118,3 @@ function handler:SetTooltip(tip)
         end
     end
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'battlepet'
-    property "BattlePet" {
-        type                    = String,
-        set                     = function(self, value) self:SetAction("battlepet", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "battlepet" and self:GetAttribute("battlepet") or nil end,
-    }
-end)

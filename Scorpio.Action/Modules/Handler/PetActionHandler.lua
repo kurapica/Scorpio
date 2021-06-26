@@ -139,18 +139,3 @@ end
 function handler:IsRangeSpell()
     return true
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'pet'
-    property "PetAction" {
-        type                    = NumberNil,
-        set                     = function(self, value) self:SetAction("pet", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "pet" and tonumber(self:GetAttribute("action")) or nil end,
-    }
-end)

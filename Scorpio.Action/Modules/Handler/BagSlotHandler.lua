@@ -1,12 +1,12 @@
 --========================================================--
---             Scorpio Secure Macro Handler               --
+--             Scorpio Secure Bag Slot Handler            --
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2021/03/29                              --
 --========================================================--
 
 --========================================================--
-Scorpio        "Scorpio.Secure.MacroHandler"         "1.0.0"
+Scorpio        "Scorpio.Secure.BagSlotHandler"       "1.0.0"
 --========================================================--
 
 _Enabled                        = false
@@ -25,8 +25,8 @@ handler                         = ActionTypeHandler {
     UpdateSnippet               = [[
         self:SetAttribute("*type1", "macro")
         self:SetAttribute("*type2", "macro")
-        self:SetAttribute("*macrotext1", "/click IGAS_BagSlot_FakeItemButton LeftButton")
-        self:SetAttribute("*macrotext2", "/click IGAS_BagSlot_FakeItemButton RightButton")
+        self:SetAttribute("*macrotext1", "/click Scorpio_BagSlot_FakeItemButton LeftButton")
+        self:SetAttribute("*macrotext2", "/click Scorpio_BagSlot_FakeItemButton RightButton")
         Manager:CallMethod("RegisterBagSlot", self:GetName())
     ]],
     ClearSnippet                = [[
@@ -74,7 +74,6 @@ _BankBag                        = { BANK_CONTAINER, 5, 6, 7, 8, 9, 10, 11 }
 -- Event handler
 function OnEnable()
     OnEnable                    = nil
-
     return handler:RefreshActionButtons()
 end
 
@@ -131,6 +130,7 @@ function ITEM_LOCK_CHANGED(bag, slot)
 
         for btn, bslot in pairs(_BagCache[bag]) do
             if bslot == slot then
+                -- Do it directly
                 btn.IconLocked  = locked
             end
         end
@@ -152,7 +152,7 @@ __SystemEvent__()
 function INVENTORY_SEARCH_UPDATE()
     for bag, cache in pairs(_BagCache) do
         for btn, slot in pairs(cache) do
-            btn.IsSearching     = select(8, GetContainerItemInfo(bag, slot))
+            handler:RefreshShowSearchOverlay(btn)
         end
     end
 end
@@ -178,9 +178,9 @@ function MERCHANT_SHOW()
                 local texture, itemCount, locked, quality, readable, _, _, isFiltered, noValue, itemID = GetContainerItemInfo(bag, slot)
 
                 if itemID then
-                    btn.ShowJunkIcon = (quality == LE_ITEM_QUALITY_POOR and not noValue)
+                    btn.IsJunk  = (quality == LE_ITEM_QUALITY_POOR and not noValue)
                 else
-                    btn.ShowJunkIcon = false
+                    btn.IsJunk  = false
                 end
             end
         end
@@ -192,7 +192,7 @@ function MERCHANT_CLOSED()
     for _, bag in ipairs(_ContainerBag) do
         if _BagCache[bag] then
             for btn, slot in pairs(_BagCache[bag]) do
-                btn.ShowJunkIcon = false
+                btn.IsJunk      = false
             end
         end
     end
@@ -222,22 +222,35 @@ function PLAYERREAGENTBANKSLOTS_CHANGED(slot)
     end
 end
 
-local ITEM_UPGRADE_CHECK_TIME = 0.5
-local function RefreshUpgradeItem(bag, slot)
-    local itemIsUpgrade = IsContainerItemAnUpgrade(bag, slot)
+if _G.IsContainerItemAnUpgrade then
+    function RefreshUpgradeItem(self, bag, slot)
+        local itemIsUpgrade         = IsContainerItemAnUpgrade(bag, slot)
 
-    if itemIsUpgrade == nil then
-        -- nil means not all the data was available to determine if this is an upgrade.
-        self.IsUpgradeItem = false
-        Task.DelayCall(ITEM_UPGRADE_CHECK_TIME, RefreshUpgradeItem, self, bag, slot)
-    else
-        self.IsUpgradeItem = itemIsUpgrade
+        if itemIsUpgrade == nil then
+            print("Delay RefreshUpgradeItem", bag, slot)
+            -- nil means not all the data was available to determine if this is an upgrade.
+            self.IsUpgradeItem      = false
+            Delay(0.5, RefreshUpgradeItem, self, bag, slot)
+        else
+            self.IsUpgradeItem      = itemIsUpgrade
+        end
     end
-end
 
-__SystemEvent__()
-function UNIT_INVENTORY_CHANGED(unit)
-    if not unit or unit == "player" then
+    __SystemEvent__()
+    function UNIT_INVENTORY_CHANGED(unit)
+        if not unit or unit == "player" then
+            for _, bag in ipairs(_ContainerBag) do
+                if _BagCache[bag] then
+                    for btn, slot in pairs(_BagCache[bag]) do
+                        RefreshUpgradeItem(btn, bag, slot)
+                    end
+                end
+            end
+        end
+    end
+
+    __SystemEvent__()
+    function PLAYER_SPECIALIZATION_CHANGED()
         for _, bag in ipairs(_ContainerBag) do
             if _BagCache[bag] then
                 for btn, slot in pairs(_BagCache[bag]) do
@@ -246,38 +259,29 @@ function UNIT_INVENTORY_CHANGED(unit)
             end
         end
     end
-end
-
-__SystemEvent__()
-function PLAYER_SPECIALIZATION_CHANGED()
-    for _, bag in ipairs(_ContainerBag) do
-        if _BagCache[bag] then
-            for btn, slot in pairs(_BagCache[bag]) do
-                RefreshUpgradeItem(btn, bag, slot)
-            end
-        end
-    end
+else
+    RefreshUpgradeItem          = Toolset.fakefunc
 end
 
 ----------------------------------------
 -- BagSlot Handler
 ----------------------------------------
 -- Use fake container and item button to handle the click of item buttons
-local fakeContainerFrame = CreateFrame("Frame", "IGAS_BagSlot_FakeContainer", _G.UIParent, "SecureFrameTemplate")
+local fakeContainerFrame        = CreateFrame("Frame", "Scorpio_BagSlot_FakeContainer", _G.UIParent, "SecureFrameTemplate")
 fakeContainerFrame:Hide()
-local fakeItemButton = CreateFrame("Button", "IGAS_BagSlot_FakeItemButton", fakeContainerFrame, "ContainerFrameItemButtonTemplate, SecureFrameTemplate")
+local fakeItemButton            = CreateFrame("Button", "Scorpio_BagSlot_FakeItemButton", fakeContainerFrame, "ContainerFrameItemButtonTemplate, SecureFrameTemplate")
 fakeItemButton:Hide()
 
 handler.Manager:SetFrameRef("BagSlot_FakeContainer", fakeContainerFrame)
 handler.Manager:SetFrameRef("BagSlot_FakeItemButton", fakeItemButton)
 handler.Manager:Execute[[
-    _BagSlot_FakeContainer = Manager:GetFrameRef("BagSlot_FakeContainer")
-    _BagSlot_FakeItemButton = Manager:GetFrameRef("BagSlot_FakeItemButton")
+    _BagSlot_FakeContainer      = Manager:GetFrameRef("BagSlot_FakeContainer")
+    _BagSlot_FakeItemButton     = Manager:GetFrameRef("BagSlot_FakeItemButton")
 ]]
 
 local function OnEnter(self)
     if self.IsNewItem then
-        local bag, slot = self.ActionTarget, self.ActionDetail
+        local bag, slot         = self.ActionTarget, self.ActionDetail
         if bag and slot then
             C_NewItems.RemoveNewItem(bag, slot)
 
@@ -303,102 +307,103 @@ local function OnLeave(self)
 end
 
 local function OnShow(self)
-    local bag = self.ItemBag
+    local bag                   = self.ActionTarget
     if bag then
-        _BagCache[bag] = _BagCache[bag] or {}
-        _BagCache[bag][self] = self.ItemSlot
+        _BagCache[bag]          = _BagCache[bag] or {}
+        _BagCache[bag][self]    = self.ActionDetail
     end
     return handler:RefreshActionButtons(self)
 end
 
 local function OnHide(self)
     for k, v in pairs(_BagCache) do
-        if v[self] then v[self] = nil end
+        v[self]                 = nil
     end
 end
 
-IGAS:GetUI(handler.Manager).RegisterBagSlot = function (self, btnName)
-    self = IGAS:GetWrapper(_G[btnName])
+__SecureMethod__()
+function handler.Manager:RegisterBagSlot(btnName)
+    self                        = UI.GetProxyUI(_G[btnName])
 
     if self:IsVisible() then
-        local bag = self.ItemBag
-        _BagCache[bag] = _BagCache[bag] or {}
-        _BagCache[bag][self] = self.ItemSlot
+        local bag               = self:GetAttribute("bag")
+        _BagCache[bag]          = _BagCache[bag] or {}
+        _BagCache[bag][self]    = self:GetAttribute("slot")
     end
 
-    self.OnEnter = self.OnEnter + OnEnter
-    self.OnLeave = self.OnLeave + OnLeave
-    self.OnShow = self.OnShow + OnShow
-    self.OnHide = self.OnHide + OnHide
+    self.OnEnter                = self.OnEnter + OnEnter
+    self.OnLeave                = self.OnLeave + OnLeave
+    self.OnShow                 = self.OnShow + OnShow
+    self.OnHide                 = self.OnHide + OnHide
 end
 
-IGAS:GetUI(handler.Manager).UnregisterBagSlot = function (self, btnName)
-    self = IGAS:GetWrapper(_G[btnName])
+__SecureMethod__()
+function handler.Manager:UnregisterBagSlot(btnName)
+    self                        = UI.GetProxyUI(_G[btnName])
 
     for k, v in pairs(_BagCache) do
-        if v[self] then v[self] = nil end
+        v[self]                 = nil
     end
 
-    self.ItemQuality = nil
-    self.IconLocked = false
-    self.IsSearching = false
-    self.ItemQuestStatus = nil
-    self.ShowJunkIcon = false
-    self.IsBattlePayItem = false
-    self.IsNewItem = false
-    self.IsUpgradeItem = false
+    self.ItemQuality            = nil
+    self.ItemQuestStatus        = nil
+    self.IsJunk                 = false
+    self.IsBattlePayItem        = false
+    self.IsNewItem              = false
+    self.IsUpgradeItem          = false
+    self.IsArtifactRelicItem    = false
 
-    self.OnEnter = self.OnEnter - OnEnter
-    self.OnLeave = self.OnLeave - OnLeave
-    self.OnShow = self.OnShow - OnShow
-    self.OnHide = self.OnHide - OnHide
+    self.OnEnter                = self.OnEnter - OnEnter
+    self.OnLeave                = self.OnLeave - OnLeave
+    self.OnShow                 = self.OnShow - OnShow
+    self.OnHide                 = self.OnHide - OnHide
 end
 
 -- Overwrite methods
-function handler:RefreshButton()
-    local bag, slot = self.ActionTarget, self.ActionDetail
-
+function handler:Refresh()
+    local bag, slot             = self.ActionTarget, self.ActionDetail
     if not bag or not slot then return end
 
     local texture, itemCount, locked, quality, readable, _, _, isFiltered, noValue, itemID = GetContainerItemInfo(bag, slot)
     local isQuestItem, questId, isActive = GetContainerItemQuestInfo(bag, slot)
 
     if itemID then
-        self._BagSlot_ItemID = itemID
-        self._BagSlot_Readable = readable
-        self.ItemQuality = quality
-        self.IconLocked = locked
-        self.IsSearching = isFiltered
+        self._BagSlot_ItemID    = itemID
+        self._BagSlot_Readable  = readable
+
+        self.ItemQuality        = quality
+        self.IsArtifactRelicItem= IsArtifactRelicItem(itemID)
 
         if questId and not isActive then
-            self.ItemQuestStatus = false
+            self.ItemQuestStatus= false
         elseif questId or isQuestItem then
-            self.ItemQuestStatus = true
+            self.ItemQuestStatus= true
         else
-            self.ItemQuestStatus = nil
+            self.ItemQuestStatus= nil
         end
 
         if MerchantFrame:IsShown() then
-            self.ShowJunkIcon = (quality == LE_ITEM_QUALITY_POOR and not noValue)
+            self.IsJunk         = (quality == LE_ITEM_QUALITY_POOR and not noValue)
         else
-            self.ShowJunkIcon = false
+            self.IsJunk         = false
         end
 
-        self.IsBattlePayItem = IsBattlePayItem(bag, slot)
-        self.IsNewItem = C_NewItems.IsNewItem(bag, slot)
+        self.IsBattlePayItem    = IsBattlePayItem(bag, slot)
+        self.IsNewItem          = C_NewItems.IsNewItem(bag, slot)
 
         RefreshUpgradeItem(self, bag, slot)
     else
-        self._BagSlot_ItemID = nil
-        self._BagSlot_Readable = nil
-        self.ItemQuality = nil
-        self.IconLocked = false
-        self.IsSearching = false
-        self.ItemQuestStatus = nil
-        self.ShowJunkIcon = false
-        self.IsBattlePayItem = false
-        self.IsNewItem = false
-        self.IsUpgradeItem = false
+        self._BagSlot_ItemID    = nil
+        self._BagSlot_Readable  = nil
+        self.ItemQuality        = nil
+        self.IconLocked         = false
+        self.IsSearching        = false
+        self.ItemQuestStatus    = nil
+        self.IsJunk             = false
+        self.IsBattlePayItem    = false
+        self.IsNewItem          = false
+        self.IsUpgradeItem      = false
+        self.IsArtifactRelicItem= false
     end
 end
 
@@ -407,28 +412,19 @@ function handler:ReceiveAction(target, detail)
 end
 
 function handler:HasAction()
-    return true
+    return GetContainerItemID(self.ActionTarget, self.ActionDetail) and true or false
 end
 
 function handler:GetActionTexture()
-    local bag = self.ActionTarget
-    local slot = self.ActionDetail
-
-    return (GetContainerItemInfo(bag, slot))
+    return (GetContainerItemInfo(self.ActionTarget, self.ActionDetail))
 end
 
 function handler:GetActionCount()
-    local bag = self.ActionTarget
-    local slot = self.ActionDetail
-
-    return (select(2, GetContainerItemInfo(bag, slot)))
+    return (select(2, GetContainerItemInfo(self.ActionTarget, self.ActionDetail)))
 end
 
 function handler:GetActionCooldown()
-    local bag = self.ActionTarget
-    local slot = self.ActionDetail
-
-    return GetContainerItemCooldown(bag, slot)
+    return GetContainerItemCooldown(self.ActionTarget, self.ActionDetail)
 end
 
 function handler:IsEquippedItem()
@@ -440,11 +436,10 @@ function handler:IsActivedAction()
 end
 
 function handler:IsUsableAction()
-    local bag = self.ActionTarget
+    local bag                   = self.ActionTarget
 
     if bag >= 0 and bag <= 4 then
-        local item = GetContainerItemID(self.ActionTarget, self.ActionDetail)
-
+        local item              = GetContainerItemID(bag, self.ActionDetail)
         return item and IsUsableItem(item)
     else
         return true
@@ -452,31 +447,40 @@ function handler:IsUsableAction()
 end
 
 function handler:IsConsumableAction()
-    local item = GetContainerItemID(self.ActionTarget, self.ActionDetail)
+    local item                  = GetContainerItemID(self.ActionTarget, self.ActionDetail)
     if not item then return false end
 
-    local maxStack = select(8, GetItemInfo(item)) or 0
+    local maxStack              = select(8, GetItemInfo(item)) or 0
     return maxStack > 1
 end
 
 function handler:IsInRange()
-    local bag = self.ActionTarget
+    local bag                   = self.ActionTarget
     if bag >= 0 and bag <= 4 then
         return IsItemInRange(GetContainerItemID(self.ActionTarget, self.ActionDetail), self:GetAttribute("unit"))
     end
 end
 
+function handler:IsSearchOverlayShow()
+    return (select(8, GetContainerItemInfo(self.ActionTarget, self.ActionDetail)))
+end
+
+function handler:IsIconLocked()
+    local _, _, locked          = GetContainerItemInfo(self.ActionTarget, self.ActionDetail)
+    return locked
+end
+
 function handler:SetTooltip(GameTooltip)
-    local bag = self.ActionTarget
-    local slot = self.ActionDetail
+    local bag                   = self.ActionTarget
+    local slot                  = self.ActionDetail
 
     if bag == BANK_CONTAINER or bag == REAGENTBANK_CONTAINER then
         local invId
 
         if bag == BANK_CONTAINER then
-            invId = BankButtonIDToInvSlotID(slot)
+            invId               = BankButtonIDToInvSlotID(slot)
         else
-            invId = ReagentBankButtonIDToInvSlotID(slot)
+            invId               = ReagentBankButtonIDToInvSlotID(slot)
         end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 
@@ -497,7 +501,7 @@ function handler:SetTooltip(GameTooltip)
     else
         --GameTooltip:SetOwner(self, "ANCHOR_NONE")
 
-        local showSell = nil
+        local showSell          = nil
         local hasCooldown, repairCost, speciesID, level, breedQuality, maxHealth, power, speed, name = GameTooltip:SetBagItem(bag, slot)
 
         GameTooltip:ClearAllPoints()
@@ -520,7 +524,7 @@ function handler:SetTooltip(GameTooltip)
             GameTooltip:AddLine(REPAIR_COST, nil, nil, nil, true)
             SetTooltipMoney(IGAS:GetUI(GameTooltip), repairCost)
         elseif _G.MerchantFrame:IsShown() and _G.MerchantFrame.selectedTab == 1 then
-            showSell = 1
+            showSell            = 1
         end
 
         if IsModifiedClick("DRESSUP") and self._BagSlot_ItemID then
@@ -535,52 +539,54 @@ function handler:SetTooltip(GameTooltip)
     end
 end
 
--- Expand IFActionHandler
-interface "IFActionHandler"
+__Sealed__()
+class "ContainerFrameItemButton" (function(_ENV)
+    inherit "SecureActionButton"
+
+    import "System.Reactive"
+
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
-    __Doc__[[The bag id]]
-    property "ItemBag" {
-        Get = function(self)
-            return self:GetAttribute("actiontype") == "bagslot" and tonumber(self:GetAttribute("bag"))
-        end,
-        Set = function(self, value)
-            self:SetAction("bag", value)
-        end,
-        Type = Number,
-    }
-
-    __Doc__[[The slot id]]
-    property "ItemSlot" {
-        Get = function(self)
-            return self:GetAttribute("actiontype") == "bagslot" and tonumber(self:GetAttribute("slot"))
-        end,
-        Set = function(self, value)
-            self:SetAction("slot", value)
-        end,
-        Type = Number,
-    }
-
-    --- Whether the search overlay will be shown
+    --- The item's quality
     __Observable__()
-    property "IsSearching"      { type = Boolean }
+    property "ItemQuality"      { type = Number }
 
-    __Doc__[[The item's quality]]
-    property "ItemQuality" { Type = NumberNil }
+    --- The item's quest status, true if actived quest, false if not actived quest, nil if not a quest item.
+    __Observable__()
+    property "ItemQuestStatus"  { type = Boolean }
 
-    __Doc__[[The item's quest status, true if actived quest, false if not actived quest, nil if not a quest item.]]
-    property "ItemQuestStatus" { Type = BooleanNil }
+    --- Whether the item is a new item
+    __Observable__()
+    property "IsNewItem"        { type = Boolean }
 
-    __Doc__[[Whether the item is a new item]]
-    property "IsNewItem" { Type = Boolean }
+    --- Whether the item is a battle pay item
+    __Observable__()
+    property "IsBattlePayItem"  { type = Boolean }
 
-    __Doc__[[Whether the item is a battle pay item]]
-    property "IsBattlePayItem" { Type = Boolean }
+    --- Whether show the item as junk
+    __Observable__()
+    property "IsJunk"           { type = Boolean }
 
-    __Doc__[[Whether show the item as junk]]
-    property "ShowJunkIcon" { Type = Boolean }
+    --- Whether the item is an upgrade item
+    __Observable__()
+    property "IsUpgradeItem"    { type = Boolean }
 
-    __Doc__[[Whether the item is an upgrade item]]
-    property "IsUpgradeItem" { Type = Boolean }
-endinterface "IFActionHandler"
+    --- Whether the item is an artifact relic item
+    __Observable__()
+    property "IsArtifactRelicItem" { type = Boolean }
+end)
+
+----------------------------------------
+-- Client Patch
+----------------------------------------
+if Scorpio.IsRetail then return end
+
+C_NewItems                      = _G.C_NewItems or {
+    IsNewItem                   = Toolset.fakefunc,
+    RemoveNewItem               = Toolset.fakefunc,
+}
+
+IsBattlePayItem                 = _G.IsBattlePayItem or Toolset.fakefunc
+IsArtifactRelicItem             = _G.IsArtifactRelicItem or Toolset.fakefunc
+GetContainerItemQuestInfo       = _G.GetContainerItemQuestInfo or Toolset.fakefunc

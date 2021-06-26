@@ -108,18 +108,3 @@ function handler:SetTooltip(tip)
         tip:SetEquipmentSet(_EquipSetMap[self.ActionTarget])
     end
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'equipmentset'
-    property "EquipmentSet" {
-        type                    = String,
-        set                     = function(self, value) self:SetAction("equipmentset", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "equipmentset" and self:GetAttribute("equipmentset") or nil end,
-    }
-end)

@@ -1,5 +1,5 @@
 --========================================================--
---             Scorpio Secure Action ItemHandler          --
+--             Scorpio Secure Action Item Handler         --
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2020/11/25                              --
@@ -264,18 +264,3 @@ function handler:Map(target, detail)
 
     return target, detail
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'item'
-    property "Item" {
-        type                    = String + Number,
-        set                     = function(self, value) self:SetAction("item", value and GetItemInfo(value) and select(2, GetItemInfo(value)):match("item:%d+") or nil) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "item" and self:GetAttribute("item") or nil end,
-    }
-end)

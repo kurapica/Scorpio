@@ -201,11 +201,11 @@ function handler:GetActionTexture()
 end
 
 function handler:GetActionCharges()
-    return GetActionCharges(self.ActionTarget)
+    return HasAction(self.ActionTarget) and GetActionCharges(self.ActionTarget) or nil
 end
 
 function handler:GetActionCount()
-    return GetActionCount(self.ActionTarget)
+    return HasAction(self.ActionTarget) and GetActionCount(self.ActionTarget) or nil
 end
 
 function handler:GetActionCooldown()
@@ -329,13 +329,6 @@ class "SecureActionButton" (function(_ENV)
     ------------------------------------------------------
     -- Property
     ------------------------------------------------------
-    --- The action button's content if its type is 'action'
-    property "Action"           {
-        type                    = Number,
-        set                     = function(self, value) self:SetAction("action", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "action" and tonumber(self:GetAttribute("action")) or nil end,
-    }
-
     --- The action page of the action button if type is 'action'
     property "ActionPage"       { type = Number, set = SetActionPage, get = GetActionPage  }
 

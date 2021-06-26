@@ -175,18 +175,3 @@ function handler:SetTooltip(tip)
         return tip:SetMountBySpellID(spell)
     end
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'mount'
-    property "Mount"            {
-        type                    = Number,
-        set                     = function(self, value) self:SetAction("mount", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "mount" and tonumber(self:GetAttribute("mount")) end,
-    }
-end)

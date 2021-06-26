@@ -120,12 +120,10 @@ class "SpellActivationAlert" (function(_ENV)
     end
 
     local function OnFinished(self)
-        print("OnFinished", self:GetName())
         return recycle(self)
     end
 
     function recycle:OnInit(alert)
-        print("Init alert")
         alert.OnFinished        = OnFinished
     end
 
@@ -356,10 +354,59 @@ UI.Property                     {
     childtype                   = Texture,
 }
 
+--- The search overlay texture
+UI.Property                     {
+    name                        = "SearchOverlay",
+    require                     = SecureActionButton,
+    childtype                   = Texture,
+}
+
+--- The quest icon texture
+UI.Property                     {
+    name                        = "IconQuestTexture",
+    require                     = ContainerFrameItemButton,
+    childtype                   = Texture,
+}
+
+--- The junk icon texture
+UI.Property                     {
+    name                        = "JunkIcon",
+    require                     = ContainerFrameItemButton,
+    childtype                   = Texture,
+}
+
+--- The new item texture
+UI.Property                     {
+    name                        = "NewItemTexture",
+    require                     = ContainerFrameItemButton,
+    childtype                   = Texture,
+}
+
+--- The battlepay item texture
+UI.Property                     {
+    name                        = "BattlepayItemTexture",
+    require                     = ContainerFrameItemButton,
+    childtype                   = Texture,
+}
+
+--- The glow flash
+UI.Property                     {
+    name                        = "GlowFlashTexture",
+    require                     = ContainerFrameItemButton,
+    childtype                   = Texture,
+}
+
+--- The upgrade icon
+UI.Property                     {
+    name                        = "UpgradeIcon",
+    require                     = ContainerFrameItemButton,
+    childtype                   = Texture,
+}
 
 ------------------------------------------------------------
 --                     Default Style                      --
 ------------------------------------------------------------
+local shareAtlas                = AtlasType("", true)
 local antAnimate                = AnimateTexCoords(256, 256, 48, 48, 22, 0.01)
 local usableColor               = Color.WHITE
 local unUsableColor             = Color(0.4, 0.4, 0.4)
@@ -399,6 +446,11 @@ local replaceKey                = {
     ['RIGHTARROW']              = '→',
     ['UPARROW']                 = '↑',
 }
+
+LE_ITEM_QUALITY_COMMON          = _G.LE_ITEM_QUALITY_COMMON or Scorpio.IsRetail and _G.Enum.ItemQuality.Common or 1
+NEW_ITEM_ATLAS_BY_QUALITY       = Toolset.clone(NEW_ITEM_ATLAS_BY_QUALITY, true)
+BAG_ITEM_QUALITY_COLORS         = XDictionary(BAG_ITEM_QUALITY_COLORS):Map(function(k, v) return Color(v.r, v.g, v.b) end):ToTable()
+DEFAULT_ITEM_ATLAS              = "bags-glow-white"
 
 Style.UpdateSkin("Default",     {
     [SpellActivationAlert]      = {
@@ -667,6 +719,118 @@ Style.UpdateSkin("Default",     {
         FlyoutBorderShadow      = Wow.FromUIProperty("IsFlyout"):Map(function(val) return val and FlyoutBorderShadowSkin or nil end),
         AutoCastableTexture     = Wow.FromUIProperty("IsAutoCastable"):Map(function(val) return val and AutoCastableTextureSkin or nil end),
         AutoCastShine           = Wow.FromUIProperty("IsAutoCastable"):Map(function(val) return val and AutoCastShineSkin or nil end),
+        SearchOverlay           = Wow.FromUIProperty("ShowSearchOverlay"):Map(function(val) return val and SearchOverlaySkin or nil end),
+    },
+
+    [ContainerFrameItemButton]  = {
+        alpha                   = 1,
+
+        SearchOverlay           = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 2,
+            setAllPoints        = true,
+            color               = Color(0, 0, 0, 0.8),
+            visible             = Wow.FromUIProperty("ShowSearchOverlay"),
+        },
+
+        NormalTexture           = {
+            file                = [[Interface\Buttons\UI-Quickslot2]],
+            location            = { Anchor("TOPLEFT", -15, 15), Anchor("BOTTOMRIGHT", 15, -15) },
+        },
+
+        UpgradeIcon             = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 1,
+            atlas               = AtlasType("bags-greenarrow", true),
+            location            = { Anchor("TOPLEFT" ) },
+            visible             = Wow.FromUIProperty("IsUpgradeItem"):Map(function(val) return val and true or false end),
+        },
+
+        IconQuestTexture        = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 2,
+            setAllPoints        = true,
+            file                = Wow.FromUIProperty("ItemQuestStatus"):Map(function(val) return val and TEXTURE_ITEM_QUEST_BORDER or TEXTURE_ITEM_QUEST_BANG end),
+            visible             = Wow.FromUIProperty("ItemQuestStatus"):Map(function(val) return val ~= nil end),
+        },
+
+        JunkIcon                = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 5,
+            atlas               = AtlasType("bags-junkcoin", true),
+            location            = { Anchor("TOPLEFT", 1, 0) },
+            visible             = Wow.FromUIProperty("IsJunk"),
+        },
+
+        EquippedItemTexture     = {
+            drawLayer           = "OVERLAY",
+            location            = { Anchor("TOPLEFT", -2, 2), Anchor("BOTTOMRIGHT", 2, -2) },
+            file                = Wow.FromUIProperty("IsArtifactRelicItem"):Map(function(val) return val and [[Interface\Artifacts\RelicIconFrame]] or [[Interface\Common\WhiteIconFrame]] end),
+            vertexColor         = Wow.FromUIProperty("ItemQuality"):Map(function(val) return val and val >= LE_ITEM_QUALITY_COMMON and BAG_ITEM_QUALITY_COLORS[val] or Color.WHITE end),
+            visible             = Wow.FromUIProperty("ItemQuality"):Map(function(val) return val and val >= LE_ITEM_QUALITY_COMMON and BAG_ITEM_QUALITY_COLORS[val] and true or false end),
+        },
+
+        BattlepayItemTexture    = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 2,
+            file                = [[Interface\Store\store-item-highlight]],
+            location            = { Anchor("CENTER") },
+            visible             = Wow.FromUIProperty("IsNewItem", "IsBattlePayItem"):Map(function(new, pay) return new and pay end),
+        },
+
+        NewItemTexture          = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 2,
+            atlas               = Wow.FromUIProperty("IsNewItem", "IsBattlePayItem", "ItemQuality"):Map(function(new, pay, quality) shareAtlas.atlas = quality and NEW_ITEM_ATLAS_BY_QUALITY[quality] or DEFAULT_ITEM_ATLAS return shareAtlas end),
+            alpha               = 0,
+            alphaMode           = "ADD",
+            location            = { Anchor("CENTER") },
+            visible             = Wow.FromUIProperty("IsNewItem", "IsBattlePayItem"):Map(function(new, pay) return new and not pay end),
+
+            AnimationGroup      = {
+                playing         = Wow.FromUIProperty("IsNewItem"),
+                toFinalAlpha    = true,
+                looping         = "REPEAT",
+
+                Alpha1          = {
+                    smoothing   = "NONE",
+                    order       = 1,
+                    duration    = 0.8,
+                    fromAlpha   = 1,
+                    toAlpha     = 0.4,
+                },
+
+                Alpha2          = {
+                    smoothing   = "NONE",
+                    order       = 2,
+                    duration    = 0.8,
+                    fromAlpha   = 0.4,
+                    toAlpha     = 1,
+                }
+            },
+        },
+
+        GlowFlashTexture        = {
+            drawLayer           = "OVERLAY",
+            subLevel            = 2,
+            atlas               = AtlasType("bags-glow-flash", true),
+            alpha               = 0,
+            alphaMode           = "ADD",
+            location            = { Anchor("CENTER") },
+
+            AnimationGroup      = {
+                toFinalAlpha    = true,
+                playing         = Wow.FromUIProperty("IsNewItem"),
+
+                Alpha           = {
+                    smoothing   = "OUT",
+                    duration    = 0.6,
+                    order       = 1,
+                    fromAlpha   = 1,
+                    toAlpha     = 0,
+                },
+            }
+        },
     },
 })
 
@@ -749,4 +913,11 @@ AutoCastableTextureSkin         = {
 AutoCastShineSkin               = {
     location                    = { Anchor("TOPLEFT", 1, -1), Anchor("BOTTOMRIGHT", -1, 1) },
     isAutoCast                  = Wow.FromUIProperty("IsAutoCasting"),
+}
+
+SearchOverlaySkin               = {
+    drawLayer                   = "OVERLAY",
+    subLevel                    = 2,
+    setAllPoints                = true,
+    color                       = Color(0, 0, 0, 0.8),
 }

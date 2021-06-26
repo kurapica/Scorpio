@@ -573,25 +573,25 @@ class "Color" (function(_ENV)
 
     --------------- Item quality ----------------
     --- The common quality's default color
-    __Static__() property "COMMON"          { default = Color(0.66, 0.66, 0.66) }
+    __Static__() property "COMMON"          { default = Color(0.65882, 0.65882, 0.65882) }
 
     --- The uncommon quality's default color
-    __Static__() property "UNCOMMON"        { default = Color(0.08, 0.70, 0.00) }
+    __Static__() property "UNCOMMON"        { default = Color(0.08235, 0.70196, 0.0) }
 
     --- The rare quality's default color
-    __Static__() property "RARE"            { default = Color(0.00, 0.57, 0.95) }
+    __Static__() property "RARE"            { default = Color(0.0, 0.56863, 0.94902) }
 
     --- The epic quality's default color
-    __Static__() property "EPIC"            { default = Color(0.78, 0.27, 0.98) }
+    __Static__() property "EPIC"            { default = Color(0.78431, 0.27059, 0.98039) }
 
     --- The legendary quality's default color
-    __Static__() property "LEGENDARY"       { default = Color(1.00, 0.50, 0.00) }
+    __Static__() property "LEGENDARY"       { default = Color(1.0, 0.50196, 0.0) }
 
     --- The artifact quality's default color
-    __Static__() property "ARTIFACT"        { default = Color(0.90, 0.80, 0.50) }
+    __Static__() property "ARTIFACT"        { default = Color(0.90196, 0.8, 0.50196) }
 
     --- The heirloom quality's default color
-    __Static__() property "HEIRLOOM"        { default = Color(0.00, 0.80, 1.00) }
+    __Static__() property "HEIRLOOM"        { default = Color(0.0, 0.8, 1) }
 
     --- The wow_token quality's default color
     __Static__() property "WOWTOKEN"        { default = Color(0.00, 0.80, 1.00) }
@@ -1093,7 +1093,7 @@ do
 
     __Static__()
     function Scorpio.GetGameTooltipLines(type, ...)
-        local method            = ScanGameTooltip["Set" .. type:lower():gsub("^%w", strupper)]
+        local method            = ScanGameTooltip["Set" .. type]
         if method then
             ScanGameTooltip:Hide()
 

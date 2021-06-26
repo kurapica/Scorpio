@@ -17,10 +17,10 @@
 	<Script file="Handler/CustomHandler.lua"/>
 	<Script file="Handler/RaidTargetHandler.lua"/>
 
-	<!--Script file="BagHandler.lua"/-->
+	<Script file="Handler/BagHandler.lua"/>
+	<Script file="Handler/BagSlotHandler.lua"/>
 	<!--Script file="InventoryHandler.lua"/ -->
-	<!--Script file="BagSlotHandler.lua"/-->
 
-	<Script file="Seal.lua"/>
+	<Script file="Template.lua"/>
 	<Script file="Indicator.lua"/>
 </Ui>

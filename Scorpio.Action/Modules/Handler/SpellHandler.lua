@@ -336,19 +336,3 @@ function handler:Map(target, detail)
 
     return target, detail
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The action button's content if its type is 'spell'
-    property "Spell" {
-        type                    = String + Number,
-        set                     = function(self, value) self:SetAction("spell", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "spell" and self:GetAttribute("spell") or nil end,
-    }
-end)

@@ -82,17 +82,3 @@ end
 function handler:IsFlyout()
     return true
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    property "FlytoutID" {
-        type                    = Number,
-        set                     = function(self, value) self:SetAction("flyout", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "flyout" and tonumber(self:GetAttribute("spell")) or nil end,
-    }
-end)

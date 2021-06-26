@@ -51,17 +51,6 @@ end
 -- Extend Definitions
 ------------------------------------------------------
 class "SecureActionButton" (function(_ENV)
-
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The custom action
-    property "Custom" {
-        set                     = function(self, value) return self:SetAction("custom", value) end,
-        get                     = function(self) return self:GetAttribute("actiontype") == "custom" and self:GetAttribute("_custom") or nil end,
-        type                    = Function,
-    }
-
     --- The custom text
     property "CustomText"       { Type = String }
 

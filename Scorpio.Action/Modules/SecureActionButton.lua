@@ -317,7 +317,9 @@ interface "ActionTypeHandler" (function(_ENV)
         self:RefreshIcon(button)
         self:RefreshCount(button)
         self:RefreshOverlayGlow(button)
-        self:Refresh(button)
+        self:RefreshShowSearchOverlay(button)
+        self:RefreshIconLocked(button)
+        self.Refresh(button)
 
         button:Refresh()
 
@@ -536,6 +538,30 @@ interface "ActionTypeHandler" (function(_ENV)
         end
     end
 
+    function RefreshShowSearchOverlay(self, button)
+        local IsSearchOverlayShow = self.IsSearchOverlayShow
+
+        if button then
+            button.ShowSearchOverlay = IsSearchOverlayShow(button)
+        else
+            for _, button in self:GetIterator() do
+                button.ShowSearchOverlay = IsSearchOverlayShow(button)
+            end
+        end
+    end
+
+    function RefreshIconLocked(self, button)
+        local IsIconLocked      = self.IsIconLocked
+
+        if button then
+            button.IconLocked   = IsIconLocked(button)
+        else
+            for _, button in self:GetIterator() do
+                button.IconLocked = IsIconLocked(button)
+            end
+        end
+    end
+
     __Delegate__(Continue)
     function RefreshActionButtons(self, button)
         local refresh           = refreshButton
@@ -650,6 +676,12 @@ interface "ActionTypeHandler" (function(_ENV)
 
     -- Whether the action is auto-casting now
     function IsAutoCasting(self) return false end
+
+    -- Whether need show the search overlay
+    function IsSearchOverlayShow(self) return false end
+
+    -- Whether the icon is locked
+    function IsIconLocked(self) return false end
 
     -- Show the tooltip for the action
     function SetTooltip(self, tip) end
@@ -1367,6 +1399,9 @@ class "SecureActionButton" (function(_ENV)
     --- Whether the icon should be locked
     __Observable__()
     property "IconLocked"       { type = Boolean }
+
+    __Observable__()
+    property "ShowSearchOverlay"{ type = Boolean }
 
     --- The short key of the action
     __Observable__()
