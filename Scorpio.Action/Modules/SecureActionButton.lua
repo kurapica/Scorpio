@@ -1368,9 +1368,9 @@ class "SecureActionButton" (function(_ENV)
     __Observable__()
     property "InRange"          { type = Any }
 
-    --- The action button's flyout direction: TOP, RIGHT, BOTTOM, LEFT
+    --- The action button's flyout direction: UP, DOWN, LEFT, RIGHT
     __Observable__()
-    property "FlyoutDirection"  { type = FlyoutDirection, default = "TOP" }
+    property "FlyoutDirection"  { type = FlyoutDirection, default = "UP", handler = function(self, val) self:SetAttribute("flyoutDirection", val) end }
 
     --- Whether the action is flyout
     __Observable__()

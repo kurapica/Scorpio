@@ -414,7 +414,7 @@ local RANGE_INDICATOR           = "●"
 local isInState                 = function(s) return s == "IN" end
 local isOutState                = function(s) return s == "OUT" end
 local isPlaying                 = function(s) return s ~= "STOP" and antAnimate or nil end
-local flyoutArrowLocation       = { TOP = { Anchor("BOTTOM", 0, 0, nil, "TOP") }, BOTTOM = { Anchor("TOP", 0, 0, nil, "BOTTOM") }, LEFT = { Anchor("RIGHT", 0, 0, nil, "LEFT") }, RIGHT = { Anchor("LEFT", 0, 0, nil, "RIGHT") } }
+local flyoutArrowLocation       = { UP = { Anchor("BOTTOM", 0, 0, nil, "TOP") }, DOWN = { Anchor("TOP", 0, 0, nil, "BOTTOM") }, LEFT = { Anchor("RIGHT", 0, 0, nil, "LEFT") }, RIGHT = { Anchor("LEFT", 0, 0, nil, "RIGHT") } }
 local replaceKey                = {
     ['ALT']                     = 'A',
     ['CTRL']                    = 'C',
@@ -883,7 +883,7 @@ FlyoutArrowSkin                 = {
     texCoords                   = RectType(0.62500000, 0.98437500, 0.74218750, 0.82812500),
     size                        = Size(23, 11),
     location                    = Wow.FromUIProperty("FlyoutDirection"):Map(function(dir) return flyoutArrowLocation[dir or "TOP"] end),
-    rotateDegree                = Wow.FromUIProperty("FlyoutDirection"):Next():Map(function(dir) return dir == "RIGHT" and 90 or dir == "BOTTOM" and 180 or dir == "LEFT" and 270 or 0  end),
+    rotateDegree                = Wow.FromUIProperty("FlyoutDirection"):Next():Map(function(dir) return dir == "RIGHT" and 90 or dir == "DOWN" and 180 or dir == "LEFT" and 270 or 0  end),
 }
 
 FlyoutBorderSkin                = {

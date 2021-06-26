@@ -118,8 +118,8 @@ do
 
     __Sealed__()
     enum "FlyoutDirection" {
-        "TOP",
-        "BOTTOM",
+        "UP",
+        "DOWN",
         "LEFT",
         "RIGHT",
     }

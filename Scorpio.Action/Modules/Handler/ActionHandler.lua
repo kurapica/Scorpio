@@ -201,7 +201,7 @@ function handler:GetActionTexture()
 end
 
 function handler:GetActionCharges()
-    return HasAction(self.ActionTarget) and GetActionCharges(self.ActionTarget) or nil
+    return GetActionCharges(self.ActionTarget)
 end
 
 function handler:GetActionCount()
