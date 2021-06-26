@@ -246,7 +246,8 @@ function handler:SetTooltip(tip)
     if _ToyFilter[target] then
         tip:SetToyByItemID(target)
     else
-        tip:SetHyperlink(select(2, GetItemInfo(self.ActionTarget)))
+        local link              = select(2, GetItemInfo(self.ActionTarget))
+        return link and tip:SetHyperlink(link)
     end
 end
 

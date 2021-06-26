@@ -1097,7 +1097,7 @@ do
         end
 
         local handler           = _IFActionTypeHandler[kind]
-        return handler and handler.PickupAction(target, detail)
+        return handler and handler:PickupAction(target, detail)
     end
 
     function PreClick(self)
