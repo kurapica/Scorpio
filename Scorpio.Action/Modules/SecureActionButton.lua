@@ -412,11 +412,15 @@ interface "ActionTypeHandler" (function(_ENV)
         local GetActionCooldown = self.GetActionCooldown
 
         if button then
-            shareCooldown.start, shareCooldown.duration = GetActionCooldown(button)
-            button.Cooldown     = shareCooldown
+            local s, d              = GetActionCooldown(button)
+            shareCooldown.start     = s or 0
+            shareCooldown.duration  = d or 0
+            button.Cooldown         = shareCooldown
         else
             for _, button in self:GetIterator() do
-                shareCooldown.start, shareCooldown.duration = GetActionCooldown(button)
+                local s, d              = GetActionCooldown(button)
+                shareCooldown.start     = s or 0
+                shareCooldown.duration  = d or 0
                 button.Cooldown = shareCooldown
             end
         end

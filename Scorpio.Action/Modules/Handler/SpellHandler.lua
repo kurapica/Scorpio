@@ -261,6 +261,8 @@ function handler:GetActionCooldown()
     if _StanceMap[target] then
         if select(2, GetSpellCooldown(target)) > 2 then
             return GetSpellCooldown(target)
+        else
+            return 0, 0
         end
     elseif _MacroMap[target] then
         return GetSpellCooldown(_MacroMap[target])
