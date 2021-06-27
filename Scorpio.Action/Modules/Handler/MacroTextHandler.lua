@@ -17,9 +17,11 @@ handler                         = ActionTypeHandler {
     Type                        = "macro",
     Target                      = "macrotext",
     DragStyle                   = "Block",
-    ReceiveStyle                = "Block",
+    ReceiveStyle                = "Clear",
 
-    OnEnableChanged             = function(self, value) _Enabled = value end,
+    ClearSnippet                = [[
+        Manager:CallMethod("ClearCustom", self:GetName())
+    ]],
 }
 
 ------------------------------------------------------
@@ -38,17 +40,3 @@ function handler:SetTooltip(tip)
         tip:SetText(self.CustomTooltip)
     end
 end
-
-------------------------------------------------------
--- Extend Definitions
-------------------------------------------------------
-class "SecureActionButton" (function(_ENV)
-    --- The custom text
-    property "CustomText"       { Type = String }
-
-    --- The custom texture path
-    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshActionButtons(self) end }
-
-    --- The custom tooltip
-    property "CustomTooltip"    { Type = String }
-end)

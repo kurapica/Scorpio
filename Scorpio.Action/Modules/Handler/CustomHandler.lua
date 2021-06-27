@@ -9,18 +9,26 @@
 Scorpio        "Scorpio.Secure.CustomHandler"        "1.0.0"
 --========================================================--
 
-_Enabled                        = false
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
 handler                         = ActionTypeHandler {
     Name                        = "custom",
     DragStyle                   = "Block",
-    ReceiveStyle                = "Block",
+    ReceiveStyle                = "Clear",
 
-    OnEnableChanged             = function(self, value) _Enabled = value end,
+    ClearSnippet                = [[
+        Manager:CallMethod("ClearCustom", self:GetName())
+    ]],
 }
+
+__SecureMethod__()
+function handler.Manager:ClearCustom(btnName)
+    self                        = UI.GetProxyUI(_G[btnName])
+    self:SetAttribute("_custom", nil)
+    self.CustomText             = nil
+    self.CustomTexture          = nil
+end
 
 ------------------------------------------------------
 -- Overwrite methods
@@ -52,10 +60,10 @@ end
 ------------------------------------------------------
 class "SecureActionButton" (function(_ENV)
     --- The custom text
-    property "CustomText"       { Type = String }
+    property "CustomText"       { Type = String, handler = function(self, val) self.Text = val end  }
 
     --- The custom texture path
-    property "CustomTexture"    { Type = String + Number, handler = function(self) handler:RefreshActionButtons(self) end }
+    property "CustomTexture"    { Type = String + Number, handler = function(self, val) self.Icon = val end }
 
     --- The custom tooltip
     property "CustomTooltip"    { Type = String }
