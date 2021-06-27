@@ -2200,6 +2200,8 @@ end)
 __Sealed__() class "__InstantApplyStyle__" (function(_ENV)
     extend "IInitAttribute" "IApplyAttribute"
 
+    local getSuperCTOR          = Class.GetSuperMetaMethod
+
     -----------------------------------------------------------
     --                        method                         --
     -----------------------------------------------------------
@@ -2241,7 +2243,9 @@ __Sealed__() class "__InstantApplyStyle__" (function(_ENV)
             manager.__ctor      = ctor and function(self, ...)
                 ctor(self, ...)
                 return _StyleQueue[self] and self:InstantApplyStyle()
-            end or function(self)
+            end or function(self, ...)
+                local sctor     = getSuperCTOR(target, "__ctor")
+                if sctor then sctor(self, ...) end
                 return _StyleQueue[self] and self:InstantApplyStyle()
             end
         end

@@ -755,6 +755,8 @@ class "UICheckButtonLabel" { FontString,
                     Next() trycnt = trycnt - 1
                 end
 
+                if trycnt == 0 then return end
+
                 parent:SetHitRectInsets(0, parent:GetRight() - self:GetLeft() - self:GetStringWidth(), 0, 0)
             end
         end)

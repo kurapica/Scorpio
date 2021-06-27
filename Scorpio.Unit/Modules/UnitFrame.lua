@@ -645,9 +645,11 @@ do
         end
 
         function OnQuit(self)
-            for grp, db in pairs(_UnitFrameHoverSpellGroup) do
-                if not next(db) then
-                    _UnitFrameHoverSpellGroup[grp] = nil
+            if _UnitFrameHoverSpellGroup then
+                for grp, db in pairs(_UnitFrameHoverSpellGroup) do
+                    if not next(db) then
+                        _UnitFrameHoverSpellGroup[grp] = nil
+                    end
                 end
             end
         end
