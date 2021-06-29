@@ -110,10 +110,6 @@ class "SpellActivationAlert" (function(_ENV)
     local hiddenFrame           = CreateFrame("Frame") hiddenFrame:Hide()
     local recycle               = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d", hiddenFrame)
 
-    local function OnHide(self)
-        self.AinmationState     = "STOP"
-    end
-
     local function ChangeAntsSize(self)
         local w, h              = self:GetSize()
         self:GetChild("Ants"):SetSize(w * 0.85, h * 0.85)
@@ -132,10 +128,10 @@ class "SpellActivationAlert" (function(_ENV)
     end
 
     function recycle:OnPush(alert)
+        alert.AinmationState    = "STOP"
         alert:SetParent(hiddenFrame)
         alert:ClearAllPoints()
         alert:Hide()
-        alert.AinmationState    = "STOP"
     end
 
     ------------------------------------------------------
@@ -232,7 +228,6 @@ class "SpellActivationAlert" (function(_ENV)
         }
     }
     function __ctor(self)
-        self.OnHide             = self.OnHide + OnHide
     end
 end)
 
