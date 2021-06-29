@@ -46,7 +46,9 @@ handler                         = ActionTypeHandler {
         _BagSlot_FakeItemButton:SetID(slot)
 
         _BagSlot_FakeItemButton:ClearAllPoints()
-        _BagSlot_FakeItemButton:SetPoint("TOPRIGHT", self, "TOPRIGHT")
+        _BagSlot_FakeItemButton:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+        _BagSlot_FakeItemButton:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
+        _BagSlot_FakeItemButton:Show()
     ]],
 
     OnEnableChanged             = function(self, value) _Enabled = value end,
@@ -271,6 +273,8 @@ local fakeContainerFrame        = CreateFrame("Frame", "Scorpio_BagSlot_FakeCont
 fakeContainerFrame:Hide()
 local fakeItemButton            = CreateFrame("Button", "Scorpio_BagSlot_FakeItemButton", fakeContainerFrame, "ContainerFrameItemButtonTemplate, SecureFrameTemplate")
 fakeItemButton:Hide()
+fakeItemButton:SetToplevel(true)
+fakeItemButton:SetFrameStrata("DIALOG")
 
 handler.Manager:SetFrameRef("BagSlot_FakeContainer", fakeContainerFrame)
 handler.Manager:SetFrameRef("BagSlot_FakeItemButton", fakeItemButton)
@@ -473,6 +477,10 @@ end
 function handler:SetTooltip(GameTooltip)
     local bag                   = self.ActionTarget
     local slot                  = self.ActionDetail
+
+    if ( (IsModifiedClick("COMPAREITEMS") or GetCVarBool("alwaysCompareItems")) ) then
+        GameTooltip_ShowCompareItem(GameTooltip)
+    end
 
     if bag == BANK_CONTAINER or bag == REAGENTBANK_CONTAINER then
         local invId

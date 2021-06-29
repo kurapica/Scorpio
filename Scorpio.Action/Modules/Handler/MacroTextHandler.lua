@@ -16,8 +16,9 @@ handler                         = ActionTypeHandler {
     Name                        = "macrotext",
     Type                        = "macro",
     Target                      = "macrotext",
-    DragStyle                   = "Block",
+    DragStyle                   = "Clear",
     ReceiveStyle                = "Clear",
+    ReceiveMap                  = "macrotext", -- avoid conflict with macro handler
 
     ClearSnippet                = [[
         Manager:CallMethod("ClearCustom", self:GetName())

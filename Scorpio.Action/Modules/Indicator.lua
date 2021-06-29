@@ -127,8 +127,14 @@ class "SpellActivationAlert" (function(_ENV)
         alert.OnFinished        = OnFinished
     end
 
+    function recycle:OnPop(alert)
+        alert:Show()
+    end
+
     function recycle:OnPush(alert)
         alert:SetParent(hiddenFrame)
+        alert:ClearAllPoints()
+        alert:Hide()
         alert.AinmationState    = "STOP"
     end
 
