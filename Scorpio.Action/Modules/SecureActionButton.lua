@@ -1523,6 +1523,7 @@ class "SecureActionButton" (function(_ENV)
     function Refresh(self)
     end
 
+    __SecureMethod__()
     function UpdateTooltip(self)
         if not self.ActionType then return end
 
