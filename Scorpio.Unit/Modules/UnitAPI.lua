@@ -300,10 +300,13 @@ end
 ------------------------------------------------------------
 if Scorpio.IsRetail then return end
 
-UnitHasVehicleUI                = UnitHasVehicleUI or Toolset.fakefunc
-GetThreatStatusColor            = GetThreatStatusColor or function (index) if index == 3 then return 1, 0, 0 elseif index == 2 then return 1, 0.6, 0 elseif index == 1 then return 1, 1, 0.47 else return 0.69, 0.69, 0.69 end end
+_Parent.UnitHasVehicleUI        = _G.UnitHasVehicleUI or Toolset.fakefunc
+_Parent.GetThreatStatusColor    = _G.GetThreatStatusColor or function (index) if index == 3 then return 1, 0, 0 elseif index == 2 then return 1, 0.6, 0 elseif index == 1 then return 1, 1, 0.47 else return 0.69, 0.69, 0.69 end end
 
 if Scorpio.IsBCC then return end
+
+--- Try Get LibClassicDurations
+pcall(LoadAddOn, "LibClassicDurations")
 
 local ok, LibClassicDurations   = pcall(_G.LibStub, "LibClassicDurations")
 if not (ok and LibClassicDurations) then return end

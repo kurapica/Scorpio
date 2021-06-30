@@ -276,3 +276,60 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
         end
     end
 end
+
+------------------------------------------------------------
+--                      Wow Classic                       --
+------------------------------------------------------------
+if Scorpio.IsRetail then return end
+
+_Parent.UnitGetIncomingHeals    = _G.UnitGetIncomingHeals    or Toolset.fakefunc
+_Parent.UnitGetTotalAbsorbs     = _G.UnitGetTotalAbsorbs     or Toolset.fakefunc
+_Parent.UnitGetTotalHealAbsorbs = _G.UnitGetTotalHealAbsorbs or Toolset.fakefunc
+
+--- Try Get LibHealComm
+pcall(LoadAddOn, "LibHealComm-4.0")
+
+local ok, LibHealComm           = pcall(_G.LibStub, "LibHealComm-4.0")
+if not (ok and LibHealComm) then return end
+
+local function HealComm_HealUpdated(event, _, _, _, _, ...)
+    for i = 1, select("#", ...) do
+        local guid              = select(i, ...)
+
+        if guid then
+            for unit in GetUnitsFromGUID(guid) do
+                FireSystemEvent("UNIT_HEAL_PREDICTION", unit)
+            end
+        end
+    end
+end
+
+local function HealComm_HealModified(event, guid)
+    for unit in GetUnitsFromGUID(guid) do
+        FireSystemEvent("UNIT_HEAL_PREDICTION", unit)
+    end
+end
+
+LibHealComm.RegisterCallback("Scorpio", "HealComm_HealStarted", HealComm_HealUpdated)
+LibHealComm.RegisterCallback("Scorpio", "HealComm_HealStopped", HealComm_HealUpdated)
+LibHealComm.RegisterCallback("Scorpio", "HealComm_HealDelayed", HealComm_HealUpdated)
+LibHealComm.RegisterCallback("Scorpio", "HealComm_HealUpdated", HealComm_HealUpdated)
+LibHealComm.RegisterCallback("Scorpio", "HealComm_ModifierChanged", HealComm_HealModified)
+LibHealComm.RegisterCallback("Scorpio", "HealComm_GUIDDisappeared", HealComm_HealModified)
+
+INCOMING_HEAL_WINDOW            = 4
+
+_Parent.UnitGetIncomingHeals    = _G.UnitGetIncomingHeals or function(unit, casterUnit)
+    local guid                  = UnitGUID(unit)
+    local incoming              = 0
+
+    if casterUnit then
+        local casterGUID        = UnitGUID(casterUnit)
+
+        incoming                = (LibHealComm:GetHealAmount(guid, LibHealComm.ALL_HEALS, GetTime() + INCOMING_HEAL_WINDOW, casterGUID) or 0) * (LibHealComm:GetHealModifier(guid) or 1)
+    else
+        incoming                = (LibHealComm:GetHealAmount(guid, LibHealComm.ALL_HEALS, GetTime() + INCOMING_HEAL_WINDOW) or 0) * (LibHealComm:GetHealModifier(guid) or 1)
+    end
+
+    return incoming
+end
