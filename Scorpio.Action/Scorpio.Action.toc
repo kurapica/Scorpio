@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: [Lib] Scorpio.Action
 ## Author: kurapica125@outlook.com
 ## Version: v001
