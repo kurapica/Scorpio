@@ -737,6 +737,11 @@ PLoop(function(_ENV)
             if map then return callAddonHandlers(map, timestamp, eventType, ...) end
         end
 
+        local function safeCall(...)
+            local ok, err       = pcall(...)
+            if not ok then errorhandler(err) end
+        end
+
         ----------------------------------------------
         --             Next Observable              --
         ----------------------------------------------
@@ -818,7 +823,7 @@ PLoop(function(_ENV)
 
         local function loadingWithoutClear(self)
             if _NotLoaded[self] then
-                OnLoad(self)
+                safeCall(OnLoad, self)
             end
 
             for _, mdl in self:GetModules() do loadingWithoutClear(mdl) end
@@ -827,7 +832,7 @@ PLoop(function(_ENV)
         local function loading(self)
             if _NotLoaded[self] then
                 _NotLoaded[self] = nil
-                OnLoad(self)
+                safeCall(OnLoad, self)
             end
 
             for _, mdl in self:GetModules() do loading(mdl) end
@@ -836,7 +841,7 @@ PLoop(function(_ENV)
         local function enablingWithCheck(self)
             if not _DisabledModule[self] then
                 if _NotLoaded[self] then
-                    OnEnable(self)
+                    safeCall(OnEnable, self)
                 end
 
                 for _, mdl in self:GetModules() do enablingWithCheck(mdl) end
@@ -847,7 +852,7 @@ PLoop(function(_ENV)
             if _NotLoaded[self] then loading(self) end
 
             if not _DisabledModule[self] then
-                OnEnable(self)
+                safeCall(OnEnable, self)
 
                 for _, mdl in self:GetModules() do enabling(mdl) end
             end
@@ -857,7 +862,7 @@ PLoop(function(_ENV)
             if not _DisabledModule[self] then
                 _DisabledModule[self] = true
 
-                if _Logined then OnDisable(self) end
+                if _Logined then safeCall(OnDisable, self) end
 
                 for _, mdl in self:GetModules() do disabling(mdl) end
             end
@@ -868,7 +873,7 @@ PLoop(function(_ENV)
                 if not self._Parent or (not _DisabledModule[self._Parent]) then
                     _DisabledModule[self] = nil
 
-                    OnEnable(self)
+                    safeCall(OnEnable, self)
 
                     for _, mdl in self:GetModules() do
                         if mdl._Enabled then
@@ -880,14 +885,14 @@ PLoop(function(_ENV)
         end
 
         local function exiting(self)
-            OnQuit(self)
+            safeCall(OnQuit, self)
 
             for _, mdl in self:GetModules() do exiting(mdl) end
         end
 
         local function specChangedWithCheck(self, spec)
             if _NotLoaded[self] then
-                OnSpecChanged(self, spec)
+                safeCall(OnSpecChanged, self, spec)
             end
 
             for _, mdl in self:GetModules() do specChangedWithCheck(mdl, spec) end
@@ -896,14 +901,14 @@ PLoop(function(_ENV)
         local function specChanged(self, spec)
             if not _Logined then return end
 
-            OnSpecChanged(self, spec)
+            safeCall(OnSpecChanged, self, spec)
 
             for _, mdl in self:GetModules() do specChanged(mdl, spec) end
         end
 
         local function warmodeChangedWithCheck(self, mode)
             if _NotLoaded[self] then
-                OnWarModeChanged(self, mode)
+                safeCall(OnWarModeChanged, self, mode)
             end
 
             for _, mdl in self:GetModules() do warmodeChangedWithCheck(mdl, mode) end
@@ -912,7 +917,7 @@ PLoop(function(_ENV)
         local function warmodeChanged(self, mode)
             if not _Logined then return end
 
-            OnWarModeChanged(self, mode)
+            safeCall(OnWarModeChanged, self, mode)
 
             for _, mdl in self:GetModules() do warmodeChanged(mdl, mode) end
         end
