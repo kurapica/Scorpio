@@ -1,3 +1,6 @@
+2021/07/05 v099
+	1. Wow.UnitHealthLost, Wow.UnitHealthLostFrequent, Wow.UnitHealthLostPercentFrequent API added for unit frames.
+
 2021/06/30 v096
 	1. Fix the spell alert not hide.
 	2. Add support to LibHealComm-4.0, so when you install the lib, you can enjoy the incoming health in classic.

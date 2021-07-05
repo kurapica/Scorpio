@@ -133,6 +133,15 @@ function Wow.UnitHealth()
 end
 
 __Static__() __AutoCache__()
+function Wow.UnitHealthLost()
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+        local max               = UnitHealthMax(unit)
+        local health            = UnitHealth(unit)
+        return max and health and (max - health) or 0
+    end)
+end
+
+__Static__() __AutoCache__()
 function Wow.UnitHealthFrequent()
     -- Based on the CLEU
     return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
@@ -144,6 +153,22 @@ function Wow.UnitHealthFrequent()
         health                  = health or UnitHealth(unit)
         RegisterFrequentHealthUnit(unit, guid, health)
         return health
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthLostFrequent()
+    -- Based on the CLEU
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+        local max               = UnitHealthMax(unit)
+        local guid              = UnitGUID(unit)
+        local health            = _UnitHealthMap[guid]
+        if health and _UnitGUIDMap[unit] == guid then return max and (max - health) or 0 end
+
+        -- Register the unit
+        health                  = health or UnitHealth(unit)
+        RegisterFrequentHealthUnit(unit, guid, health)
+        return max and (max - health) or 0
     end)
 end
 
@@ -165,13 +190,31 @@ function Wow.UnitHealthPercentFrequent()
         local health            = _UnitHealthMap[guid]
 
         if not (health and _UnitGUIDMap[unit] == guid) then
-        -- Register the unit
+            -- Register the unit
             health              = health or UnitHealth(unit)
             RegisterFrequentHealthUnit(unit, guid, health)
         end
 
         local max               = UnitHealthMax(unit)
         return floor(0.5 + (health and max and health / max * 100) or 0)
+    end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitHealthLostPercentFrequent()
+    -- Based on the CLEU
+    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+        local guid              = UnitGUID(unit)
+        local health            = _UnitHealthMap[guid]
+
+        if not (health and _UnitGUIDMap[unit] == guid) then
+            -- Register the unit
+            health              = health or UnitHealth(unit)
+            RegisterFrequentHealthUnit(unit, guid, health)
+        end
+
+        local max               = UnitHealthMax(unit)
+        return floor(0.5 + (health and max and (max - health) / max * 100) or 0)
     end)
 end
 
