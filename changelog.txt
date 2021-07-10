@@ -1,3 +1,6 @@
+2021/07/10 v100
+	1. Add charge cooldown support to Scorpio.Action system.
+
 2021/07/05 v099
 	1. Wow.UnitHealthLost, Wow.UnitHealthLostFrequent, Wow.UnitHealthLostPercentFrequent API added for unit frames.
 

@@ -410,15 +410,34 @@ interface "ActionTypeHandler" (function(_ENV)
     local shareCooldown         = { start = 0, duration = 0 }
     function RefreshCooldown(self, button)
         local GetActionCooldown = self.GetActionCooldown
+        local GetActionCharges  = self.GetActionCharges
 
         if button then
             local s, d              = GetActionCooldown(button)
-            shareCooldown.start     = s or 0
-            shareCooldown.duration  = d or 0
-            button.Cooldown         = shareCooldown
+            local c, m, cs, cd, cr  = GetActionCharges(button)
+
+            if c and m and c < m then
+                shareCooldown.start     = cs or 0
+                shareCooldown.duration  = cd or 0
+                button.Cooldown         = shareCooldown
+                return
+            end
+
+            shareCooldown.start         = s or 0
+            shareCooldown.duration      = d or 0
+            button.Cooldown             = shareCooldown
         else
             for _, button in self:GetIterator() do
                 local s, d              = GetActionCooldown(button)
+                local c, m, cs, cd, cr  = GetActionCharges(button)
+
+                if c and m and c < m then
+                    shareCooldown.start     = cs or 0
+                    shareCooldown.duration  = cd or 0
+                    button.Cooldown         = shareCooldown
+                    return
+                end
+
                 shareCooldown.start     = s or 0
                 shareCooldown.duration  = d or 0
                 button.Cooldown = shareCooldown
