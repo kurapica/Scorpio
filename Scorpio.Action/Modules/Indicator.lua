@@ -362,6 +362,13 @@ UI.Property                     {
     childtype                   = Texture,
 }
 
+--- The charge cooldown
+UI.Property                     {
+    name                        = "ChargeCooldown",
+    require                     = SecureActionButton,
+    childtype                   = Cooldown,
+}
+
 --- The quest icon texture
 UI.Property                     {
     name                        = "IconQuestTexture",
@@ -721,6 +728,7 @@ Style.UpdateSkin("Default",     {
         AutoCastableTexture     = Wow.FromUIProperty("IsAutoCastable"):Map(function(val) return val and AutoCastableTextureSkin or nil end),
         AutoCastShine           = Wow.FromUIProperty("IsAutoCastable"):Map(function(val) return val and AutoCastShineSkin or nil end),
         SearchOverlay           = Wow.FromUIProperty("ShowSearchOverlay"):Map(function(val) return val and SearchOverlaySkin or nil end),
+        ChargeCooldown          = Wow.FromUIProperty("IsChargable"):Map(function(val) return val and ChargeCooldownSkin or nil end),
     },
 
     [ContainerFrameItemButton]  = {
@@ -921,4 +929,9 @@ SearchOverlaySkin               = {
     subLevel                    = 2,
     setAllPoints                = true,
     color                       = Color(0, 0, 0, 0.8),
+}
+
+ChargeCooldownSkin              = {
+    setAllPoints                = true,
+    cooldown                    = Wow.FromUIProperty("ChargeCooldown"),
 }

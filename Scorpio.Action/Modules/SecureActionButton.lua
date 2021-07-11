@@ -252,6 +252,9 @@ interface "ActionTypeHandler" (function(_ENV)
         button.HasAction        = self.HasAction(button)
         button.IsAutoAttack     = _AutoAttackButtons[button] or _AutoRepeatButtons[button]
 
+        local c, m              = self.GetActionCharges(button)
+        button.IsChargable      = c and m and m > 0
+
         local spell             = self.GetSpellId(button)
         local ospell            = _Spell4Buttons[button]
 
@@ -414,13 +417,19 @@ interface "ActionTypeHandler" (function(_ENV)
 
         if button then
             local s, d              = GetActionCooldown(button)
-            local c, m, cs, cd, cr  = GetActionCharges(button)
 
-            if c and m and c < m then
-                shareCooldown.start     = cs or 0
-                shareCooldown.duration  = cd or 0
-                button.Cooldown         = shareCooldown
-                return
+            if button.IsChargable then
+                local c, m, cs, cd, cr      = GetActionCharges(button)
+
+                if c and m and c < m then
+                    shareCooldown.start     = cs or 0
+                    shareCooldown.duration  = cd or 0
+                    button.ChargeCooldown   = shareCooldown
+                else
+                    shareCooldown.start     = 0
+                    shareCooldown.duration  = 0
+                    button.ChargeCooldown   = shareCooldown
+                end
             end
 
             shareCooldown.start         = s or 0
@@ -429,13 +438,19 @@ interface "ActionTypeHandler" (function(_ENV)
         else
             for _, button in self:GetIterator() do
                 local s, d              = GetActionCooldown(button)
-                local c, m, cs, cd, cr  = GetActionCharges(button)
 
-                if c and m and c < m then
-                    shareCooldown.start     = cs or 0
-                    shareCooldown.duration  = cd or 0
-                    button.Cooldown         = shareCooldown
-                    return
+                if button.IsChargable then
+                    local c, m, cs, cd, cr      = GetActionCharges(button)
+
+                    if c and m and c < m then
+                        shareCooldown.start     = cs or 0
+                        shareCooldown.duration  = cd or 0
+                        button.ChargeCooldown   = shareCooldown
+                    else
+                        shareCooldown.start     = 0
+                        shareCooldown.duration  = 0
+                        button.ChargeCooldown   = shareCooldown
+                    end
                 end
 
                 shareCooldown.start     = s or 0
@@ -1355,6 +1370,10 @@ class "SecureActionButton" (function(_ENV)
     __Observable__()
     property "GridAlwaysShow"   { type = Boolean }
 
+    --- Whether the action is a charge action
+    __Observable__()
+    property "IsChargable"      { type = Boolean }
+
     --- Whether the button is usable
     __Observable__()
     property "IsUsable"         { type = Boolean }
@@ -1370,6 +1389,10 @@ class "SecureActionButton" (function(_ENV)
     --- The cooldown of the action
     __Observable__()
     property "Cooldown"         { type = CooldownStatus, set = Toolset.fakefunc }
+
+    --- The cooldown of the charge action
+    __Observable__()
+    property "ChargeCooldown"   { type = CooldownStatus, set = Toolset.fakefunc }
 
     --- Whether the action is auto attack or auto repeat
     __Observable__()
