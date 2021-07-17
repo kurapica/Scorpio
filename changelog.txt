@@ -1,3 +1,7 @@
+2021/07/17 v102
+	1. Improve the support to RotateDegree.
+	2. The PredictionHealthBar now display based on its orientation.
+
 2021/07/10 v100
 	1. Add charge cooldown support to Scorpio.Action system.
 

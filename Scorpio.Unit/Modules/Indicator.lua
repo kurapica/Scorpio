@@ -11,6 +11,8 @@ Scorpio         "Scorpio.Secure.UnitFrame.Indicator" "1.0.0"
 
 namespace "Scorpio.Secure.UnitFrame"
 
+import "System.Reactive"
+
 ------------------------------------------------------------
 --                       Indicator                        --
 ------------------------------------------------------------
@@ -312,8 +314,6 @@ __ChildProperty__(InSecureUnitFrame,"TotemPanel")
 __Sealed__() class "TotemPanel"     (function(_ENV)
     inherit "ElementPanel"
 
-    import "System.Reactive"
-
     local MAX_TOTEMS            = _G.MAX_TOTEMS
     local SLOT_MAP              = {}
 
@@ -407,8 +407,11 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
 
     local  function updateFillBar(self, previousTexture, bar, amount, barOffsetXPercent)
         local totalWidth, totalHeight   = self:GetSize()
+        local isVertical        = self:GetOrientation() == "VERTICAL"
 
-        if ( totalWidth == 0 or amount == 0 ) then
+        local total             = isVertical and totalHeight or totalWidth
+
+        if ( total == 0 or amount == 0 ) then
             bar:Hide()
             if ( bar.overlay ) then
                 bar.overlay:Hide()
@@ -416,24 +419,39 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
             return previousTexture
         end
 
-        local barOffsetX                = 0
+        local barOffsetX        = 0
         if ( barOffsetXPercent ) then
-            barOffsetX                  = totalWidth * barOffsetXPercent
+            barOffsetX          = total * barOffsetXPercent
         end
+
+        local _, totalMax       = self:GetMinMaxValues()
+        local barSize           = (amount / totalMax) * total
 
         bar:ClearAllPoints()
-        bar:SetPoint("TOPLEFT", previousTexture, "TOPRIGHT", barOffsetX, 0)
-        bar:SetPoint("BOTTOMLEFT", previousTexture, "BOTTOMRIGHT", barOffsetX, 0)
+        if isVertical then
+            bar:SetPoint("BOTTOMLEFT", previousTexture, "TOPLEFT", 0, barOffsetX)
+            bar:SetPoint("BOTTOMRIGHT", previousTexture, "TOPRIGHT", 0, barOffsetX)
 
-        local _, totalMax = self:GetMinMaxValues()
+            bar:SetHeight(barSize)
+            bar:Show()
+            if ( bar.overlay ) then
+                bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(totalHeight / bar.overlay.tileSize, 0, 1))
+                Style[bar.overlay].rotateDegree = 270
+                bar.overlay:Show()
+            end
+        else
+            bar:SetPoint("TOPLEFT", previousTexture, "TOPRIGHT", barOffsetX, 0)
+            bar:SetPoint("BOTTOMLEFT", previousTexture, "BOTTOMRIGHT", barOffsetX, 0)
 
-        local barSize                   = (amount / totalMax) * totalWidth
-        bar:SetWidth(barSize)
-        bar:Show()
-        if ( bar.overlay ) then
-            bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(totalHeight / bar.overlay.tileSize, 0, 1))
-            bar.overlay:Show()
+            bar:SetWidth(barSize)
+            bar:Show()
+            if ( bar.overlay ) then
+                bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(totalHeight / bar.overlay.tileSize, 0, 1))
+                Style[bar.overlay].rotateDegree = 0
+                bar.overlay:Show()
+            end
         end
+
         return bar
     end
 
@@ -447,7 +465,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
                 self.totalAbsorb:Hide()
                 self.totalAbsorbOverlay:Hide()
                 self.myHealAbsorb:Hide()
-                self.myHealAbsorbLeftShadow:Hide()
+                -- self.myHealAbsorbLeftShadow:Hide()
                 self.overAbsorbGlow:Hide()
                 self.overHealAbsorbGlow:Hide()
                 return
@@ -465,7 +483,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
 
             if health < totalHealAbsorb then
                 totalHealAbsorb             = health
-                overHealAbsorb               = true
+                overHealAbsorb              = true
             end
 
             if health - totalHealAbsorb + allIncomingHeal > maxHealth * self.MaxHealOverflowRatio then
@@ -504,28 +522,38 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
 
                 --If there are incoming heals the left shadow would be overlayed by the incoming heals
                 --so it isn't shown.
-                if ( allIncomingHeal > 0 ) then
-                    self.myHealAbsorbLeftShadow:Hide()
-                else
-                    self.myHealAbsorbLeftShadow:ClearAllPoints()
-                    self.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0)
-                    self.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0)
-                    self.myHealAbsorbLeftShadow:Show()
-                end
+                -- if ( allIncomingHeal > 0 ) then
+                --     self.myHealAbsorbLeftShadow:Hide()
+                -- else
+                --     self.myHealAbsorbLeftShadow:ClearAllPoints()
+                --     if self:GetOrientation() == "HORIZONTAL" then
+                --         self.myHealAbsorbLeftShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPLEFT", 0, 0)
+                --         self.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0)
+                --     else
+                --         self.myHealAbsorbLeftShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMLEFT", 0, 0)
+                --         self.myHealAbsorbLeftShadow:SetPoint("BOTTOMRIGHT", healAbsorbTexture, "BOTTOMRIGHT", 0, 0)
+                --     end
+                --     self.myHealAbsorbLeftShadow:Show()
+                -- end
 
                 -- The right shadow is only shown if there are absorbs on the health bar.
-                if ( totalAbsorb > 0 ) then
-                    self.myHealAbsorbRightShadow:ClearAllPoints()
-                    self.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0)
-                    self.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0)
-                    self.myHealAbsorbRightShadow:Show()
-                else
-                    self.myHealAbsorbRightShadow:Hide()
-                end
+                -- if ( totalAbsorb > 0 ) then
+                --     self.myHealAbsorbRightShadow:ClearAllPoints()
+                --     if self:GetOrientation() == "HORIZONTAL" then
+                --         self.myHealAbsorbRightShadow:SetPoint("TOPLEFT", healAbsorbTexture, "TOPRIGHT", -8, 0)
+                --         self.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "BOTTOMRIGHT", -8, 0)
+                --     else
+                --         self.myHealAbsorbRightShadow:SetPoint("BOTTOMLEFT", healAbsorbTexture, "TOPLEFT", 0, -8)
+                --         self.myHealAbsorbRightShadow:SetPoint("BOTTOMRIGHT", healAbsorbTexture, "TOPRIGHT", 0, -8)
+                --     end
+                --     self.myHealAbsorbRightShadow:Show()
+                -- else
+                --     self.myHealAbsorbRightShadow:Hide()
+                -- end
             else
                 self.myHealAbsorb:Hide()
-                self.myHealAbsorbRightShadow:Hide()
-                self.myHealAbsorbLeftShadow:Hide()
+                -- self.myHealAbsorbRightShadow:Hide()
+                -- self.myHealAbsorbLeftShadow:Hide()
             end
 
             --Show myIncomingHeal on the health bar.
@@ -548,6 +576,14 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
 
     property "MaxHealOverflowRatio" { type = Number, default = 1.00 }
 
+    __Observable__()
+    property "Orientation"      { type = Orientation, set = StatusBar.SetOrientation, get = StatusBar.GetOrientation }
+
+    function SetOrientation(self, orientation)
+        super.SetOrientation(self, orientation)
+        self.Orientation        = self:GetOrientation()
+    end
+
     __Template__{
         MyHealPrediction        = Texture,
         OtherHealPrediction     = Texture,
@@ -555,8 +591,8 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         TotalAbsorbOverlay      = Texture,
 
         MyHealAbsorb            = Texture,
-        MyHealAbsorbLeftShadow  = Texture,
-        MyHealAbsorbRightShadow = Texture,
+        -- MyHealAbsorbLeftShadow  = Texture,
+        -- MyHealAbsorbRightShadow = Texture,
 
         OverAbsorbGlow          = Texture,
         OverHealAbsorbGlow      = Texture,
@@ -567,8 +603,8 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         self.totalAbsorb        = self:GetChild("TotalAbsorb")
         self.totalAbsorbOverlay = self:GetChild("TotalAbsorbOverlay")
         self.myHealAbsorb       = self:GetChild("MyHealAbsorb")
-        self.myHealAbsorbLeftShadow = self:GetChild("MyHealAbsorbLeftShadow")
-        self.myHealAbsorbRightShadow= self:GetChild("MyHealAbsorbRightShadow")
+        -- self.myHealAbsorbLeftShadow = self:GetChild("MyHealAbsorbLeftShadow")
+        -- self.myHealAbsorbRightShadow= self:GetChild("MyHealAbsorbRightShadow")
         self.overAbsorbGlow     = self:GetChild("OverAbsorbGlow")
         self.overHealAbsorbGlow = self:GetChild("OverHealAbsorbGlow")
 
@@ -580,7 +616,22 @@ end)
 ------------------------------------------------------------
 --                     Default Style                      --
 ------------------------------------------------------------
-local shareRect                 = RectType()
+shareRect                       = RectType()
+
+shareMyHealPreGraH              = GradientType("VERTICAL", Color(8/255, 93/255, 72/255), Color(11/255, 136/255, 105/255))
+shareOtherHealPreGraH           = GradientType("VERTICAL", Color(11/255, 53/255, 43/255), Color(21/255, 89/255, 72/255))
+
+shareMyHealPreGraV              = GradientType("HORIZONTAL", Color(8/255, 93/255, 72/255), Color(11/255, 136/255, 105/255))
+shareOtherHealPreGraV           = GradientType("HORIZONTAL", Color(11/255, 53/255, 43/255), Color(21/255, 89/255, 72/255))
+
+shareOverAbsorbGlowH            = { Anchor("BOTTOMLEFT", -7, 0, nil, "BOTTOMRIGHT"), Anchor("TOPLEFT", -7, 0, nil, "TOPRIGHT") }
+shareOverHealAbsorbGlowH        = { Anchor("BOTTOMRIGHT", 7, 0, nil, "BOTTOMLEFT"), Anchor("TOPRIGHT", 7, 0, nil, "TOPLEFT") }
+
+shareOverAbsorbGlowV            = { Anchor("BOTTOMLEFT", 0, -7, nil, "TOPLEFT"), Anchor("BOTTOMRIGHT", 0, -7, nil, "TOPRIGHT") }
+shareOverHealAbsorbGlowV        = { Anchor("TOPRIGHT", 0, 7, nil, "BOTTOMRIGHT"), Anchor("TOPLEFT", 0, 7, nil, "BOTTOMLEFT") }
+
+shareOrientationSubject         = Wow.FromUIProperty("Orientation"):Next()
+shareSizeSubject                = shareOrientationSubject:Map("=>16")
 
 Style.UpdateSkin("Default",     {
     [NameLabel]                 = {
@@ -795,18 +846,19 @@ Style.UpdateSkin("Default",     {
             drawLayer           = "BORDER",
             subLevel            = 5,
             color               = Color.WHITE,
-            gradient            = GradientType("VERTICAL", Color(8/255, 93/255, 72/255), Color(11/255, 136/255, 105/255)),
+            gradient            = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and shareMyHealPreGraH or shareMyHealPreGraV end),
         },
         OtherHealPrediction     = {
             drawLayer           = "BORDER",
             subLevel            = 5,
             color               = Color.WHITE,
-            gradient            = GradientType("VERTICAL", Color(11/255, 53/255, 43/255), Color(21/255, 89/255, 72/255)),
+            gradient            = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and shareOtherHealPreGraH or shareOtherHealPreGraV end),
         },
         TotalAbsorb             = {
             file                = [[Interface\RaidFrame\Shield-Fill]],
             drawLayer           = "BORDER",
             subLevel            = 5,
+            rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 0 or 270 end),
         },
         TotalAbsorbOverlay      = {
             file                = [[Interface\RaidFrame\Shield-Overlay]],
@@ -814,6 +866,8 @@ Style.UpdateSkin("Default",     {
             vWrapMode           = "REPEAT",
             drawLayer           = "BORDER",
             subLevel            = 6,
+            location            = { Anchor("TOPLEFT", 0, 0, "TotalAbsorb"), Anchor("BOTTOMRIGHT", 0, 0, "TotalAbsorb") },
+            rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 0 or 270 end),
         },
         MyHealAbsorb            = {
             file                = [[Interface\RaidFrame\Absorb-Fill]],
@@ -821,33 +875,41 @@ Style.UpdateSkin("Default",     {
             vWrapMode           = "REPEAT",
             drawLayer           = "ARTWORK",
             subLevel            = 1,
+            rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 0 or 270 end),
         },
-        MyHealAbsorbLeftShadow  = {
-            file                = [[Interface\RaidFrame\Absorb-Edge]],
-            drawLayer           = "ARTWORK",
-            subLevel            = 1,
-        },
-        MyHealAbsorbRightShadow = {
-            file                = [[Interface\RaidFrame\Absorb-Edge]],
-            drawLayer           = "ARTWORK",
-            subLevel            = 1,
-            texCoords           = RectType(1, 0, 0, 1),
-        },
+        -- MyHealAbsorbLeftShadow  = {
+        --     file                = [[Interface\RaidFrame\Absorb-Edge]],
+        --     drawLayer           = "ARTWORK",
+        --     subLevel            = 1,
+        --     setAllPoints        = true,
+        --     rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 0 or 270 end),
+        -- },
+        -- MyHealAbsorbRightShadow = {
+        --     file                = [[Interface\RaidFrame\Absorb-Edge]],
+        --     drawLayer           = "ARTWORK",
+        --     subLevel            = 1,
+        --     setAllPoints        = true,
+        --     rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 180 or 90 end),
+        -- },
         OverAbsorbGlow          = {
             file                = [[Interface\RaidFrame\Shield-Overshield]],
             alphaMode           = "ADD",
             drawLayer           = "ARTWORK",
             subLevel            = 2,
-            location            = { Anchor("BOTTOMLEFT", -7, 0, nil, "BOTTOMRIGHT"), Anchor("TOPLEFT", -7, 0, nil, "TOPRIGHT") },
-            width               = 16,
+            location            = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and shareOverAbsorbGlowH or shareOverAbsorbGlowV end),
+            width               = shareSizeSubject,
+            height              = shareSizeSubject,
+            rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 0 or 270 end),
         },
         OverHealAbsorbGlow      = {
             file                = [[Interface\RaidFrame\Absorb-Overabsorb]],
             alphaMode           = "ADD",
             drawLayer           = "ARTWORK",
             subLevel            = 2,
-            location            = { Anchor("BOTTOMRIGHT", 7, 0, nil, "BOTTOMLEFT"), Anchor("TOPRIGHT", 7, 0, nil, "TOPLEFT") },
-            width               = 16,
+            location            = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and shareOverHealAbsorbGlowH or shareOverHealAbsorbGlowV end),
+            width               = shareSizeSubject,
+            height              = shareSizeSubject,
+            rotateDegree        = shareOrientationSubject:Map(function(val) return val == "HORIZONTAL" and 0 or 270 end),
         },
     },
 })
