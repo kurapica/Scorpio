@@ -716,6 +716,7 @@ Style.UpdateSkin("Default",     {
         Cooldown                = {
             setAllPoints        = true,
             cooldown            = Wow.FromUIProperty("Cooldown"),
+            hideCountdownNumbers= false,
         },
 
         -- For non-frequently used

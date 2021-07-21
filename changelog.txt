@@ -1,3 +1,6 @@
+2021/07/21 v103
+	1. make the cooldown of action button's hideCountdownNumbers default to false.
+
 2021/07/17 v102
 	1. Improve the support to RotateDegree.
 	2. The PredictionHealthBar now display based on its orientation.
