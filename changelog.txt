@@ -1,3 +1,8 @@
+2021/08/05 v104
+	1. Fix the warrior can't swap the main action bar in classic client.
+	2. OnNodeRightClick event is added to the TreeView, ToggleTreeNode is added to the TreeView.
+
+
 2021/07/21 v103
 	1. make the cooldown of action button's hideCountdownNumbers default to false.
 

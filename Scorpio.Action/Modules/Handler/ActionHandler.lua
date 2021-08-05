@@ -148,8 +148,9 @@ do
         -- prowl first
         tinsert(state, "[bonusbar:1,stealth]8")
     elseif playerclass == "WARRIOR" then
-        tinsert(state, "[stance:2]7")
-        tinsert(state, "[stance:3]8")
+        --tinsert(state, "[stance:1]1")
+        --tinsert(state, "[stance:2]7")
+        --tinsert(state, "[stance:3]8")
     end
 
     -- bonusbar map

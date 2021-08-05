@@ -796,7 +796,7 @@ __Sealed__() class "TreeView" (function(_ENV)
         GameTooltip:Hide()
     end
 
-    local function TreeNode_OnClick(self)
+    local function TreeNode_OnClick(self, button)
         local node              = self.node
         local tree              = self:GetParent():GetParent()
 
@@ -827,7 +827,11 @@ __Sealed__() class "TreeView" (function(_ENV)
         self:LockHighlight()
         self:GetPropertyChild("HighlightTexture"):SetVertexColor(color.r, color.g, color.b)
 
-        OnNodeClick(tree, unpack(_TempPath))
+        if button == "LeftButton" then
+            OnNodeClick(tree, unpack(_TempPath))
+        elseif button == "RightButton" then
+            OnNodeRightClick(tree, unpack(_TempPath))
+        end
     end
 
     local function TreeNodeToggle_OnClick(self)
@@ -838,6 +842,7 @@ __Sealed__() class "TreeView" (function(_ENV)
             return refreshTreeView(button:GetParent():GetParent())
         end
     end
+
     local function getButtonLevel(button)
         local level             = button:GetName():match("TreeNode(%d+)")
         return level and tonumber(level)
@@ -851,6 +856,7 @@ __Sealed__() class "TreeView" (function(_ENV)
             TreeNodeCount       = TreeNodeCount + 1
             node                = TreeView.TreeNodeClasses[level]("TreeNode" .. level .. "_" .. TreeNodeCount, TreeNodeHolder)
             node:InstantApplyStyle()
+            node:RegisterForClicks("AnyUp")
 
             node.OnEnter        = node.OnEnter + TreeNode_OnEnter
             node.OnLeave        = node.OnLeave + TreeNode_OnLeave
@@ -980,6 +986,9 @@ __Sealed__() class "TreeView" (function(_ENV)
     --- Fired when click on the tree node, the path of the tree node will be send out
     event "OnNodeClick"
 
+    --- Fired when right-click on the tree node
+    event "OnNodeRightClick"
+
     -- Auto-generate the tree node classes based on the level
     __Static__() __Indexer__(Integer)
     property "TreeNodeClasses" {
@@ -1022,6 +1031,34 @@ __Sealed__() class "TreeView" (function(_ENV)
             if not item then
                 item            = { text = name, parent = treeNodes }
                 tinsert(treeNodes, item)
+            end
+
+            treeNodes           = item
+        end
+
+        return refreshTreeView(self)
+    end
+
+    __Arguments__{ NEString * 1 }
+    function ToggleTreeNode(self, ...)
+        local treeNodes         = self.__TreeNodes
+        if not treeNodes then return end
+        local count             = select("#", ...)
+
+        for i = 1, count do
+            local name          = select(i, ...)
+            local item
+
+            for j = 1, #treeNodes do
+                if treeNodes[j].text == name then
+                    item        = treeNodes[j]
+                    break
+                end
+            end
+
+            if not item then return end
+            if count == i then
+                item.unfold     = not item.unfold
             end
 
             treeNodes           = item
