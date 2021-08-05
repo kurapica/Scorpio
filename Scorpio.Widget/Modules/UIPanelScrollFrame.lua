@@ -1039,6 +1039,7 @@ __Sealed__() class "TreeView" (function(_ENV)
         return refreshTreeView(self)
     end
 
+    --- Toggle the tree node
     __Arguments__{ NEString * 1 }
     function ToggleTreeNode(self, ...)
         local treeNodes         = self.__TreeNodes
@@ -1098,6 +1099,53 @@ __Sealed__() class "TreeView" (function(_ENV)
             treeNodes           = item
         end
 
+        return refreshTreeView(self)
+    end
+
+    --- Active the tree node
+    __Arguments__{ NEString * 1 } __Async__()
+    function ActiveTreeNode(self, ...)
+        local treeNodes         = self.__TreeNodes
+        if not treeNodes then return end
+        local count             = select("#", ...)
+
+        local item
+
+        for i = 1, count do
+            local name          = select(i, ...)
+
+            for j = 1, #treeNodes do
+                if treeNodes[j].text == name then
+                    item        = treeNodes[j]
+                    break
+                end
+            end
+
+            if not item then return end
+            if count == i then
+                item.unfold     = true
+            end
+
+            treeNodes           = item
+        end
+
+        refreshTreeView(self)
+
+        Next()
+
+        for _, button in ipairs(self.__TreeButtons) do
+            if button.node == item then
+                return button:Click("LeftButton")
+            end
+        end
+    end
+
+    --- Clear All Nodes
+    function ClearTreeNodes(self)
+        local treeNodes         = self.__TreeNodes
+        if not treeNodes then return end
+
+        wipe(treeNodes)
         return refreshTreeView(self)
     end
 end)
