@@ -140,3 +140,30 @@ function Wow.FromPanelProperty(...)
         end
     end)
 end
+
+__Static__() __Arguments__{ -UIObject }
+function Wow.FromFrameSize(type)
+    return Observable(function(observer)
+        local frame             = getCurrentTarget()
+        local subject
+
+        while frame do
+            if not isObjectType(frame, type) then
+                frame           = frame:GetParent()
+            else
+                subject         = BehaviorSubject()
+
+                Observable.From(frame.OnSizeChanged):Subscribe(function()
+                    print("OnSizeChanged")
+                    subject:OnNext(frame:GetSize())
+                end)
+
+                subject:OnNext(frame:GetSize())
+
+                break
+            end
+        end
+
+        if subject then subject:Subscribe(observer) end
+    end)
+end

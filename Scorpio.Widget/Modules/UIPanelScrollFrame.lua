@@ -1116,6 +1116,7 @@ __Sealed__() class "TreeView" (function(_ENV)
 
             for j = 1, #treeNodes do
                 if treeNodes[j].text == name then
+                    treeNodes.unfold = true
                     item        = treeNodes[j]
                     break
                 end
@@ -1146,6 +1147,7 @@ __Sealed__() class "TreeView" (function(_ENV)
         if not treeNodes then return end
 
         wipe(treeNodes)
+        treeNodes.unfold        = true
         return refreshTreeView(self)
     end
 end)

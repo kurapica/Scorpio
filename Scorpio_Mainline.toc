@@ -1,4 +1,4 @@
-## Interface: 11307
+## Interface: 90100
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: v105

@@ -1,0 +1,52 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+    <Script file="Plateform.lua"/>
+
+    <!--Prototype-->
+    <Script file="PLoop\Prototype.lua"/>
+
+    <!--System-->
+    <Script file="PLoop\System\Collections.lua"/>
+    <Script file="PLoop\System\Threading.lua"/>
+    <Script file="PLoop\System\Text.lua"/>
+    <Script file="PLoop\System\Serialization.lua"/>
+    <Script file="PLoop\System\Date.lua"/>
+    <Script file="PLoop\System\Logger.lua"/>
+    <Script file="PLoop\System\Recycle.lua"/>
+
+    <!--System.Collections-->
+    <Script file="PLoop\System\Collections\List.lua"/>
+    <Script file="PLoop\System\Collections\Dictionary.lua"/>
+    <Script file="PLoop\System\Collections\Proxy.lua"/>
+    <Script file="PLoop\System\Collections\IIndexedListSorter.lua"/>
+    <Script file="PLoop\System\Collections\Array.lua"/>
+    <Script file="PLoop\System\Collections\Queue.lua"/>
+
+    <!--System.Configuration-->
+    <Script file="PLoop\System\Configuration.lua"/>
+
+    <!--System.Serialization-->
+    <Script file="PLoop\System\Serialization\LuaFormatProvider.lua"/>
+    <Script file="PLoop\System\Serialization\StringFormatProvider.lua"/>
+
+    <!--System.Text.Encoding-->
+    <Script file="PLoop\System\Text\UTF8Encoding.lua"/>
+    <Script file="PLoop\System\Text\UTF16Encoding.lua"/>
+
+    <!--System.Text.Encoder-->
+    <Script file="PLoop\System\Text\XmlEntity.lua"/>
+    <Script file="PLoop\System\Text\Base64.lua"/>
+    <Script file="PLoop\System\Text\Deflate.lua"/>
+
+    <!--System.Text-->
+    <Script file="PLoop\System\Text\Crc.lua"/>
+    <Script file="PLoop\System\Text\TemplateString.lua"/>
+
+    <!--System.Reactive-->
+    <Script file="PLoop\System\Observer.lua"/>
+    <Script file="PLoop\System\Reactive\Observer.lua"/>
+    <Script file="PLoop\System\Reactive\Subject.lua"/>
+    <Script file="PLoop\System\Reactive\Observable.lua"/>
+    <Script file="PLoop\System\Reactive\Operator.lua"/>
+
+    <!--Scorpio.Core -->
+</Ui>
