@@ -1,3 +1,6 @@
+2021/08/16 v106
+	1. The PLoop and other Scorpio Libs are embedded into the Scorpio.
+
 2021/08/05 v105
 	1. ActiveTreeNode and ClearTreeNodes is added to the TreeView.
 

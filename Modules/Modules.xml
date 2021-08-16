@@ -1,0 +1,19 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+    <!-- Scorpio Core -->
+    <Script file="Core.lua"/>
+
+    <!-- Localization -->
+    <Script file="Localization/zhCN.lua"/>
+
+    <!-- Scorpio Global -->
+    <Script file="Global.lua"/>
+
+    <!-- Scorpio SVManager -->
+    <Script file="SVManager.lua"/>
+
+    <!-- Scorpio Addon -->
+    <Script file="Scorpio.lua"/>
+
+    <!-- Scorpio Reactive -->
+   	<Script file="Reactive.lua"/>
+</Ui>

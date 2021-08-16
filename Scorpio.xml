@@ -49,4 +49,20 @@
     <Script file="PLoop\System\Reactive\Operator.lua"/>
 
     <!--Scorpio.Core -->
+    <Include file="Modules\Modules.xml"/>
+
+    <!--Scorpio.UI -->
+    <Include file="Modules\UI\UI.xml"/>
+
+    <!--Scorpio.Widget -->
+    <Include file="Modules\Widget\Widget.xml"/>
+
+    <!--Scorpio.Secure -->
+    <Include file="Modules\Secure\Secure.xml"/>
+
+    <!--Scorpio.Unit -->
+    <Include file="Modules\Unit\Unit.xml"/>
+
+    <!--Scorpio.Action -->
+    <Include file="Modules\Action\Action.xml"/>
 </Ui>

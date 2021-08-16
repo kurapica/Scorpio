@@ -4,7 +4,6 @@
 ## Version: v105
 ## Notes: Scorpio Addon FrameWork
 ## URL: http://github.com/kurapica/Scorpio
-## Dependencies: PLoop
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: Scorpio_DB

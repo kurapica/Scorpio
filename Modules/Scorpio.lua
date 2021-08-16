@@ -37,6 +37,22 @@ function OnLoad(self)
     Logger.Default:AddHandler(print, Logger.LogLevel.Info)
 end
 
+__Async__()
+function OnEnable()
+    local cache             = List()
+
+    for _, name in ipairs{ "PLoop", "Scorpio.UI", "Scorpio.Widget", "Scorpio.Secure", "Scorpio.Unit", "Scorpio.Action" } do
+        local _, title      = GetAddOnInfo(name)
+        if title then
+            cache:Insert(name)
+        end
+    end
+
+    if #cache > 0 then
+        Alert(_Locale["Please delete those addons:"] .. cache:Join(", "))
+    end
+end
+
 ----------------------------------------------
 --                 SlashCmd                 --
 ----------------------------------------------

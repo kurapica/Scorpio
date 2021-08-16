@@ -45,3 +45,14 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# PLoop
+PLoop/.git
+PLoop/Docs
+PLoop/Docs-zh
+PLoop/UnitTest
+PLoop/System/Web
+PLoop/System/Net
+PLoop/System/Data
+PLoop/System/Xml
+PLoop/System/IO
