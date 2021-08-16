@@ -1,16 +1,6 @@
 package-as: Scorpio
 enable-nolib-creation: no
 
-required-dependencies:
-  - ploop
-
-move-folders:
-  Scorpio/Scorpio.UI      : Scorpio.UI
-  Scorpio/Scorpio.Widget  : Scorpio.Widget
-  Scorpio/Scorpio.Secure  : Scorpio.Secure
-  Scorpio/Scorpio.Action  : Scorpio.Action
-  Scorpio/Scorpio.Unit    : Scorpio.Unit
-
 manual-changelog: changelog.txt
 
 ignore:
