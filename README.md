@@ -98,13 +98,13 @@ UIs in one addons, and let's other authors do the skin parts very easily.
 5. A well designed secure template framework, so we can enjoy the power of the secure template system provided by
 the blizzard and stay away the hard part.
 
-* Check the [Aim](./ashtoash) for nameplates, use its defaultskin.lua can
+* Check the [Aim](ashtoash) for nameplates, use its defaultskin.lua can
     simply change all the skins.
-* Check the [AshToAsh](./ashtoash) for raid panel, it can smoothly relayout
+* Check the [AshToAsh](ashtoash) for raid panel, it can smoothly relayout
     during combat.
-* Check the [ShadowDancer](./shadowdancer) for action bars, it provide
+* Check the [ShadowDancer](shadowdancer) for action bars, it provide
     all your need for the action bars, also with special features.
-* Check the [BagView](./shadowdancer) for containers.
+* Check the [BagView](shadowdancer) for containers.
 
 
 ## Documents
