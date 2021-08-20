@@ -154,7 +154,6 @@ function Wow.FromFrameSize(type)
                 subject         = BehaviorSubject()
 
                 Observable.From(frame.OnSizeChanged):Subscribe(function()
-                    print("OnSizeChanged")
                     subject:OnNext(frame:GetSize())
                 end)
 

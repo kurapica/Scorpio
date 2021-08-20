@@ -229,7 +229,6 @@ if _G.IsContainerItemAnUpgrade then
         local itemIsUpgrade         = IsContainerItemAnUpgrade(bag, slot)
 
         if itemIsUpgrade == nil then
-            print("Delay RefreshUpgradeItem", bag, slot)
             -- nil means not all the data was available to determine if this is an upgrade.
             self.IsUpgradeItem      = false
             Delay(0.5, RefreshUpgradeItem, self, bag, slot)

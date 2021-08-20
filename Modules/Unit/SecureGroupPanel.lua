@@ -267,6 +267,24 @@ class "SecureGroupPanel" (function(_ENV)
             end
         ]=]
 
+        _UnregisterUnitFrame    = [=[
+            local frame         = Manager:GetFrameRef("UnitFrame")
+
+            if frame and UnitFrames[#UnitFrames] == frame then
+                -- Binding
+                if not Manager:GetAttribute("showDeadOnly") then
+                    local shadow = ShadowFrames[#UnitFrames]
+
+                    if shadow then
+                        shadow:SetAttribute("UnitFrame", nil)
+                    end
+                end
+
+                frame:SetAttribute("unit", nil)
+                tremove(UnitFrames)
+            end
+        ]=]
+
         _Hide                   = [[
             for i = #ShadowFrames, 1, -1 do
                 ShadowFrames[i]:SetAttribute("unit", nil)
@@ -350,6 +368,11 @@ class "SecureGroupPanel" (function(_ENV)
         function RegisterUnitFrame(self, frame)
             self:SetFrameRef("UnitFrame", frame)
             self:Execute(_RegisterUnitFrame)
+        end
+
+        function UnregisterUnitFrame(self, frame)
+            self:SetFrameRef("UnitFrame", frame)
+            self:Execute(_UnregisterUnitFrame)
         end
 
         -- Set whether only show dead players
@@ -588,6 +611,10 @@ class "SecureGroupPanel" (function(_ENV)
         self.GroupHeader:RegisterUnitFrame(element)
     end
 
+    local function OnElementRemove(self, element)
+        self.GroupHeader:UnregisterUnitFrame(element)
+    end
+
     ------------------------------------------------------
     -- Constructor
     ------------------------------------------------------
@@ -612,6 +639,7 @@ class "SecureGroupPanel" (function(_ENV)
         end, self)
 
         self.OnElementAdd       = self.OnElementAdd + OnElementAdd
+        self.OnElementRemove    = self.OnElementRemove + OnElementRemove
         setupGroupFilter(self)
     end
 end)
