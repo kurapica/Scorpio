@@ -99,7 +99,7 @@ __Sealed__()
 class "SpellActivationAlert" (function(_ENV)
     inherit "Frame"
 
-    __Sealed__() enum "AinmationState" { "STOP", "IN", "OUT" }
+    __Sealed__() enum "AnimationState" { "STOP", "IN", "OUT" }
 
     __Bubbling__{ ["OuterGlowOver.Out"] = "OnFinished" }
     event "OnFinished"
@@ -128,7 +128,7 @@ class "SpellActivationAlert" (function(_ENV)
     end
 
     function recycle:OnPush(alert)
-        alert.AinmationState    = "STOP"
+        alert.AnimationState    = "STOP"
         alert:SetParent(hiddenFrame)
         alert:ClearAllPoints()
         alert:Hide()
@@ -144,7 +144,7 @@ class "SpellActivationAlert" (function(_ENV)
     ------------------------------------------------------
     --- The animation state
     __Observable__()
-    property "AinmationState"   { type = AinmationState, default = "STOP", handler = function(self, val) return val == "IN" and Next(ChangeAntsSize, self) end }
+    property "AnimationState"   { type = AnimationState, default = "STOP", handler = function(self, val) return val == "IN" and Next(ChangeAntsSize, self) end }
 
     ------------------------------------------------------
     --                   Constructor                    --
@@ -282,10 +282,10 @@ UI.Property                     {
                 self.__SpellActivationAlert = alert
             end
 
-            alert.AinmationState= "IN"
+            alert.AnimationState= "IN"
         else
             if alert then
-                alert.AinmationState = "OUT"
+                alert.AnimationState = "OUT"
                 self.__SpellActivationAlert = nil
             end
         end
@@ -472,7 +472,7 @@ Style.UpdateSkin("Default",     {
             alpha               = 0,
 
             In                  = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isInState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isInState),
 
                 Scale1          = {
                     order       = 1,
@@ -509,7 +509,7 @@ Style.UpdateSkin("Default",     {
             alpha               = 0,
 
             In                  = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isInState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isInState),
 
                 Scale           = {
                     order       = 1,
@@ -535,7 +535,7 @@ Style.UpdateSkin("Default",     {
             alpha               = 0,
 
             In                  = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isInState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isInState),
 
                 Scale           = {
                     order       = 1,
@@ -560,7 +560,7 @@ Style.UpdateSkin("Default",     {
             alpha               = 1,
 
             In                  = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isInState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isInState),
 
                 Scale           = {
                     order       = 1,
@@ -571,7 +571,7 @@ Style.UpdateSkin("Default",     {
             },
 
             Out                 = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isOutState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isOutState),
 
                 Alpha           = {
                     order       = 1,
@@ -591,7 +591,7 @@ Style.UpdateSkin("Default",     {
             alpha               = 1,
 
             In                  = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isInState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isInState),
 
                 Scale           = {
                     order       = 1,
@@ -608,7 +608,7 @@ Style.UpdateSkin("Default",     {
             },
 
             Out                 = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isOutState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isOutState),
 
                 Alpha1          = {
                     order       = 1,
@@ -629,11 +629,11 @@ Style.UpdateSkin("Default",     {
             drawLayer           = "OVERLAY",
             file                = [[Interface\SpellActivationOverlay\IconAlertAnts]],
             setAllPoints        = true,
-            animateTexCoords    = Wow.FromUIProperty("AinmationState"):Map(isPlaying),
+            animateTexCoords    = Wow.FromUIProperty("AnimationState"):Map(isPlaying),
             alpha               = 1,
 
             In                  = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isInState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isInState),
 
                 Alpha           = {
                     order       = 1,
@@ -645,7 +645,7 @@ Style.UpdateSkin("Default",     {
             },
 
             Out                 = {
-                playing         = Wow.FromUIProperty("AinmationState"):Map(isOutState),
+                playing         = Wow.FromUIProperty("AnimationState"):Map(isOutState),
 
                 Alpha           = {
                     order       = 1,
