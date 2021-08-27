@@ -864,3 +864,37 @@ end
 
 __Static__()
 Scorpio.CloseDropDownMenu       = closeMenuList
+
+__Async__()
+function OnEnable()
+    Delay(5)
+
+    local cache                 = {}
+
+    for i = 1, 5 do
+        cache[i]                = rycDropDownLists()
+        Next()
+    end
+
+    for i = 1, 5 do
+        rycDropDownLists(cache[i])
+    end
+
+    for i = 1, 15 do
+        cache[i]                = rycDropDownMenuLists()
+        Next()
+    end
+
+    for i = 1, 15 do
+        rycDropDownMenuLists(cache[i])
+    end
+
+    for i = 1, 100 do
+        cache[i]                = rycDropDownMenuButtons()
+        Next()
+    end
+
+    for i = 1, 100 do
+        rycDropDownMenuButtons(cache[i])
+    end
+end

@@ -621,7 +621,7 @@ class "SecureGroupPanel" (function(_ENV)
     function __ctor(self, ...)
         super(self, ...)
 
-        Next(function(self)
+        --[[Next(function(self)
             while true do
                 if not self:IsShown() then
                     Next(Observable.From(self.OnShow))
@@ -636,7 +636,7 @@ class "SecureGroupPanel" (function(_ENV)
                     self.GroupHeader:Refresh()
                 end
             end
-        end, self)
+        end, self)--]]
 
         self.OnElementAdd       = self.OnElementAdd + OnElementAdd
         self.OnElementRemove    = self.OnElementRemove + OnElementRemove
