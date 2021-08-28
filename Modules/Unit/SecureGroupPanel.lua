@@ -630,10 +630,11 @@ class "SecureGroupPanel" (function(_ENV)
                 if not self:IsShown() then
                     Next(Observable.From(self.OnShow))
                 else
-                    Next(Wow.FromEvent("GROUP_ROSTER_UPDATE"))
+                    NextEvent("GROUP_ROSTER_UPDATE")
                 end
 
-                Delay(0.2) -- Just enough
+                Delay(0.1) -- Just enough
+
                 NoCombat()
 
                 if self:IsShown() then

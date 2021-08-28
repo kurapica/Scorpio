@@ -1,3 +1,7 @@
+2021/08/28 v110
+	1. Fix the flash of the SecureGroupPanel to force the refreshing.
+	2. Fix the ready check logic.
+
 2021/08/20 v108
 	1. Add the unregister unit frame operation when secure group panel is deleted, so re-use them won't cause all unit settings continuely be cleared.
 
