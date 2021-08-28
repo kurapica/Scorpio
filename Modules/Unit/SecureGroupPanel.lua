@@ -286,6 +286,8 @@ class "SecureGroupPanel" (function(_ENV)
         ]=]
 
         _Hide                   = [[
+            if self:GetAttribute("forcerefresh") then return end
+
             for i = #ShadowFrames, 1, -1 do
                 ShadowFrames[i]:SetAttribute("unit", nil)
             end
@@ -359,8 +361,10 @@ class "SecureGroupPanel" (function(_ENV)
         function Refresh(self)
             if self:IsShown() and not InCombatLockdown() then
                 -- Well, it's ugly but useful to trigger refreshing
+                self:SetAttribute("forcerefresh", true)
                 self:Hide()
                 self:Show()
+                self:SetAttribute("forcerefresh", nil)
             end
         end
 
@@ -621,7 +625,7 @@ class "SecureGroupPanel" (function(_ENV)
     function __ctor(self, ...)
         super(self, ...)
 
-        --[[Next(function(self)
+        Next(function(self)
             while true do
                 if not self:IsShown() then
                     Next(Observable.From(self.OnShow))
@@ -636,7 +640,7 @@ class "SecureGroupPanel" (function(_ENV)
                     self.GroupHeader:Refresh()
                 end
             end
-        end, self)--]]
+        end, self)
 
         self.OnElementAdd       = self.OnElementAdd + OnElementAdd
         self.OnElementRemove    = self.OnElementRemove + OnElementRemove
