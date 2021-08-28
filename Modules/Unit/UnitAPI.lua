@@ -258,17 +258,21 @@ end
 local _ReadyChecking            = 0
 local _ReadyCheckSubject        = Subject()
 local _ReadyCheckConfirmSubject = Subject()
+local _ReadyCheckingCache       = {}
 
 __SystemEvent__() __Async__()
 function READY_CHECK()
+    wipe(_ReadyCheckingCache)
+
     _ReadyChecking              = 1
     _ReadyCheckSubject:OnNext("any")
+    _ReadyCheckConfirmSubject:OnNext("any")
 
     if "READY_CHECK_FINISHED" == Wait("READY_CHECK_FINISHED", "PLAYER_REGEN_DISABLED") then
         _ReadyChecking          = 2
         _ReadyCheckConfirmSubject:OnNext("any")
 
-        Wait(8, "PLAYER_REGEN_DISABLED")
+        Wait(11, "PLAYER_REGEN_DISABLED")
     end
 
     _ReadyChecking              = 0
@@ -290,7 +294,9 @@ function Wow.UnitReadyCheck()
     return Wow.FromUnitEvent(_ReadyCheckConfirmSubject):Map(function(unit)
         if _ReadyChecking == 0 then return end
 
-        local state             = GetReadyCheckStatus(unit)
+        local guid              = UnitGUID(unit)
+        local state             = GetReadyCheckStatus(unit) or _ReadyCheckingCache[guid]
+        _ReadyCheckingCache[guid]= state
         return _ReadyChecking == 2 and state == "waiting" and "notready" or state
     end)
 end
