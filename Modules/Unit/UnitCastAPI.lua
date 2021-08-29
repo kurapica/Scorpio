@@ -84,7 +84,7 @@ function UNIT_SPELLCAST_CHANNEL_START(unit)
     _UnitCastChannel:OnNext(unit, true)
     _UnitCastSubject:OnNext(unit, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, i)
+    _UnitCastInterruptible:OnNext(unit, not i)
 end
 
 __SystemEvent__()
