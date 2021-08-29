@@ -1,3 +1,7 @@
+2021/08/29 v111
+	1. Fix the flash of the cast bar.
+	2. Fix the Wow.UnitCastInterruptible for channel spell.
+
 2021/08/28 v110
 	1. Fix the flash of the SecureGroupPanel to force the refreshing.
 	2. Fix the ready check logic.
