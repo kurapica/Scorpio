@@ -132,10 +132,8 @@ class "CooldownStatusBar" (function(_ENV)
 
     event "OnCooldownFinished"
 
-    local function processCooldown(self, start, duration)
-       self:Show()
-
-        local task              = self.TaskID
+    local function processCooldown(self, start, duration, task)
+        if task ~= self.TaskID then return end
 
         local now               = GetTime()
         local fin               = start and duration and (start + duration) or 0
@@ -158,6 +156,7 @@ class "CooldownStatusBar" (function(_ENV)
             processed           = true
 
             self:SetMinMaxValues(0, duration)
+            self:Show()
 
             while fin > now do
                 local remain    = now - start
@@ -175,13 +174,12 @@ class "CooldownStatusBar" (function(_ENV)
             end
         end
 
+        Next()
+        if task ~= self.TaskID then return end
+
         -- Reset
-        if self.AutoHide then
-            self:Hide()
-        else
-            self:SetMinMaxValues(0, 100)
-            self:SetValue(self.AutoFullValue and 100 or 0)
-        end
+        self:SetValue(self.AutoFullValue and select(2, self:GetMinMaxValues()) or 0)
+        if self.AutoHide then Next(self.Hide, self) end
 
         if processed then
             OnCooldownFinished(self)
@@ -202,10 +200,12 @@ class "CooldownStatusBar" (function(_ENV)
 
     function SetCooldown(self, start, duration)
         self.TaskID             = (self.TaskID or 0) + 1
-        if not self:IsShown() and duration <= 0 then return end
+
+        self:SetValue(self.AutoFullValue and select(2, self:GetMinMaxValues()) or 0)
+        if duration <= 0 then return self.AutoHide and Next(self.Hide, self) end
 
         -- waiting the reverse settings to be applied at the same time
-        Next(processCooldown, self, start, duration)
+        Next(processCooldown, self, start, duration, self.TaskID)
     end
 
     __Template__{
