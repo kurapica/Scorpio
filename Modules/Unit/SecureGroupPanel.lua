@@ -633,7 +633,7 @@ class "SecureGroupPanel" (function(_ENV)
                     NextEvent("GROUP_ROSTER_UPDATE")
                 end
 
-                Delay(0.1) -- Just enough
+                Delay(0.5) -- Just enough
 
                 NoCombat()
 
