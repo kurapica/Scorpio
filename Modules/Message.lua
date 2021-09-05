@@ -16,7 +16,6 @@ MAX_BYTE_SECOND                 = 2000
 MAX_AVAILABLE                   = 8000
 
 _WorldBeginTime                 = 0
-_IsSending                      = false
 _Available                      = 0
 _LastUpdate                     = 0
 
@@ -36,7 +35,7 @@ export { min = math.min, ceil = math.ceil, floor = math.floor, random = math.ran
 
 function updateAvailable()
     local now               = GetTime()
-    _Available              = min(MAX_AVAILABLE, _Available + MAX_BYTE_SECOND * (now - _LastUpdate))
+    _Available              = min(MAX_AVAILABLE, _Available + floor(MAX_BYTE_SECOND * (now - _LastUpdate)))
     _LastUpdate             = now
 end
 
@@ -80,7 +79,6 @@ end
 
 __SecureHook__(_G.C_ChatInfo, "SendAddonMessage")
 function Hook_SendAddonMessage(prefix, message, chatType, target)
-    if _IsSending then return end
     _Available                  = _Available - (#tostring(prefix or "") + #tostring(message or "") + #tostring(target or "") + MESSAGE_OVERHEAD)
 end
 
@@ -223,7 +221,6 @@ function ProcessMessages()
                     updateAvailable()
                 end
 
-                _Available      = _Available - len
                 C_ChatInfo.SendAddonMessage(SCORPIO_ADDON_PREFIX, msg, chatType, target)
             end
         end
