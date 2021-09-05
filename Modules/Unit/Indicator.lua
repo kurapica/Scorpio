@@ -146,8 +146,12 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
         return ele:InstantApplyStyle()
     end
 
+    local function OnShow(self)
+        self.Refresh            = self.Unit
+    end
+
     --- The aura filters
-    __Sealed__() enum "AuraFilter" { "HELPFUL", "HARMFUL", "PLAYER", "RAID", "CANCELABLE", "NOT_CANCELABLE", "INCLUDE_NAME_PLATE_ONLY" }
+    __Sealed__() enum "AuraFilter" { "HELPFUL", "HARMFUL", "PLAYER", "RAID", "CANCELABLE", "NOT_CANCELABLE", "INCLUDE_NAME_PLATE_ONLY", "MAW" }
 
     ------------------------------------------------------
     -- Property
@@ -183,7 +187,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
         set                     = function(self, unit)
             self.Unit           = unit
             local filter        = self.AuraFilter
-            if not filter or filter == "" then return end
+            if not (unit and filter and filter ~= "" and self:IsVisible()) then return end
 
             local auraPriority  = self.AuraPriority
             if not auraPriority or #auraPriority == 0 then
@@ -265,6 +269,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     ------------------------------------------------------
     function __ctor(self)
         self.OnElementCreated   = self.OnElementCreated + OnElementCreated
+        self.OnShow             = self.OnShow           + OnShow
     end
 end)
 

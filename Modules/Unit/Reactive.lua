@@ -121,9 +121,20 @@ class "UnitFrameSubject" (function(_ENV)
             self:OnNext("clear", true)
         elseif unit:match("%w+target") then
             local frm           = self.UnitFrame
+            local runit         -- the real unit for system event
+
             while task == self.TaskId do
                 while frm:IsShown() and task == self.TaskId do
-                    self:OnNext(unit, true)
+                    -- Check if the target is an existed unit, use that unit instead the *target
+                    -- So the unit system event can work on it
+                    local guid  = UnitGUID(unit)
+                    local nunit = guid and GetUnitFromGUID(guid)
+
+                    if not nunit or nunit ~= runit then
+                        runit   = nunit
+                        self:OnNext(runit or unit, not runit)
+                    end
+
                     Delay(self.Interval)
                 end
 

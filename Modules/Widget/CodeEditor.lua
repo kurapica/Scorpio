@@ -325,7 +325,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function checkPrevUTF8(str, pos)
-        while pos > 0 do
+        while pos and pos > 0 do
             local byte          = strbyte(str, pos)
             if byte < 0x80 then
                 if byte == _Byte.VERTICAL then
@@ -338,6 +338,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
             pos                 = pos - 1
         end
+        return 0
     end
 
     local function removeColor(str)
@@ -964,7 +965,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function transMatchWord(w)
-        return "(["..w:lower()..w:upper().."])([%w_]-)"
+        return "(["..w:lower()..w:upper().."])([%w_%.]-)"
     end
 
     local function applyColor(...)
@@ -1018,6 +1019,22 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                 end
             end
         end
+
+        local function addNamespaces(ns)
+            index               = index + 1
+            _CommonAutoCompleteList[index] = tostring(ns)
+
+            if index % 10 == 0 then
+                Continue()
+            end
+
+            for name, sns in Namespace.GetNamespaces(ns) do
+                addNamespaces(sns)
+            end
+        end
+
+        -- All namespaces from the PLoop
+        addNamespaces(PLoop)
 
         Continue()
         List(_CommonAutoCompleteList):QuickSort(compare)

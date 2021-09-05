@@ -1,3 +1,6 @@
+2021/09/04 v112
+	1. The unit like targettarget, part1target will be converted to the real unit for unit event mapping like boss1 through the GUID if that unit existed.
+
 2021/08/29 v111
 	1. Fix the flash of the cast bar.
 	2. Fix the Wow.UnitCastInterruptible for channel spell.

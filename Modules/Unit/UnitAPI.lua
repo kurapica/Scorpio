@@ -179,7 +179,7 @@ __Static__() __AutoCache__()
 function Wow.UnitIsResurrect()
     local subject               = Subject()
 
-    Wow.FromEvent("INCOMING_RESURRECT_CHANGED"):Subscribe(function(unit)
+    Wow.FromEvent("INCOMING_RESURRECT_CHANGED"):Next():Subscribe(function(unit)
         subject:OnNext(unit)
 
         if UnitHasIncomingResurrection(unit) then

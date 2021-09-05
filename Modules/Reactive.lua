@@ -101,97 +101,65 @@ do
         end)
     end
 
-    --- Block the sequence for a frame phase, useful for some events that trigger
-    -- multiple-times in one phase(the same value will be blocked until the next phase)
+    --- Distinct the sequence by the first value until the next phase
     local _Recyle               = Recycle()
+    local _RecycleQueue         = Recycle(Queue)
     local fakefunc              = Toolset.fakefunc
 
-    local function onNextSingleProcess(observer, cache, idxmap)
-        for i = 1, #cache do
-            local single        = cache[i]
-            if idxmap[single] == i then
-                if single == fakefunc then
-                    observer:OnNext(nil)
+    local function processNextQueue(observer, queue, idxmap, multi)
+        local index             = 0
+
+        local key, count        = queue:Dequeue(2)
+        while key ~= nil do
+            index               = index + 1
+
+            if idxmap[key] == index then
+                if key == fakefunc then key = nil end
+
+                if count > 0 then
+                    observer:OnNext(key, queue:Dequeue(count))
                 else
-                    observer:OnNext(single)
+                    observer:OnNext(key)
                 end
+            elseif count > 0 then
+                queue:Dequeue(count)
             end
+
+            key, count          = queue:Dequeue(2)
         end
 
-        _Recyle(wipe(cache))
+        Next()
+
+        queue:Clear()
+        _RecycleQueue(queue)
         _Recyle(wipe(idxmap))
-    end
-
-    local function onNextProcess(observer, cache, idxmap)
-        for i = 1, #cache do
-            local item          = cache[i]
-            if idxmap[item[0]] == i then
-                observer:OnNext(unpack(item, 1))
-                wipe(item)
-            end
-        end
-
-        _Recyle(wipe(cache))
-        _Recyle(wipe(idxmap))
-    end
-
-    local function distinctCache(cache, idxmap, ...)
-        local item              = _Recyle()
-        local ncnt              = select("#", ...)
-        local index             = 1
-
-        for i = 1, ncnt do
-            item[i]             = tostring((select(i, ...)))
-        end
-
-        local token             = tblconcat(item, "|")
-        local index             = #cache + 1
-
-        if idxmap[token] then
-            cache[index]        = cache[idxmap[token]]
-            _Recyle(wipe(item))
-        else
-            item[0]             = token
-            for i = 1, ncnt do
-                item[i]         = select(i, ...)
-            end
-
-            cache[index]        = item
-        end
-        idxmap[token]           = index
     end
 
     __Observable__()
-    function IObservable:Next(multi)
+    function IObservable:Next()
         local cache, idxmap
         local currTime          = 0
 
-        if multi then
-            return Operator(self, function(observer, ...)
-                local now           = GetTime()
-                if now ~= currTime then
-                    cache           = _Recyle()
-                    idxmap          = _Recyle()
-                    currTime        = now
-                    Next(onNextProcess, observer, cache, idxmap)
-                end
-                distinctCache(cache, idxmap, ...)
-            end)
-        else
-            return Operator(self, function(observer, single)
-                local now           = GetTime()
-                if now ~= currTime then
-                    cache           = _Recyle()
-                    idxmap          = _Recyle()
-                    currTime        = now
-                    Next(onNextSingleProcess, observer, cache, idxmap)
-                end
-                if single == nil then single = fakefunc end
-                local idx           = #cache + 1
-                cache[idx]          = single
-                idxmap[single]      = idx
-            end)
-        end
+        return Operator(self, function(observer, key, ...)
+            local now           = GetTime()
+
+            -- Init the queue for this phase
+            if now ~= currTime then
+                queue           = _RecycleQueue()
+                idxmap          = _Recyle()
+                currTime        = now
+                index           = 0
+
+                Next(processNextQueue, observer, queue, idxmap, multi)
+            end
+
+            -- Use fakefunc to represent nil
+            if key == nil then key = fakefunc end
+
+            index               = index + 1
+            queue:Enqueue(key, select("#", ...), ...)
+            idxmap[key]         = index
+        end)
     end
 
     --- Filter the unit event with unit, this should be re-usable

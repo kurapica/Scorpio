@@ -16,4 +16,10 @@
 
     <!-- Scorpio Reactive -->
    	<Script file="Reactive.lua"/>
+
+    <!-- Scorpio Async Deflate & Base64 -->
+    <Script file="Encoder.lua"/>
+
+    <!-- Scorpio Message -->
+    <Script file="Message.lua"/>
 </Ui>
