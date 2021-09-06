@@ -103,6 +103,13 @@ function COMBAT_HEALTH_CHANGE(_, event, _, _, _, _, _, destGUID, _, _, _, arg12,
     end
 end
 
+__CombatEvent__ "UNIT_DIED" "UNIT_DESTROYED" "UNIT_DISSIPATES"
+function COMBAT_UNIT_DIED(_, event, _, _, _, _, _, destGUID)
+    for unit in Scorpio.GetUnitsFromGUID(destGUID) do
+        Delay(0.3, FireSystemEvent, "UNIT_HEALTH", unit)
+    end
+end
+
 __SystemEvent__()
 function PLAYER_ENTERING_WORLD()
     -- Clear the Registered Units
