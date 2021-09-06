@@ -27,11 +27,13 @@ _ResultMessages                 = {}
 
 _ModulePrefixHandler            = {}
 
+_NextMessageTasks               = {}
+
 
 ------------------------------------------------------------
 --                        Helpers                         --
 ------------------------------------------------------------
-export { min = math.min, ceil = math.ceil, floor = math.floor, random = math.random, format = string.format, char = string.char, byte = string.byte, concat = table.concat }
+export { min = math.min, ceil = math.ceil, floor = math.floor, random = math.random, format = string.format, char = string.char, byte = string.byte, concat = table.concat, tinsert = table.insert }
 
 function updateAvailable()
     local now               = GetTime()
@@ -46,6 +48,11 @@ end
 
 function toString(index)
     return char(65 + floor(index / 26), 65 + index % 26)
+end
+
+__Async__()
+function nextMessageCall(prefix, callback)
+    return callback(NextMessage(prefix))
 end
 
 ------------------------------------------------------------
@@ -99,6 +106,22 @@ function DistributeMessages(packet, channel, sender, target)
                         if not ok then geterrorhandler()(err) end
                     end
                 end
+
+                handlers        = _NextMessageTasks[prefix]
+                _NextMessageTasks[prefix] = nil
+
+                if handlers then
+                    Continue()
+
+                    for _, thread in ipairs(handlers) do
+                        local ok, err = coroutine.resume(thread, message, channel, sender, target)
+                        if not ok then geterrorhandler()(err) end
+                    end
+
+                    _Recycle(wipe(handlers))
+                end
+
+                Continue()
             end
         end
     end
@@ -333,4 +356,17 @@ function Scorpio.SendAddonMessage(prefix, message, chatType, target, callback)
 
     -- Waiting the result
     if thread then return coroutine.yield() end
+end
+
+__Static__() __Arguments__{ NEString, Callable/nil }
+function Scorpio.NextMessage(prefix, callback)
+    if callback then return nextMessageCall(prefix, callback) end
+
+    local thread            = coroutine.running()
+    if not thread then error("Usage: NextMessage(prefix[, callback]) - The NextMessage must be used in a coroutine") end
+
+    _NextMessageTasks[prefix] = _NextMessageTasks[prefix] or _Recycle()
+    tinsert(_NextMessageTasks[prefix], thread)
+
+    return coroutine.yield()
 end

@@ -1290,6 +1290,7 @@ do
         default         = false,
         set             = function(self, val) self:SetMouseClickEnabled(val) end,
         get             = function(self) return self:IsMouseClickEnabled() end,
+        override        = { "EnableMouse" },
     }
 
     --- whether mouse interactivity is enabled for the frame
@@ -1300,6 +1301,7 @@ do
         default         = false,
         set             = function(self, val) self:EnableMouse(val) end,
         get             = function(self) return self:IsMouseEnabled() end,
+        override        = { "EnableMouseClicks", "EnableMouseMotion" },
     }
 
     --- Whether the mouse motion in enabled
@@ -1310,6 +1312,7 @@ do
         default         = false,
         set             = function(self, val) self:SetMouseMotionEnabled(val) end,
         get             = function(self) return self:IsMouseMotionEnabled() end,
+        override        = { "EnableMouse" },
     }
 
     --- whether mouse wheel interactivity is enabled for the frame
