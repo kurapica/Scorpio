@@ -33,7 +33,12 @@ _NextMessageTasks               = {}
 ------------------------------------------------------------
 --                        Helpers                         --
 ------------------------------------------------------------
-export { min = math.min, ceil = math.ceil, floor = math.floor, random = math.random, format = string.format, char = string.char, byte = string.byte, concat = table.concat, tinsert = table.insert }
+export {
+    min = math.min, ceil = math.ceil, floor = math.floor,
+    random = math.random, format = string.format, char = string.char, byte = string.byte,
+    concat = table.concat, tinsert = table.insert,
+    yield = coroutine.yield, resume = coroutine.resume, running = coroutine.running
+}
 
 function updateAvailable()
     local now               = GetTime()
@@ -51,8 +56,31 @@ function toString(index)
 end
 
 __Async__()
-function nextMessageCall(prefix, callback)
-    return callback(NextMessage(prefix))
+function nextMessageCall(prefix, callback, timeout)
+    return callback(NextMessage(prefix, timeout))
+end
+
+function releaseNextMessage(task)
+    if task[2] then
+        local handlers          = _NextMessageTasks[prefix]
+        if handlers then
+            local length        = #handlers
+
+            for i = 1, length do
+                if handlers[i] == task then
+                    handlers[i] = false
+
+                    if length == 1 then _NextMessageTasks[prefix] = nil end
+                    break
+                end
+            end
+        end
+
+        local ok, err           = resume(task[2])
+        if not ok then geterrorhandler()(err) end
+
+        task[2]                 = nil
+    end
 end
 
 ------------------------------------------------------------
@@ -114,8 +142,17 @@ function DistributeMessages(packet, channel, sender, target)
                     Continue()
 
                     for _, thread in ipairs(handlers) do
-                        local ok, err = coroutine.resume(thread, message, channel, sender, target)
-                        if not ok then geterrorhandler()(err) end
+                        if type(thread) == "table" then
+                            -- With timeout, no recycle, just let it be collected
+                            local temp  = thread
+                            thread      = thread[2]
+                            temp[2]     = nil
+                        end
+
+                        if thread then
+                            local ok, err = resume(thread, message, channel, sender, target)
+                            if not ok then geterrorhandler()(err) end
+                        end
                     end
 
                     _Recycle(wipe(handlers))
@@ -166,7 +203,7 @@ end
 
 __Iterator__()
 function iterdist(packets)
-    local yield                 = coroutine.yield
+    local yield                 = yield
 
     for chatType, dist in pairs(packets) do
         if chatType == "WHISPER" or chatType == "CHANNEL" then
@@ -254,7 +291,7 @@ function ProcessMessages()
                 local ok, err   = pcall(callback)
                 if not ok then geterrorhandler()(err) end
             else
-                coroutine.resume(callback)
+                resume(callback)
             end
         end
 
@@ -345,7 +382,7 @@ function Scorpio.SendAddonMessage(prefix, message, chatType, target, callback)
     if chatType == "CHANNEL" and not Struct.ValidateValue(NaturalNumber, target) then error("Usage: SendAddonMessage(prefix, message[, chatType[, target]][, callback]) - The target must be a channel id", 2) end
     if callback and callback ~= true and type(callback) ~= "function" then error("Usage: SendAddonMessage(prefix, message[, chatType[, target]][, callback]) - The callback must be a function", 2) end
 
-    local thread                = callback == true and coroutine.running()
+    local thread                = callback == true and running()
     chatType                    = chatType or "PARTY"
 
     if chatType == "WHISPER" or chatType == "CHANNEL" then
@@ -355,18 +392,31 @@ function Scorpio.SendAddonMessage(prefix, message, chatType, target, callback)
     end
 
     -- Waiting the result
-    if thread then return coroutine.yield() end
+    if thread then return yield() end
 end
 
-__Static__() __Arguments__{ NEString, Callable/nil }
-function Scorpio.NextMessage(prefix, callback)
-    if callback then return nextMessageCall(prefix, callback) end
+__Arguments__{ NEString, (Number + Callable)/nil, Number/nil } __Static__()
+function Scorpio.NextMessage(prefix, callback, timeout)
+    if type(callback) == "number" then callback, timeout = nil, callback end
 
-    local thread            = coroutine.running()
+    if callback then return nextMessageCall(prefix, callback, timeout) end
+
+    local thread            = running()
     if not thread then error("Usage: NextMessage(prefix[, callback]) - The NextMessage must be used in a coroutine") end
 
     _NextMessageTasks[prefix] = _NextMessageTasks[prefix] or _Recycle()
-    tinsert(_NextMessageTasks[prefix], thread)
 
-    return coroutine.yield()
+    if timeout then
+        local task          = _Recycle()
+        task[1]             = prefix
+        task[2]             = thread
+
+        tinsert(_NextMessageTasks[prefix], task)
+
+        Delay(timeout, releaseNextMessage, task)
+    else
+        tinsert(_NextMessageTasks[prefix], thread)
+    end
+
+    return yield()
 end
