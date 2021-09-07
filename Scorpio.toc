@@ -1,4 +1,7 @@
 ## Interface: 90100
+## Interface-Retail: 90100
+## Interface-Classic: 11307
+## Interface-BCC: 20502
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: @project-version@
