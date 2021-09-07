@@ -48,7 +48,7 @@ jobs:
           args: -g bcc
           
       # once cloned, we just run the GitHub Action for the packager project
-      - name: Package and release
+      - name: Package and release for classic
         uses: BigWigsMods/packager@v1
         with:
           args: -g classic
