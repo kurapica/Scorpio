@@ -1,7 +1,7 @@
 ## Interface: 20502
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
-## Version: v112
+## Version: @project-version@
 ## Notes: Scorpio Addon FrameWork
 ## URL: http://github.com/kurapica/Scorpio
 ## DefaultState: Enabled

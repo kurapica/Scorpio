@@ -1,10 +1,7 @@
 ## Interface: 90100
-## Interface-Retail: 90100
-## Interface-Classic: 11307
-## Interface-BCC: 20502
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
-## Version: v112
+## Version: @project-version@
 ## Notes: Scorpio Addon FrameWork
 ## URL: http://github.com/kurapica/Scorpio
 ## X-Curse-Project-ID: 255859
