@@ -37,3 +37,18 @@ jobs:
       # once cloned, we just run the GitHub Action for the packager project
       - name: Package and release
         uses: BigWigsMods/packager@v1
+        with:
+          args: -g retail
+          
+      # another example where we supply additional arguments, this example is specifically to release
+      # for the Burning Crusade Classic version of the game and doesn't upload to WoWInterface
+      - name: Package and release for Burning Crusade Classic
+        uses: BigWigsMods/packager@v1
+        with:
+          args: -g bcc
+          
+      # once cloned, we just run the GitHub Action for the packager project
+      - name: Package and release
+        uses: BigWigsMods/packager@v1
+        with:
+          args: -g classic
