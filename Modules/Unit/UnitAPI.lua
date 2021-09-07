@@ -129,12 +129,6 @@ function Wow.UnitLevelColor(default)
         end)
 end
 
--- The Aura API
-__Static__() __AutoCache__()
-function Wow.UnitAura()
-    return Wow.FromUnitEvent("UNIT_AURA"):Next()
-end
-
 __Static__() __AutoCache__()
 function Wow.UnitTotem()
     return Wow.FromUnitEvent(Wow.FromEvent("PLAYER_TOTEM_UPDATE"):Map("=>'player'"))
@@ -306,18 +300,5 @@ end
 ------------------------------------------------------------
 if Scorpio.IsRetail then return end
 
-_Parent.UnitHasVehicleUI        = _G.UnitHasVehicleUI or Toolset.fakefunc
+_Parent.UnitHasVehicleUI        = _G.UnitHasVehicleUI     or Toolset.fakefunc
 _Parent.GetThreatStatusColor    = _G.GetThreatStatusColor or function (index) if index == 3 then return 1, 0, 0 elseif index == 2 then return 1, 0.6, 0 elseif index == 1 then return 1, 1, 0.47 else return 0.69, 0.69, 0.69 end end
-
-if Scorpio.IsBCC then return end
-
---- Try Get LibClassicDurations
-pcall(LoadAddOn, "LibClassicDurations")
-
-local ok, LibClassicDurations   = pcall(_G.LibStub, "LibClassicDurations")
-if not (ok and LibClassicDurations) then return end
-
-LibClassicDurations:Register("Scorpio") -- tell library it's being used and should start working
-_Parent.UnitAura                = LibClassicDurations.UnitAuraWithBuffs
-
-LibClassicDurations.RegisterCallback("Scorpio", "UNIT_BUFF", function(event, unit) return FireSystemEvent("UNIT_AURA", unit) end)

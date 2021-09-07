@@ -10,6 +10,7 @@
 	<Script file="UnitHealthAPI.lua"/>
 	<Script file="UnitPowerAPI.lua"/>
 	<Script file="UnitCastAPI.lua"/>
+	<Script file="UnitAuraAPI.lua"/>
 
 	<!-- Unit Frame Indicator -->
 	<Script file="Indicator.lua"/>

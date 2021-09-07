@@ -1,5 +1,9 @@
 2021/09/04 v112
 	1. The unit like targettarget, part1target will be converted to the real unit for unit event mapping like boss1 through the GUID if that unit existed.
+	2. `__Message__` and SendAddonMessage is added, it's a full message framework, async encode API is added for base64 and deflate.
+	3. Unit Died Combat Log Event will trigger the UNIT_HEALTH for updating.
+	4. The hover spell support spell sub level in classic now.
+
 
 2021/08/29 v111
 	1. Fix the flash of the cast bar.

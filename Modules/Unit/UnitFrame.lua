@@ -30,9 +30,18 @@ do
                 error("Invalid spell name|id - "..tostring(spell), 3)
             end,
             content             = "spell",
-            tranMacro           = function (spell, with)
+            tranMacro           = Scorpio.IsRetail and function (spell, with)
                 if GetSpellInfo(spell) then
                     return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell))
+                end
+            end or function (spell, with)
+                if GetSpellInfo(spell) then
+                    local sub   = GetSpellSubtext(spell)
+                    if sub and sub ~= "" then
+                        return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell).."("..sub..")")
+                    else
+                        return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell))
+                    end
                 end
             end
         },
