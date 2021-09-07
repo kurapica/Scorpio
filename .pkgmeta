@@ -1,0 +1,6 @@
+package-as: Scorpio
+
+manual-changelog: changelog.txt
+
+ignore:
+  - Docs
