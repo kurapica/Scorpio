@@ -192,7 +192,7 @@ class "UnitFrameSubject" (function(_ENV)
                 refreshUnitGuidMap(unit)
                 self:OnNext(unit)
 
-                if (UnitHealthMax(unit) or 0) > 0 then
+                if not UnitExists(unit) or (UnitHealthMax(unit) or 0) > 0 then
                     Next(RAID_UNIT_SUBJECT)
                     Delay(0.3)
                 else

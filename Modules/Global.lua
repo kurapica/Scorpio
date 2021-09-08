@@ -65,7 +65,7 @@ end
 
 ------------------- Error --------------------
 geterrorhandler                 = geterrorhandler or function() return print end
-errorhandler                    = errorhandler or function(err) return geterrorhandler()(err) end
+errorhandler                    = _G.errorhandler or function(err) return geterrorhandler()(err) end
 
 ------------------- Table --------------------
 tblconcat                       = table.concat

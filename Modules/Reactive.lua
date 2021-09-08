@@ -106,7 +106,7 @@ do
     local _RecycleQueue         = Recycle(Queue)
     local fakefunc              = Toolset.fakefunc
 
-    local function processNextQueue(observer, queue, idxmap, multi)
+    local function processNextQueue(observer, queue, idxmap)
         local index             = 0
 
         local key, count        = queue:Dequeue(2)
@@ -137,7 +137,7 @@ do
 
     __Observable__()
     function IObservable:Next()
-        local cache, idxmap
+        local queue, idxmap, index
         local currTime          = 0
 
         return Operator(self, function(observer, key, ...)
@@ -150,7 +150,7 @@ do
                 currTime        = now
                 index           = 0
 
-                Next(processNextQueue, observer, queue, idxmap, multi)
+                Next(processNextQueue, observer, queue, idxmap)
             end
 
             -- Use fakefunc to represent nil
