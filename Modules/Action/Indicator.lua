@@ -108,7 +108,7 @@ class "SpellActivationAlert" (function(_ENV)
     --                     Helpers                      --
     ------------------------------------------------------
     local hiddenFrame           = CreateFrame("Frame") hiddenFrame:Hide()
-    local recycle               = Recycle(SpellActivationAlert, "Scorpio_SpellActivationAlert%d", hiddenFrame)
+    local recycle
 
     local function ChangeAntsSize(self)
         local w, h              = self:GetSize()
@@ -116,23 +116,31 @@ class "SpellActivationAlert" (function(_ENV)
     end
 
     local function OnFinished(self)
-        return recycle(self)
+        return recycle[getmetatable(self)](self)
     end
 
-    function recycle:OnInit(alert)
-        alert.OnFinished        = OnFinished
-    end
+    recycle                     = setmetatable({}, { __index = function(self, cls)
+            local pool          = Recycle(cls, tostring(cls):gsub("%.", "_") .. "%d", hiddenFrame)
 
-    function recycle:OnPop(alert)
-        alert:Show()
-    end
+            function pool:OnInit(alert)
+                alert.OnFinished= OnFinished
+            end
 
-    function recycle:OnPush(alert)
-        alert.AnimationState    = "STOP"
-        alert:SetParent(hiddenFrame)
-        alert:ClearAllPoints()
-        alert:Hide()
-    end
+            function pool:OnPop(alert)
+                alert:Show()
+            end
+
+            function pool:OnPush(alert)
+                alert.AnimationState = "STOP"
+                alert:SetParent(hiddenFrame)
+                alert:ClearAllPoints()
+                alert:Hide()
+            end
+
+            rawset(self, cls, pool)
+            return pool
+        end
+    })
 
     ------------------------------------------------------
     --                 Static Property                  --
@@ -265,14 +273,14 @@ end)
 --- SpellActivationAlert
 UI.Property                     {
     name                        = "SpellActivationAlert",
-    require                     = SecureActionButton,
+    require                     = Frame,
     type                        = Boolean,
     default                     = false,
     set                         = function(self, value)
         local alert             = self.__SpellActivationAlert
         if value then
             if not alert then
-                alert           = SpellActivationAlert.Pool()
+                alert           = SpellActivationAlert.Pool[SpellActivationAlert]()
                 local w, h      = self:GetSize()
 
                 alert:SetParent(self)
