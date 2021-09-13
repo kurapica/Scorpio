@@ -99,7 +99,7 @@ function Scorpio.DeflateEncode(str)
         local index             = 0
         local cache             = _Recycle()
 
-        for c in Deflate.Encodes(str) do
+        for c in Deflate.Encodes(str, true) do
             index               = index + 1
             cache[index]        = c
 
