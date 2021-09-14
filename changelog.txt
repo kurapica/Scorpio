@@ -1,3 +1,7 @@
+2021/09/15 v118
+	1. Wow.GetFrame(uitype, observable|event name|observable property name) is added, it'll combine the parent that match the uitype with the
+	observable datas(as the first value) to the next.
+
 2021/09/08 v116
 	1. Fix the Next method to observable, it'll cause mass display errors.
 

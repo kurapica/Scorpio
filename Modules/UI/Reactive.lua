@@ -14,6 +14,7 @@ import "System.Reactive"
 local isUIObject                = UI.IsUIObject
 local isObjectType              = Class.IsObjectType
 local isProperty                = System.Property.Validate
+local isEvent                   = System.Event.Validate
 local isIndexerProperty         = System.Property.IsIndexer
 local getCurrentTarget          = Scorpio.UI.Style.GetCurrentTarget
 local getFeature                = Class.GetFeature
@@ -141,28 +142,70 @@ function Wow.FromPanelProperty(...)
     end)
 end
 
-__Static__() __Arguments__{ -UIObject }
-function Wow.FromFrameSize(type)
+__Arguments__{ -UIObject, Observable + String }
+__Static__()
+function Wow.GetFrame(ftype, observable)
     return Observable(function(observer)
+        local feature
+
+        if type(observable) == "string" then
+            feature             = getFeature(ftype, observable, true)
+
+            if isProperty(feature) then
+                if not __Observable__.IsObservableProperty(feature) then
+                    Error("[Scorpio.UI]The %s's %q property is not observable", ftype, observable)
+                    return
+                end
+            elseif not isEvent(feature) then
+                Error("[Scorpio.UI]The %s has no event named %q", ftype, observable)
+                return
+            end
+        end
+
         local frame             = getCurrentTarget()
         local subject
 
         while frame do
-            if not isObjectType(frame, type) then
+            if not isObjectType(frame, ftype) then
                 frame           = frame:GetParent()
             else
-                subject         = BehaviorSubject()
+                if type(observable) == "string" then
+                    -- Based on the frame's event
+                    local field     = "__GetFrame_" .. observable .. "Subject"
+                    subject         = frame[field]
 
-                Observable.From(frame.OnSizeChanged):Subscribe(function()
-                    subject:OnNext(frame:GetSize())
-                end)
+                    if not subject then
+                        subject     = BehaviorSubject()
+                        frame[field]= subject
 
-                subject:OnNext(frame:GetSize())
+                        if isEvent(feature) then
+                            Observable.From(frame[observable]):Subscribe(function(...) subject:OnNext(...) end)
+                        else
+                            observable.From(frame, observable):Subscribe(function(...) subject:OnNext(frame, ...) end )
+                        end
 
+                        subject:OnNext(frame)
+                    end
+                else
+                    subject         = frame[observable]
+
+                    if not subject then
+                        subject     = BehaviorSubject()
+                        frame[observable] = subject
+
+                        Observable.From(observable):Subscribe(function(...) subject:OnNext(frame, ...) end)
+                        subject:OnNext(frame)
+                    end
+                end
                 break
             end
         end
 
         if subject then subject:Subscribe(observer) end
     end)
+end
+
+__Static__() __Arguments__{ -UIObject }
+function Wow.FromFrameSize(type)
+    return Wow.GetFrame(type, "OnSizeChanged"):Map(function(frm) return frm:GetSize() end)
 end
