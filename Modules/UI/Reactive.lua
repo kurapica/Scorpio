@@ -142,7 +142,7 @@ function Wow.FromPanelProperty(...)
     end)
 end
 
-__Arguments__{ -UIObject, Observable + String }
+__Arguments__{ -UIObject, IObservable + String }
 __Static__()
 function Wow.GetFrame(ftype, observable)
     return Observable(function(observer)
