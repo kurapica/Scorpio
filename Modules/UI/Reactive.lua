@@ -193,7 +193,7 @@ function Wow.GetFrame(ftype, observable)
                         subject     = BehaviorSubject()
                         frame[observable] = subject
 
-                        Observable.From(observable):Subscribe(function(...) subject:OnNext(frame, ...) end)
+                        observable:Subscribe(function(...) subject:OnNext(frame, ...) end)
                         subject:OnNext(frame)
                     end
                 end
