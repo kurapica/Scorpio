@@ -26,7 +26,7 @@ local SVProxy                   = class (function(_ENV)
                 local ty        = type(v)
 
                 if ty == "table" then
-                    tar[k]      = copydefault(tar[k], v)
+                    tar[k]      = copydefault(tar[k], v, clonefunc)
                 elseif tar[k] == nil then
                     if ty == "function" and clonefunc then
                         tar[k]  = v
@@ -36,7 +36,7 @@ local SVProxy                   = class (function(_ENV)
                             ty  = type(v)
                         end
                         if ty == "table" then
-                            tar[k]  = copydefault(tar[k], v)
+                            tar[k]  = copydefault(tar[k], v, clonefunc)
                         elseif ty == "string" or ty == "boolean" or ty == "number" then
                             tar[k]  = v
                         end
@@ -275,6 +275,8 @@ __Sealed__() class "SVManager" (function(_ENV)
                         root            = _Root[root] or root
                         _Root[self]     = root
                         _RTDefault[root]= _RTDefault[root] or {}
+
+                        self.Default = _RTDefault[root]
 
                         super(self, sv, _RTDefault[root])
                     else
