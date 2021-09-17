@@ -276,8 +276,6 @@ __Sealed__() class "SVManager" (function(_ENV)
                         _Root[self]     = root
                         _RTDefault[root]= _RTDefault[root] or {}
 
-                        self.Default = _RTDefault[root]
-
                         super(self, sv, _RTDefault[root])
                     else
                         super(self, sv)
