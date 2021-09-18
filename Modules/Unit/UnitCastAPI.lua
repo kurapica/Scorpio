@@ -148,7 +148,24 @@ end
 ------------------------------------------------------------
 --                    Classic Support                     --
 ------------------------------------------------------------
-if not Scorpio.IsClassic then return end
+if Scorpio.IsRetail then return end
+
+if Scorpio.IsBCC then
+    local oUnitCastingInfo      = _G.UnitCastingInfo
+    local oUnitChannelInfo      = _G.UnitChannelInfo
+
+    function UnitCastingInfo(unit)
+        local name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, spellId = oUnitCastingInfo(unit)
+        return name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, false, spellId
+    end
+
+    function UnitChannelInfo(unit)
+        local name, text, texture, startTimeMS, endTimeMS, isTradeSkill, spellId = oUnitChannelInfo(unit)
+        return name, text, texture, startTimeMS, endTimeMS, isTradeSkill, false, spellId
+    end
+
+    return
+end
 
 local HUNTER_AUTO               = 75
 local HUNTER_AIM                = 19434
