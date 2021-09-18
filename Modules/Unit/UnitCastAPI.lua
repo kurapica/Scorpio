@@ -148,7 +148,7 @@ end
 ------------------------------------------------------------
 --                    Classic Support                     --
 ------------------------------------------------------------
-if Scorpio.IsRetail then return end
+if not Scorpio.IsClassic then return end
 
 local HUNTER_AUTO               = 75
 local HUNTER_AIM                = 19434
