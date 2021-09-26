@@ -487,6 +487,9 @@ function setCustomStyle(target, pname, value, stack, nodirectapply)
                         else
                             error(strformat("The target has no child element from %q", pn), stack + 1)
                         end
+                    elseif isObservable(pv) then
+                        -- So the property child could be generatd dynamically
+                        cval    = pv
                     else
                         error(strformat("The %q is a child poperty, its setting should be a table", pname), stack + 1)
                     end

@@ -543,7 +543,7 @@ do
         name            = "AlphaMode",
         type            = AlphaMode,
         require         = { Texture, Line },
-        default         = "ADD",
+        default         = "BLEND",
         get             = function(self) return self:GetBlendMode() end,
         set             = function(self, val) self:SetBlendMode(val) end,
         depends         = _Texture_Deps,

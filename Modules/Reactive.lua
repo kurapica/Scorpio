@@ -20,21 +20,23 @@ do
     --- Create an Observable that emits a sequence of integers spaced by a given time interval
     __Static__() __Arguments__{ Number, Number/nil }
     function Observable.Interval(interval, max)
-        return Observable(function(observer)
+        return Observable(function(observer, token)
             return Continue(
-                function (observer, interval, max)
+                function (observer, interval, max, token)
                     local i     = 0
                     max         = max or math.huge
 
-                    while not observer.IsUnsubscribed and i <= max do
+                    while not token:IsCancelled() and i <= max do
                         observer:OnNext(i)
                         Delay(interval)
                         i       = i + 1
                     end
 
-                    observer:OnCompleted()
+                    if not token:IsCancelled() then
+                        observer:OnCompleted()
+                    end
                 end,
-                observer, interval, max
+                observer, interval, max, token
             )
         end)
     end
@@ -42,13 +44,15 @@ do
     --- Creates an Observable that emits a particular item after a given delay
     __Static__() __Arguments__{ Number }
     function Observable.Timer(delay)
-        return Observable(function(observer)
+        return Observable(function(observer, token)
             return Delay(delay,
-                function (observer)
+                function (observer, token)
+                    if token:IsCancelled() then return end
+
                     observer:OnNext(0)
                     observer:OnCompleted()
                 end,
-                observer
+                observer, token
             )
         end)
     end
@@ -81,15 +85,16 @@ do
     __Observable__()
     __Arguments__{ Number }
     function IObservable:Timeout(dueTime)
-        return Observable(function(observer)
+        return Observable(function(observer, token)
             local count         = 0
             local check         = function(chkcnt)
                 return chkcnt == count and observer:OnError("The operation is time out")
             end
 
-            Delay(dueTime, check, count)
+            local subOb
+            subOb               = self:Subscribe(function(...)
+                if token:IsCancelled() then return subOb:Unsubscribe() end
 
-            self:Subscribe(function(...)
                 count           = count + 1
                 observer:OnNext(...)
                 Delay(dueTime, check, count)
@@ -98,6 +103,8 @@ do
             end, function()
                 observer:OnCompleted()
             end)
+
+            Delay(dueTime, check, count)
         end)
     end
 
@@ -106,29 +113,31 @@ do
     local _RecycleQueue         = Recycle(Queue)
     local fakefunc              = Toolset.fakefunc
 
-    local function processNextQueue(observer, queue, idxmap)
-        local index             = 0
+    local function processNextQueue(oper, observer, queue, idxmap)
+        if not oper.IsUnsubscribed then
+            local index         = 0
 
-        local key, count        = queue:Dequeue(2)
-        while key ~= nil do
-            index               = index + 1
+            local key, count    = queue:Dequeue(2)
+            while key ~= nil do
+                index           = index + 1
 
-            if idxmap[key] == index then
-                if key == fakefunc then key = nil end
+                if idxmap[key] == index then
+                    if key == fakefunc then key = nil end
 
-                if count > 0 then
-                    observer:OnNext(key, queue:Dequeue(count))
-                else
-                    observer:OnNext(key)
+                    if count > 0 then
+                        observer:OnNext(key, queue:Dequeue(count))
+                    else
+                        observer:OnNext(key)
+                    end
+                elseif count > 0 then
+                    queue:Dequeue(count)
                 end
-            elseif count > 0 then
-                queue:Dequeue(count)
+
+                key, count          = queue:Dequeue(2)
             end
 
-            key, count          = queue:Dequeue(2)
+            Next()
         end
-
-        Next()
 
         queue:Clear()
         _RecycleQueue(queue)
@@ -140,7 +149,8 @@ do
         local queue, idxmap, index
         local currTime          = 0
 
-        return Operator(self, function(observer, key, ...)
+        local oper
+        oper                    = Operator(self, function(observer, key, ...)
             local now           = GetTime()
 
             -- Init the queue for this phase
@@ -150,7 +160,7 @@ do
                 currTime        = now
                 index           = 0
 
-                Next(processNextQueue, observer, queue, idxmap)
+                Next(processNextQueue, oper, observer, queue, idxmap)
             end
 
             -- Use fakefunc to represent nil
@@ -160,6 +170,8 @@ do
             queue:Enqueue(key, select("#", ...), ...)
             idxmap[key]         = index
         end)
+
+        return oper
     end
 
     --- Filter the unit event with unit, this should be re-usable

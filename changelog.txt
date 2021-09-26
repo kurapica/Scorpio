@@ -1,3 +1,6 @@
+2021/09/26 v124
+	1. Add token for the Observable to stop its operations correctly.
+
 2021/09/15 v118
 	1. Wow.GetFrame(uitype, observable|event name|observable property name) is added, it'll combine the parent that match the uitype with the
 	observable datas(as the first value) to the next.
