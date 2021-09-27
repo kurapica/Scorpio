@@ -136,12 +136,12 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitHealth()
     -- Use the Next for a tiny delay after the UnitHealthMax
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(UnitHealth)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(UnitHealth)
 end
 
 __Static__() __AutoCache__()
 function Wow.UnitHealthLost()
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
         local health            = UnitHealth(unit)
         return max and health and (max - health) or 0
@@ -151,7 +151,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitHealthFrequent()
     -- Based on the CLEU
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(function(unit)
         local guid              = UnitGUID(unit)
         local health            = _UnitHealthMap[guid]
         if health and _UnitGUIDMap[unit] == guid then return health end
@@ -166,7 +166,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitHealthLostFrequent()
     -- Based on the CLEU
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
         local guid              = UnitGUID(unit)
         local health            = _UnitHealthMap[guid]
@@ -181,7 +181,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitHealthPercent()
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(function(unit)
         local health            = UnitHealth(unit)
         local max               = UnitHealthMax(unit)
 
@@ -192,7 +192,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitHealthPercentFrequent()
     -- Based on the CLEU
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(function(unit)
         local guid              = UnitGUID(unit)
         local health            = _UnitHealthMap[guid]
 
@@ -210,7 +210,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitHealthLostPercentFrequent()
     -- Based on the CLEU
-    return Wow.FromUnitEvent(_UnitHealthSubject):Next():Map(function(unit)
+    return Wow.FromUnitEvent(_UnitHealthSubject):Map(function(unit)
         local guid              = UnitGUID(unit)
         local health            = _UnitHealthMap[guid]
 
