@@ -171,13 +171,13 @@ __Static__() __AutoCache__()
 function Wow.ClassPower()
     if _PlayerClass == "DEATHKNIGHT" then
         -- A simple total rune as basic features
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
     elseif _PlayerClass == "DEMONHUNTER" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
     elseif _PlayerClass == "MONK" then
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
     else
-        return Wow.FromUnitEvent(_ClassPowerSubject):Next():Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
+        return Wow.FromUnitEvent(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
     end
 end
 
@@ -252,7 +252,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitPower(frequent)
     return Wow.FromUnitEvent(frequent and "UNIT_POWER_FREQUENT" or "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_BAR_SHOW", "UNIT_POWER_BAR_HIDE")
-        :Next():Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
+        :Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
 end
 
 __Static__() __AutoCache__()
