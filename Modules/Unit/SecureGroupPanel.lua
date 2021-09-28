@@ -179,6 +179,7 @@ class "SecureGroupPanel" (function(_ENV)
 
             Manager:SetAttribute("onShadowUnitChanged", [[
                 local id, unit  = ...
+
                 if ShadowUnitMap[id] ~= unit then
                     ShadowUnitMap[id] = unit
                     DelayManager:RunAttribute("registerDelayAction", Manager:GetAttribute("PanelName"), "refreshUnitFrames")
@@ -186,14 +187,12 @@ class "SecureGroupPanel" (function(_ENV)
             ]])
 
             refreshUnitChange   = [[
-                local unit      = self:GetAttribute("unit")
-                local frame     = self:GetAttribute("UnitFrame")
-
-                if frame then
-                    self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID(), value)
-                elseif self:GetAttribute("Manager"):GetAttribute("showDeadOnly") then
-                    self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
-                    self:GetAttribute("Manager"):RunAttribute("updateStateForChild", self:GetID())
+                local manager   = self:GetAttribute("Manager")
+                if manager:GetAttribute("showDeadOnly") then
+                    manager:RunAttribute("removeDeadPlayer", self:GetID())
+                    manager:RunAttribute("updateStateForChild", self:GetID())
+                else
+                    manager:RunAttribute("onShadowUnitChanged", self:GetID(), self:GetAttribute("unit"))
                 end
             ]]
         ]=]
@@ -206,13 +205,13 @@ class "SecureGroupPanel" (function(_ENV)
                     value = nil
                 end
 
-                local frame = self:GetAttribute("UnitFrame")
+                local manager   = self:GetAttribute("Manager")
 
-                if frame then
-                    self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID(), value)
-                elseif self:GetAttribute("Manager"):GetAttribute("showDeadOnly") then
-                    self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
-                    self:GetAttribute("Manager"):RunAttribute("updateStateForChild", self:GetID())
+                if manager:GetAttribute("showDeadOnly") then
+                    manager:RunAttribute("removeDeadPlayer", self:GetID())
+                    manager:RunAttribute("updateStateForChild", self:GetID())
+                else
+                    manager:RunAttribute("onShadowUnitChanged", self:GetID(), value)
                 end
             elseif name == "isdead" then
                 if value == "true" then
@@ -230,13 +229,6 @@ class "SecureGroupPanel" (function(_ENV)
             self:SetHeight(0)
             self:SetID(#ShadowFrames)
             self:SetAttribute("Manager", Manager)
-
-            -- Binding
-            local frame         = UnitFrames[#ShadowFrames]
-
-            if frame and not Manager:GetAttribute("showDeadOnly") then
-                self:SetAttribute("UnitFrame", frame)
-            end
 
             -- Only for the entering game combat
             -- refreshUnitChange won't fire when the unit is set to nil
@@ -256,7 +248,6 @@ class "SecureGroupPanel" (function(_ENV)
                     local shadow = ShadowFrames[#UnitFrames]
 
                     if shadow then
-                        shadow:SetAttribute("UnitFrame", frame)
                         frame:SetAttribute("unit", shadow:GetAttribute("unit"))
                     end
                 else
@@ -269,19 +260,12 @@ class "SecureGroupPanel" (function(_ENV)
 
         _UnregisterUnitFrame    = [=[
             local frame         = Manager:GetFrameRef("UnitFrame")
+            frame:SetAttribute("unit", nil)
 
-            if frame and UnitFrames[#UnitFrames] == frame then
-                -- Binding
-                if not Manager:GetAttribute("showDeadOnly") then
-                    local shadow = ShadowFrames[#UnitFrames]
-
-                    if shadow then
-                        shadow:SetAttribute("UnitFrame", nil)
-                    end
+            for i = #UnitFrames, 1, -1 do
+                if UnitFrames[i] == frame then
+                    return tremove(UnitFrames, i)
                 end
-
-                frame:SetAttribute("unit", nil)
-                tremove(UnitFrames)
             end
         ]=]
 
@@ -301,12 +285,10 @@ class "SecureGroupPanel" (function(_ENV)
             wipe(ShadowUnitMap)
 
             if self:GetAttribute("showDeadOnly") then
-                for i = 1, #ShadowFrames do
-                    ShadowFrames[i]:SetAttribute("UnitFrame", nil)
-                end
                 for i = 1, #UnitFrames do
                     UnitFrames[i]:SetAttribute("unit", nil)
                 end
+
                 for i = 1, #ShadowFrames do
                     self:RunAttribute("updateStateForChild", i)
                 end
@@ -314,16 +296,16 @@ class "SecureGroupPanel" (function(_ENV)
                 wipe(DeadFrames)
 
                 for i = 1, #ShadowFrames do
-                    local shadow = ShadowFrames[i]
+                    local shadow= ShadowFrames[i]
                     local frame = UnitFrames[i]
 
                     UnregisterAttributeDriver(shadow, "isdead")
 
                     if frame then
-                        ShadowFrames[i]:SetAttribute("UnitFrame", frame)
                         frame:SetAttribute("unit", ShadowFrames[i]:GetAttribute("unit"))
                     end
                 end
+
                 for i = #ShadowFrames + 1, #UnitFrames do
                     UnitFrames[i]:SetAttribute("unit", nil)
                 end
