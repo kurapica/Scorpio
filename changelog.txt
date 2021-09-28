@@ -1,3 +1,6 @@
+2021/09/28 v129
+	1. Remove a cache check which cause the raid panel doesn't show all the units.
+
 2021/09/28 v127
 	1. Wow.FromNextUnitEvent added, so no need use Next for the Health & Power Subject, this'd reduce the task count for performance.
 

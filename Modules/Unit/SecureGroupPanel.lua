@@ -84,8 +84,6 @@ class "SecureGroupPanel" (function(_ENV)
             ShadowFrames        = newtable()
             DeadFrames          = newtable()
 
-            ShadowUnitMap       = newtable()
-
             Manager:SetAttribute("refreshDeadPlayer", [[
                 for i = 1, #DeadFrames do
                     local unitFrame = UnitFrames[i]
@@ -178,12 +176,7 @@ class "SecureGroupPanel" (function(_ENV)
             ]])
 
             Manager:SetAttribute("onShadowUnitChanged", [[
-                local id, unit  = ...
-
-                if ShadowUnitMap[id] ~= unit then
-                    ShadowUnitMap[id] = unit
-                    DelayManager:RunAttribute("registerDelayAction", Manager:GetAttribute("PanelName"), "refreshUnitFrames")
-                end
+                DelayManager:RunAttribute("registerDelayAction", Manager:GetAttribute("PanelName"), "refreshUnitFrames")
             ]])
 
             refreshUnitChange   = [[
@@ -282,8 +275,6 @@ class "SecureGroupPanel" (function(_ENV)
         ]]
 
         _ToggleShowOnlyPlayer   = [[
-            wipe(ShadowUnitMap)
-
             if self:GetAttribute("showDeadOnly") then
                 for i = 1, #UnitFrames do
                     UnitFrames[i]:SetAttribute("unit", nil)
