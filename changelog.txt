@@ -1,3 +1,6 @@
+2021/09/28 v127
+	1. Wow.FromNextUnitEvent added, so no need use Next for the Health & Power Subject, this'd reduce the task count for performance.
+
 2021/09/26 v124
 	1. Add token for the Observable to stop its operations correctly.
 

@@ -189,16 +189,16 @@ class "UnitFrameSubject" (function(_ENV)
             end
         elseif unit:match("^party%d") or unit:match("^raid%d") then
             while task == self.TaskId do
-                refreshUnitGuidMap(unit)
-                self:OnNext(unit)
+                for i = 1, 4 do
+                    -- The unit info may not be stable, try several times
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
 
-                if not UnitExists(unit) or (UnitHealthMax(unit) or 0) > 0 then
-                    Next(RAID_UNIT_SUBJECT)
-                    Delay(0.3)
-                else
-                    -- Waiting the unit's info
-                    Delay(0.1)
+                    Delay(0.5)
+                    if task ~= self.TaskId then break end
                 end
+
+                Next(RAID_UNIT_SUBJECT)
             end
         else
             -- Other units: arenaN, bossN, vehicle, spectated<T><N>
@@ -253,9 +253,16 @@ local function getUnitFrameSubject()
 end
 
 local unitFrameObservable       = Toolset.newtable(true)
+local nextUnitFrameObservable   = Toolset.newtable(true)
 
-local function genUnitFrameObservable(unitEvent)
-    local observable            = unitFrameObservable[unitEvent or 0]
+local function genUnitFrameObservable(unitEvent, useNext)
+    local observable
+    if useNext then
+        observable              = nextUnitFrameObservable[unitEvent or 0]
+    else
+        observable              = unitFrameObservable[unitEvent or 0]
+    end
+
     if not observable then
         observable              = Observable(function(observer)
             local unitSubject   = getUnitFrameSubject()
@@ -288,10 +295,18 @@ local function genUnitFrameObservable(unitEvent)
             observer.OnUnsubscribe = observer.OnUnsubscribe + onUnsubscribe
 
             -- Start the unit watching
-            unitSubject:Subscribe(obsUnit)
+            if useNext then
+                unitSubject:Next():Subscribe(obsUnit)
+            else
+                unitSubject:Subscribe(obsUnit)
+            end
         end)
 
-        unitFrameObservable[unitEvent or 0] = observable
+        if useNext then
+            nextUnitFrameObservable[unitEvent or 0] = observable
+        else
+            unitFrameObservable[unitEvent or 0] = observable
+        end
     end
 
     return observable
@@ -308,5 +323,17 @@ function Wow.FromUnitEvent(observable, ...)
         return genUnitFrameObservable(FromEvent(observable, ...))
     else
         return genUnitFrameObservable(observable)
+    end
+end
+
+--- The data sequences from the wow unit event binding to unit frames
+-- The unit change event will be delayed for one phase
+__Arguments__{ (NEString + IObservable)/nil, NEString * 0 }
+__Static__()
+function Wow.FromNextUnitEvent(observable, ...)
+    if type(observable) == "string" then
+        return genUnitFrameObservable(FromEvent(observable, ...), true)
+    else
+        return genUnitFrameObservable(observable, true)
     end
 end
