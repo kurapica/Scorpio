@@ -1225,6 +1225,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
     default                     = { type  = Any },
     nilable                     = { type  = Boolean },
     childtype                   = { type  = - UIObject },
+    secure                      = { type  = Boolean },  -- Whether forbidden during combat
     depends                     = { type  = struct { NEString } },  -- Processed after other properties
     override                    = { type  = struct { NEString } },  -- override other properties
 
@@ -1242,6 +1243,7 @@ __Sealed__() struct "Scorpio.UI.Property" {
             get                 = self.get,
             clear               = self.clear,
             default             = clone(self.default, true),
+            secure              = self.secure,
             nilable             = self.nilable,
             childtype           = self.childtype,
         }
@@ -1956,11 +1958,24 @@ function ApplyStyleService()
 
                     -- Apply the style settings
                     local isProtected       = frame.IsProtected
-                    if isProtected and isProtected(frame) then
-                        NoCombat(ApplyFrameStyles, frame, styles, debugname)
-                    else
-                        ApplyFrameStyles(frame, styles, debugname)
+                    if isProtected and isProtected(frame) and InCombatLockdown() then
+                        -- Split the secure properties
+                        local secure
+
+                        for name, value in pairs(styles) do
+                            if props[name].secure then
+                                secure      = secure or _Recycle()
+                                secure[name]= value
+                                styles[name]= nil
+                            end
+                        end
+
+                        if secure then
+                            NoCombat(ApplyFrameStyles, frame, secure, debugname)
+                        end
                     end
+
+                    ApplyFrameStyles(frame, styles, debugname)
 
                     Continue() -- Smoothing the process
                 else

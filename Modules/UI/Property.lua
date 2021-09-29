@@ -266,6 +266,7 @@ do
         name            = "Height",
         type            = Number,
         require         = { LayoutFrame, Line },
+        secure          = true,
         get             = function(self) return self:GetHeight() end,
         set             = function(self, height) self:SetHeight(height) end,
         override        = { "Size" },
@@ -287,6 +288,7 @@ do
         type            = Boolean,
         require         = { LayoutFrame, Line },
         default         = false,
+        secure          = true,
         get             = function(self) return self:IsIgnoringParentScale() end,
         set             = function(self, flag) self:SetIgnoreParentScale(flag) end,
     }
@@ -296,6 +298,7 @@ do
         name            = "SetAllPoints",
         type            = Boolean,
         require         = LayoutFrame,
+        secure          = true,
         set             = function(self, flag) self:ClearAllPoints() if flag then self:SetPoint("TOPLEFT") self:SetPoint("BOTTOMRIGHT") end end,
         clear           = function(self) self:ClearAllPoints() end,
         override        = { "Location" }, -- So it can override the Location settings
@@ -306,6 +309,7 @@ do
         name            = "Location",
         type            = Anchors,
         require         = LayoutFrame,
+        secure          = true,
         get             = function(self) return LayoutFrame.GetLocation(GetProxyUI(self)) end,
         set             = function(self, loc)   LayoutFrame.SetLocation(GetProxyUI(self), loc) end,
         clear           = function(self) self:ClearAllPoints() end,
@@ -318,6 +322,7 @@ do
         type            = PositiveNumber,
         require         = LayoutFrame,
         default         = 1,
+        secure          = true,
         get             = function(self) return self:GetScale() end,
         set             = function(self, scale) self:SetScale(scale) end,
     }
@@ -327,6 +332,7 @@ do
         name            = "Size",
         type            = Size,
         require         = { LayoutFrame, Line },
+        secure          = true,
         get             = function(self) return Size(self:GetSize()) end,
         set             = function(self, size) self:SetSize(size.width, size.height) end,
         override        = { "Height", "Width" },
@@ -338,6 +344,7 @@ do
         type            = Boolean,
         require         = { LayoutFrame, Line },
         default         = true,
+        secure          = true,
         get             = function(self) return self:IsShown() and true or false end,
         set             = function(self, visible) self:SetShown(visible) end,
     }
@@ -347,6 +354,7 @@ do
         name            = "Width",
         type            = Number,
         require         = { LayoutFrame, Line },
+        secure          = true,
         get             = function(self) return self:GetWidth() end,
         set             = function(self, width) self:SetWidth(width) end,
         override        = { "Size" },
@@ -1129,6 +1137,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetClampedToScreen(val) end,
         get             = function(self) return self:IsClampedToScreen() end,
     }
@@ -1139,6 +1148,7 @@ do
         type            = Inset,
         require         = Frame,
         default         = Inset(0, 0, 0, 0),
+        secure          = true,
         set             = function(self, val) self:SetClampRectInsets(val.left, val.right, val.top, val.bottom) end,
         get             = function(self) return Inset(self:GetClampRectInsets()) end,
     }
@@ -1149,6 +1159,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetClipsChildren(val) end,
         get             = function(self) return self:DoesClipChildren() end,
     }
@@ -1159,6 +1170,7 @@ do
         type            = Number,
         require         = Frame,
         default         = 0,
+        secure          = true,
         set             = function(self, val) self:SetDepth(val) end,
         get             = function(self) return self:GetDepth() end,
     }
@@ -1169,6 +1181,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetDontSavePosition(val) end,
         get             = function(self) return self:GetDontSavePosition() end,
     }
@@ -1198,6 +1211,7 @@ do
         type            = Number,
         require         = Frame,
         default         = 1,
+        secure          = true,
         set             = function(self, val) self:SetFrameLevel(val) end,
         get             = function(self) return self:GetFrameLevel() end,
     }
@@ -1208,6 +1222,7 @@ do
         type            = FrameStrata,
         require         = Frame,
         default         = "MEDIUM",
+        secure          = true,
         set             = function(self, val) self:SetFrameStrata(val) end,
         get             = function(self) return self:GetFrameStrata() end,
     }
@@ -1217,6 +1232,7 @@ do
         name            = "HitRectInsets",
         type            = Inset,
         require         = Frame,
+        secure          = true,
         default         = Inset(0, 0, 0, 0),
         set             = function(self, val) self:SetHitRectInsets(val.left, val.right, val.top, val.bottom) end,
         get             = function(self) return Inset(self:GetHitRectInsets()) end,
@@ -1238,6 +1254,7 @@ do
         type            = Number,
         require         = Frame,
         default         = 0,
+        secure          = true,
         set             = function(self, val) self:SetID(val) end,
         get             = function(self) return self:GetID() end,
     }
@@ -1258,6 +1275,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:EnableJoystick(val) end,
         get             = function(self) return self:IsJoystickEnabled() end,
     }
@@ -1268,6 +1286,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:EnableKeyboard(val) end,
         get             = function(self) return self:IsKeyboardEnabled() end,
     }
@@ -1288,6 +1307,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetMouseClickEnabled(val) end,
         get             = function(self) return self:IsMouseClickEnabled() end,
         override        = { "EnableMouse" },
@@ -1299,6 +1319,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:EnableMouse(val) end,
         get             = function(self) return self:IsMouseEnabled() end,
         override        = { "EnableMouseClicks", "EnableMouseMotion" },
@@ -1310,6 +1331,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetMouseMotionEnabled(val) end,
         get             = function(self) return self:IsMouseMotionEnabled() end,
         override        = { "EnableMouse" },
@@ -1321,6 +1343,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:EnableMouseWheel(val) end,
         get             = function(self) return self:IsMouseWheelEnabled() end,
     }
@@ -1341,6 +1364,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetMovable(val) end,
         get             = function(self) return self:IsMovable() end,
     }
@@ -1351,6 +1375,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetPropagateKeyboardInput(val) end,
         get             = function(self) return self:GetPropagateKeyboardInput() end,
     }
@@ -1361,6 +1386,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetResizable(val) end,
         get             = function(self) return self:IsResizable() end,
     }
@@ -1371,6 +1397,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetToplevel(val) end,
         get             = function(self) return self:IsToplevel() end,
     }
@@ -1381,6 +1408,7 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
+        secure          = true,
         set             = function(self, val) self:SetUserPlaced(val) end,
         get             = function(self) return self:IsUserPlaced() end,
     }
@@ -1396,6 +1424,7 @@ do
         type            = Boolean,
         require         = { Button, EditBox, Slider },
         default         = true,
+        secure          = true,
         set             = function(self, val) self:SetEnabled(val) end,
         get             = function(self) return self:IsEnabled() end,
     }
@@ -1416,6 +1445,7 @@ do
         type            = ButtonStateType,
         require         = Button,
         default         = "NORMAL",
+        secure          = true,
         set             = function(self, val) self:SetButtonState(val) end,
         get             = function(self) return self:GetButtonState() end,
     }
@@ -1436,6 +1466,7 @@ do
         type            = struct { String },
         require         = Button,
         nilable         = true,
+        secure          = true,
         set             = function(self, val) if val then self:RegisterForClicks(unpack(val)) else self:RegisterForClicks(nil) end end
     }
 
@@ -1445,6 +1476,7 @@ do
         type            = struct { String },
         require         = Button,
         nilable         = true,
+        secure          = true,
         set             = function(self, val) if val then self:RegisterForDrag(unpack(val)) else self:RegisterForDrag(nil) end end
     }
 
