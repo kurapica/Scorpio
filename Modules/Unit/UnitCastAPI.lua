@@ -150,7 +150,7 @@ end
 ------------------------------------------------------------
 if Scorpio.IsRetail then return end
 
-if Scorpio.IsBCC then
+if true then
     local oUnitCastingInfo      = _G.UnitCastingInfo
     local oUnitChannelInfo      = _G.UnitChannelInfo
 

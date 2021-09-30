@@ -339,7 +339,7 @@ if Scorpio.IsRetail then return end
 _Parent.UnitGetTotalAbsorbs     = _G.UnitGetTotalAbsorbs     or Toolset.fakefunc
 _Parent.UnitGetTotalHealAbsorbs = _G.UnitGetTotalHealAbsorbs or Toolset.fakefunc
 
-if Scorpio.IsBCC then return end
+if true then return end
 
 _Parent.UnitGetIncomingHeals    = _G.UnitGetIncomingHeals    or Toolset.fakefunc
 
