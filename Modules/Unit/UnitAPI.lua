@@ -280,7 +280,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitReadyCheckVisible()
-    return Wow.FromUnitEvent(_ReadyCheckSubject):Map(function() return _ReadyChecking > 0 end)
+    return Wow.FromUnitEvent(_ReadyCheckSubject):Map(function(unit) return _ReadyChecking > 0 and UnitGUID(unit) ~= nil end)
 end
 
 __Static__() __AutoCache__()
@@ -289,6 +289,8 @@ function Wow.UnitReadyCheck()
         if _ReadyChecking == 0 then return end
 
         local guid              = UnitGUID(unit)
+        if not guid then return "notready" end
+
         local state             = GetReadyCheckStatus(unit) or _ReadyCheckingCache[guid]
         _ReadyCheckingCache[guid]= state
         return _ReadyChecking == 2 and state == "waiting" and "notready" or state
