@@ -104,7 +104,7 @@ class "UnitFrameSubject" (function(_ENV)
     ----------------------------------------------------
     function Subscribe(self, ...)
         local observer          = super.Subscribe(self, ...)
-        if self.Unit then observer:OnNext(self.Unit) end
+        if self.Unit then observer:OnNext(self.RealUnit or self.Unit, self.BlockEvent) end
     end
 
     -- Don't use __AsyncSingle__ here to reduce the memory garbage collect
@@ -113,36 +113,15 @@ class "UnitFrameSubject" (function(_ENV)
         self.TaskId             = (self.TaskId or 0) + 1
         local task              = self.TaskId
 
+        self.BlockEvent         = false
+        self.RealUnit           = nil
+
         -- May clear the old unit's cache
         if oldunit then refreshUnitGuidMap(oldunit) end
 
         if not unit then
             -- need sepcial unit to be passed to clear the values
             self:OnNext("clear", true)
-        elseif unit:match("%w+target") then
-            local frm           = self.UnitFrame
-            local runit         -- the real unit for system event
-
-            while task == self.TaskId do
-                while frm:IsShown() and task == self.TaskId do
-                    -- Check if the target is an existed unit, use that unit instead the *target
-                    -- So the unit system event can work on it
-                    local guid  = UnitGUID(unit)
-                    local nunit = guid and GetUnitFromGUID(guid)
-
-                    if not nunit or nunit ~= runit then
-                        runit   = nunit
-                        self:OnNext(runit or unit, not runit)
-                    end
-
-                    Delay(self.Interval)
-                end
-
-                -- Wait the unit frame re-show
-                if task == self.TaskId then
-                    Next(Observable.From(frm.OnShow))
-                end
-            end
         elseif unit == "player" then
             refreshUnitGuidMap(unit)
             self:OnNext(unit)
@@ -164,7 +143,7 @@ class "UnitFrameSubject" (function(_ENV)
                 self:OnNext(unit)
                 NextEvent("PLAYER_FOCUS_CHANGED")
             end
-        elseif unit:match("pet") then
+        elseif unit:match("pet%d*$") then
             local owner     = unit:match("^(%w+)pet")
             local index     = owner and unit:match("%d+")
             if not owner then
@@ -181,13 +160,13 @@ class "UnitFrameSubject" (function(_ENV)
                 self:OnNext(unit)
                 Next(FromEvent("UNIT_PET"):MatchUnit(owner))
             end
-        elseif unit:match("nameplate") then
+        elseif unit:match("^nameplate%d+$") then
             while task == self.TaskId do
                 refreshUnitGuidMap(unit)
                 self:OnNext(unit)
                 Next(NAMEPLATE_SUBJECT:MatchUnit(unit))
             end
-        elseif unit:match("^party%d") or unit:match("^raid%d") then
+        elseif unit:match("^party%d+$") or unit:match("^raid%d+$") then
             while task == self.TaskId do
                 for i = 1, 4 do
                     -- The unit info may not be stable, try several times
@@ -200,12 +179,40 @@ class "UnitFrameSubject" (function(_ENV)
 
                 Next(RAID_UNIT_SUBJECT)
             end
-        else
+        elseif unit == "vehicle" or unit:match("^arena%d+$") or unit:match("^boss%d+$") or unit:match("^spectated") then
             -- Other units: arenaN, bossN, vehicle, spectated<T><N>
             while task == self.TaskId do
                 refreshUnitGuidMap(unit)
                 self:OnNext(unit)
                 Next(FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
+            end
+        else
+            -- targettarget, xxxx-target-target, xxxxx and etc
+            local frm           = self.UnitFrame
+            local runit         -- the real unit for system event
+
+            while task == self.TaskId do
+                while frm:IsShown() and task == self.TaskId do
+                    -- Check if the target is an existed unit, use that unit instead the *target
+                    -- So the unit system event can work on it
+                    local guid  = UnitGUID(unit)
+                    local nunit = guid and GetUnitFromGUID(guid)
+
+                    if not nunit or nunit ~= runit then
+                        runit   = nunit
+                        self:OnNext(runit or unit, not runit)
+
+                        self.RealUnit   = runit
+                        self.BlockEvent = not runit
+                    end
+
+                    Delay(self.Interval)
+                end
+
+                -- Wait the unit frame re-show
+                if task == self.TaskId then
+                    Next(Observable.From(frm.OnShow))
+                end
             end
         end
     end
@@ -218,6 +225,12 @@ class "UnitFrameSubject" (function(_ENV)
 
     --- The current unit
     property "Unit"         { type = String, handler = RefreshUnit }
+
+    --- The real unit based on the GUID
+    property "RealUnit"     { type = String }
+
+    --- Whether block the unit event
+    property "BlockEvent"   { type = Boolean, default = false }
 
     --- The current unit
     property "Interval"     { type = PositiveNumber, default = function(self) return self.UnitFrame.Interval or 0.5 end }
