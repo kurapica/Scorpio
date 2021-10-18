@@ -18,6 +18,16 @@ import "System.Toolset"
 --                    Simple Unit API                     --
 ------------------------------------------------------------
 local _UnitNameSubject          = Subject()
+local _UnitTimerSubject         = Subject()
+
+-- Use service so this can be recover from errors
+__Service__(true)
+function UnitTimerService()
+    while true do
+        _UnitTimerSubject:OnNext("any")
+        Delay(0.5)
+    end
+end
 
 __SystemEvent__()
 function UNIT_NAME_UPDATE(unit)
@@ -32,6 +42,11 @@ end
 __Static__()
 function Wow.Unit()
     return Wow.FromUnitEvent()
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitTimer()
+    return Wow.FromUnitEvent(_UnitTimerSubject)
 end
 
 __Static__() __AutoCache__()
@@ -241,8 +256,8 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitInRange()
-    return Wow.FromUnitEvent(Observable.Interval(0.5):Map("=>'any'"):ToSubject()):Map(function(unit)
-        return UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)
+    return Wow.UnitTimer():Map(function(unit)
+        return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit))
     end)
 end
 
