@@ -3,7 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/12/12                              --
--- Update Date :  2019/07/12                              --
+-- Update Date :  2021/10/24                              --
 --========================================================--
 
 PLoop(function(_ENV)
@@ -126,7 +126,6 @@ PLoop(function(_ENV)
         -- Phase Settings
         PHASE_THRESHOLD         = 15    -- The max task operation time per phase
         PHASE_TIME_FACTOR       = 0.4   -- The factor used to calculate the task operation time per phase
-        PHASE_OVERTIME_FACTOR   = 0.3   -- the fatcor used to calculate the most time for the remain tasks
 
         -- System Task Settings
         EVENT_CLEAR_INTERVAL    = 100   -- The interval for event task clear
@@ -153,9 +152,12 @@ PLoop(function(_ENV)
         g_PhaseStartTime        = 0     -- Recored the start phase time
         g_PhaseStartProfile     = 0     -- The start profile time of current phase
 
+        g_DynamicThreshold      = 15    -- The dynamic threshold
+        g_PreTaskCount          = 0
+
         -- For diagnosis
         g_DelayedTask           = 0
-        g_LowDelayed            = 0
+        g_LowLevelup            = 0
         g_MaxPhaseTime          = 0
 
         -- Task List
@@ -201,7 +203,6 @@ PLoop(function(_ENV)
             if now ~= g_Phase then
                 -- Init the phase
                 g_Phase                     = now
-                g_PhaseTime                 = r_Count * g_AverageTime * PHASE_OVERTIME_FACTOR
 
                 -- For diagnosis
                 g_DelayedTask               = g_DelayedTask + r_Count
@@ -258,21 +259,44 @@ PLoop(function(_ENV)
                     r_LowDelayed            = 0
                 else
                     r_LowDelayed            = r_LowDelayed + 1
-                    g_LowDelayed            = g_LowDelayed + 1
 
                     if r_LowDelayed > MAX_LOW_DELAY_TURN then
+                        g_LowLevelup        = g_LowLevelup + 1
+
                         -- Queue to the normal priority list
                         queueTaskList(NORMAL_PRIORITY, r_Tasks[LOW_PRIORITY])
                         r_Tasks[LOW_PRIORITY] = nil
                     end
                 end
 
-                g_PhaseTime                 = min(PHASE_THRESHOLD, g_PhaseTime + 1000 * PHASE_TIME_FACTOR / max(10, GetFramerate() or 60))
+                -- Calc the phase time
+                local fpslimit              = min(PHASE_THRESHOLD, 1000 * PHASE_TIME_FACTOR / max(10, GetFramerate() or 60))
+                local taskreq               = r_Count * g_AverageTime
+
+                if taskreq <= fpslimit * 2 then
+                    g_PhaseTime             = fpslimit
+                else
+                    if g_DynamicThreshold < PHASE_THRESHOLD then
+                        g_PhaseTime         = PHASE_THRESHOLD
+                    else
+                        -- use dynamic phase time to avoid too many task remained
+                        if r_Count > g_PreTaskCount then
+                            g_PhaseTime     = g_DynamicThreshold + 1
+                        elseif r_Count < g_PreTaskCount then
+                            g_PhaseTime     = g_DynamicThreshold - 1
+                        else
+                            g_PhaseTime     = g_DynamicThreshold
+                        end
+                    end
+                end
+
+                g_DynamicThreshold          = g_PhaseTime
+                g_PreTaskCount              = r_Count
 
                 g_Threshold                 = g_StartTime + g_PhaseTime
 
                 -- Check if too much time cost by events(with low cpu), we still need some time to process the high priority tasks
-                local currStop  = debugprofilestop()
+                local currStop              = debugprofilestop()
                 if g_Threshold <= currStop then g_Threshold = currStop + g_PhaseTime end
             elseif not r_Tasks[1] then
                 -- Only tasks of high priority can be executed again and again in a phase
@@ -1623,9 +1647,6 @@ PLoop(function(_ENV)
         --- The factor used to calculate the task operation time per phase
         __Static__() property "TaskFactor"      { type = Number, get = function() return PHASE_TIME_FACTOR end, set = function(self, val) PHASE_TIME_FACTOR = Clamp(val or 0, 0.1, 1) end }
 
-        --- The factor used to calculate the task operation time for remain tasks from the previous phase
-        __Static__() property "OvertimeFactor"  { type = Number, get = function() return PHASE_OVERTIME_FACTOR end, set = function(self, val) PHASE_OVERTIME_FACTOR = Clamp(val or 0, 0.1, 1) end }
-
         --- Whether the task schedule system is suspended
         __Static__() property "SystemSuspended" { type = Boolean, get = function() return r_InLoadingScreen end, set = function(self, val) r_InLoadingScreen = val end }
 
@@ -2121,7 +2142,7 @@ PLoop(function(_ENV)
                 Log(2, "--======================--")
 
                 Log(2, "[Delayed] %d", g_DelayedTask)
-                Log(2, "[Low Task Delayed] %d", g_LowDelayed)
+                Log(2, "[Low Task Levelup] %d", g_LowLevelup)
                 Log(2, "[Average] %.2f ms", g_AverageTime)
                 Log(2, "[Max Phase] %.2f ms", g_MaxPhaseTime)
                 Log(2, "[Cache][Generated] %d", g_CacheGenerated)
@@ -2130,7 +2151,7 @@ PLoop(function(_ENV)
                 Log(2, "--======================--")
 
                 g_DelayedTask       = 0
-                g_LowDelayed        = 0
+                g_LowLevelup        = 0
                 g_MaxPhaseTime      = 0
                 g_CacheGenerated    = 0
 

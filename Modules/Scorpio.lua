@@ -22,7 +22,6 @@ function OnLoad(self)
         -- The task schedule system settings
         TaskThreshold       = 15,
         TaskFactor          = 0.4,
-        OvertimeFactor      = 0.3,
     }
 
     -- Load log level
@@ -30,7 +29,6 @@ function OnLoad(self)
 
     Scorpio.TaskThreshold   = _SVData.TaskThreshold
     Scorpio.TaskFactor      = _SVData.TaskFactor
-    Scorpio.OvertimeFactor  = _SVData.OvertimeFactor
 
     -- Bind the SetDefault log handler
     Logger.Default:AddHandler(errorhandler, Logger.LogLevel.Error)
@@ -87,14 +85,6 @@ function SetTaskFactor(info)
     Info("Scorpio's task factor is set to %.2f", _SVData.TaskFactor)
 end
 
-__SlashCmd__ "Scorpio" "overtime" "[0.1-1] - set the overtime factor, used to give more time to a phase to finish the remain tasks"
-function SetOvertimeFactor(info)
-    local val = tonumber(info) or 0.3
-    Scorpio.OvertimeFactor = val
-    _SVData.OvertimeFactor = Scorpio.OvertimeFactor
-    Info("Scorpio's overtime factor is set to %.2f", _SVData.OvertimeFactor)
-end
-
 __SlashCmd__ "Scorpio" "suspend" " - suspend the task schedule system temporarily"
 function SuspendSystem()
     Scorpio.SystemSuspended = true
@@ -111,7 +101,6 @@ function GetInfo()
     Info("[log level] - %d", _SVData.LogLevel)
     Info("[task threshold] - %d", _SVData.TaskThreshold)
     Info("[task factor] - %.2f", _SVData.TaskFactor)
-    Info("[overtime factor] - %.2f", _SVData.OvertimeFactor)
     Info("[system suspended] - %s", tostring(Scorpio.SystemSuspended))
     Info("--====================--")
 end

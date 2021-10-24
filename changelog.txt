@@ -1,3 +1,7 @@
+2021/10/24 v136
+	1. A dynamic task threshold mechanism added, so the cpu time may be required more for too many tasks.
+	2. The lower priority task will be level up as normal priority if not handled after several phases to avoid the timer not work when there is too many normal or high tasks.
+
 2021/09/28 v129
 	1. Remove a cache check which cause the raid panel doesn't show all the units.
 
