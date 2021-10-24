@@ -90,13 +90,29 @@ class "UnitFrameSubject" (function(_ENV)
     __Static__()
     function Scorpio.GetUnitFromGUID(guid)
         local map               = _GuidUnitMap[guid]
-        return (map and next(map))
+        if not map then return end
+
+        for unit in pairs(map) do
+            if UnitGUID(unit) == guid then
+                return unit
+            else
+                refreshUnitGuidMap(unit)
+            end
+        end
     end
 
     __Static__() __Iterator__()
     function Scorpio.GetUnitsFromGUID(guid)
         local map               = _GuidUnitMap[guid]
-        if map then for unit in pairs(map) do yield(unit) end end
+        if not map then return end
+
+        for unit in pairs(map) do
+            if UnitGUID(unit) == guid then
+                yield(unit)
+            else
+                refreshUnitGuidMap(unit)
+            end
+        end
     end
 
     ----------------------------------------------------

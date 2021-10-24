@@ -712,11 +712,6 @@ class "UnitFrame" (function(_ENV)
     -- The secure snippet for the unit attribute changes
     local _onattributechanged   = [[
         if name == "unit" then
-            if self:GetAttribute("deactivated") then
-                if value then self:SetAttribute("unit", nil) end
-                return
-            end
-
             if type(value) == "string" then
                 value = strlower(value)
             else
@@ -962,6 +957,7 @@ class "UnitFrame" (function(_ENV)
         return self:OnUnitRefresh(unit)
     end
 
+    __SecureMethod__()
     function UpdateTooltip(self)
         local unit              = self:GetAttribute("unit")
         if unit then

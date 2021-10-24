@@ -56,6 +56,7 @@ PLoop(function(_ENV)
 
             DefaultPool         = Threading.ThreadPool.Default,
 
+            debugprofilestop    = debugprofilestop,
             GetSpecialization   = GetSpecialization or function() return 1 end,
             IsWarModeDesired    = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
         }
@@ -137,6 +138,8 @@ PLoop(function(_ENV)
         NORMAL_PRIORITY         = 2     -- For Event, Next, Wait
         LOW_PRIORITY            = 3     -- For Delay
 
+        MAX_LOW_DELAY_TURN      = 5     -- The max phase to delay the low priority tasks
+
         -- Global variables
         g_Phase                 = 0     -- The Nth phase based on GetTime()
         g_PhaseTime             = 0
@@ -152,6 +155,7 @@ PLoop(function(_ENV)
 
         -- For diagnosis
         g_DelayedTask           = 0
+        g_LowDelayed            = 0
         g_MaxPhaseTime          = 0
 
         -- Task List
@@ -160,6 +164,7 @@ PLoop(function(_ENV)
         -- Runtime task
         r_Tasks                 = {}
         r_Count                 = 0
+        r_LowDelayed            = 0
 
         -- In Loading Screen
         r_InLoadingScreen       = true
@@ -216,9 +221,9 @@ PLoop(function(_ENV)
                 g_StartTime                 = g_PhaseStartProfile   -- debugprofilestop()
 
                 -- Move task to core based on priority
-                -- High priority means it should be processed as soon as possible
-                -- Normal priority means it should be processed in the next phase as high priority
-                -- Lower priority means it should be processed when there is enough time
+                -- High priority means it must be processed as soon as possible
+                -- Normal priority means it could be processed in the next phase as high priority
+                -- Lower priority means it will be processed when there is enough time
                 local r_Tail                = r_Tasks[0]
 
                 for i = HIGH_PRIORITY, NORMAL_PRIORITY do
@@ -245,9 +250,21 @@ PLoop(function(_ENV)
                 r_Tasks[0]                  = r_Tail
 
                 -- LOW_PRIORITY
-                if not r_Tasks[LOW_PRIORITY] and t_Tasks[LOW_PRIORITY] then
+                if  not r_Tasks[LOW_PRIORITY] then
                     r_Tasks[LOW_PRIORITY]   = t_Tasks[LOW_PRIORITY]
                     t_Tasks[LOW_PRIORITY]   = nil
+
+                    -- reset the counter
+                    r_LowDelayed            = 0
+                else
+                    r_LowDelayed            = r_LowDelayed + 1
+                    g_LowDelayed            = g_LowDelayed + 1
+
+                    if r_LowDelayed > MAX_LOW_DELAY_TURN then
+                        -- Queue to the normal priority list
+                        queueTaskList(NORMAL_PRIORITY, r_Tasks[LOW_PRIORITY])
+                        r_Tasks[LOW_PRIORITY] = nil
+                    end
                 end
 
                 g_PhaseTime                 = min(PHASE_THRESHOLD, g_PhaseTime + 1000 * PHASE_TIME_FACTOR / max(10, GetFramerate() or 60))
@@ -2101,17 +2118,19 @@ PLoop(function(_ENV)
         -- Task System Diagnose
         ThreadCall(function()
             while true do
-                Log(1, "--======================--")
+                Log(2, "--======================--")
 
-                Log(1, "[Delayed] %d", g_DelayedTask)
-                Log(1, "[Average] %.2f ms", g_AverageTime)
-                Log(1, "[Max Phase] %.2f ms", g_MaxPhaseTime)
-                Log(1, "[Cache][Generated] %d", g_CacheGenerated)
-                Log(1, "[Cache][Remain] %d", g_CacheRamain)
+                Log(2, "[Delayed] %d", g_DelayedTask)
+                Log(2, "[Low Task Delayed] %d", g_LowDelayed)
+                Log(2, "[Average] %.2f ms", g_AverageTime)
+                Log(2, "[Max Phase] %.2f ms", g_MaxPhaseTime)
+                Log(2, "[Cache][Generated] %d", g_CacheGenerated)
+                Log(2, "[Cache][Remain] %d", g_CacheRamain)
 
-                Log(1, "--======================--")
+                Log(2, "--======================--")
 
                 g_DelayedTask       = 0
+                g_LowDelayed        = 0
                 g_MaxPhaseTime      = 0
                 g_CacheGenerated    = 0
 
