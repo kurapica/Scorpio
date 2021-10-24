@@ -166,73 +166,93 @@ PLoop(function(_ENV)
         r_InBattleField         = false
         r_DelayResumeForBF      = 1
 
+        -- Queue API
+        local function queueTask(priority, task)
+            local cache         = t_Tasks[priority]
+            if not cache then
+                cache           = recycleCache()
+                t_Tasks[priority] = cache
+            end
+            tinsert(cache, task)
+        end
+
+        local function queueTaskList(priority, tasklist)
+            local cache         = t_Tasks[priority]
+            if not cache then
+                t_Tasks[priority] = tasklist
+            else
+                while cache[0] do cache = cache[0] end
+                cache[0]        = tasklist
+            end
+        end
+
         -- Phase API
         local function processPhase()
             if g_InPhase or r_InLoadingScreen then return end
-            g_InPhase           = true
+            g_InPhase                       = true
 
             -- Prepare the task list
-            local now           = GetTime()
+            local now                       = GetTime()
             if now ~= g_Phase then
                 -- Init the phase
-                g_Phase         = now
-                g_PhaseTime     = r_Count * g_AverageTime * PHASE_OVERTIME_FACTOR
+                g_Phase                     = now
+                g_PhaseTime                 = r_Count * g_AverageTime * PHASE_OVERTIME_FACTOR
 
                 -- For diagnosis
-                g_DelayedTask   = g_DelayedTask + r_Count
+                g_DelayedTask               = g_DelayedTask + r_Count
 
                 -- Calculate the average time per task
                 if g_FinishedTask > 0 then
-                    local cost  = g_EndTime - g_StartTime
+                    local cost              = g_EndTime - g_StartTime
 
                     -- For diagnosis
                     if cost > g_MaxPhaseTime then g_MaxPhaseTime = cost end
 
-                    g_AverageTime   = (g_AverageTime + cost / g_FinishedTask) / 2
-                    g_FinishedTask  = 0
+                    g_AverageTime           = (g_AverageTime + cost / g_FinishedTask) / 2
+                    g_FinishedTask          = 0
                 end
 
                 -- Record the start time
-                g_StartTime     = g_PhaseStartProfile   -- debugprofilestop()
+                g_StartTime                 = g_PhaseStartProfile   -- debugprofilestop()
 
                 -- Move task to core based on priority
                 -- High priority means it should be processed as soon as possible
                 -- Normal priority means it should be processed in the next phase as high priority
                 -- Lower priority means it should be processed when there is enough time
-                local r_Tail    = r_Tasks[0]
+                local r_Tail                = r_Tasks[0]
 
                 for i = HIGH_PRIORITY, NORMAL_PRIORITY do
-                    local cache         = t_Tasks[i]
+                    local cache             = t_Tasks[i]
 
                     if cache then
-                        t_Tasks[i]      = nil
+                        t_Tasks[i]          = nil
 
                         if r_Tail then
-                            r_Tail[0]   = cache
+                            r_Tail[0]       = cache
                         else
                             -- Init
-                            r_Tasks[1]  = cache
+                            r_Tasks[1]      = cache
                         end
 
                         while cache do
-                            r_Tail      = cache
-                            r_Count     = r_Count + #cache
-                            cache       = cache[0]
+                            r_Tail          = cache
+                            r_Count         = r_Count + #cache
+                            cache           = cache[0]
                         end
                     end
                 end
 
-                r_Tasks[0]      = r_Tail
+                r_Tasks[0]                  = r_Tail
 
                 -- LOW_PRIORITY
                 if not r_Tasks[LOW_PRIORITY] and t_Tasks[LOW_PRIORITY] then
-                    r_Tasks[LOW_PRIORITY] = t_Tasks[LOW_PRIORITY]
-                    t_Tasks[LOW_PRIORITY] = nil
+                    r_Tasks[LOW_PRIORITY]   = t_Tasks[LOW_PRIORITY]
+                    t_Tasks[LOW_PRIORITY]   = nil
                 end
 
-                g_PhaseTime     = min(PHASE_THRESHOLD, g_PhaseTime + 1000 * PHASE_TIME_FACTOR / max(10, GetFramerate() or 60))
+                g_PhaseTime                 = min(PHASE_THRESHOLD, g_PhaseTime + 1000 * PHASE_TIME_FACTOR / max(10, GetFramerate() or 60))
 
-                g_Threshold     = g_StartTime + g_PhaseTime
+                g_Threshold                 = g_StartTime + g_PhaseTime
 
                 -- Check if too much time cost by events(with low cpu), we still need some time to process the high priority tasks
                 local currStop  = debugprofilestop()
@@ -255,19 +275,19 @@ PLoop(function(_ENV)
 
             -- It's time to process the task execution
             -- Process the high priority tasks
-            local r_Header      = r_Tasks[1]
-            local runoutIdx     = nil
+            local r_Header                  = r_Tasks[1]
+            local runoutIdx                 = nil
 
             while r_Header do
                 for i = r_Header[-1] or 1, #r_Header do
                     -- The phase is out of time, keep the index for next phase
                     if g_Threshold <= debugprofilestop() then
-                        runoutIdx = i
+                        runoutIdx           = i
                         break
                     end
 
-                    local task  = r_Header[i]
-                    r_Header[-1]= i + 1
+                    local task              = r_Header[i]
+                    r_Header[-1]            = i + 1
 
                     if task then
                         if _CancelSingleAsync[task] then
@@ -293,17 +313,17 @@ PLoop(function(_ENV)
                             g_FinishedTask  = g_FinishedTask + 1
                         end
                     end
-                    r_Count     = r_Count - 1
+                    r_Count                 = r_Count - 1
                 end
 
                 if runoutIdx and r_Header then
-                    r_Header[-1] = runoutIdx
+                    r_Header[-1]            = runoutIdx
                     break
                 end
 
-                local nxt = r_Header[0]
+                local nxt                   = r_Header[0]
                 recycleCache(r_Header)
-                r_Header = nxt
+                r_Header                    = nxt
             end
 
             r_Tasks[1] = r_Header
@@ -311,16 +331,16 @@ PLoop(function(_ENV)
 
             -- Process the low priority tasks
             if not runoutIdx and r_Tasks[LOW_PRIORITY] then
-                r_Header = r_Tasks[LOW_PRIORITY]
+                r_Header                    = r_Tasks[LOW_PRIORITY]
 
                 for i = r_Header[-1] or 1, #r_Header do
                     if g_Threshold <= debugprofilestop() then
-                        runoutIdx = i
+                        runoutIdx           = i
                         break
                     end
 
-                    local task  = r_Header[i]
-                    r_Header[-1]= i + 1
+                    local task              = r_Header[i]
+                    r_Header[-1]            = i + 1
 
                     if task then
                         if _CancelSingleAsync[task] then
@@ -349,38 +369,18 @@ PLoop(function(_ENV)
                 end
 
                 if runoutIdx then
-                    r_Header[-1]= runoutIdx
+                    r_Header[-1]            = runoutIdx
                 else
                     recycleCache(r_Header)
-                    r_Tasks[LOW_PRIORITY] = nil
+                    r_Tasks[LOW_PRIORITY]   = nil
                 end
             end
 
-            g_EndTime           = debugprofilestop()
-            g_InPhase           = false
+            g_EndTime                       = debugprofilestop()
+            g_InPhase                       = false
 
             -- Try again if have time with high priority tasks
             return g_Threshold > g_EndTime and t_Tasks[HIGH_PRIORITY] and processPhase()
-        end
-
-        -- Queue API
-        local function queueTask(priority, task)
-            local cache         = t_Tasks[priority]
-            if not cache then
-                cache           = recycleCache()
-                t_Tasks[priority] = cache
-            end
-            tinsert(cache, task)
-        end
-
-        local function queueTaskList(priority, tasklist)
-            local cache         = t_Tasks[priority]
-            if not cache then
-                t_Tasks[priority] = tasklist
-            else
-                while cache[0] do cache = cache[0] end
-                cache[0] = tasklist
-            end
         end
 
         ----------------------------------------------
