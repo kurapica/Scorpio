@@ -30,6 +30,7 @@ local _DISPELLABLE              = ({
 
 local _UnitGUIDMap              = {}
 local _UnitHealthMap            = {}
+local _FixUnitMaxHealth         = {}
 
 local _UnitHealthSubject        = Subject()
 local _UnitMaxHealthSubject     = Subject()
@@ -133,6 +134,41 @@ function UNIT_MAXHEALTH(unit)
     _UnitHealthSubject:OnNext(unit)
 end
 
+__Service__(true)
+function FixUnitMaxHealth()
+    while true do
+        local hasUnit           = false
+
+        for unit in pairs(_FixUnitMaxHealth) do
+            local health        = UnitHealth(unit)
+            local max           = UnitHealthMax(unit)
+            hasUnit             = true
+
+            if health > 0 and max > 0 then
+                if max >= health then
+                    _FixUnitMaxHealth[unit] = nil
+                    FireSystemEvent("UNIT_MAXHEALTH", unit)
+                end
+            elseif not UnitExists(unit) then
+                _FixUnitMaxHealth[unit] = nil
+            end
+        end
+
+        if not hasUnit then
+            NextEvent("SCORPIO_UNIT_FIX_MAX_HEALTH")
+        else
+            Next()
+        end
+    end
+end
+
+function RegisterFixUnitMaxHealth(unit)
+    if UnitExists(unit) then
+        if not next(_FixUnitMaxHealth) then FireSystemEvent("SCORPIO_UNIT_FIX_MAX_HEALTH") end
+        _FixUnitMaxHealth[unit] = true
+    end
+end
+
 __Static__() __AutoCache__()
 function Wow.UnitHealthSource()
     return Wow.FromNextUnitEvent(_UnitHealthSubject)
@@ -148,7 +184,11 @@ function Wow.UnitHealthLost()
     return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
         local health            = UnitHealth(unit)
-        return max and health and (max - health) or 0
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 0
+        end
+        return max - health
     end)
 end
 
@@ -174,12 +214,18 @@ function Wow.UnitHealthLostFrequent()
         local max               = UnitHealthMax(unit)
         local guid              = UnitGUID(unit)
         local health            = _UnitHealthMap[guid]
-        if health and _UnitGUIDMap[unit] == guid then return max and (max - health) or 0 end
 
-        -- Register the unit
-        health                  = health or UnitHealth(unit)
-        RegisterFrequentHealthUnit(unit, guid, health)
-        return max and (max - health) or 0
+        if not (health and _UnitGUIDMap[unit] == guid) then
+            -- Register the unit
+            health              = health or UnitHealth(unit)
+            RegisterFrequentHealthUnit(unit, guid, health)
+        end
+
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 0
+        end
+        return max - health
     end)
 end
 
@@ -189,7 +235,12 @@ function Wow.UnitHealthPercent()
         local health            = UnitHealth(unit)
         local max               = UnitHealthMax(unit)
 
-        return floor(0.5 + (health and max and health / max * 100) or 0)
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 100
+        end
+
+        return floor(0.5 + health / max * 100)
     end)
 end
 
@@ -207,7 +258,13 @@ function Wow.UnitHealthPercentFrequent()
         end
 
         local max               = UnitHealthMax(unit)
-        return floor(0.5 + (health and max and health / max * 100) or 0)
+
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 100
+        end
+
+        return floor(0.5 + health / max * 100)
     end)
 end
 
@@ -225,7 +282,13 @@ function Wow.UnitHealthLostPercentFrequent()
         end
 
         local max               = UnitHealthMax(unit)
-        return floor(0.5 + (health and max and (max - health) / max * 100) or 0)
+
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 0
+        end
+
+        return floor(0.5 + (max - health) / max * 100)
     end)
 end
 
@@ -233,7 +296,15 @@ __Static__() __AutoCache__()
 function Wow.UnitHealthMax()
     local minMax                = { min = 0 }
     return Wow.FromUnitEvent(_UnitMaxHealthSubject):Map(function(unit)
-        minMax.max              = UnitHealthMax(unit) or 100
+        local health            = UnitHealth(unit)
+        local max               = UnitHealthMax(unit)
+
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            max                 = health
+        end
+
+        minMax.max              = max
         return minMax
     end)
 end
@@ -265,7 +336,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
 
                 local health    = UnitHealth(unit)
                 local maxHealth = UnitHealthMax(unit)
-                local pct       = health / maxHealth
+                local pct       = health >= maxHealth and 1 or health / maxHealth
                 local dcolor    = defaultColor
 
                 if useClassColor then
@@ -283,7 +354,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
             return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
                 local health    = _UnitHealthMap[unit] or UnitHealth(unit)
                 local maxHealth = UnitHealthMax(unit)
-                local pct       = health / maxHealth
+                local pct       = health >= maxHealth and 1 or health / maxHealth
                 local dcolor    = defaultColor
 
                 if useClassColor then

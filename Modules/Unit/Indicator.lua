@@ -464,7 +464,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         set                     = function(self, unit)
             local maxHealth                 = unit and UnitHealthMax(unit) or 0
 
-            if maxHealth <= 1 then
+            if maxHealth <= 0 then
                 self.myHealPrediction:Hide()
                 self.otherHealPrediction:Hide()
                 self.totalAbsorb:Hide()
