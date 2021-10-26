@@ -464,7 +464,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
         set                     = function(self, unit)
             local maxHealth                 = unit and UnitHealthMax(unit) or 0
 
-            if maxHealth <= 0 then
+            if maxHealth <= 1 then
                 self.myHealPrediction:Hide()
                 self.otherHealPrediction:Hide()
                 self.totalAbsorb:Hide()
@@ -477,6 +477,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
             end
 
             local health                    = unit and UnitHealth(unit)
+            if health > maxHealth then maxHealth = health end -- Just avoid some bugs
 
             local myIncomingHeal            = UnitGetIncomingHeals(unit, "player") or 0
             local allIncomingHeal           = UnitGetIncomingHeals(unit) or 0
