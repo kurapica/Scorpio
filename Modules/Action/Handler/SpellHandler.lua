@@ -307,7 +307,10 @@ end
 function handler:IsInRange()
     local target                = self.ActionTarget
     if not _StanceMap[target] and _MacroMap[target] then
-        return IsSpellInRange(_MacroMap[target], self:GetAttribute("unit"))
+        local val               = IsSpellInRange(_MacroMap[target], self:GetAttribute("unit"))
+        if val == 1 then return true end
+        if val == 0 then return false end
+        return val
     end
 end
 

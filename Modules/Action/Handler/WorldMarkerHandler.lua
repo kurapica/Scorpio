@@ -29,9 +29,12 @@ handler                         = ActionTypeHandler {
 ------------------------------------------------------
 -- Module Event Handler
 ------------------------------------------------------
+_WorldMarkerCount               = 0
 _WorldMarker                    = {}
-for i = 1, _G.NUM_WORLD_RAID_MARKERS do
-    _WorldMarker[i]             = _G["WORLD_MARKER"..i]:match("Interface[^:]+")
+
+while type(_G["WORLD_MARKER"..(_WorldMarkerCount+1)]) == "string" do
+    _WorldMarkerCount           = _WorldMarkerCount + 1
+    _WorldMarker[_WorldMarkerCount] = _G["WORLD_MARKER".._WorldMarkerCount]:match("Interface[^:]+")
 end
 
 __Async__()
@@ -51,5 +54,5 @@ end
 
 function handler:IsActivedAction()
     local target                = self.ActionTarget
-    return target and target >= 1 and target <= NUM_WORLD_RAID_MARKERS and IsRaidMarkerActive(target)
+    return target and target >= 1 and target <= _WorldMarkerCount and IsRaidMarkerActive(target)
 end

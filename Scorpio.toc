@@ -1,6 +1,6 @@
 ## Interface: 90105
 ## Interface-Retail: 90105
-## Interface-Classic: 11400
+## Interface-Classic: 11401
 ## Interface-BCC: 20502
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com

@@ -616,6 +616,16 @@ class "SecureGroupPanel" (function(_ENV)
             end
         end, self)
 
+        Wow.FromEvent("PLAYER_ENTERING_WORLD"):Subscribe(function()
+            Continue(function()
+                Delay(0.1)
+
+                if not InCombatLockdown() and self:IsShown() then
+                    self.GroupHeader:Refresh()
+                end
+            end)
+        end)
+
         self.OnElementAdd       = self.OnElementAdd + OnElementAdd
         self.OnElementRemove    = self.OnElementRemove + OnElementRemove
         setupGroupFilter(self)
