@@ -104,7 +104,7 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
             local cache         = getUnitCache(unit, filter)
 
             local auraID        = cache[id]
-            return auraID and observer:OnNext(unit, auraID)
+            return auraID and observer:OnNext(unit, filter, auraID)
         end)
     end
 
@@ -118,7 +118,75 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
             local cache         = getUnitCache(unit, filter)
 
             local auraID        = cache[name]
-            return auraID and observer:OnNext(unit, auraID)
+            return auraID and observer:OnNext(unit, filter, auraID)
+        end)
+    end
+
+    __Arguments__{ String, struct { Number }}
+    __Static__() __Observable__()
+    function PredicateUnitAura(filter, ids)
+        filter                  = passFilter(filter)
+
+        local clone             = recycle()
+        local len               = #ids
+        for i = 1, len do
+            singleSpellID[filter][ids[i]] = true
+            clone[i]            = ids[i]
+        end
+
+        return Operator(obUnitAura, function(observer, unit)
+            local cache         = getUnitCache(unit, filter)
+
+            local auraIDs       = recycle()
+            local index         = 1
+
+            for i = 1, len do
+                local auraID    = cache[clone[i]]
+                if auraID then
+                    auraIDs[index] = auraID
+                    index       = index + 1
+                end
+            end
+
+            if index > 1 then
+                observer:OnNext(unit, filter, unpack(auraIDs))
+            end
+
+            recycle(wipe(auraIDs))
+        end)
+    end
+
+    __Arguments__{ String, struct { String }}
+    __Static__() __Observable__()
+    function PredicateUnitAura(filter, names)
+        filter                  = passFilter(filter)
+
+        local clone             = recycle()
+        local len               = #names
+        for i = 1, len do
+            singleSpellName[filter][names[i]] = true
+            clone[i]            = names[i]
+        end
+
+        return Operator(obUnitAura, function(observer, unit)
+            local cache         = getUnitCache(unit, filter)
+
+            local auraIDs       = recycle()
+            local index         = 1
+
+            for i = 1, len do
+                local auraID    = cache[clone[i]]
+                if auraID then
+                    auraIDs[index] = auraID
+                    index       = index + 1
+                end
+            end
+
+            if index > 1 then
+                observer:OnNext(unit, filter, unpack(auraIDs))
+            end
+
+            recycle(wipe(auraIDs))
         end)
     end
 end)
