@@ -1503,6 +1503,8 @@ class "SecureActionButton" (function(_ENV)
     function StartKeyBinding()
         _KeyBindingMode         = true
 
+        FireSystemEvent("SCORPIO_ACTION_BUTTON_KEY_BINDING_START")
+
         Next(function()
             local current
 
@@ -1535,6 +1537,8 @@ class "SecureActionButton" (function(_ENV)
 
         _KeyBindingMask:Hide()
         _KeyBindingMask:SetParent(_ManagerFrame)
+
+        FireSystemEvent("SCORPIO_ACTION_BUTTON_KEY_BINDING_STOP")
     end
 
 
