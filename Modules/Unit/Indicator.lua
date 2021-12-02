@@ -98,48 +98,68 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     local validate              = Enum.ValidateValue
     local shareCooldown         = { start = 0, duration = 0 }
     local cache                 = {}
+    local slotMap               = {}
 
-    local function refreshAura(self, unit, filter, eleIdx, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
-        if not name or eleIdx > self.MaxCount then return eleIdx end
 
-        if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...) then
-            self.Elements[eleIdx]:Show()
+    local function refreshAura(self, unit, filter, eleIdx, auraIdx, continuationToken, ...)
+        local notPlayer         = not UnitIsUnit(unit, "player")
+        for i = 1, select("#", ...) do
+            local slot          = select(i, ...)
 
-            shareCooldown.start             = expires - duration
-            shareCooldown.duration          = duration
+            local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = UnitAuraBySlot(unit, slot)
 
-            self.AuraIndex[eleIdx]          = auraIdx
-            self.AuraName[eleIdx]           = name
-            self.AuraIcon[eleIdx]           = icon
-            self.AuraCount[eleIdx]          = count
-            self.AuraDebuff[eleIdx]         = dtype
-            self.AuraCooldown[eleIdx]       = shareCooldown
-            self.AuraStealable[eleIdx]      = isStealable and not UnitIsUnit(unit, "player")
-            self.AuraSpellID[eleIdx]        = spellID
-            self.AuraBossDebuff[eleIdx]     = isBossDebuff
-            self.AuraCastByPlayer[eleIdx]   = castByPlayer
+            if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3) then
+                self.Elements[eleIdx]:Show()
 
-            eleIdx              = eleIdx + 1
+                shareCooldown.start             = expires - duration
+                shareCooldown.duration          = duration
+
+                self.AuraIndex[eleIdx]          = auraIdx
+                self.AuraName[eleIdx]           = name
+                self.AuraIcon[eleIdx]           = icon
+                self.AuraCount[eleIdx]          = count
+                self.AuraDebuff[eleIdx]         = dtype
+                self.AuraCooldown[eleIdx]       = shareCooldown
+                self.AuraStealable[eleIdx]      = isStealable and notPlayer
+                self.AuraSpellID[eleIdx]        = spellId
+                self.AuraBossDebuff[eleIdx]     = isBossDebuff
+                self.AuraCastByPlayer[eleIdx]   = castByPlayer
+
+                eleIdx          = eleIdx + 1
+
+                if eleIdx > self.MaxCount then return eleIdx end
+            end
+            auraIdx             = auraIdx + 1
         end
 
-        auraIdx                 = auraIdx + 1
-        return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAura(unit, auraIdx, filter))
+        if continuationToken then
+            return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAuraSlots(unit, filter, self.MaxCount - eleIdx + 1, continuationToken))
+        else
+            return eleIdx
+        end
     end
 
-    local function refreshAuraByPriorty(self, unit, filter, priority, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
-        if not name then return end
+    local function refreshAuraByPriorty(self, unit, filter, priority, auraIdx, continuationToken, ...)
+        for i = 1, select("#", ...) do
+            local slot          = select(i, ...)
 
-        if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...) then
-            local order         = priority[name] or priority[spellID]
-            if order then
-                cache[order]    = auraIdx
-            else
-                tinsert(cache, auraIdx)
+            local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = UnitAuraBySlot(unit, slot)
+
+            if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3) then
+                local order     = priority[name] or priority[spellId]
+                if order then
+                    cache[order]= slot
+                else
+                    tinsert(cache, slot)
+                end
+
+                slotMap[slot]   = auraIdx
             end
+
+            auraIdx             = auraIdx + 1
         end
 
-        auraIdx                 = auraIdx + 1
-        return refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAura(unit, auraIdx, filter))
+        return continuationToken and refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAuraSlots(unit, filter, self.MaxCount, continuationToken))
     end
 
     local function OnElementCreated(self, ele)
@@ -191,23 +211,23 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
 
             local auraPriority  = self.AuraPriority
             if not auraPriority or #auraPriority == 0 then
-                self.Count      = refreshAura(self, unit, filter, 1, 1, UnitAura(unit, 1, filter)) - 1
+                self.Count      = refreshAura(self, unit, filter, 1, 1, UnitAuraSlots(unit, filter, self.MaxCount)) - 1
             else
                 wipe(cache) for i = 1, #auraPriority do cache[i] = false end
-                refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAura(unit, 1, filter))
+                refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAuraSlots(unit, filter, self.MaxCount))
 
                 local eleIdx    = 1
                 for i = 1, #cache do
-                    local aIdx  = cache[i]
-                    if aIdx then
-                        local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAura(unit, aIdx, filter)
+                    local slot  = cache[i]
+                    if slot then
+                        local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAuraBySlot(unit, slot)
 
                         self.Elements[eleIdx]:Show()
 
                         shareCooldown.start             = expires - duration
                         shareCooldown.duration          = duration
 
-                        self.AuraIndex[eleIdx]          = aIdx
+                        self.AuraIndex[eleIdx]          = slotMap[slot]
                         self.AuraName[eleIdx]           = name
                         self.AuraIcon[eleIdx]           = icon
                         self.AuraCount[eleIdx]          = count
