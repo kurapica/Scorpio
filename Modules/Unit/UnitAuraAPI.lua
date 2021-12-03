@@ -26,30 +26,55 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
 
     local auraFilter            = { HELPFUL = 1, HARMFUL = 2, PLAYER = 3, RAID = 4, CANCELABLE = 5, NOT_CANCELABLE = 6, INCLUDE_NAME_PLATE_ONLY = 7, MAW = 8 }
 
-    local function refreshAura(cache, unit, filter, auraIdx, continuationToken, ...)
-        local singleSpellIDMap  = singleSpellID[filter]
-        local singleSpellNameMap= singleSpellName[filter]
+    local refreshAura, scanForUnit
 
-        for i = 1, select("#", ...) do
-            local slot          = select(i, ...)
-            local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAuraBySlot(unit, slot)
+    if _G.UnitAuraSlots then
+        function refreshAura(cache, unit, filter, auraIdx, continuationToken, ...)
+            local singleSpellIDMap  = singleSpellID[filter]
+            local singleSpellNameMap= singleSpellName[filter]
 
-            if singleSpellIDMap[spellId] then
-                cache[spellId]  = auraIdx
+            for i = 1, select("#", ...) do
+                local slot          = select(i, ...)
+                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAuraBySlot(unit, slot)
+
+                if singleSpellIDMap[spellId] then
+                    cache[spellId]  = auraIdx
+                end
+
+                if singleSpellNameMap[name] then
+                    cache[name]     = auraIdx
+                end
+
+                auraIdx             = auraIdx + 1
             end
 
-            if singleSpellNameMap[name] then
-                cache[name]     = auraIdx
-            end
-
-            auraIdx             = auraIdx + 1
+            return continuationToken and refreshAura(cache, unit, filter, auraIdx, UnitAuraSlots(unit, filter, 16, continuationToken))
         end
 
-        return continuationToken and refreshAura(cache, unit, filter, auraIdx, UnitAuraSlots(unit, filter, 16, continuationToken))
-    end
+        function scanForUnit(cache, unit, filter)
+            return refreshAura(cache, unit, filter, 1, UnitAuraSlots(unit, filter, 16))
+        end
+    else
+        function scanForUnit(cache, unit, filter)
+            local singleSpellIDMap  = singleSpellID[filter]
+            local singleSpellNameMap= singleSpellName[filter]
 
-    local function scanForUnit(cache, unit, filter)
-        return refreshAura(cache, unit, filter, 1, UnitAuraSlots(unit, filter, 16))
+            local auraIdx           = 1
+            local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAura(unit, auraIdx, filter)
+
+            while name do
+                if singleSpellIDMap[spellId] then
+                    cache[spellId]  = auraIdx
+                end
+
+                if singleSpellNameMap[name] then
+                    cache[name]     = auraIdx
+                end
+
+                auraIdx             = auraIdx + 1
+                name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAura(unit, auraIdx, filter)
+            end
+        end
     end
 
     local function getUnitCache(unit, filter)
