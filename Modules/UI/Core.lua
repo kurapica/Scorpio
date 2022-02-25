@@ -699,11 +699,19 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     local validate              = Struct.ValidateValue
     local isClass               = Class.Validate
 
+    local function raiseChildChange(self, child, isadd)
+        self                    = self and GetWrapperUI(self, true)
+        return self and isClass(getmetatable(self)) and OnChildChanged(self, child, isadd)
+    end
+
     ----------------------------------------------
     --                  event                   --
     ----------------------------------------------
     -- Fired when parent is changed
     event "OnParentChanged"
+
+    -- Fired when child is changed
+    event "OnChildChanged"
 
     ----------------------------------------------
     --              Static Methods              --
@@ -832,6 +840,8 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         children[name]          = self
 
         OnParentChanged(self, parent, oparent)
+        Next(raiseChildChange, parent,  self, true)
+        Next(raiseChildChange, oparent, self, false)
     end
 
     --- Gets the children of the frame
@@ -906,19 +916,20 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     __Final__() __Arguments__{ NEString, UI/UIParent, Any * 0 }
     function __new(cls, name, parent, ...)
         local self              = _GetNew[cls](cls, name, parent, ...)
-        parent                  = parent[0]
+        parmeta                 = parent[0]
 
-        local children          = _ChildMap[parent]
+        local children          = _ChildMap[parmeta]
 
         if not children then
             children            = {}
-            _ChildMap[parent]   = children
+            _ChildMap[parmeta]  = children
         end
 
         children[name]          = self
         _NameMap[self[0]]       = name
 
         registerFrame(cls, self)
+        Next(raiseChildChange, parent, self, true)
 
         return self
     end

@@ -43,12 +43,12 @@ __Sealed__() struct "Scorpio.UI" (function(_ENV)
     --- Gets the wrapper ui of the given ui element
     -- if the ui is generated from scorpio, itself will be returned
     -- if not, a wrapper will be generated
-    __Static__() __Arguments__{ UI }
-    function GetWrapperUI(self)
+    __Static__() __Arguments__{ UI, Boolean/nil }
+    function GetWrapperUI(self, nowrap)
         local proxy             = _ProxyMap[self[0]]
         if proxy then return proxy end
         if isClass(getmetatable(self)) then return self end
-        return UI[self:GetObjectType()](self)
+        return not nowrap and UI[self:GetObjectType()](self) or nil
     end
 
     --- Whether the two UI is the same

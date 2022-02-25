@@ -2211,6 +2211,14 @@ end
 --                         Model                          --
 ------------------------------------------------------------
 do
+    --- The model's camera
+    UI.Property         {
+        name            = "Camera",
+        type            = Number,
+        require         = Model,
+        set             = function(self, val) self:SetCamera(val) end,
+    }
+
     --- The model's camera distance
     UI.Property         {
         name            = "CameraDistance",
@@ -2560,6 +2568,29 @@ do
 end
 
 ------------------------------------------------------------
+--                      PlayerModel                       --
+------------------------------------------------------------
+do
+    --- The model's camera
+    UI.Property         {
+        name            = "Camera",
+        type            = Number,
+        require         = Model,
+        set             = function(self, val) self:SetCamera(val) end,
+        depends         = { "Unit" },
+    }
+
+    UI.Property         {
+        name            = "Unit",
+        type            = String,
+        require         = PlayerModel,
+        nilable         = true,
+        set             = function(self, val) self:SetUnit(val) end,
+    }
+
+end
+
+------------------------------------------------------------
 --                      DressUpModel                      --
 ------------------------------------------------------------
 do
@@ -2685,6 +2716,12 @@ do
         name            = "IconFrame",
         require         = Frame,
         childtype       = Frame,
+    }
+
+    UI.Property         {
+        name            = "PlayerModel",
+        require         = Frame,
+        childtype       = PlayerModel,
     }
 end
 

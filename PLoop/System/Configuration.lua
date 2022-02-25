@@ -40,11 +40,11 @@ PLoop(function(_ENV)
         __Arguments__{ Table, Any * 0 }
         function ParseConfig(self, config, ...)
             local msg
-            local fields    = self.__Fields
-            local sections  = self.__Sections
+            local fields                = self.__Fields
+            local sections              = self.__Sections
 
             for _, name in self.__Order:GetIterator() do
-                local val   = config[name]
+                local val               = config[name]
 
                 if val ~= nil then
                     local fldtype       = fields[name]

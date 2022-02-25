@@ -10,4 +10,3 @@ Scorpio           "Scorpio.Widget.UIConfig"          "1.0.0"
 --========================================================--
 
 import "System.Configuration"
-
