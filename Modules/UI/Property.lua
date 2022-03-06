@@ -633,7 +633,7 @@ do
     UI.Property         {
         name            = "VertTile",
         require         = { Texture, Line },
-        type            = WrapMode,
+        type            = Boolean,
         default         = false,
         get             = function(self) return self:GetVertTile() end,
         set             = function(self, val) self:SetVertTile(val) end,
