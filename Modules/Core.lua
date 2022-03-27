@@ -2228,5 +2228,16 @@ PLoop(function(_ENV)
         --               [Property]Scorpio._Locale                --
         ------------------------------------------------------------
         property "_Locale" { set = false, default = function(self) return Localization(self._Addon._Name) end }
+
+
+        ----------------------------------------------
+        --        SavedVariable Config Node         --
+        ----------------------------------------------
+        class "SVConfigNode" {}
+
+        ------------------------------------------------------------
+        --               [Property]Scorpio._Locale                --
+        ------------------------------------------------------------
+        property "_Config" { set = false, default = function(self) return SVConfigNode(self._Addon) end }
     end)
 end)

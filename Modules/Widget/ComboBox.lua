@@ -87,7 +87,7 @@ class "ComboBox" (function(_ENV)
 
         local items             = owner.__ComboBox_Items
 
-        if item and #items > USE_LIST_LIMIT_COUNT then
+        if items and #items > USE_LIST_LIMIT_COUNT then
             ShareListFrameOwner = owner
             ShareListFrame:ClearAllPoints()
             ShareListFrame:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT")
