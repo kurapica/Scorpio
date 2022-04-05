@@ -25,13 +25,14 @@
     <!--System.Configuration-->
     <Script file="PLoop\System\Configuration.lua"/>
 
-    <!--System.Serialization-->
-    <Script file="PLoop\System\Serialization\LuaFormatProvider.lua"/>
-    <Script file="PLoop\System\Serialization\StringFormatProvider.lua"/>
-
     <!--System.Text.Encoding-->
     <Script file="PLoop\System\Text\UTF8Encoding.lua"/>
     <Script file="PLoop\System\Text\UTF16Encoding.lua"/>
+
+    <!--System.Serialization-->
+    <Script file="PLoop\System\Serialization\LuaFormatProvider.lua"/>
+    <Script file="PLoop\System\Serialization\StringFormatProvider.lua"/>
+    <Script file="PLoop\System\Serialization\JsonFormatProvider.lua"/>
 
     <!--System.Text.Encoder-->
     <Script file="PLoop\System\Text\XmlEntity.lua"/>

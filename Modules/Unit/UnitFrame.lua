@@ -333,8 +333,8 @@ do
             if set.HarmAction then
                 if useVirtual then
                     virtualKey  = "enemy" .. kname
-                    setup:Insert(_SetupTemplate:format("harmbutton" .. connect .. kname, virtualKey))
-                    clear:Insert(_ClearTemplate:format("harmbutton" .. connect .. kname))
+                    setup:Insert(_SetupTemplate:format(prev .. "harmbutton" .. connect .. kname, virtualKey))
+                    clear:Insert(_ClearTemplate:format(prev .. "harmbutton" .. connect .. kname))
 
                     virtualKey  = "-" .. virtualKey
                 else
@@ -359,8 +359,8 @@ do
             if set.HelpAction then
                 if useVirtual then
                     virtualKey  = "friend" .. kname
-                    setup:Insert(_SetupTemplate:format("helpbutton" .. connect .. kname, virtualKey))
-                    clear:Insert(_ClearTemplate:format("helpbutton" .. connect .. kname))
+                    setup:Insert(_SetupTemplate:format(prev .. "helpbutton" .. connect .. kname, virtualKey))
+                    clear:Insert(_ClearTemplate:format(prev .. "helpbutton" .. connect .. kname))
 
                     virtualKey  = "-" .. virtualKey
                 else

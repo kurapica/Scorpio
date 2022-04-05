@@ -33,8 +33,8 @@
 -- Author       :   kurapica125@outlook.com                                  --
 -- URL          :   http://github.com/kurapica/PLoop                         --
 -- Create Date  :   2017/04/02                                               --
--- Update Date  :   2022/01/28                                               --
--- Version      :   1.6.36                                                   --
+-- Update Date  :   2022/03/16                                               --
+-- Version      :   1.7.1                                                    --
 --===========================================================================--
 
 -------------------------------------------------------------------------------
@@ -285,8 +285,9 @@ do
         -- Default 40
         THREAD_POOL_MAX_SIZE                = 40,
 
-        --- Wether disable the default thread pool, so each context has its own
-        -- thread pool, should be actived for http servers.
+        --- Whether enable the context features, so features like the default thread pool will
+        -- be deactived and switch to the context thread pool if possible
+        -- Default false
         ENABLE_CONTEXT_FEATURES             = false,
 
         --- Whether enable thread lock features like __Lock__
@@ -314,6 +315,12 @@ do
 
         --- Whether only use the custom bit operation by PLoop
         USE_CUSTOM_BIT_IMPLEMENTATION       = false,
+
+        --- Whether save the argument definitions as attachment for __Arguments__
+        ENABLE_ARGUMENTS_ATTACHMENT         = false,
+
+        --- Whether save the return definitions as attachment for __Return__
+        ENABLE_RETURN_ATTACHMENT            = false,
     }
 
     -- Special constraint
@@ -5961,6 +5968,7 @@ end
 --          *  __new        the function used to generate the table that'd be converted to an object
 --          *  __ctor       the object constructor
 --          *  __dtor       the object destructor
+--          *  __close      the to-be-closed
 --
 --  There are several PLoop special meta-data, here are examples :
 --
@@ -14204,9 +14212,14 @@ do
         -----------------------------------------------------------
         __Abstract__() function Open(self) end
         __Abstract__() function Close(self, error) end
+
+        -----------------------------------------------------------
+        --                      meta-method                      --
+        -----------------------------------------------------------
+        __Abstract__() function __close(self) self:Close() end
     end)
 
-    -- Represents a toolset to provide several compatible apis
+    --- Represents a toolset to provide several compatible apis
     __Sealed__() __Final__()
     interface "System.Toolset"          {
         --- wipe the table
@@ -14310,7 +14323,13 @@ do
     class "System.__Arguments__"        (function(_ENV)
         extend "IInitAttribute"
 
+        --- Enable the attach attribute
+        if Platform.ENABLE_ARGUMENTS_ATTACHMENT then
+            extend "IAttachAttribute"
+        end
+
         local _OverloadStorage          = newstorage(WEAK_KEY)
+        local _OverloadHistory          = Platform.ENABLE_ARGUMENTS_ATTACHMENT and newstorage(WEAK_KEY) or nil
 
         export {
             -----------------------------------------------------------
@@ -14395,6 +14414,7 @@ do
             turnonflags                 = turnonflags,
             validateflags               = validateflags,
             parseindex                  = parseindex,
+            fakefunc                    = fakefunc,
             unpack                      = unpack,
             error                       = error,
             select                      = select,
@@ -14406,7 +14426,7 @@ do
             throw                       = throw,
         }
 
-        export { Namespace, Enum, Struct, Interface, Class, Variables, AttributeTargets, StructCategory, __Arguments__ }
+        export { Namespace, Enum, Struct, Interface, Class, Variables, Attribute, AttributeTargets, StructCategory, __Arguments__ }
 
         -- Helpers for this keyword
         if not getlocal then
@@ -15023,7 +15043,7 @@ do
             return Class.AttachObjectSource(__Arguments__{ { varargs = true } }, 2)
         end
 
-        -- Add the release method to clear the useless cache for sealed types
+        --- Clear the useless cache for sealed types
         __Static__() function ClearOverloads(ttype)
             if not (ttype and getmetatable(ttype).IsSealed(ttype)) then return end
             _OverloadStorage[ttype]     = nil
@@ -15124,6 +15144,20 @@ do
             vars[FLD_VAR_IMMTBL]        = immutable
 
             if targettype == AttributeTargets.Method then
+                -- Check the previous one for the overload history
+                if _OverloadHistory then
+                    local history       = _OverloadHistory[owner] and _OverloadHistory[owner][name]
+
+                    if not history then
+                        local previous  = Class.Validate(owner) and CTOR_METHOD[name] and Class.GetMetaMethod(owner, name) or getmetatable(owner).GetMethod(owner, name)
+                        if previous then
+                            _OverloadHistory[owner]       = _OverloadHistory[owner] or {}
+                            _OverloadHistory[owner][name] = { previous }
+                        end
+                    end
+                end
+
+                -- Generate the overloads
                 local hasself           = not getmetatable(owner).IsStaticMethod(owner, name)
                 buildUsage(vars, owner, name, targettype)
 
@@ -15210,6 +15244,72 @@ do
             end
         end
 
+        if Platform.ENABLE_ARGUMENTS_ATTACHMENT then
+            --- attach attribute
+            -- @param target                    the target
+            -- @param targettype                the target type
+            -- @param owner                     the target's owner
+            -- @param name                      the target's name in the owner
+            -- @param stack                     the stack level
+            function AttachAttribute(self, target, targettype, owner, name, stack)
+                -- Register the overloads
+                if targettype == AttributeTargets.Method and _OverloadHistory[owner] and _OverloadHistory[owner][name] then
+                    tinsert(_OverloadHistory[owner][name], target)
+                end
+
+                return { unpack(self) }
+            end
+
+            --- Gets the overloads of the target type's method
+            -- @param target                    the target type like class
+            -- @param name                      the method name
+            -- @usage
+            --    class "A" (function(_ENV)
+            --        __Arguments__{ String } __Return__{ Number }
+            --        function Test()
+            --        end
+
+            --        __Arguments__{ Number } __Return__ { Boolean }
+            --        function Test()
+            --        end
+
+            --        __Arguments__{ Boolean } __Return__{ String }
+            --        function Test()
+            --        end
+            --    end)
+            --
+            --    for i, v in __Arguments__.GetOverloads(A, "Test") do
+            --        local args = Attribute.GetAttachedData(__Arguments__, v, A)
+            --        local ret = Attribute.GetAttachedData(__Return__, v, A)
+            --
+            --        -- System.Number  A:Test(System.String) 
+            --        -- System.Boolean A:Test(System.Number) 
+            --        -- System.String  A:Test(System.Boolean) 
+            --        print(("%s A:Test(%s) "):format(tostring(ret[1][1].type), tostring(args[1].type)))
+            --    end
+            __Static__()
+            function GetOverloads(target, name)
+                local nameMap           = _OverloadHistory[target]
+                local history           = nameMap and nameMap[name]
+
+                if history and #history > 0 then
+                    return function (_, n)
+                        return next(history, n)
+                    end
+                else
+                    local overload      = Class.Validate(target) and CTOR_METHOD[name] and Class.GetMetaMethod(target, name) or getmetatable(target).GetMethod(target, name)
+
+                    if overload then
+                        return function(_, n)
+                            if n == nil then return 1, overload end
+                        end
+                    else
+                        return fakefunc
+                    end
+                end
+            end
+        end
+
         -----------------------------------------------------------
         --                       property                       --
         -----------------------------------------------------------
@@ -15282,6 +15382,11 @@ do
     __Sealed__() __Final__() __NoRawSet__(false) __NoNilValue__(false)
     class "System.__Return__"           (function(_ENV)
         extend "IInitAttribute"
+
+        --- Enable the attach attribute
+        if Platform.ENABLE_RETURN_ATTACHMENT then
+            extend "IAttachAttribute"
+        end
 
         export {
             -----------------------------------------------------------
@@ -15788,6 +15893,19 @@ do
 
             local validrets             = not nomulti and genReturns(retsets, defplace .. msghead) or retsets[1][FLD_VAR_VARVLD]
             if validrets then return function(...) return validrets(definition(...)) end end
+        end
+
+
+        if Platform.ENABLE_RETURN_ATTACHMENT then
+            --- attach attribute
+            -- @param target                    the target
+            -- @param targettype                the target type
+            -- @param owner                     the target's owner
+            -- @param name                      the target's name in the owner
+            -- @param stack                     the stack level
+            function AttachAttribute(self, target, targettype, owner, name, stack)
+                return { unpack(self) }
+            end
         end
 
         -----------------------------------------------------------

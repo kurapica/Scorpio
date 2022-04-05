@@ -16,21 +16,97 @@ Scorpio            "Scorpio.SVConfig"                "1.0.0"
 __Sealed__() __SuperObject__(false):AsInheritable()
 class "SVConfigNode" (function(_ENV)
 
+    local CHAR_NODE             = "char"
+    local CHILD_NODE            = "__nodes"
+
     local _AddonConfigNode      = {}
     local _ConfigNodeAddon      = {}
 
-    local _RawData              = {}
     local _SubNodes             = {}
-
     local _Fields               = {}
     local _Defaults             = {}
 
+    local _RawData              = {}
+    local _PrevData             = nil  -- The data from the previous game session
+
+    local strlower              = string.lower
+    local clone                 = Toolset.clone
+
+    local function validateValue(type, value)
+        if Enum.Validate(type) then
+            return Enum.ValidateValue(type, value)
+        elseif Struct.Validate(type) then
+            return Struct.ValidateValue(type, value)
+        else
+            return nil, "The %s's type not supported"
+        end
+    end
+
+    local function initConfigNode(self, parent, name)
+        if _RawData[self] then return end
+
+        local prevdata
+
+        if type(parent) == "string" then
+            prevdata            = type(_G[parent]) == "table" and _G[parent]
+        else
+            -- Check if already loaded
+            if not _RawData[parent] then return end
+
+            if _PrevData[parent] then
+                prevdata        = _PrevData[parent][CHAR_NODE]
+                prevdata        = type(prevdata) == "table" and prevdata[name] or nil
+                prevdata        = type(prevdata) == "table" and prevdata or nil
+            end
+        end
+
+        local rawdata           = {}
+
+
+        _PrevData[self]         = prevdata
+        _RawData[self]          = rawdata
+
+        -- Init the raw data with default settings
+        if _Fields[self] then
+            local default       = _Defaults[self]
+
+            for name, fldtype in pairs(_Fields[self]) do
+                local value     = prevdata and prevdata[name]
+
+                if value ~= nil then
+                    -- Validating the previous values
+                    local r, m  = validateValue(name, fldtype, value)
+                    value       = not m and r or nil
+                end
+
+                if value == nil and default and default[name] ~= nil then
+                    value       = clone(default[name])
+                end
+
+                -- Assign value instead rawdata directly
+                self[name]      = value
+            end
+        end
+
+        -- Init the child nodes
+        if _SubNodes[self] then
+            rawdata[CHAR_NODE]  = {}
+
+            for sname, snode in pairs(_SubNodes[self]) do
+                rawdata[CHAR_NODE][sname] = initConfigNode(snode, self, sname)
+            end
+        end
+
+        return rawdata
+    end
 
     ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
     __Arguments__{ NEString, EnumType + StructType, Any/nil }
-    function SetField(self, name, type, value)
+    function SetField(self, name, ftype, value)
+        name                    = strlower(name)
+
         local fields            = _Fields[self]
         if not fields then
             fields              = {}
@@ -41,15 +117,10 @@ class "SVConfigNode" (function(_ENV)
             return false, "The field " .. name .. " already has type specified"
         end
 
-        fields[name]            = type
+        fields[name]            = ftype
 
         if value ~= nil then
-            local ret, msg
-            if Enum.Validate(type) then
-                ret, msg        = Enum.ValidateValue(type, value)
-            elseif Struct.Validate(type) then
-                ret, msg        = Struct.ValidateValue(type, value)
-            end
+            local ret, msg      = validateValue(name, ftype, value)
 
             if msg then
                 return false, Struct.GetErrorMessage(msg, name)
@@ -60,12 +131,19 @@ class "SVConfigNode" (function(_ENV)
                 default         = {}
                 _Defaults[self] = default
             end
-            default[name]       = ret
+            default[name]       = clone(ret)
+
+            if _RawData[self] and _RawData[self][name] == nil then
+                -- any subject should be created after the field is set
+                -- this shouldn't be reach since raw data will be created after OnLoad
+                -- Just make sure this works in all condition
+                _RawData[self]  = clone(ret)
+            end
         end
     end
 
     --- The set saved variables method, must be called in Addon's OnLoad handler
-    __Async__(true) __Arguments__{ NEString, NEString/nil }:Throwable()
+    __AsyncSingle__() __Arguments__{ NEString, NEString/nil }:Throwable()
     function SetSavedVariables(self, sv, svchar)
         local addon             = _ConfigNodeAddon[self]
 
@@ -82,32 +160,66 @@ class "SVConfigNode" (function(_ENV)
             Next()
         end
 
-        -- SavedVariables
-        local svData            = _G[sv]
-        if not svData then
-            svData              = {}
-            _G[sv]              = svData
-        end
-        _RawData[self]          = svData
-
         -- SavedVariablesPerCharacter
         if svchar then
-            local svcharData        = _G[svchar]
-            if not svcharData then
-                svcharData          = {}
-                _G[svchar]          = svcharData
-            end
-            local node              = SVConfigNode(self, "Char")
-            _RawData[node]          = svcharData
+            _G[svchar]          = initConfigNode(SVConfigNode(self, "Char"), svchar)
         end
+
+        -- SavedVariables
+        _G[sv]                  = initConfigNode(self, sv)
     end
 
     ----------------------------------------------
     --               Meta-method                --
     ----------------------------------------------
-    __Arguments__{ NEString }
-    function __index(self, key)
+    function __index(self, name)
+        name                    = strlower(name)
 
+        -- Check the raw datas
+        local value             = _RawData[self]
+        value                   = value and value[name]
+
+        if value ~= nil then return clone(value) end
+
+        -- Return or create the sub nodes
+        return SVConfigNode(self, name)
+    end
+
+    function __newindex(self, name, value)
+        local rawdata           = _RawData[self]
+        if not rawdata then
+            error("The config node isn't inited, please wait until the addon is loaded", 2)
+        end
+
+        name                    = strlower(name)
+
+        -- Check the sub nodes
+        if _SubNodes[self] and _SubNodes[self][name] then
+            error("The config child node can't be replaced", 2)
+        end
+
+        local field             = _Fields[self] and _Fields[self][name]
+
+        if not field then
+            error("The " .. name " .. is not a valid field", 2)
+        end
+
+        -- Validate
+        if value ~= nil then
+            local ret, msg      = validateValue(field, value)
+            if msg then
+                error(Struct.GetErrorMessage(msg, name), 2)
+            end
+            value               = ret
+        end
+
+        -- Replace nil with default
+        if value == nil and _Defaults[self] and _Defaults[self][name] ~= nil then
+            value               = clone(_Defaults[self][name])
+        end
+
+        -- Assign the value
+        rawdata[name]           = value
     end
 
     ----------------------------------------------
@@ -128,89 +240,130 @@ class "SVConfigNode" (function(_ENV)
     -- Sub-Nodes
     __Arguments__{ SVConfigNode, NEString }
     function __ctor(self, node, name)
+        name                    = strlower(name)
         local subNodes          = _SubNodes[node]
         if not subNodes then
             subNodes            = {}
             _SubNodes[node]     = subNodes
         end
         subNodes[name]          = self
+
+        -- Try Init the saved variable
+        initConfigNode(self, node, name)
     end
 
     __Arguments__{ SVConfigNode, NEString }
     function __exist(_, node, name)
+        name                    = strlower(name)
         local subNodes          = _SubNodes[node]
         return subNodes and subNodes[name]
     end
 end)
 
 
-
 --- The binder for the config section and handler
 -- @usage :
---      __ConfigSection__( System.Web.ConfigSection.Html.Render, { nolinebreak = Boolean, noindent = Boolean  } )
---      function HtmlRenderConfig(config, ...)
---          print(config.nolinebreak)
---      end
 --
---      __ConfigSection__( System.Web.ConfigSection.Controller, "jsonprovider", -FormatProvider)
---      function JsonProviderConfig(field, value, ...)
---          print("The new json provider is " .. value)
---      end
-__Sealed__() class "__Config__" (function(_ENV)
+-- Scorpio "TestAddon" ""
+--
+-- _Config:SetSavedVariables("TestAddon", "TestAddonChar")
+--
+-- __Config__(_Config, true)
+-- function EnableLog(value)
+--
+-- end
+--
+-- __Config__(_Config, Boolean)(true)
+-- function EnableLog(value)
+--
+-- end
+
+-- __Config__(_Config, "EnableLog", Boolean)(true)
+-- function EnableLog(value)
+--
+-- end
+__Sealed__()
+class "__Config__" (function(_ENV)
     extend "IAttachAttribute"
 
-    -----------------------------------------------------------
-    --                        method                         --
-    -----------------------------------------------------------
-    --- attach data on the target
-    -- @param   target                      the target
-    -- @param   targettype                  the target type
-    -- @param   owner                       the target's owner
-    -- @param   name                        the target's name in the owner
-    -- @param   stack                       the stack level
-    -- @return  data                        the attribute data to be attached
     function AttachAttribute(self, target, targettype, owner, name, stack)
-        if self[3] then
-            local section           = self[1]
-            local fldname           = self[2]
-            section.Field[fldname]  = self[3]
+        if Class.IsObjectType(owner, Scorpio) then
+            local node          = self.Node
+            local name          = self.Name or name
+            local ftype         = self.Type
+            local default       = self.Default
 
-            section.OnFieldParse    = section.OnFieldParse + function(self, fld, val, ...)
-                if fld == fldname then
-                    return target(fld, val, ...)
-                end
-            end
         else
-            local section           = self[1]
-            if self[2] then
-                for k, v in pairs(self[2]) do
-                    if type(k) == "string" and (isenum(v) or isstruct(v)) then
-                        section.Field[k] = v
-                    else
-                        error("The field's type can only be enum or struct", stack + 1)
-                    end
-                end
-            end
-            section.OnParse         = section.OnParse + function(self, ...) return target(...) end
+            error("__Config__ can only be applyed to objects of Scorpio.", stack + 1)
         end
     end
 
-    -----------------------------------------------------------
-    --                       property                        --
-    -----------------------------------------------------------
-    --- the attribute target
-    property "AttributeTarget" { set = false, default = AttributeTargets.Function }
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    property "AttributeTarget"  { default = AttributeTargets.Function }
 
-    -----------------------------------------------------------
-    --                      constructor                      --
-    -----------------------------------------------------------
-    __Arguments__{ ConfigSection, Table/nil }
-    function __new(_, section, fields)
-        return { section, fields, false }, true
+    property "Node"             { type = SVConfigNode }
+
+    property "Name"             { type = String }
+
+    property "Type"             { type = EnumType + StructType }
+
+    property "Default"          { type = Any }
+
+    ----------------------------------------------
+    --                Constructor               --
+    ----------------------------------------------
+    __Arguments__{ SVConfigNode, Boolean }
+    function __ctor(self, node, value)
+        self.Node               = node
+        self.Type               = Boolean
+        self.Default            = value
     end
 
-    __Arguments__{ ConfigSection, NEString, (EnumType + StructType)/Any }
-    function __new(_, section, name, type)
-        return { section, name, type }, true
+    __Arguments__{ SVConfigNode, Number }
+    function __ctor(self, node, value)
+        self.Node               = node
+        self.Type               = Number
+        self.Default            = value
+    end
+
+    __Arguments__{ SVConfigNode, NEString, Boolean }
+    function __ctor(self, node, name, value)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = Boolean
+        self.Default            = value
+    end
+
+    __Arguments__{ SVConfigNode, NEString, Number }
+    function __ctor(self, node, name, value)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = Number
+        self.Default            = value
+    end
+
+    __Arguments__{ SVConfigNode, EnumType + StructType, Any/nil }
+    function __ctor(self, node, ftype, value)
+        self.Node               = node
+        self.Type               = ftype
+        self.Default            = value
+    end
+
+    __Arguments__{ SVConfigNode, NEString, EnumType + StructType, Any/nil }
+    function __ctor(self, node, name, ftype, value)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = ftype
+        self.Default            = value
+    end
+
+    ----------------------------------------------
+    --                Meta-Method               --
+    ----------------------------------------------
+    __Arguments__{ value }
+    function __call(self, value)
+        self.Default            = value
     end
 end)
