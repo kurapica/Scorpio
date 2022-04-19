@@ -2057,7 +2057,7 @@ PLoop(function(_ENV)
             -- @param   stack                       the stack level
             -- @return  definition                  the new definition
             function InitDefinition(self, target, targettype, definition, owner, name, stack)
-                if targettype == AttributeTargets.Method and (Class.Validate(owner) or Inteface.Validate(owner))  then
+                if targettype == AttributeTargets.Method and (Class.Validate(owner) or Interface.Validate(owner))  then
                     return registerSingleAsync(definition, self[1], owner, name)
                 else
                     return registerSingleAsync(definition, self[1])
