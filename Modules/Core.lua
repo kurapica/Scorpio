@@ -1174,6 +1174,78 @@ PLoop(function(_ENV)
         end)
 
         ----------------------------------------------
+        --                  Locale                  --
+        ----------------------------------------------
+        __Sealed__()
+        class "Localization" (function(_ENV)
+            _Localizations = {}
+
+            enum "Locale" {
+                "deDE",             -- German
+                --"enGB",             -- British English
+                "enUS",             -- American English
+                "esES",             -- Spanish (European)
+                "esMX",             -- Spanish (Latin American)
+                "itIT",             -- Italian (Italy)
+                "frFR",             -- French
+                "koKR",             -- Korean
+                "ptBR",             -- Portuguese (Brazil)
+                "ruRU",             -- Russian
+                "zhCN",             -- Chinese (simplified; mainland China)
+                "zhTW",             -- Chinese (traditional; Taiwan)
+            }
+
+            ----------------------------------------------
+            ----------------- Constructor ----------------
+            ----------------------------------------------
+            __Arguments__{ NEString }
+            function Localization(self, name)
+                _Localizations[name] = self
+            end
+
+            ----------------------------------------------
+            ----------------- Meta-Method ----------------
+            ----------------------------------------------
+            __Arguments__{ NEString }
+            function __exist(_, name)
+                return _Localizations[name]
+            end
+
+            __Arguments__{ String }
+            function __index(self, key)
+                rawset(self, key, key)
+                return key
+            end
+
+            __Arguments__{ String + Number, String }
+            function __newindex(self, key, value)
+                rawset(self, key, value)
+            end
+
+            __Arguments__{ String, Boolean }
+            function __newindex(self, key, value)
+                rawset(self, key, key)
+            end
+
+            __Arguments__ { Variable("language", Locale), Variable("asDefault", Boolean, true) }
+            function __call(self, language, asDefault)
+                if not asDefault then
+                    local locale = GetLocale()
+                    if locale == "enGB" then locale = "enUS" end
+                    if locale ~= language then return end
+                end
+                return self
+            end
+        end)
+
+        ----------------------------------------------
+        --        SavedVariable Config Node         --
+        ----------------------------------------------
+        class "Scorpio.Config.ConfigNode"     {}
+        class "Scorpio.Config.CharConfigNode" {}
+        class "Scorpio.Config.SpecConfigNode" {}
+
+        ----------------------------------------------
         --            System Event Method           --
         ----------------------------------------------
         --- Register system event or custom event
@@ -1674,6 +1746,18 @@ PLoop(function(_ENV)
         --- The addon of the module
         property "_Addon"       { get = function(self) while self._Parent do self = self._Parent end return self end }
 
+        --- The localiaztion
+        property "_Locale"      { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
+
+        --- The saved variable config node, don't make it readonly, so module can have its own config node with its own saved variables
+        property "_Config"      { type = ConfigNode, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
+
+        --- The saved variable per character config node
+        property "_CharConfig"  { type = ConfigNode, default = function(self) return self._Config.__Char end }
+
+        --- The saved variable spec config node
+        property "_SpecConfig"  { type = SpecConfigNode, default = function(self) return self._Parent and self._Parent._SpecConfig or SpecConfigNode(self._CharConfig) end }
+
         ----------------------------------------------
         --                  Dispose                 --
         ----------------------------------------------
@@ -2158,86 +2242,5 @@ PLoop(function(_ENV)
                 Delay(DIAGNOSE_DELAY)
             end
         end)
-
-        ----------------------------------------------
-        --                  Locale                  --
-        ----------------------------------------------
-        __Sealed__()
-        class "Localization" (function(_ENV)
-            _Localizations = {}
-
-            enum "Locale" {
-                "deDE",             -- German
-                --"enGB",             -- British English
-                "enUS",             -- American English
-                "esES",             -- Spanish (European)
-                "esMX",             -- Spanish (Latin American)
-                "itIT",             -- Italian (Italy)
-                "frFR",             -- French
-                "koKR",             -- Korean
-                "ptBR",             -- Portuguese (Brazil)
-                "ruRU",             -- Russian
-                "zhCN",             -- Chinese (simplified; mainland China)
-                "zhTW",             -- Chinese (traditional; Taiwan)
-            }
-
-            ----------------------------------------------
-            ----------------- Constructor ----------------
-            ----------------------------------------------
-            __Arguments__{ NEString }
-            function Localization(self, name)
-                _Localizations[name] = self
-            end
-
-            ----------------------------------------------
-            ----------------- Meta-Method ----------------
-            ----------------------------------------------
-            __Arguments__{ NEString }
-            function __exist(_, name)
-                return _Localizations[name]
-            end
-
-            __Arguments__{ String }
-            function __index(self, key)
-                rawset(self, key, key)
-                return key
-            end
-
-            __Arguments__{ String + Number, String }
-            function __newindex(self, key, value)
-                rawset(self, key, value)
-            end
-
-            __Arguments__{ String, Boolean }
-            function __newindex(self, key, value)
-                rawset(self, key, key)
-            end
-
-            __Arguments__ { Variable("language", Locale), Variable("asDefault", Boolean, true) }
-            function __call(self, language, asDefault)
-                if not asDefault then
-                    local locale = GetLocale()
-                    if locale == "enGB" then locale = "enUS" end
-                    if locale ~= language then return end
-                end
-                return self
-            end
-        end)
-
-        ------------------------------------------------------------
-        --               [Property]Scorpio._Locale                --
-        ------------------------------------------------------------
-        property "_Locale" { set = false, default = function(self) return Localization(self._Addon._Name) end }
-
-
-        ----------------------------------------------
-        --        SavedVariable Config Node         --
-        ----------------------------------------------
-        class "SVConfigNode" {}
-
-        ------------------------------------------------------------
-        --               [Property]Scorpio._Locale                --
-        ------------------------------------------------------------
-        property "_Config" { set = false, default = function(self) return SVConfigNode(self._Addon) end }
     end)
 end)
