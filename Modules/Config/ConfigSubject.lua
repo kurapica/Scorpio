@@ -6,7 +6,7 @@
 --========================================================--
 
 --========================================================--
-Scorpio            "Scorpio.Config.ConfigType"       "1.0.0"
+Scorpio            "Scorpio.Config.ConfigSubject"    "1.0.0"
 --========================================================--
 
 --- The config node field subject, used to get/set value of the field, the style system will also

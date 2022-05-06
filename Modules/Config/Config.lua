@@ -11,4 +11,4 @@ Scorpio            "Scorpio.Config"                  "1.0.0"
 
 namespace "Scorpio.Config"
 
-Namespace.RegisterGlobalNamespace(Scorpio.Config)
+Environment.RegisterGlobalNamespace(Scorpio.Config)

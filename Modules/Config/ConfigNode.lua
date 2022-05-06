@@ -29,10 +29,7 @@ local function queueCharConfigNode(node, container, name, prevContainer)
     if _PlayerLogined then return false end
 
     _CharNodes                  = _CharNodes or {}
-    _CharNodes[#_CharNodes + 1] = node
-    node[1]                     = container
-    node[2]                     = name
-    node[3]                     = prevContainer
+    _CharNodes[node]            = { container, name, prevContainer }
 
     return true
 end
@@ -41,10 +38,7 @@ local function queueSpecConfigNode(node, container, name, prevContainer)
     if _PlayerSpec then return false end
 
     _SpecNodes                  = _SpecNodes or {}
-    _SpecNodes[#_SpecNodes + 1] = node
-    node[1]                     = container
-    node[2]                     = name
-    node[3]                     = prevContainer
+    _SpecNodes[node]            = { container, name, prevContainer }
 
     return true
 end
@@ -54,10 +48,7 @@ local function queueWarModeConfigNode(node, container, name, prevContainer)
     if _PlayerWarMode then return false end
 
     _WMNodes                    = _WMNodes or {}
-    _WMNodes[#_WMNodes + 1]     = node
-    node[1]                     = container
-    node[2]                     = name
-    node[3]                     = prevContainer
+    _WMNodes[node]              = { container, name, prevContainer }
 
     return true
 end
@@ -70,9 +61,8 @@ function OnEnable()
     OnEnable                    = nil
 
     if _CharNodes then
-        for i = 1, #_CharNodes do
-            local node          = _CharNodes[i]
-            local ok, err       = pcall(node.InitConfigNode, node, unpack(node))
+        for node, config in pairs(_CharNodes) do
+            local ok, err       = pcall(node.InitConfigNode, node, unpack(config))
             if not ok then
                 errorhandler(err)
             end
@@ -86,9 +76,8 @@ function OnSpecChanged(self, spec)
     _PlayerSpec                 = spec
 
     if _SpecNodes then
-        for i = 1, #_SpecNodes do
-            local node          = _SpecNodes[i]
-            local ok, err       = pcall(node.InitConfigNode, node, unpack(node))
+        for node, config in pairs(_SpecNodes) do
+            local ok, err       = pcall(node.InitConfigNode, node, unpack(config))
             if not ok then
                 errorhandler(err)
             end
@@ -100,9 +89,8 @@ function OnWarModeChanged(self, mode)
     _PlayerWarMode              = mode
 
     if _WMNodes then
-        for i = 1, #_WMNodes do
-            local node          = _WMNodes[i]
-            local ok, err       = pcall(node.InitConfigNode, node, unpack(node))
+        for node, config in pairs(_WMNodes) do
+            local ok, err       = pcall(node.InitConfigNode, node, unpack(config))
             if not ok then
                 errorhandler(err)
             end
@@ -200,6 +188,9 @@ class "ConfigNode" (function(_ENV)
 
                     if _RawData[self] then
                         _RawData[self] = nil
+                    end
+
+                    if _RawData[parent] and _RawData[parent][CHILD_NODE] then
                         _RawData[parent][CHILD_NODE][k] = nil
 
                         -- Clear the data if not needed
@@ -262,8 +253,6 @@ class "ConfigNode" (function(_ENV)
 
     --- Init the config node, this must be called by the system, don't use it by your own
     function InitConfigNode(self, container, name, prevContainer)
-        if _RawData[self] then return end -- Already inited
-
         -- Gets the previous session data
         local prevdata          = (prevContainer or container)[name]
         if type(prevdata) ~= "table" or getmetatable(prevdata) ~= nil then
@@ -291,7 +280,7 @@ class "ConfigNode" (function(_ENV)
             prevdata            = prevdata and prevdata[CHILD_NODE]
 
             for k, node in pairs(_SubNodes[self]) do
-                InitConfigNode(node, childData, k, prevdata)
+                node:InitConfigNode(childData, k, prevdata)
             end
         end
     end
@@ -480,6 +469,12 @@ class "__Config__" (function(_ENV)
     --                 Property                 --
     ----------------------------------------------
     property "AttributeTarget"  { default = AttributeTargets.Function }
+
+    --- the attribute's priority
+    property "Priority"         { type = AttributePriority, default = AttributePriority.Lowest }
+
+    --- the attribute's sub level of priority
+    property "SubLevel"         { type = Number, default = -999999 }
 
     property "Node"             { type = ConfigNode }
 
