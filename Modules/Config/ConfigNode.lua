@@ -96,8 +96,6 @@ function OnSpecChanged(self, spec)
             end
         end
     end
-
-    return _PlayerWarMode and OnWarModeChanged(self, _PlayerWarMode)
 end
 
 function OnWarModeChanged(self, mode)
