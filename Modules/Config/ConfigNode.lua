@@ -62,8 +62,6 @@ local function queueWarModeConfigNode(node, container, name, prevContainer)
     return true
 end
 
-
-
 ------------------------------------------------------
 -- Addon Event Handler
 ------------------------------------------------------
