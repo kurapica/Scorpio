@@ -12,10 +12,8 @@ Scorpio            "Scorpio.Config.ConfigNode"       "1.0.0"
 ------------------------------------------------------
 -- Helpers
 ------------------------------------------------------
-local _PlayerLogined            = false
-local _PlayerSpec
-local _CharNodes
-local _SpecNodes
+local _PlayerLogined, _PlayerSpec, _PlayerWarMode
+local _CharNodes, _SpecNodes, _WMNodes
 
 local function validateValue(type, value)
     if Enum.Validate(type) then
@@ -28,7 +26,7 @@ local function validateValue(type, value)
 end
 
 local function queueCharConfigNode(node, container, name, prevContainer)
-    if _PlayerLogined then false end
+    if _PlayerLogined then return false end
 
     _CharNodes                  = _CharNodes or {}
     _CharNodes[#_CharNodes + 1] = node
@@ -51,6 +49,21 @@ local function queueSpecConfigNode(node, container, name, prevContainer)
     return true
 end
 
+
+local function queueWarModeConfigNode(node, container, name, prevContainer)
+    if _PlayerWarMode then return false end
+
+    _WMNodes                    = _WMNodes or {}
+    _WMNodes[#_WMNodes + 1]     = node
+    node[1]                     = container
+    node[2]                     = name
+    node[3]                     = prevContainer
+
+    return true
+end
+
+
+
 ------------------------------------------------------
 -- Addon Event Handler
 ------------------------------------------------------
@@ -71,12 +84,28 @@ function OnEnable()
     end
 end
 
-function OnSpecChanged(spec)
+function OnSpecChanged(self, spec)
     _PlayerSpec                 = spec
 
     if _SpecNodes then
         for i = 1, #_SpecNodes do
             local node          = _SpecNodes[i]
+            local ok, err       = pcall(node.InitConfigNode, node, unpack(node))
+            if not ok then
+                errorhandler(err)
+            end
+        end
+    end
+
+    return _PlayerWarMode and OnWarModeChanged(self, _PlayerWarMode)
+end
+
+function OnWarModeChanged(self, mode)
+    _PlayerWarMode              = mode
+
+    if _WMNodes then
+        for i = 1, #_WMNodes do
+            local node          = _WMNodes[i]
             local ok, err       = pcall(node.InitConfigNode, node, unpack(node))
             if not ok then
                 errorhandler(err)
@@ -334,45 +363,21 @@ __Sealed__()
 class "CharConfigNode" (function(_ENV)
     inherit "ConfigNode"
 
-    CHAR_NODES                  = "__chars"
-
     ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
     function InitConfigNode(self, container, name, prevContainer)
+        -- Process Char Config Node only after PLAYER_LOGIN
         if queueCharConfigNode(self, container, name, prevContainer) then return end
 
         if self._SavedVariable then
             return container == _G and super.InitConfigNode(self, container, name, prevContainer)
         else
-            local allUserData   = prevContainer and prevContainer[name] or {}
+            local allUserData   = container[name] or prevContainer and prevContainer[name] or {}
             container[name]     = allUserData
 
             return super.InitConfigNode(self, allUserData, GetRealmName() .. "-" .. UnitName("player"))
         end
-    end
-
-    ----------------------------------------------
-    --               Constructor                --
-    ----------------------------------------------
-    -- Spec Config Node must be child node of the config node
-    __Arguments__{ }
-    function __ctor(_)
-        super(self)
-    end
-
-    __Arguments__{ }
-    function __exist(_)
-    end
-
-    __Arguments__{ ConfigNode }
-    function __ctor(self, node)
-        super(self, node, CHAR_NODES)
-    end
-
-    __Arguments__{ ConfigNode }
-    function __exist(_, node, name)
-        return super.__exist(_, node, CHAR_NODES)
     end
 end)
 
@@ -386,23 +391,40 @@ class "SpecConfigNode" (function(_ENV)
     ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
-    --- The set saved variables method, must be called in Addon or Module's OnLoad handler
     function SetSavedVariable(self)
-        error("The SpecConfigNode can't bind saved variable", 2)
+        error("The specialization config node can't bind saved variables", 2)
     end
 
+    function InitConfigNode(self, container, name, prevContainer)
+        -- Process Char Config Node only after PLAYER_LOGIN
+        if queueSpecConfigNode(self, container, name, prevContainer) then return end
+
+        local allSpecData   = container[name] or prevContainer and prevContainer[name] or {}
+        container[name]     = allSpecData
+
+        return super.InitConfigNode(self, allSpecData, _PlayerSpec)
+    end
+end)
+
+__Sealed__()
+class "WarModeConfigNode" (function(_ENV)
+    inherit "ConfigNode"
+
     ----------------------------------------------
-    --               Constructor                --
+    --                  Method                  --
     ----------------------------------------------
-    -- Spec Config Node must be child node of the config node
-    __Arguments__{ ConfigNode }
-    function __ctor(self, node)
-        super(self, node, "__spec")
+    function SetSavedVariable(self)
+        error("The war mode config node can't bind saved variables", 2)
     end
 
-    __Arguments__{ ConfigNode }
-    function __exist(_, node, name)
-        return super.__exist(_, node, "__spec")
+    function InitConfigNode(self, container, name, prevContainer)
+        -- Process War Mode Config Node only after PLAYER_FLAGS_CHANGED
+        if queueWarModeConfigNode(self, container, name, prevContainer) then return end
+
+        local allWarModeData= container[name] or prevContainer and prevContainer[name] or {}
+        container[name]     = allWarModeData
+
+        return super.InitConfigNode(self, allWarModeData, _PlayerWarMode)
     end
 end)
 

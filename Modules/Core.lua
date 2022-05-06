@@ -1097,6 +1097,9 @@ PLoop(function(_ENV)
 
             for _, addon in pairs(_RootAddon) do
                 enabling(addon)
+            end
+
+            for _, addon in pairs(_RootAddon) do
                 specChanged(addon, _PlayerSpec)
                 warmodeChanged(addon, _PlayerWarMode)
             end
@@ -1115,6 +1118,8 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_SPECIALIZATION_CHANGED(unit)
+            if not _Logined then return end
+
             if not unit or UnitIsUnit(unit, "player") then
                 local spec      = GetSpecialization() or 1
                 if _PlayerSpec ~= spec then
@@ -1138,6 +1143,8 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_FLAGS_CHANGED()
+            if not _Logined then return end
+
             local mode          = IsWarModeDesired() and WarMode.PVP or WarMode.PVE
             if _PlayerWarMode  ~= mode then
                 _PlayerWarMode  = mode
@@ -1239,11 +1246,12 @@ PLoop(function(_ENV)
         end)
 
         ----------------------------------------------
-        --        SavedVariable Config Node         --
+        --  SavedVariable Config Node Declaration   --
         ----------------------------------------------
-        class "Scorpio.Config.ConfigNode"     {}
-        class "Scorpio.Config.CharConfigNode" {}
-        class "Scorpio.Config.SpecConfigNode" {}
+        class "Scorpio.Config.ConfigNode"       {}
+        class "Scorpio.Config.CharConfigNode"   {}
+        class "Scorpio.Config.SpecConfigNode"   {}
+        class "Scorpio.Config.WarModeConfigNode"{}
 
         ----------------------------------------------
         --            System Event Method           --
@@ -1735,28 +1743,31 @@ PLoop(function(_ENV)
         --                 Property                 --
         ----------------------------------------------
         --- Whether the module is enabled
-        property "_Enabled"     { type = Boolean, default = true, handler = function(self, val) if val then return tryEnable(self) else return disabling(self) end end }
+        property "_Enabled"         { type = Boolean, default = true, handler = function(self, val) if val then return tryEnable(self) else return disabling(self) end end }
 
         --- Whether the module is disabled by itself or it's parent
-        property "_Disabled"    { get = function (self) return _DisabledModule[self] or false end }
+        property "_Disabled"        { get = function (self) return _DisabledModule[self] or false end }
 
         --- Whether the module is already loaded with saved variables
-        property "_Loaded"      { get = function(self) return not _NotLoaded[self] end }
+        property "_Loaded"          { get = function(self) return not _NotLoaded[self] end }
 
         --- The addon of the module
-        property "_Addon"       { get = function(self) while self._Parent do self = self._Parent end return self end }
+        property "_Addon"           { get = function(self) while self._Parent do self = self._Parent end return self end }
 
         --- The localiaztion
-        property "_Locale"      { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
+        property "_Locale"          { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
 
         --- The saved variable config node, don't make it readonly, so module can have its own config node with its own saved variables
-        property "_Config"      { type = ConfigNode, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
+        property "_Config"          { set = false, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
 
         --- The saved variable per character config node
-        property "_CharConfig"  { type = ConfigNode, default = function(self) return self._Config.__Char end }
+        property "_CharConfig"      { set = false, default = function(self) return CharConfigNode(self._Config, "__char") end }
 
         --- The saved variable spec config node
-        property "_SpecConfig"  { type = SpecConfigNode, default = function(self) return self._Parent and self._Parent._SpecConfig or SpecConfigNode(self._CharConfig) end }
+        property "_SpecConfig"      { set = false, default = function(self) return SpecConfigNode(self._CharConfig, "__spec") end }
+
+        --- The saved variable war mode config node
+        property "_WarModeConfig"   { set = false, default = function(self) return WarModeConfigNode(self._SpecConfig, "__warmode") end }
 
         ----------------------------------------------
         --                  Dispose                 --
