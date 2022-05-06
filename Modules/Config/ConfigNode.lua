@@ -41,7 +41,7 @@ local function queueSpecConfigNode(node, container, name, prevContainer)
     if _PlayerSpec then return false end
 
     _SpecNodes                  = _SpecNodes or {}
-    _SpecNodes[#_CharNodes + 1] = node
+    _SpecNodes[#_SpecNodes + 1] = node
     node[1]                     = container
     node[2]                     = name
     node[3]                     = prevContainer
