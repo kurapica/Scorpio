@@ -1757,11 +1757,11 @@ PLoop(function(_ENV)
         --- The localiaztion
         property "_Locale"          { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
 
-        --- The saved variable config node, don't make it readonly, so module can have its own config node with its own saved variables
-        property "_Config"          { set = false, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
+        --- The saved variable config node, don't make it readonly, so sub-addon can have its own config node with its own saved variables
+        property "_Config"          { type = ConfigNode, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
 
         --- The saved variable per character config node
-        property "_CharConfig"      { set = false, default = function(self) return CharConfigNode(self._Config, "__char") end }
+        property "_CharConfig"      { type = CharConfigNode, default = function(self) return CharConfigNode(self._Config, "__char") end }
 
         --- The saved variable spec config node
         property "_SpecConfig"      { set = false, default = function(self) return SpecConfigNode(self._CharConfig, "__spec") end }
