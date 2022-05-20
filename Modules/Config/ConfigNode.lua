@@ -130,6 +130,7 @@ class "ConfigNode" (function(_ENV)
     ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
+    --- Sets the field with type and default value
     __Arguments__{ NEString, EnumType + StructType, Any/nil }:Throwable()
     function SetField(self, name, ftype, value)
         name                    = strlower(name)
@@ -153,11 +154,23 @@ class "ConfigNode" (function(_ENV)
                 throw( Struct.GetErrorMessage(msg, name) )
             end
 
-            fields[name].default= clone(ret)
+            fields[name].default= clone(ret, true)
         end
 
         if not _RawData[self] then return end -- not inited
         self:SetValue(name, nil, nil, true)
+    end
+
+    --- Gets the field type and default value
+    __Arguments__{ NEString }
+    function GetField(self, name)
+        name                    = strlower(name)
+
+        local fields            = _Fields[self]
+        local field             = fields and fields[name]
+        if not field then return end
+
+        return field.type, clone(field.default, true)
     end
 
     --- The set saved variables method, must be called in Addon or Module's OnLoad handler

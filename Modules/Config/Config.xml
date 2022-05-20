@@ -2,9 +2,6 @@
 	<!-- Config -->
 	<Script file="Config.lua"/>
 
-	<!-- Config Types -->
-	<Script file="ConfigType.lua"/>
-
 	<!-- Config Subject -->
 	<Script file="ConfigSubject.lua"/>
 
