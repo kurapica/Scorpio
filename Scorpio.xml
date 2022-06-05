@@ -69,5 +69,5 @@
     <Include file="Modules\Action\Action.xml"/>
 
     <!--Scorpio.Config -->
-    <Include file="Modules\Config\Config.xml"/>
+    <!-- Include file="Modules\Config\Config.xml"/ -->
 </Ui>
