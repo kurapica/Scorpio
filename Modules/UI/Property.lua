@@ -477,7 +477,7 @@ do
     --- the color of the font's text shadow
     UI.Property         {
         name            = "ShadowColor",
-        type            = Color,
+        type            = ColorType,
         require         = FONT_TYPES,
         default         = Color(0, 0, 0, 0),
         get             = function(self) return Color(self:GetShadowColor()) end,
@@ -507,7 +507,7 @@ do
     --- the fontstring's default text color
     UI.Property         {
         name            = "TextColor",
-        type            = Color,
+        type            = ColorType,
         require         = FONT_TYPES,
         default         = Color(1, 1, 1),
         get             = function(self) return Color(self:GetTextColor()) end,

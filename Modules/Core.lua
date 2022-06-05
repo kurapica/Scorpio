@@ -1097,6 +1097,9 @@ PLoop(function(_ENV)
 
             for _, addon in pairs(_RootAddon) do
                 enabling(addon)
+            end
+
+            for _, addon in pairs(_RootAddon) do
                 specChanged(addon, _PlayerSpec)
                 warmodeChanged(addon, _PlayerWarMode)
             end
@@ -1115,6 +1118,8 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_SPECIALIZATION_CHANGED(unit)
+            if not _Logined then return end
+
             if not unit or UnitIsUnit(unit, "player") then
                 local spec      = GetSpecialization() or 1
                 if _PlayerSpec ~= spec then
@@ -1138,6 +1143,8 @@ PLoop(function(_ENV)
         end
 
         function ScorpioManager.PLAYER_FLAGS_CHANGED()
+            if not _Logined then return end
+
             local mode          = IsWarModeDesired() and WarMode.PVP or WarMode.PVE
             if _PlayerWarMode  ~= mode then
                 _PlayerWarMode  = mode
@@ -1172,6 +1179,79 @@ PLoop(function(_ENV)
                 r_InLoadingScreen   = true
             end
         end)
+
+        ----------------------------------------------
+        --                  Locale                  --
+        ----------------------------------------------
+        __Sealed__()
+        class "Localization" (function(_ENV)
+            _Localizations = {}
+
+            enum "Locale" {
+                "deDE",             -- German
+                --"enGB",             -- British English
+                "enUS",             -- American English
+                "esES",             -- Spanish (European)
+                "esMX",             -- Spanish (Latin American)
+                "itIT",             -- Italian (Italy)
+                "frFR",             -- French
+                "koKR",             -- Korean
+                "ptBR",             -- Portuguese (Brazil)
+                "ruRU",             -- Russian
+                "zhCN",             -- Chinese (simplified; mainland China)
+                "zhTW",             -- Chinese (traditional; Taiwan)
+            }
+
+            ----------------------------------------------
+            ----------------- Constructor ----------------
+            ----------------------------------------------
+            __Arguments__{ NEString }
+            function Localization(self, name)
+                _Localizations[name] = self
+            end
+
+            ----------------------------------------------
+            ----------------- Meta-Method ----------------
+            ----------------------------------------------
+            __Arguments__{ NEString }
+            function __exist(_, name)
+                return _Localizations[name]
+            end
+
+            __Arguments__{ String }
+            function __index(self, key)
+                rawset(self, key, key)
+                return key
+            end
+
+            __Arguments__{ String + Number, String }
+            function __newindex(self, key, value)
+                rawset(self, key, value)
+            end
+
+            __Arguments__{ String, Boolean }
+            function __newindex(self, key, value)
+                rawset(self, key, key)
+            end
+
+            __Arguments__ { Variable("language", Locale), Variable("asDefault", Boolean, true) }
+            function __call(self, language, asDefault)
+                if not asDefault then
+                    local locale = GetLocale()
+                    if locale == "enGB" then locale = "enUS" end
+                    if locale ~= language then return end
+                end
+                return self
+            end
+        end)
+
+        ----------------------------------------------
+        --  SavedVariable Config Node Declaration   --
+        ----------------------------------------------
+        class "Scorpio.Config.ConfigNode"       {}
+        class "Scorpio.Config.CharConfigNode"   {}
+        class "Scorpio.Config.SpecConfigNode"   {}
+        class "Scorpio.Config.WarModeConfigNode"{}
 
         ----------------------------------------------
         --            System Event Method           --
@@ -1663,16 +1743,31 @@ PLoop(function(_ENV)
         --                 Property                 --
         ----------------------------------------------
         --- Whether the module is enabled
-        property "_Enabled"     { type = Boolean, default = true, handler = function(self, val) if val then return tryEnable(self) else return disabling(self) end end }
+        property "_Enabled"         { type = Boolean, default = true, handler = function(self, val) if val then return tryEnable(self) else return disabling(self) end end }
 
         --- Whether the module is disabled by itself or it's parent
-        property "_Disabled"    { get = function (self) return _DisabledModule[self] or false end }
+        property "_Disabled"        { get = function (self) return _DisabledModule[self] or false end }
 
         --- Whether the module is already loaded with saved variables
-        property "_Loaded"      { get = function(self) return not _NotLoaded[self] end }
+        property "_Loaded"          { get = function(self) return not _NotLoaded[self] end }
 
         --- The addon of the module
-        property "_Addon"       { get = function(self) while self._Parent do self = self._Parent end return self end }
+        property "_Addon"           { get = function(self) while self._Parent do self = self._Parent end return self end }
+
+        --- The localiaztion
+        property "_Locale"          { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
+
+        --- The saved variable config node, don't make it readonly, so sub-addon can have its own config node with its own saved variables
+        property "_Config"          { type = ConfigNode, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
+
+        --- The saved variable per character config node
+        property "_CharConfig"      { type = CharConfigNode, default = function(self) return CharConfigNode(self._Config, "__char") end }
+
+        --- The saved variable spec config node
+        property "_SpecConfig"      { set = false, default = function(self) return SpecConfigNode(self._CharConfig, "__spec") end }
+
+        --- The saved variable war mode config node
+        property "_WarModeConfig"   { set = false, default = function(self) return WarModeConfigNode(self._SpecConfig, "__warmode") end }
 
         ----------------------------------------------
         --                  Dispose                 --
@@ -2057,7 +2152,7 @@ PLoop(function(_ENV)
             -- @param   stack                       the stack level
             -- @return  definition                  the new definition
             function InitDefinition(self, target, targettype, definition, owner, name, stack)
-                if targettype == AttributeTargets.Method and (Class.Validate(owner) or Inteface.Validate(owner))  then
+                if targettype == AttributeTargets.Method and (Class.Validate(owner) or Interface.Validate(owner))  then
                     return registerSingleAsync(definition, self[1], owner, name)
                 else
                     return registerSingleAsync(definition, self[1])
@@ -2158,75 +2253,5 @@ PLoop(function(_ENV)
                 Delay(DIAGNOSE_DELAY)
             end
         end)
-
-        ----------------------------------------------
-        --                  Locale                  --
-        ----------------------------------------------
-        __Sealed__()
-        class "Localization" (function(_ENV)
-            _Localizations = {}
-
-            enum "Locale" {
-                "deDE",             -- German
-                --"enGB",             -- British English
-                "enUS",             -- American English
-                "esES",             -- Spanish (European)
-                "esMX",             -- Spanish (Latin American)
-                "itIT",             -- Italian (Italy)
-                "frFR",             -- French
-                "koKR",             -- Korean
-                "ptBR",             -- Portuguese (Brazil)
-                "ruRU",             -- Russian
-                "zhCN",             -- Chinese (simplified; mainland China)
-                "zhTW",             -- Chinese (traditional; Taiwan)
-            }
-
-            ----------------------------------------------
-            ----------------- Constructor ----------------
-            ----------------------------------------------
-            __Arguments__{ NEString }
-            function Localization(self, name)
-                _Localizations[name] = self
-            end
-
-            ----------------------------------------------
-            ----------------- Meta-Method ----------------
-            ----------------------------------------------
-            __Arguments__{ NEString }
-            function __exist(_, name)
-                return _Localizations[name]
-            end
-
-            __Arguments__{ String }
-            function __index(self, key)
-                rawset(self, key, key)
-                return key
-            end
-
-            __Arguments__{ String + Number, String }
-            function __newindex(self, key, value)
-                rawset(self, key, value)
-            end
-
-            __Arguments__{ String, Boolean }
-            function __newindex(self, key, value)
-                rawset(self, key, key)
-            end
-
-            __Arguments__ { Variable("language", Locale), Variable("asDefault", Boolean, true) }
-            function __call(self, language, asDefault)
-                if not asDefault then
-                    local locale = GetLocale()
-                    if locale == "enGB" then locale = "enUS" end
-                    if locale ~= language then return end
-                end
-                return self
-            end
-        end)
-
-        ------------------------------------------------------------
-        --               [Property]Scorpio._Locale                --
-        ------------------------------------------------------------
-        property "_Locale" { set = false, default = function(self) return Localization(self._Addon._Name) end }
     end)
 end)
