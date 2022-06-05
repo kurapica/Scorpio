@@ -1,7 +1,7 @@
-## Interface: 90200
-## Interface-Retail: 90200
-## Interface-Classic: 11402
-## Interface-BCC: 20503
+## Interface: 90205
+## Interface-Retail: 90205
+## Interface-Classic: 11403
+## Interface-BCC: 20504
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: @project-version@

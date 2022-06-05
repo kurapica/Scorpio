@@ -966,7 +966,8 @@ do
         ]=]
 
         GetAction               = [=[
-            return self:GetAttribute("actiontype"), self:GetAttribute(_ActionTargetMap[name]), _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
+            local name          = self:GetAttribute("actiontype")
+            return name, self:GetAttribute(_ActionTargetMap[name]), _ActionTargetDetail[name] and self:GetAttribute(_ActionTargetDetail[name])
         ]=]
 
         SetAction               = [=[
