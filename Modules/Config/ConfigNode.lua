@@ -15,11 +15,16 @@ Scorpio            "Scorpio.Config.ConfigNode"       "1.0.0"
 local _PlayerLogined, _PlayerSpec, _PlayerWarMode
 local _CharNodes, _SpecNodes, _WMNodes
 
+local isEnumType                = Enum.Validate
+local isStructType              = Struct.Validate
+local isEnumValue               = Enum.ValidateValue
+local isStrutValue              = Struct.ValidateValue
+
 local function validateValue(type, value)
-    if Enum.Validate(type) then
-        return Enum.ValidateValue(type, value)
-    elseif Struct.Validate(type) then
-        return Struct.ValidateValue(type, value)
+    if isEnumType(type) then
+        return isEnumValue(type, value)
+    elseif isStructType(type) then
+        return isStrutValue(type, value)
     else
         return nil, "The %s's type not supported"
     end
