@@ -58,6 +58,13 @@ local function queueWarModeConfigNode(node, container, name, prevContainer)
     return true
 end
 
+local function processNodes(nodes)
+    for node, config in pairs(nodes) do
+        local ok, err           = pcall(node.InitConfigNode, node, unpack(config))
+        if not ok then errorhandler(err) end
+    end
+end
+
 ------------------------------------------------------
 -- Addon Event Handler
 ------------------------------------------------------
@@ -66,41 +73,19 @@ function OnEnable()
     OnEnable                    = nil
 
     if _CharNodes then
-        for node, config in pairs(_CharNodes) do
-            local ok, err       = pcall(node.InitConfigNode, node, unpack(config))
-            if not ok then
-                errorhandler(err)
-            end
-        end
-
+        processNodes(_CharNodes)
         _CharNodes              = nil
     end
 end
 
 function OnSpecChanged(self, spec)
     _PlayerSpec                 = spec
-
-    if _SpecNodes then
-        for node, config in pairs(_SpecNodes) do
-            local ok, err       = pcall(node.InitConfigNode, node, unpack(config))
-            if not ok then
-                errorhandler(err)
-            end
-        end
-    end
+    return _SpecNodes and processNodes(_SpecNodes)
 end
 
 function OnWarModeChanged(self, mode)
     _PlayerWarMode              = mode
-
-    if _WMNodes then
-        for node, config in pairs(_WMNodes) do
-            local ok, err       = pcall(node.InitConfigNode, node, unpack(config))
-            if not ok then
-                errorhandler(err)
-            end
-        end
-    end
+    return _WMNodes and processNodes(_WMNodes)
 end
 
 ------------------------------------------------------
