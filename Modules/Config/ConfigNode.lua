@@ -527,6 +527,14 @@ class "__Config__" (function(_ENV)
         self.Default            = value
     end
 
+    __Arguments__{ ConfigNode, NEString, String }
+    function __ctor(self, node, name, value)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = String
+        self.Default            = value
+    end
+
     __Arguments__{ ConfigNode, EnumType + StructType, Any/nil }
     function __ctor(self, node, ftype, value)
         self.Node               = node
