@@ -937,6 +937,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     __Final__() __Arguments__{ UI }
     function __new(cls, ui)
         local self              = { [0] = ui[0] }
+        _NameMap[ui[0]]         = ui.GetName and ui:GetName()
         UI.RegisterProxyUI(self)
         UI.RegisterRawUI(ui)
         return self
