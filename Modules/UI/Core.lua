@@ -823,7 +823,11 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
             end
         end
 
-        if parent == nil then return pcall(setParent, self, nil) end
+        if parent == nil then
+            pcall(setParent, self, nil)
+            OnParentChanged(self, parent, oparent)
+            return
+        end
 
         local pui               = parent[0]
         local children          = _ChildMap[pui]

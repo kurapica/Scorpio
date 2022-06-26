@@ -1249,6 +1249,7 @@ PLoop(function(_ENV)
         --  SavedVariable Config Node Declaration   --
         ----------------------------------------------
         class "Scorpio.Config.ConfigNode"       {}
+        class "Scorpio.Config.AddonConfigNode"  {}
         class "Scorpio.Config.CharConfigNode"   {}
         class "Scorpio.Config.SpecConfigNode"   {}
         class "Scorpio.Config.WarModeConfigNode"{}
@@ -1758,7 +1759,7 @@ PLoop(function(_ENV)
         property "_Locale"          { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
 
         --- The saved variable config node, don't make it readonly, so sub-addon can have its own config node with its own saved variables
-        property "_Config"          { type = ConfigNode, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
+        property "_Config"          { type = AddonConfigNode, default = function(self) return self._Parent and self._Parent._Config or AddonConfigNode(self) end }
 
         --- The saved variable per character config node
         property "_CharConfig"      { type = CharConfigNode, default = function(self) return CharConfigNode(self._Config, "__char") end }

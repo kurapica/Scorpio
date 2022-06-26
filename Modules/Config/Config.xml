@@ -5,6 +5,12 @@
 	<!-- Config Subject -->
 	<Script file="ConfigSubject.lua"/>
 
+	<!-- Config Data Type -->
+	<Script file="ConfigType.lua"/>
+
+	<!-- Config UI -->
+	<Script file="ConfigUI.lua"/>
+
 	<!-- Config Node -->
 	<Script file="ConfigNode.lua"/>
 </Ui>

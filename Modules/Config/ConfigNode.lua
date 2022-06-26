@@ -89,10 +89,10 @@ function OnWarModeChanged(self, mode)
 end
 
 ------------------------------------------------------
---- The Addon SavedVariables configuration node
+--- The SavedVariables configuration node
 ------------------------------------------------------
 __Sealed__()
-class "ConfigNode" (function(_ENV)
+class "ConfigNode"              (function(_ENV)
 
     local CHILD_NODE            = "__nodes"
 
@@ -345,10 +345,46 @@ class "ConfigNode" (function(_ENV)
 end)
 
 ------------------------------------------------------
---- THe character configuration node
+--- The addon configuration node
 ------------------------------------------------------
 __Sealed__()
-class "CharConfigNode" (function(_ENV)
+class "AddonConfigNode"         (function(_ENV)
+    inherit "ConfigNode"
+
+    local _AddonConfigMap       = {}
+    local _ConfigAddonMap       = {}
+    local _ConfigPanelMap       = {}
+
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- The addon of the config node
+    property "_Addon"           { get = function(self) return _ConfigAddonMap[self] end }
+
+    --- The confg ui panel
+    property "_Panel"           { get = function(self) return _ConfigPanelMap[self] end }
+
+    ----------------------------------------------
+    --               Constructor                --
+    ----------------------------------------------
+    __Arguments__{ Scorpio }
+    function __ctor(self, addon)
+        _AddonConfigMap[addon]  = self
+        _ConfigAddonMap[self]   = addon
+        _ConfigPanelMap[self]   = AddonConfigPanel("Scorpio_Config_Node_Panel_" .. addon._Name, InterfaceOptionsFrame, self)
+    end
+
+    __Arguments__{ Scorpio }
+    function __exist(_, addon)
+        return _AddonConfigMap[addon]
+    end
+end)
+
+------------------------------------------------------
+--- The character configuration node
+------------------------------------------------------
+__Sealed__()
+class "CharConfigNode"          (function(_ENV)
     inherit "ConfigNode"
 
     ----------------------------------------------
@@ -373,7 +409,7 @@ end)
 --- The specialization configuration node
 ------------------------------------------------------
 __Sealed__()
-class "SpecConfigNode" (function(_ENV)
+class "SpecConfigNode"          (function(_ENV)
     inherit "ConfigNode"
 
     ----------------------------------------------
@@ -394,8 +430,11 @@ class "SpecConfigNode" (function(_ENV)
     end
 end)
 
+------------------------------------------------------
+--- The warmode configuration node
+------------------------------------------------------
 __Sealed__()
-class "WarModeConfigNode" (function(_ENV)
+class "WarModeConfigNode"       (function(_ENV)
     inherit "ConfigNode"
 
     ----------------------------------------------
