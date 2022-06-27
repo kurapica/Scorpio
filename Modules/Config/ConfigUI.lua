@@ -82,6 +82,14 @@ class "AddonConfigPanel"        (function(_ENV)
     ----------------------------------------------
     --- The panel name
     property "name"             { get = function(self) return self.ConfigNode._Addon._Name end }
+
+    ----------------------------------------------
+    --               Constructor                --
+    ----------------------------------------------
+    __Arguments__{ NEString, UI, AddonConfigNode }
+    function __new(_, name, parent, node)
+        return super.__new(_, name, parent, node)
+    end
 end)
 
 ------------------------------------------------------
