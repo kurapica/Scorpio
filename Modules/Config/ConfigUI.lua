@@ -13,19 +13,24 @@ Scorpio            "Scorpio.Config.UI"               "1.0.0"
 -- Config UI Panel
 ------------------------------------------------------
 __Sealed__()
-class "AddonConfigPanel"        (function(_ENV)
+class "ConfigPanel"             (function(_ENV)
     inherit "Frame"
 
-    local _AddonConfigNode      = {}
+    local _ConfigNode           = {}
 
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
     --- The panel name
-    property "name"             { get = function(self) return _AddonConfigNode[self]._Addon._Name end }
+    __Abstract__()
+    property "name"             { get = Toolset.fakefunc }
 
     --- The parent panel name
-    property "parent"           { get = function() end }
+    __Abstract__()
+    property "parent"           { get = Toolset.fakefunc }
+
+    --- The config node
+    property "ConfigNode"       { get = function(self) return _ConfigNode[self] end }
 
     ----------------------------------------------
     --                  Method                  --
@@ -60,12 +65,23 @@ class "AddonConfigPanel"        (function(_ENV)
         return InterfaceOptions_AddCategory(self)
     end
 
-    __Arguments__{ NEString, UI, AddonConfigNode }
+    __Arguments__{ NEString, UI, ConfigNode }
     function __new(_, name, parent, node)
         local frame             = CreateFrame("Frame", nil, parent)
-        _AddonConfigNode[frame] = node
+        _ConfigNode[frame]      = node
         return frame
     end
+end)
+
+__Sealed__()
+class "AddonConfigPanel"        (function(_ENV)
+    inherit "ConfigPanel"
+
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- The panel name
+    property "name"             { get = function(self) return self.ConfigNode._Addon._Name end }
 end)
 
 ------------------------------------------------------
