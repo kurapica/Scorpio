@@ -32,7 +32,7 @@ class "ConfigSubject"           (function(_ENV)
     --- Provides the observer with new data
     function OnNext(self, value)
         self[VALUE_FIELD]       = value
-        onNext(self, value)
+        return onNext(self, value)
     end
 
     --- Gets the current value
@@ -42,7 +42,7 @@ class "ConfigSubject"           (function(_ENV)
 
     --- Sets the value to the config node field
     function SetValue(self, value)
-        self[NODE_FIELD]:SetValue(self[NAME_FIELD], value, 2)
+        return self[NODE_FIELD]:SetValue(self[NAME_FIELD], value, 2)
     end
 
     -----------------------------------------------------------------------
