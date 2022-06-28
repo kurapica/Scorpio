@@ -21,14 +21,6 @@ class "ConfigPanel"             (function(_ENV)
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
-    --- The panel name
-    __Abstract__()
-    property "name"             { get = Toolset.fakefunc }
-
-    --- The parent panel name
-    __Abstract__()
-    property "parent"           { get = Toolset.fakefunc }
-
     --- The config node
     property "ConfigNode"       { get = function(self) return _ConfigNode[self] end }
 
@@ -65,10 +57,12 @@ class "ConfigPanel"             (function(_ENV)
         return InterfaceOptions_AddCategory(self)
     end
 
-    __Arguments__{ NEString, UI, ConfigNode }
-    function __new(_, name, parent, node)
+    __Arguments__{ NEString, UI, ConfigNode, NEString/nil, NEString/nil }
+    function __new(_, name, parent, node, cateName, cateParent)
         local frame             = CreateFrame("Frame", nil, parent)
         _ConfigNode[frame]      = node
+        frame.name              = cateName
+        frame.parent            = cateParent
         return frame
     end
 end)
