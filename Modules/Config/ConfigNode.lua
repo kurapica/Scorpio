@@ -353,16 +353,12 @@ class "AddonConfigNode"         (function(_ENV)
 
     local _AddonConfigMap       = {}
     local _ConfigAddonMap       = {}
-    local _ConfigPanelMap       = {}
 
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
     --- The addon of the config node
     property "_Addon"           { get = function(self) return _ConfigAddonMap[self] end }
-
-    --- The confg ui panel
-    property "_Panel"           { get = function(self) return _ConfigPanelMap[self] end }
 
     ----------------------------------------------
     --               Constructor                --
@@ -371,7 +367,6 @@ class "AddonConfigNode"         (function(_ENV)
     function __ctor(self, addon)
         _AddonConfigMap[addon]  = self
         _ConfigAddonMap[self]   = addon
-        _ConfigPanelMap[self]   = AddonConfigPanel("Scorpio_Config_Node_Panel_" .. addon._Name, InterfaceOptionsFrame, self)
     end
 
     __Arguments__{ Scorpio }

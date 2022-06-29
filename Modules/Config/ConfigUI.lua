@@ -9,14 +9,16 @@
 Scorpio            "Scorpio.Config.UI"               "1.0.0"
 --========================================================--
 
+local _PanelCount               = 0
+local _PanelMap                 = {}
+local _ConfigNode               = {}
+
 ------------------------------------------------------
 -- Config UI Panel
 ------------------------------------------------------
 __Sealed__()
 class "ConfigPanel"             (function(_ENV)
     inherit "Frame"
-
-    local _ConfigNode           = {}
 
     ----------------------------------------------
     --                 Property                 --
@@ -59,46 +61,53 @@ class "ConfigPanel"             (function(_ENV)
 
     __Arguments__{ NEString, UI, ConfigNode, NEString/nil, NEString/nil }
     function __new(_, name, parent, node, cateName, cateParent)
+        if _PanelMap[node] then
+            throw("The node already has a config panel binded")
+        end
+
         local frame             = CreateFrame("Frame", nil, parent)
         _ConfigNode[frame]      = node
+        _PanelMap[node]         = frame
         frame.name              = cateName
         frame.parent            = cateParent
         return frame
     end
 end)
 
-__Sealed__()
-class "AddonConfigPanel"        (function(_ENV)
-    inherit "ConfigPanel"
-
-    ----------------------------------------------
-    --                 Property                 --
-    ----------------------------------------------
-    --- The panel name
-    property "name"             { get = function(self) return self.ConfigNode._Addon._Name end }
-
-    ----------------------------------------------
-    --               Constructor                --
-    ----------------------------------------------
-    __Arguments__{ NEString, UI, AddonConfigNode }
-    function __new(_, name, parent, node)
-        return super.__new(_, name, parent, node)
-    end
-end)
-
 ------------------------------------------------------
 -- Scorpio Extension
 ------------------------------------------------------
---- Show the config UI panel for the addon
-function Scorpio:ShowConfigUI()
-    InterfaceOptionsFrame_OpenToCategory(self._Name)
-end
+class "Scorpio" (function(_ENV)
+    --- Bind the addon config to a category panel
+    __Arguments__{ AddonConfigNode, NEString/nil }
+    function BindCategoryPanel(self, node, name)
+        name                    = name or node._Addon._Name
+        _PanelCount             = _PanelCount + 1
+        local panel             = AddonConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node,)
+    end
+
+    --- Bind the config to a sub category panel
+    __Arguments__{ ConfigNode, NEString }
+    function BindCategoryPanel(self, node, name)
+
+    end
+
+    --- Show the config UI panel for the addon
+    __Async__()
+    function ShowConfigUI(self)
+        if InCombatLockdown() then return end
+
+        InterfaceOptionsFrame_OpenToCategory(self._Name)
+        Next() -- Make sure open to the category
+        InterfaceOptionsFrame_OpenToCategory(self._Name)
+    end
+end)
 
 ------------------------------------------------------
 -- Config Style
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
-    [AddonConfigPanel]          = {
+    [ConfigPanel]               = {
         ScrollFrame             = {
             location            = {
                 Anchor("TOPLEFT", 0, -8),
