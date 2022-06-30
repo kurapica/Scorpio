@@ -107,6 +107,8 @@ class "ConfigNode"              (function(_ENV)
     local strlower              = string.lower
     local strtrim               = Toolset.trim
     local clone                 = Toolset.clone
+    local tinsert               = table.insert
+    local yield                 = coroutine.yield
 
     ----------------------------------------------
     --                 Property                 --
@@ -136,6 +138,7 @@ class "ConfigNode"              (function(_ENV)
         end
 
         fields[name]            = { type = ftype }
+        tinsert(fields, name)
 
         if value ~= nil then
             local ret, msg      = validateValue(ftype, value)
@@ -154,13 +157,35 @@ class "ConfigNode"              (function(_ENV)
     --- Gets the field type and default value
     __Arguments__{ NEString }
     function GetField(self, name)
-        name                    = strlower(name)
-
         local fields            = _Fields[self]
-        local field             = fields and fields[name]
+        local field             = fields and fields[strlower(name)]
         if not field then return end
 
         return field.type, clone(field.default, true)
+    end
+
+    --- Gets the fields
+    __Iterator__()
+    function GetFields(self)
+        local fields            = _Fields[self]
+        if fields then
+            local yield         = yield
+            for _, name in ipairs(fields) do
+                local field     = fields[name]
+                yield(name, field.type, clone(field.default, true))
+            end
+        end
+    end
+
+    --- Gets the sub nodes
+    __Iterator__()
+    function GetSubNodes(self)
+        local subNodes          = _SubNodes[self]
+        if subNodes then
+            for _, name in ipairs(subNodes) do
+                yield(name, subNodes[name])
+            end
+        end
     end
 
     --- The set saved variables method, must be called in Addon or Module's OnLoad handler
@@ -270,20 +295,22 @@ class "ConfigNode"              (function(_ENV)
         container[name]         = rawdata
 
         -- Init the raw data with field settings
-        if _Fields[self] then
-            for name, field in pairs(_Fields[self]) do
-                self:SetValue(name, prevdata and prevdata[name], nil, true)
+        local fields            = _Fields[self]
+        if fields then
+            for _, fldname in ipairs(fields) do
+                self:SetValue(fldname, prevdata and prevdata[fldname], nil, true)
             end
         end
 
         -- Init child nodes
-        if _SubNodes[self] then
+        local subNodes          = _SubNodes[self]
+        if subNodes then
             local childData     = {}
             rawdata[CHILD_NODE] = childData
             prevdata            = prevdata and prevdata[CHILD_NODE]
 
-            for k, node in pairs(_SubNodes[self]) do
-                node:InitConfigNode(childData, k, prevdata)
+            for _, name in ipairs(subNodes) do
+                subNodes[name]:InitConfigNode(childData, k, prevdata)
             end
         end
     end
@@ -292,6 +319,8 @@ class "ConfigNode"              (function(_ENV)
     --               Meta-method                --
     ----------------------------------------------
     function __index(self, name)
+        if type(name) ~= "string" then return end
+
         -- Keep use lower case for field name and sub node, so case insensitive
         name                    = strlower(name)
 
@@ -334,6 +363,7 @@ class "ConfigNode"              (function(_ENV)
             _SubNodes[node]     = subNodes
         end
         subNodes[name]          = self
+        tinsert(subNodes, name)
         _ParentNode[self]       = node
     end
 

@@ -10,6 +10,7 @@ Scorpio            "Scorpio.Config.UI"               "1.0.0"
 --========================================================--
 
 local _PanelCount               = 0
+local _AddonMap                 = {}
 local _PanelMap                 = {}
 local _ConfigNode               = {}
 
@@ -19,12 +20,6 @@ local _ConfigNode               = {}
 __Sealed__()
 class "ConfigPanel"             (function(_ENV)
     inherit "Frame"
-
-    ----------------------------------------------
-    --                 Property                 --
-    ----------------------------------------------
-    --- The config node
-    property "ConfigNode"       { get = function(self) return _ConfigNode[self] end }
 
     ----------------------------------------------
     --                  Method                  --
@@ -46,7 +41,8 @@ class "ConfigPanel"             (function(_ENV)
 
     --- This method will run when the Interface Options frame calls its OnShow function and after defaults
     function refresh(self)
-        print("refresh")
+        local node              = _ConfigNode[self]
+
     end
 
     ----------------------------------------------
@@ -59,13 +55,14 @@ class "ConfigPanel"             (function(_ENV)
         return InterfaceOptions_AddCategory(self)
     end
 
-    __Arguments__{ NEString, UI, ConfigNode, NEString/nil, NEString/nil }
-    function __new(_, name, parent, node, cateName, cateParent)
+    __Arguments__{ NEString, UI, Scorpio, ConfigNode, NEString/nil, NEString/nil }
+    function __new(_, name, parent, addon, node, cateName, cateParent)
         if _PanelMap[node] then
             throw("The node already has a config panel binded")
         end
 
         local frame             = CreateFrame("Frame", nil, parent)
+        _AddonMap[frame]        = addon
         _ConfigNode[frame]      = node
         _PanelMap[node]         = frame
         frame.name              = cateName
@@ -78,18 +75,23 @@ end)
 -- Scorpio Extension
 ------------------------------------------------------
 class "Scorpio" (function(_ENV)
-    --- Bind the addon config to a category panel
-    __Arguments__{ AddonConfigNode, NEString/nil }
-    function BindCategoryPanel(self, node, name)
-        name                    = name or node._Addon._Name
+    --- Start using the category panel for the adon
+    function UseCategoryPanel(self)
         _PanelCount             = _PanelCount + 1
-        local panel             = AddonConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node,)
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, self._Config, self._Addon._Name)
+        return self
     end
 
     --- Bind the config to a sub category panel
-    __Arguments__{ ConfigNode, NEString }
-    function BindCategoryPanel(self, node, name)
+    __Arguments__{ NEString, ConfigNode }:Throwable()
+    function UseSubCategoryPanel(self, name, node)
+        if not _PanelMap[self._Addon._Config] then
+            throw("Usage: Scorpio:UseSubCategoryPanel(name, configNode) - The Scorpio:UseCategoryPanel() must be called first")
+        end
 
+        _PanelCount             = _PanelCount + 1
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, node, name, self._Addon._Name)
+        return self
     end
 
     --- Show the config UI panel for the addon

@@ -713,6 +713,9 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     -- Fired when child is changed
     event "OnChildChanged"
 
+    -- Fired when the ui object's style is appled
+    event "OnStyleApplied"
+
     ----------------------------------------------
     --              Static Methods              --
     ----------------------------------------------
@@ -1507,6 +1510,7 @@ end
 --               Skin System                --
 ----------------------------------------------
 local SkinSettings              = struct { [ - UIObject ] = Table }
+local OnStyleAppliedEvent       = Class.GetFeature(UIObject, "OnStyleApplied")
 
 __Arguments__{ NEString, SkinSettings/nil }:Throwable()
 function Style.RegisterSkin(name, settings)
@@ -1663,6 +1667,9 @@ function applyStylesOnFrame(frame, styles)
 
     _Recycle(wipe(priority))
     _Recycle(wipe(styles))
+
+    -- Notify the style is applied
+    OnStyleAppliedEvent(frame)
 end
 
 local function clearStylesOnFrame(frame, styles)
