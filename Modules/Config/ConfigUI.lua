@@ -119,3 +119,45 @@ Style.UpdateSkin("Default",     {
         }
     }
 })
+
+
+require "PLoop" (function(_ENV)
+
+    function FillPolygon(points)
+        -- Calc the center point
+        local n = #points
+        if n < 3 then return end
+        local cx, cy = 0, 0
+
+        for i = 1, n do
+            local p = points[i]
+            cx = cx + p.x
+            cy = cy + p.y
+        end
+        cx = cx / n
+        cy = cy / n
+
+        -- Calc the cover areas
+        local cpoints = {}
+        for i = 1, n do
+            local p = points[i]
+            local x = p.x - cx
+            local y = p.y - cy
+            cpoints[i] = { x = x, y = y, rad = x == 0 and (y >= 0 and 90 or 270) or ((x < 0 and 180 or 360) + math.atan(y/x) * 180 / math.pi) % 360 }
+        end
+        table.sort(cpoints, function(a,b) return a.rad < b.rad end)
+
+        -- Remove covered points
+
+
+        print(Toolset.tostring(cpoints))
+    end
+
+    FillPolygon{
+        { x = 30, y = 30 },
+        { x = 36, y = 40 },
+        { x = 40, y = 50 },
+        { x = 30, y = 40 },
+        { x = 20, y = 35 },
+    }
+end)
