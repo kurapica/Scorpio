@@ -121,43 +121,61 @@ Style.UpdateSkin("Default",     {
 })
 
 
-require "PLoop" (function(_ENV)
 
-    function FillPolygon(points)
-        -- Calc the center point
-        local n = #points
-        if n < 3 then return end
-        local cx, cy = 0, 0
+function FillPolygon(points)
+    -- Calc the center point
+    local n = #points
+    if n < 3 then return end
+    local cx, cy = 0, 0
 
-        for i = 1, n do
-            local p = points[i]
-            cx = cx + p.x
-            cy = cy + p.y
-        end
-        cx = cx / n
-        cy = cy / n
+    for i = 1, n do
+        local p = points[i]
+        cx = cx + p.x
+        cy = cy + p.y
+    end
+    cx = cx / n
+    cy = cy / n
 
-        -- Calc the cover areas
-        local cpoints = {}
-        for i = 1, n do
-            local p = points[i]
-            local x = p.x - cx
-            local y = p.y - cy
-            cpoints[i] = { x = x, y = y, rad = x == 0 and (y >= 0 and 90 or 270) or ((x < 0 and 180 or 360) + math.atan(y/x) * 180 / math.pi) % 360 }
-        end
-        table.sort(cpoints, function(a,b) return a.rad < b.rad end)
+    -- Calc the cover areas
+    local cpoints = {}
+    for i = 1, n do
+        local p = points[i]
+        local x = p.x - cx
+        local y = p.y - cy
+        cpoints[i] = { x = p.x, y = p.y, rad = x == 0 and (y >= 0 and 90 or 270) or ((x < 0 and 180 or 360) + math.atan(y/x) * 180 / math.pi) % 360 }
+    end
+    table.sort(cpoints, function(a,b) return a.rad < b.rad end)
 
-        -- Remove covered points
+    -- Draw triangle for each angle
+    for i = 1, n - 1 do
+        local ax, ay, bx, by = cpoints[i].x, cpoints[i].y, cpoints[i + 1].x, cpoints[i + 1].y
+        local lx, ly = math.min(cx, ax, bx), math.min(cy, ay, by)
+        local ux, uy = math.max(cx, ax, bx), math.max(cy, ay, by)
+        local ULx, ULy = (ax - lx)/(ux - lx), (ay - ly) / (uy - ly)
+        local URx, URy = (bx - lx)/(ux - lx), (by - ly) / (uy - ly)
+        local LLx, LLy = (cx - lx)/(ux - lx), (cy - ly) / (uy - ly)
 
+        local text = Texture("PolygonTexture" .. i, UIParent)
+        text:SetTexture([[Interface\Buttons\WHITE8x8]])
+        text:SetVertexColor(math.random(100)/100, math.random(100)/100, math.random(100)/100)
 
-        print(Toolset.tostring(cpoints))
+        text:ClearAllPoints()
+        text:SetPoint("BOTTOMLEFT", lx, ly)
+        text:SetPoint("TOPRIGHT", urx uy)
+        text:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LLx, LLy)
+        text:Show()
     end
 
-    FillPolygon{
-        { x = 30, y = 30 },
-        { x = 36, y = 40 },
-        { x = 40, y = 50 },
-        { x = 30, y = 40 },
-        { x = 20, y = 35 },
-    }
-end)
+    while UIParent:GetChild("PolygonTexture" .. n) do
+        UIParent:GetChild("PolygonTexture" .. n):Hide()
+        n = n + 1
+    end
+end
+
+FillPolygon{
+    { x = 30, y = 30 },
+    { x = 36, y = 40 },
+    { x = 40, y = 50 },
+    { x = 30, y = 40 },
+    { x = 20, y = 35 },
+}

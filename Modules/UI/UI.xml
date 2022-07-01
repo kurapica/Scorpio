@@ -17,4 +17,7 @@
 
     <!-- UI Property Observable -->
     <Script file="Reactive.lua"/>
+
+    <!-- UI Layout Manager -->
+    <Script file="LayoutManager.lua"/>
 </Ui>

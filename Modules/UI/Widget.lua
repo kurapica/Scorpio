@@ -74,7 +74,7 @@ do
 end
 
 --- LayoutFrame is the basic type for anything that can occupy an area of the screen
-__Sealed__()__Abstract__()class"LayoutFrame"(function(_ENV)
+__Sealed__()__Abstract__() class"LayoutFrame"(function(_ENV)
     inherit "UIObject"
 
     local _GetPoint             = getRealMethodCache("GetPoint")
