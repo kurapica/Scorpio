@@ -56,9 +56,6 @@
     <!--Scorpio.UI -->
     <Include file="Modules\UI\UI.xml"/>
 
-    <!--- Scorpio.Layout -->
-    <Include file="Modules\Layout\Layout.xml"/>
-
     <!--Scorpio.Widget -->
     <Include file="Modules\Widget\Widget.xml"/>
 
@@ -72,5 +69,5 @@
     <Include file="Modules\Action\Action.xml"/>
 
     <!--Scorpio.Config -->
-    <!--Include file="Modules\Config\Config.xml"/-->
+    <Include file="Modules\Config\Config.xml"/>
 </Ui>

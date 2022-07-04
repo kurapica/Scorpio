@@ -847,8 +847,8 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         children[name]          = self
 
         OnParentChanged(self, parent, oparent)
-        Next(raiseChildChange, parent,  self, true)
         Next(raiseChildChange, oparent, self, false)
+        Next(raiseChildChange, parent,  self, true)
     end
 
     --- Gets the children of the frame

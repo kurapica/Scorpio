@@ -115,7 +115,11 @@ Style.UpdateSkin("Default",     {
                 Anchor("TOPLEFT", 0, -8),
                 Anchor("BOTTOMRIGHT", - 32, 8)
             },
-            scrollBarHideable   = true
+            scrollBarHideable   = true,
+
+            ScrollChild         = {
+                layoutManager   = ConfigLayoutManager()
+            },
         }
     }
 })
