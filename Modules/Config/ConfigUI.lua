@@ -21,31 +21,38 @@ class "Scorpio" (function(_ENV)
 
     --- Start using the config panel for the addon
     function UseConfigPanel(self)
-        if _PanelMap[self._Config] then return self end
+        local addon             = self._Addon
+        local config            = addon._Config
+
+        if _PanelMap[config] then return self end
 
         _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, self._Config, self._Addon._Name)
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, addon, config, addon._Name)
         return self
     end
 
     --- Bind the config node to a sub category panel
     __Arguments__{ NEString, ConfigNode }:Throwable()
     function UseSubConfigPanel(self, name, node)
-        if not _PanelMap[self._Addon._Config] then
-            throw("Usage: Scorpio:UseSubCategoryPanel(name, configNode) - The Scorpio:UseCategoryPanel() must be called first")
-        end
-
         if _PanelMap[node] then return self end
 
+        local addon             = self._Addon
+        local config            = addon._Config
+
+        if not _PanelMap[config] then
+            throw("Usage: _Addon:UseSubConfigPanel(name, configNode) - The _Addon:UseConfigPanel() must be called first")
+        end
+
         _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, node, name, self._Addon._Name)
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, addon, node, name, addon._Name)
         return self
     end
 
     --- Show the config UI panel for the addon
     __Async__()
     function ShowConfigUI(self)
-        if InCombatLockdown() then return end
+        self                    = self._Addon
+        if InCombatLockdown() or not _PanelMap[self._Config] then return end
 
         InterfaceOptionsFrame_OpenToCategory(self._Name)
         Next() -- Make sure open to the category
@@ -70,7 +77,7 @@ end)
 --- The bidirectional binding between the config node field and widget
 __Sealed__()
 class "__ConfigDataType__"      (function(_ENV)
-    extend "IInitAttribute" "IAttachAttribute"
+    extend "IInitAttribute"
 
     local _DataTypeWidgetMap    = {}
 
@@ -89,11 +96,7 @@ class "__ConfigDataType__"      (function(_ENV)
     --- modify the target's definition
     function InitDefinition(self, target, targettype, definition, owner, name, stack)
         Class.AddExtend(target, IConfigNodeFieldHandler)
-    end
-
-    --- attach data on the target
-    function AttachAttribute(self, target, targettype, owner, name, stack)
-        _DataTypeWidgetMap[self[0]] = target
+        _DataTypeWidgetMap[self[1]] = target
     end
 
     ----------------------------------------------
