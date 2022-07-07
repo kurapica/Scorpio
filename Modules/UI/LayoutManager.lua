@@ -24,7 +24,9 @@ end)
 frameManager                    = Toolset.newtable(true)
 taskToken                       = Toolset.newtable(true)
 
-function GetID(self)
+function IsLayoutable(self)
+    if not self:IsShown() then return end
+
     local getID                 = self.GetID
     local id                    = getID and getID(self)
     return id and id > 0
@@ -37,7 +39,7 @@ end
 __Iterator__()
 function GetLayoutChildren(self)
     local yield                 = coroutine.yield
-    for i, child in XDictionary(self:GetChilds()).Values:Filter(GetID):ToList():Sort(CompareByID):GetIterator() do
+    for i, child in XDictionary(self:GetChilds()).Values:Filter(IsLayoutable):ToList():Sort(CompareByID):GetIterator() do
         yield(i, child)
     end
 end
@@ -59,25 +61,26 @@ function RefreshLayout(self)
     taskToken[self]             = nil
 end
 
-function OnSizeChanged(self)
+function OnStateChanged(self)
     return RefreshLayout(self:GetParent())
 end
-
 
 function OnChildChanged(self, child, isAdd, norefresh)
     if not child.GetID then return end
 
     if isAdd then
-        child.OnSizeChanged    = child.OnSizeChanged + OnSizeChanged
-        _M:SecureHook(child, "SetID", OnSizeChanged)
-
-        if not norefresh and GetID(child) then
-            return RefreshLayout(self)
-        end
+        child.OnSizeChanged     = child.OnSizeChanged + OnStateChanged
+        child.OnShow            = child.OnShow + OnStateChanged
+        child.OnHide            = child.OnHide + OnStateChanged
+        _M:SecureHook(child, "SetID", OnStateChanged)
     else
-        child.OnSizeChanged    = child.OnSizeChanged - OnSizeChanged
+        child.OnSizeChanged     = child.OnSizeChanged - OnStateChanged
+        child.OnShow            = child.OnShow - OnStateChanged
+        child.OnHide            = child.OnHide - OnStateChanged
         _M:SecureUnHook(child, "SetID")
     end
+
+    return not norefresh and RefreshLayout(self)
 end
 
 ------------------------------------------------------

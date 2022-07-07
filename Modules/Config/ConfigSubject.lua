@@ -22,6 +22,18 @@ class "ConfigSubject"           (function(_ENV)
     local onNext                = Subject.OnNext
 
     -----------------------------------------------------------------------
+    --                             property                              --
+    -----------------------------------------------------------------------
+    --- The config node
+    property "Node"             { set = false, field = NODE_FIELD }
+
+    --- The config node field
+    property "Field"            { set = false, field = NAME_FIELD }
+
+    --- The current config node field value
+    property "Value"            { set = false, field = VALUE_FIELD }
+
+    -----------------------------------------------------------------------
     --                              method                               --
     -----------------------------------------------------------------------
     function Subscribe(self, ...)

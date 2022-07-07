@@ -9,17 +9,138 @@
 Scorpio            "Scorpio.Config.UI"               "1.0.0"
 --========================================================--
 
-local _PanelCount               = 0
 local _AddonMap                 = {}
 local _PanelMap                 = {}
 local _ConfigNode               = {}
 
 ------------------------------------------------------
--- Config UI Panel
+-- Scorpio Extension
+------------------------------------------------------
+class "Scorpio" (function(_ENV)
+    local _PanelCount           = 0
+
+    --- Start using the config panel for the addon
+    function UseConfigPanel(self)
+        if _PanelMap[self._Config] then return self end
+
+        _PanelCount             = _PanelCount + 1
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, self._Config, self._Addon._Name)
+        return self
+    end
+
+    --- Bind the config node to a sub category panel
+    __Arguments__{ NEString, ConfigNode }:Throwable()
+    function UseSubConfigPanel(self, name, node)
+        if not _PanelMap[self._Addon._Config] then
+            throw("Usage: Scorpio:UseSubCategoryPanel(name, configNode) - The Scorpio:UseCategoryPanel() must be called first")
+        end
+
+        if _PanelMap[node] then return self end
+
+        _PanelCount             = _PanelCount + 1
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, node, name, self._Addon._Name)
+        return self
+    end
+
+    --- Show the config UI panel for the addon
+    __Async__()
+    function ShowConfigUI(self)
+        if InCombatLockdown() then return end
+
+        InterfaceOptionsFrame_OpenToCategory(self._Name)
+        Next() -- Make sure open to the category
+        InterfaceOptionsFrame_OpenToCategory(self._Name)
+    end
+end)
+
+------------------------------------------------------
+-- Data Type UI Map
+------------------------------------------------------
+--- Represents the interface of the config node field handler
+__Sealed__()
+interface "IConfigNodeFieldHandler" (function(_ENV)
+    -----------------------------------------------------------
+    --                    abstract method                    --
+    -----------------------------------------------------------
+    __Abstract__()
+    function SetConfigNodeField(self, configSubject)
+    end
+end)
+
+--- The bidirectional binding between the config node field and widget
+__Sealed__()
+class "__ConfigDataType__"      (function(_ENV)
+    extend "IInitAttribute" "IAttachAttribute"
+
+    local _DataTypeWidgetMap    = {}
+
+    -----------------------------------------------------------
+    --                     static method                     --
+    -----------------------------------------------------------
+    --- Gets the widget type for the data type
+    __Static__()
+    function GetWidgetType(dataType)
+        return _DataTypeWidgetMap[dataType]
+    end
+
+    -----------------------------------------------------------
+    --                        method                         --
+    -----------------------------------------------------------
+    --- modify the target's definition
+    function InitDefinition(self, target, targettype, definition, owner, name, stack)
+        Class.AddExtend(target, IConfigNodeFieldHandler)
+    end
+
+    --- attach data on the target
+    function AttachAttribute(self, target, targettype, owner, name, stack)
+        _DataTypeWidgetMap[self[0]] = target
+    end
+
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    property "AttributeTarget"  { default = AttributeTargets.Class }
+
+    -----------------------------------------------------------
+    --                      constructor                      --
+    -----------------------------------------------------------
+    __Arguments__{ EnumType + StructType }
+    function __new(self, dataType)
+        return { dataType }, true
+    end
+end)
+
+
+------------------------------------------------------
+-- Auto-Gen Config UI Panel
 ------------------------------------------------------
 __Sealed__()
 class "ConfigPanel"             (function(_ENV)
     inherit "Frame"
+
+    local function getWidgetType(dataType)
+        if Enum.Validate(ftype) then
+
+        elseif Struct.Validate(ftype) then
+            local stype         = Struct.GetStructCategory(ftype)
+            if stype == StructCategory.CUSTOM then
+                local btype     = Struct.GetBaseStruct(type)
+                if btype then return GetConfigTypeUIMap(btype) end
+
+                -- Use String as default
+                return GetConfigTypeUIMap(String)
+
+            elseif stype == StructCategory.ARRAY then
+                return GetConfigTypeUIMap(ArrayStructType)
+
+            elseif stype == StructCategory.MEMBER then
+                return GetConfigTypeUIMap(MemberStructType)
+
+            elseif stype == StructCategory.DICTIONARY then
+                return GetConfigTypeUIMap(DictStructType)
+            end
+        end
+    end
 
     ----------------------------------------------
     --                  Method                  --
@@ -42,7 +163,11 @@ class "ConfigPanel"             (function(_ENV)
     --- This method will run when the Interface Options frame calls its OnShow function and after defaults
     function refresh(self)
         local node              = _ConfigNode[self]
+        local panel             = self:GetChild("ScrollFrame"):GetChild("ScrollChild")
+        local index             = 1
 
+        for name, ftype, default in self:GetFields() do
+        end
     end
 
     ----------------------------------------------
@@ -55,58 +180,24 @@ class "ConfigPanel"             (function(_ENV)
         return InterfaceOptions_AddCategory(self)
     end
 
-    __Arguments__{ NEString, UI, Scorpio, ConfigNode, NEString/nil, NEString/nil }
+    __Arguments__{ NEString, UI, Scorpio, ConfigNode, NEString, NEString/nil }
     function __new(_, name, parent, addon, node, cateName, cateParent)
-        if _PanelMap[node] then
-            throw("The node already has a config panel binded")
-        end
+        if _PanelMap[node] then throw("The node already has a config panel binded") end
 
         local frame             = CreateFrame("Frame", nil, parent)
+        frame.name              = cateName
+        frame.parent            = cateParent
         _AddonMap[frame]        = addon
         _ConfigNode[frame]      = node
         _PanelMap[node]         = frame
-        frame.name              = cateName
-        frame.parent            = cateParent
         return frame
     end
 end)
 
-------------------------------------------------------
--- Scorpio Extension
-------------------------------------------------------
-class "Scorpio" (function(_ENV)
-    --- Start using the category panel for the adon
-    function UseCategoryPanel(self)
-        _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, self._Config, self._Addon._Name)
-        return self
-    end
 
-    --- Bind the config to a sub category panel
-    __Arguments__{ NEString, ConfigNode }:Throwable()
-    function UseSubCategoryPanel(self, name, node)
-        if not _PanelMap[self._Addon._Config] then
-            throw("Usage: Scorpio:UseSubCategoryPanel(name, configNode) - The Scorpio:UseCategoryPanel() must be called first")
-        end
-
-        _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, self._Addon, node, name, self._Addon._Name)
-        return self
-    end
-
-    --- Show the config UI panel for the addon
-    __Async__()
-    function ShowConfigUI(self)
-        if InCombatLockdown() then return end
-
-        InterfaceOptionsFrame_OpenToCategory(self._Name)
-        Next() -- Make sure open to the category
-        InterfaceOptionsFrame_OpenToCategory(self._Name)
-    end
-end)
 
 ------------------------------------------------------
--- Config Style
+-- Default Style
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
