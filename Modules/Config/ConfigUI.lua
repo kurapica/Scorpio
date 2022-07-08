@@ -69,8 +69,9 @@ interface "IConfigNodeFieldHandler" (function(_ENV)
     -----------------------------------------------------------
     --                    abstract method                    --
     -----------------------------------------------------------
+    --- Binding the ui element with a config node field's info
     __Abstract__()
-    function SetConfigNodeField(self, configSubject)
+    function SetConfigNodeField(self, configSubject, label, dataType, desc)
     end
 end)
 
@@ -196,8 +197,6 @@ class "ConfigPanel"             (function(_ENV)
         return frame
     end
 end)
-
-
 
 ------------------------------------------------------
 -- Default Style

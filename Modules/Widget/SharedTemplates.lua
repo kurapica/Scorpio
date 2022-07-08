@@ -530,7 +530,8 @@ class "UIToggleButton"          { Button, ToggleTexture = { type = Texture, set 
 -----------------------------------------------------------
 --                    InputBox Widget                    --
 -----------------------------------------------------------
-__Sealed__() class "InputBox" (function(_ENV)
+__Sealed__()
+class "InputBox" (function(_ENV)
     inherit "EditBox"
 
     local function OnEscapePressed(self)
@@ -592,7 +593,8 @@ end)
 -----------------------------------------------------------
 --                   Track Bar Widget                    --
 -----------------------------------------------------------
-__Sealed__() class "TrackBar" (function(_ENV)
+__Sealed__()
+class "TrackBar" (function(_ENV)
     inherit "Slider"
 
     local floor                 = math.floor

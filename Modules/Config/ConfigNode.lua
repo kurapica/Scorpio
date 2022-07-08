@@ -123,8 +123,8 @@ class "ConfigNode"              (function(_ENV)
     --                  Method                  --
     ----------------------------------------------
     --- Sets the field with type and default value
-    __Arguments__{ NEString, EnumType + StructType, Any/nil }:Throwable()
-    function SetField(self, name, ftype, value)
+    __Arguments__{ NEString, EnumType + StructType, Any/nil, NEString/nil }:Throwable()
+    function SetField(self, name, ftype, value, desc)
         name                    = strlower(name)
 
         local fields            = _Fields[self]
@@ -137,7 +137,7 @@ class "ConfigNode"              (function(_ENV)
             throw("The field " .. name .. " already has type specified")
         end
 
-        fields[name]            = { type = ftype }
+        fields[name]            = { type = ftype, desc = desc }
         tinsert(fields, name)
 
         if value ~= nil then
@@ -154,14 +154,14 @@ class "ConfigNode"              (function(_ENV)
         self:SetValue(name, nil, nil, true)
     end
 
-    --- Gets the field type and default value
+    --- Gets the field type, default value and description
     __Arguments__{ NEString }
     function GetField(self, name)
         local fields            = _Fields[self]
         local field             = fields and fields[strlower(name)]
         if not field then return end
 
-        return field.type, clone(field.default, true)
+        return field.type, clone(field.default, true), field.desc
     end
 
     --- Gets the fields
@@ -172,7 +172,7 @@ class "ConfigNode"              (function(_ENV)
             local yield         = yield
             for _, name in ipairs(fields) do
                 local field     = fields[name]
-                yield(name, field.type, clone(field.default, true))
+                yield(name, field.type, clone(field.default, true), field.desc)
             end
         end
     end
@@ -491,7 +491,7 @@ end)
 --  _Config:SetSavedVariable("TestAddon", "TestAddonChar")
 -- end
 --
--- __Config__(_Config, true)
+-- __Config__(_Config, true, "Enable the log")
 -- function EnableLog(value)
 --
 -- end
@@ -515,6 +515,7 @@ class "__Config__" (function(_ENV)
         local name          = self.Name or name
         local ftype         = self.Type
         local default       = self.Default
+        local desc          = self.Desc
 
         if default ~= nil then
             local ret, msg  = validateValue(ftype, default)
@@ -524,7 +525,7 @@ class "__Config__" (function(_ENV)
             default         = ret
         end
 
-        node:SetField(name, ftype, default)
+        node:SetField(name, ftype, default, desc)
         node[name]:Subscribe(target)
 
         return function(value)
@@ -543,89 +544,112 @@ class "__Config__" (function(_ENV)
     --- the attribute's sub level of priority
     property "SubLevel"         { type = Number, default = -999999 }
 
+    --- The config node
     property "Node"             { type = ConfigNode }
 
+    --- The field name
     property "Name"             { type = String }
 
+    --- The field type
     property "Type"             { type = EnumType + StructType }
 
+    --- The field default value
     property "Default"          { type = Any }
+
+    --- The field description
+    property "Desc"             { type = NEString }
 
     ----------------------------------------------
     --                Constructor               --
     ----------------------------------------------
-    __Arguments__{ ConfigNode, Boolean }
-    function __ctor(self, node, value)
+    __Arguments__{ ConfigNode, Boolean, NEString/nil }
+    function __ctor(self, node, value, desc)
         self.Node               = node
         self.Type               = Boolean
         self.Default            = value
+        self.Desc               = desc
     end
 
-    __Arguments__{ ConfigNode, Number }
-    function __ctor(self, node, value)
+    __Arguments__{ ConfigNode, Number, NEString/nil }
+    function __ctor(self, node, value, desc)
         self.Node               = node
         self.Type               = Number
         self.Default            = value
+        self.Desc               = desc
+    end
+
+    __Arguments__{ ConfigNode, NEString, Boolean, NEString/nil }
+    function __ctor(self, node, name, value, desc)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = Boolean
+        self.Default            = value
+        self.Desc               = desc
+    end
+
+    __Arguments__{ ConfigNode, NEString, Number, NEString/nil }
+    function __ctor(self, node, name, value, desc)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = Number
+        self.Default            = value
+        self.Desc               = desc
     end
 
     __Arguments__{ ConfigNode, String }
-    function __ctor(self, node, value)
+    function __ctor(self, value)
         self.Node               = node
         self.Type               = String
-        self.Default            = value
-    end
-
-    __Arguments__{ ConfigNode, NEString, Boolean }
-    function __ctor(self, node, name, value)
-        self.Node               = node
-        self.Name               = name
-        self.Type               = Boolean
-        self.Default            = value
-    end
-
-    __Arguments__{ ConfigNode, NEString, Number }
-    function __ctor(self, node, name, value)
-        self.Node               = node
-        self.Name               = name
-        self.Type               = Number
         self.Default            = value
     end
 
     __Arguments__{ ConfigNode, NEString, String }
     function __ctor(self, node, name, value)
         self.Node               = node
-        self.Name               = name
+        self.Node               = name
         self.Type               = String
         self.Default            = value
     end
 
-    __Arguments__{ ConfigNode, EnumType + StructType, Any/nil }
-    function __ctor(self, node, ftype, value)
+    __Arguments__{ ConfigNode, NEString, String, NEString }
+    function __ctor(self, node, name, value, desc)
+        self.Node               = node
+        self.Name               = name
+        self.Type               = String
+        self.Default            = value
+        self.Desc               = desc
+    end
+
+    __Arguments__{ ConfigNode, EnumType + StructType, Any/nil, NEString/nil }
+    function __ctor(self, node, ftype, value, desc)
         self.Node               = node
         self.Type               = ftype
         self.Default            = value
+        self.Desc               = desc
     end
 
-    __Arguments__{ ConfigNode, NEString, EnumType + StructType, Any/nil }
-    function __ctor(self, node, name, ftype, value)
+    __Arguments__{ ConfigNode, NEString, EnumType + StructType, Any/nil, NEString/nil }
+    function __ctor(self, node, name, ftype, value, desc)
         self.Node               = node
         self.Name               = name
         self.Type               = ftype
         self.Default            = value
+        self.Desc               = desc
     end
 
-    __Arguments__{ ConfigNode, RawTable, Any/nil }
-    function __ctor(self, node, definition, value)
+    __Arguments__{ ConfigNode, RawTable, Any/nil, NEString/nil }
+    function __ctor(self, node, definition, value, desc)
         local ok, structType    = Attribute.IndependentCall(function(temp) local type = struct(temp) return type end, definition)
         if not ok then throw(structType) end
 
         self.Node               = node
         self.Type               = structType
         self.Default            = value
+        self.Desc               = desc
     end
 
-    __Arguments__{ ConfigNode, NEString, RawTable, Any/nil }
-    function __ctor(self, node, name, definition, value)
+    __Arguments__{ ConfigNode, NEString, RawTable, Any/nil, NEString/nil }
+    function __ctor(self, node, name, definition, value, desc)
         local ok, structType    = Attribute.IndependentCall(function(temp) local type = struct(temp) return type end, definition)
         if not ok then throw(structType) end
 
@@ -633,6 +657,7 @@ class "__Config__" (function(_ENV)
         self.Name               = name
         self.Type               = structType
         self.Default            = value
+        self.Desc               = desc
     end
 
     ----------------------------------------------
