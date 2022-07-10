@@ -113,10 +113,16 @@ class "ConfigNode"              (function(_ENV)
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
+    --- The addon owner
+    __Abstract__()
+    property "_Addon"           { default = function(self) local parent = self._Parent return parent and parent._Addon end }
+
     --- The parent node
+    __Abstract__()
     property "_Parent"          { get = function(self) return _ParentNode[self] end }
 
     --- The saved variables
+    __Abstract__()
     property "_SavedVariable"   { get = function(self) return _SavedVariable[self] end }
 
     ----------------------------------------------
@@ -209,6 +215,9 @@ class "ConfigNode"              (function(_ENV)
             -- Remove self from parent
             local parent        = _ParentNode[self]
             local subNodes      = _SubNodes[parent]
+
+            -- Save the _Addon
+            self._Addon         = parent._Addon
 
             for k, v in pairs(subNodes) do
                 if v == self then
@@ -411,6 +420,8 @@ end)
 __Sealed__()
 class "CharConfigNode"          (function(_ENV)
     inherit "ConfigNode"
+
+    local _AddonConfigMap       = {}
 
     ----------------------------------------------
     --                  Method                  --

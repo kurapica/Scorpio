@@ -9,7 +9,6 @@
 Scorpio            "Scorpio.Config.UI"               "1.0.0"
 --========================================================--
 
-local _AddonMap                 = {}
 local _PanelMap                 = {}
 local _ConfigNode               = {}
 
@@ -21,13 +20,12 @@ class "Scorpio" (function(_ENV)
 
     --- Start using the config panel for the addon
     function UseConfigPanel(self)
-        local addon             = self._Addon
-        local config            = addon._Config
+        local config            = self._Config
 
         if _PanelMap[config] then return self end
 
         _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, addon, config, addon._Name)
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, config, self._Name)
         return self
     end
 
@@ -36,7 +34,6 @@ class "Scorpio" (function(_ENV)
     function UseSubConfigPanel(self, name, node)
         if _PanelMap[node] then return self end
 
-        local addon             = self._Addon
         local config            = addon._Config
 
         if not _PanelMap[config] then
@@ -44,7 +41,7 @@ class "Scorpio" (function(_ENV)
         end
 
         _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, addon, node, name, addon._Name)
+        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node, name, addon._Name)
         return self
     end
 
@@ -71,7 +68,7 @@ interface "IConfigNodeFieldHandler" (function(_ENV)
     -----------------------------------------------------------
     --- Binding the ui element with a config node field's info
     __Abstract__()
-    function SetConfigNodeField(self, configSubject, label, dataType, desc)
+    function SetConfigNodeField(self, configSubject, name, dataType, desc, locale)
     end
 end)
 
@@ -96,6 +93,10 @@ class "__ConfigDataType__"      (function(_ENV)
     -----------------------------------------------------------
     --- modify the target's definition
     function InitDefinition(self, target, targettype, definition, owner, name, stack)
+        if not Class.IsSubType(target, Frame) then
+            error("The target class must be a sub type of Frame", stack + 1)
+        end
+
         Class.AddExtend(target, IConfigNodeFieldHandler)
         _DataTypeWidgetMap[self[1]] = target
     end
@@ -124,8 +125,11 @@ class "ConfigPanel"             (function(_ENV)
 
     local function getWidgetType(dataType)
         if Enum.Validate(ftype) then
+            return __ConfigDataType__.GetWidgetType(EnumType)
 
         elseif Struct.Validate(ftype) then
+            local widgetType    = __ConfigDataType__.GetWidgetType(dataType)
+
             local stype         = Struct.GetStructCategory(ftype)
             if stype == StructCategory.CUSTOM then
                 local btype     = Struct.GetBaseStruct(type)
@@ -167,10 +171,28 @@ class "ConfigPanel"             (function(_ENV)
     --- This method will run when the Interface Options frame calls its OnShow function and after defaults
     function refresh(self)
         local node              = _ConfigNode[self]
+        local locale            = node._Addon._Locale
         local panel             = self:GetChild("ScrollFrame"):GetChild("ScrollChild")
         local index             = 1
 
-        for name, ftype, default in self:GetFields() do
+        --- Add the data type elements
+        for name, ftype, default, desc in node:GetFields() do
+            local widget        = getWidgetType(ftype)
+            if not self[index] or getmetatable(self[index] ~= widget then
+                if self[index] then
+                    -- recycle
+                end
+
+                local ui    = widget("ConfigFieldWidget" .. index, panel)
+                ui:SetID(index)
+                ui:SetConfigNodeField(node[name], name, ftype, desc, locale)
+            end
+            index               = index + 1
+        end
+
+        --- Add sub config nodes as group box
+        for name, nodes in self:GetSubNodes() do
+
         end
     end
 
@@ -184,14 +206,13 @@ class "ConfigPanel"             (function(_ENV)
         return InterfaceOptions_AddCategory(self)
     end
 
-    __Arguments__{ NEString, UI, Scorpio, ConfigNode, NEString, NEString/nil }
-    function __new(_, name, parent, addon, node, cateName, cateParent)
+    __Arguments__{ NEString, UI, ConfigNode, NEString, NEString/nil }
+    function __new(_, name, parent, node, cateName, cateParent)
         if _PanelMap[node] then throw("The node already has a config panel binded") end
 
         local frame             = CreateFrame("Frame", nil, parent)
         frame.name              = cateName
         frame.parent            = cateParent
-        _AddonMap[frame]        = addon
         _ConfigNode[frame]      = node
         _PanelMap[node]         = frame
         return frame
