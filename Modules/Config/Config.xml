@@ -8,9 +8,6 @@
 	<!-- Config Data Type -->
 	<Script file="ConfigType.lua"/>
 
-	<!-- Config Layout Manager -->
-	<Script file="ConfigLayoutManager.lua"/>
-
 	<!-- Config UI -->
 	<Script file="ConfigUI.lua"/>
 

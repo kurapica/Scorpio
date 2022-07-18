@@ -232,7 +232,7 @@ Style.UpdateSkin("Default",     {
             scrollBarHideable   = true,
 
             ScrollChild         = {
-                layoutManager   = ConfigLayoutManager()
+                layoutManager   = Scorpio.UI.Layout.VerticalLayoutManager()
             },
         }
     }

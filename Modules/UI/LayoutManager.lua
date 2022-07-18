@@ -9,12 +9,14 @@
 Scorpio        "Scorpio.Layout"                      "1.0.0"
 --========================================================--
 
+namespace "Scorpio.UI.Layout"
+
 --- The layout manager
 __Sealed__()
 interface "ILayoutManager"      {
     --- Refresh the layout of the frame by its children with IDs
     __Abstract__(),
-    RefreshLayout = function (self, frame, iter, ...) end
+    RefreshLayout               = function (self, frame, iter) end
 }
 
 ------------------------------------------------------
