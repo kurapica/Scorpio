@@ -1762,7 +1762,7 @@ PLoop(function(_ENV)
         property "_Config"          { type = AddonConfigNode, default = function(self) return self._Parent and self._Parent._Config or AddonConfigNode(self) end }
 
         --- The saved variable per character config node
-        property "_CharConfig"      { type = CharConfigNode, default = function(self) return CharConfigNode(self._Config, "__char") end }
+        property "_CharConfig"      { set = false, default = function(self) return CharConfigNode(self._Config, "__char") end }
 
         --- The saved variable spec config node
         property "_SpecConfig"      { set = false, default = function(self) return SpecConfigNode(self._CharConfig, "__spec") end }
