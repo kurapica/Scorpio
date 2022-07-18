@@ -16,8 +16,8 @@ local _PlayerLogined, _PlayerSpec, _PlayerWarMode
 local _CharNodes, _SpecNodes, _WMNodes
 
 local isEnumType                = Enum.Validate
-local isStructType              = Struct.Validate
 local isEnumValue               = Enum.ValidateValue
+local isStructType              = Struct.Validate
 local isStrutValue              = Struct.ValidateValue
 
 local function validateValue(type, value)
@@ -319,7 +319,7 @@ class "ConfigNode"              (function(_ENV)
             prevdata            = prevdata and prevdata[CHILD_NODE]
 
             for _, name in ipairs(subNodes) do
-                subNodes[name]:InitConfigNode(childData, k, prevdata)
+                subNodes[name]:InitConfigNode(childData, name, prevdata)
             end
         end
     end
