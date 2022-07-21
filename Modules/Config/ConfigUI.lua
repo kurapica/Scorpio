@@ -94,11 +94,21 @@ class "__ConfigDataType__"      (function(_ENV)
     --- modify the target's definition
     function InitDefinition(self, target, targettype, definition, owner, name, stack)
         if not Class.IsSubType(target, Frame) then
-            error("The target class must be a sub type of Frame", stack + 1)
+            error("The target class must be a sub type of Scorpio.UI.Frame", stack + 1)
         end
 
         Class.AddExtend(target, IConfigNodeFieldHandler)
-        _DataTypeWidgetMap[self[1]] = target
+
+        for _, type in ipairs(self) do
+            local maps          = _DataTypeWidgetMap[type]
+            if not maps then
+                maps            = List()
+                _DataTypeWidgetMap[type] = map
+            end
+            if not maps:Contains(target) then
+                maps:Insert(1, target)
+            end
+        end
     end
 
     ----------------------------------------------
@@ -109,9 +119,9 @@ class "__ConfigDataType__"      (function(_ENV)
     -----------------------------------------------------------
     --                      constructor                      --
     -----------------------------------------------------------
-    __Arguments__{ EnumType + StructType }
-    function __new(self, dataType)
-        return { dataType }, true
+    __Arguments__{ (EnumType + StructType) * 1 }
+    function __new(self, ...)
+        return { ... }, true
     end
 end)
 
