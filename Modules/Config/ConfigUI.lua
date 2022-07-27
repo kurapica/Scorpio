@@ -98,17 +98,7 @@ class "__ConfigDataType__"      (function(_ENV)
         end
 
         Class.AddExtend(target, IConfigNodeFieldHandler)
-
-        for _, type in ipairs(self) do
-            local maps          = _DataTypeWidgetMap[type]
-            if not maps then
-                maps            = List()
-                _DataTypeWidgetMap[type] = map
-            end
-            if not maps:Contains(target) then
-                maps:Insert(1, target)
-            end
-        end
+        _DataTypeWidgetMap[self[1]] = target
     end
 
     ----------------------------------------------
@@ -119,12 +109,11 @@ class "__ConfigDataType__"      (function(_ENV)
     -----------------------------------------------------------
     --                      constructor                      --
     -----------------------------------------------------------
-    __Arguments__{ (EnumType + StructType) * 1 }
-    function __new(self, ...)
-        return { ... }, true
+    __Arguments__{ EnumType + StructType }
+    function __new(self, type)
+        return { type }, true
     end
 end)
-
 
 ------------------------------------------------------
 -- Auto-Gen Config UI Panel
@@ -161,6 +150,12 @@ class "ConfigPanel"             (function(_ENV)
     end
 
     ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- The label's style
+    property "Label"            { type = Table }
+
+    ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
     --- This method will run when the player clicks "okay" in the Interface Options.
@@ -188,20 +183,25 @@ class "ConfigPanel"             (function(_ENV)
         --- Add the data type elements
         for name, ftype, default, desc in node:GetFields() do
             local widget        = getWidgetType(ftype)
-            if not self[index] or getmetatable(self[index] ~= widget then
-                if self[index] then
-                    -- recycle
-                end
+            if widget then
+                if not self[index] then
+                    -- The field order can't be changed, so we don't really need refresh them
+                    local ui    = widget("ConfigFieldWidget" .. index, panel)
+                    ui:SetID(index)
+                    ui:SetConfigNodeField(node[name], name, ftype, desc, locale)
 
-                local ui    = widget("ConfigFieldWidget" .. index, panel)
-                ui:SetID(index)
-                ui:SetConfigNodeField(node[name], name, ftype, desc, locale)
+                    self[index] = ui
+                end
+                self[index].label   = self.Label
+                self[index].label.text = locale[name]
+                index               = index + 1
+            else
+                Warn("Lack the config ui widget for data type " .. tostring(ftype))
             end
-            index               = index + 1
         end
 
         --- Add sub config nodes as group box
-        for name, nodes in self:GetSubNodes() do
+        for name, node in self:GetSubNodes() do
 
         end
     end
@@ -242,8 +242,16 @@ Style.UpdateSkin("Default",     {
             scrollBarHideable   = true,
 
             ScrollChild         = {
-                layoutManager   = Scorpio.UI.Layout.VerticalLayoutManager()
+                layoutManager   = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
             },
-        }
+        },
+
+        Label                   = {
+            location            = {
+                { Anchor("RIGHT", -4, 0, "LEFT") }
+            },
+            width               = 80,
+            JustifyH            = "LEFT",
+        },
     }
 })
