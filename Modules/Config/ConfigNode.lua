@@ -48,7 +48,6 @@ local function queueSpecConfigNode(node, container, name, prevContainer)
     return true
 end
 
-
 local function queueWarModeConfigNode(node, container, name, prevContainer)
     if _PlayerWarMode then return false end
 
@@ -100,6 +99,7 @@ class "ConfigNode"              (function(_ENV)
     local _ParentNode           = Toolset.newtable(true, true)
     local _SavedVariable        = Toolset.newtable(true)
     local _Fields               = {} -- { type, subject, default }
+    local _EnableUI             = Toolset.newtable(true)
 
     local _RawData              = Toolset.newtable(true)
     local _PrevData             = Toolset.newtable(true)
@@ -125,12 +125,16 @@ class "ConfigNode"              (function(_ENV)
     __Abstract__()
     property "_SavedVariable"   { get = function(self) return _SavedVariable[self] end }
 
+    --- Whether enable ui for the config node
+    __Abstract__()
+    property "IsUIEnabled"      { get = function(self) return _EnableUI[self] end }
+
     ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
     --- Sets the field with type and default value
-    __Arguments__{ NEString, EnumType + StructType, Any/nil, NEString/nil }:Throwable()
-    function SetField(self, name, ftype, value, desc)
+    __Arguments__{ NEString, EnumType + StructType, Any/nil, NEString/nil, Boolean/nil }:Throwable()
+    function SetField(self, name, ftype, value, desc, enableui)
         name                    = strlower(name)
 
         local fields            = _Fields[self]
@@ -143,16 +147,12 @@ class "ConfigNode"              (function(_ENV)
             throw("The field " .. name .. " already has type specified")
         end
 
-        fields[name]            = { type = ftype, desc = desc }
+        fields[name]            = { type = ftype, desc = desc, enableui = enableui }
         tinsert(fields, name)
 
         if value ~= nil then
             local ret, msg      = validateValue(ftype, value)
-
-            if msg then
-                throw( Struct.GetErrorMessage(msg, name) )
-            end
-
+            if msg then throw( Struct.GetErrorMessage(msg, name) ) end
             fields[name].default= clone(ret, true)
         end
 
@@ -166,8 +166,7 @@ class "ConfigNode"              (function(_ENV)
         local fields            = _Fields[self]
         local field             = fields and fields[strlower(name)]
         if not field then return end
-
-        return field.type, clone(field.default, true), field.desc
+        return field.type, clone(field.default, true), field.desc, field.enableui
     end
 
     --- Gets the fields
@@ -178,7 +177,7 @@ class "ConfigNode"              (function(_ENV)
             local yield         = yield
             for _, name in ipairs(fields) do
                 local field     = fields[name]
-                yield(name, field.type, clone(field.default, true), field.desc)
+                yield(name, field.type, clone(field.default, true), field.desc, field.enableui)
             end
         end
     end
@@ -324,6 +323,18 @@ class "ConfigNode"              (function(_ENV)
         end
     end
 
+    --- Enable the config ui for field
+    function EnableUI(self)
+        _EnableUI[self]         = true
+        return self
+    end
+
+    --- Disable the config ui for field
+    function DisableUI(self)
+        _EnableUI[self]         = false
+        return self
+    end
+
     ----------------------------------------------
     --               Meta-method                --
     ----------------------------------------------
@@ -340,7 +351,7 @@ class "ConfigNode"              (function(_ENV)
             local subject       = field.subject
             if not subject then
                 local rawdata   = _RawData[self]
-                subject         = ConfigSubject( self, name, clone(rawdata and rawdata[name], true) )
+                subject         = ConfigSubject( self, name, field.type, clone(rawdata and rawdata[name], true), field.desc )
                 field.subject   = subject
             end
             return subject
@@ -526,7 +537,6 @@ class "__Config__" (function(_ENV)
         local name          = self.Name or name
         local ftype         = self.Type
         local default       = self.Default
-        local desc          = self.Desc
 
         if default ~= nil then
             local ret, msg  = validateValue(ftype, default)
@@ -536,12 +546,18 @@ class "__Config__" (function(_ENV)
             default         = ret
         end
 
-        node:SetField(name, ftype, default, desc)
+        node:SetField(name, ftype, default, self.Desc, self.EnableFieldUI)
         node[name]:Subscribe(target)
 
         return function(value)
             node:SetValue(name, value, 2)
         end
+    end
+
+    --- Disable the config ui for field
+    function DisableUI(self)
+        self.EnableFieldUI = false
+        return self
     end
 
     ----------------------------------------------
@@ -569,6 +585,9 @@ class "__Config__" (function(_ENV)
 
     --- The field description
     property "Desc"             { type = NEString }
+
+    --- Whether enable the UI for the field
+    property "EnableFieldUI"    { type = Boolean }
 
     ----------------------------------------------
     --                Constructor               --

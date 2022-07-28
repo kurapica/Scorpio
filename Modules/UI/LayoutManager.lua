@@ -93,6 +93,7 @@ UI.Property                     {
     type                        = ILayoutManager,
     require                     = Frame,
     set                         = function(self, manager)
+        if frameManager[self] == manager then return end
         frameManager[self]      = manager
 
         if manager then

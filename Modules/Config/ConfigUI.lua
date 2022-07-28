@@ -9,39 +9,38 @@
 Scorpio            "Scorpio.Config.UI"               "1.0.0"
 --========================================================--
 
+-- Shared
 local _PanelMap                 = {}
-local _ConfigNode               = {}
 
 ------------------------------------------------------
 -- Scorpio Extension
 ------------------------------------------------------
-class "Scorpio" (function(_ENV)
+class "Scorpio"                 (function(_ENV)
     local _PanelCount           = 0
 
     --- Start using the config panel for the addon
-    function UseConfigPanel(self)
-        local config            = self._Config
-
+    __Arguments__{ Boolean/nil }
+    function UseConfigPanel(self, showAllSubNodes)
+        local addon             = self._Addon
+        local config            = addon._Config
         if _PanelMap[config] then return self end
 
         _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, config, self._Name)
+        _PanelMap[config]       = ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, config, addon._Name, nil, showAllSubNodes)
         return self
     end
 
     --- Bind the config node to a sub category panel
-    __Arguments__{ NEString, ConfigNode }:Throwable()
-    function UseSubConfigPanel(self, name, node)
+    __Arguments__{ NEString, ConfigNode, Boolean/nil }:Throwable()
+    function UseSubConfigPanel(self, name, node, showAllSubNodes)
         if _PanelMap[node] then return self end
-
-        local config            = addon._Config
-
-        if not _PanelMap[config] then
-            throw("Usage: _Addon:UseSubConfigPanel(name, configNode) - The _Addon:UseConfigPanel() must be called first")
+        local addon             = self._Addon
+        if not _PanelMap[addon._Config] then
+            throw("Usage: _Addon:UseSubConfigPanel(name, configNode[, showAllSubNodes]) - The _Addon:UseConfigPanel([showAllSubNodes]) must be called first to enable the config panel for _Config.")
         end
 
         _PanelCount             = _PanelCount + 1
-        ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node, name, addon._Name)
+        _PanelMap[node]         = ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node, name, addon._Name, showAllSubNodes)
         return self
     end
 
@@ -62,13 +61,14 @@ end)
 ------------------------------------------------------
 --- Represents the interface of the config node field handler
 __Sealed__()
-interface "IConfigNodeFieldHandler" (function(_ENV)
+interface "IConfigSubjectHandler" (function(_ENV)
     -----------------------------------------------------------
     --                    abstract method                    --
     -----------------------------------------------------------
-    --- Binding the ui element with a config node field's info
+    --- Binding the ui element with a config node field's info,
+    -- also can be used to clear the binding if configSubject is nil
     __Abstract__()
-    function SetConfigNodeField(self, configSubject, name, dataType, desc, locale)
+    function SetConfigSubject(self, configSubject)
     end
 end)
 
@@ -96,9 +96,10 @@ class "__ConfigDataType__"      (function(_ENV)
         if not Class.IsSubType(target, Frame) then
             error("The target class must be a sub type of Scorpio.UI.Frame", stack + 1)
         end
-
-        Class.AddExtend(target, IConfigNodeFieldHandler)
-        _DataTypeWidgetMap[self[1]] = target
+        Class.AddExtend(target, IConfigSubjectHandler)
+        for i = 1, #self do
+            _DataTypeWidgetMap[self[i]] = target
+        end
     end
 
     ----------------------------------------------
@@ -109,9 +110,9 @@ class "__ConfigDataType__"      (function(_ENV)
     -----------------------------------------------------------
     --                      constructor                      --
     -----------------------------------------------------------
-    __Arguments__{ EnumType + StructType }
-    function __new(self, type)
-        return { type }, true
+    __Arguments__{ (EnumType + StructType) * 1 }
+    function __new(self, ...)
+        return { ... }, true
     end
 end)
 
@@ -149,11 +150,72 @@ class "ConfigPanel"             (function(_ENV)
         end
     end
 
+    local function showNodeFields(self, panel, node, locale)
+        local index                         = 1
+
+        --- Add the data type elements
+        for name, ftype, _, desc, enableui in node:GetFields() do
+            if enableui ~= false then
+                local widget                = getWidgetType(ftype)
+                if widget then
+                    local ui                = panel[index]
+                    if not ui then
+                        -- The field order can't be changed, so we don't need recycle them
+                        ui                  = widget("ConfigFieldWidget" .. index, panel)
+                        ui:SetID(index)
+                        ui:SetConfigSubject(node[name])
+
+                        panel[index]        = ui
+                    end
+                    Style[ui].label         = self.LabelStyle
+                    Style[ui].label.text    = locale[name]
+                    index                   = index + 1
+                else
+                    Warn("Lack the config ui widget for data type " .. tostring(ftype))
+                end
+            end
+        end
+
+        --- Add sub config nodes as group box
+        for name, subnode in node:GetSubNodes() do
+            -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
+            if not _PanelMap[subnode] and (subnode.IsUIEnabled or self.ShowAllSubNodes and subnode.IsUIEnabled ~= false) then
+                local ui                    = panel[index]
+                if not ui then
+                    ui                      = GroupBox("ConfigFieldWidget" .. index, panel)
+                    ui:SetID(index)
+                    panel[index]            = ui
+                end
+                Style[ui].header.text       = locale[name]
+                showNodeFields(self, ui, subnode, locale)
+                index                       = index + 1
+            end
+        end
+
+        --- Update layout manager for the panel
+        Style[panel].layoutManager          = self.LayoutManager
+    end
+
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
     --- The label's style
-    property "Label"            { type = Table }
+    property "LabelStyle"       { type = Table }
+
+    --- The layout manager for scroll panel and group panel used in the config panel
+    property "LayoutManager"    { type = ILayoutManager }
+
+    --- The config node
+    property "ConfigNode"       { type = ConfigNode }
+
+    --- Whether the panel is already rendering
+    property "Rendered"         { type = Boolean }
+
+    --- Whether show the child config nodes
+    property "ShowAllSubNodes"  { type = Boolean, field = "__ShowAllSubNodes" }
+
+    --- The config node
+    property "ConfigNode"       { type = ConfigNode, field = "__ConfigNode" }
 
     ----------------------------------------------
     --                  Method                  --
@@ -174,36 +236,17 @@ class "ConfigPanel"             (function(_ENV)
     end
 
     --- This method will run when the Interface Options frame calls its OnShow function and after defaults
+    __AsyncSingle__()
     function refresh(self)
-        local node              = _ConfigNode[self]
-        local locale            = node._Addon._Locale
-        local panel             = self:GetChild("ScrollFrame"):GetChild("ScrollChild")
-        local index             = 1
-
-        --- Add the data type elements
-        for name, ftype, default, desc in node:GetFields() do
-            local widget        = getWidgetType(ftype)
-            if widget then
-                if not self[index] then
-                    -- The field order can't be changed, so we don't really need refresh them
-                    local ui    = widget("ConfigFieldWidget" .. index, panel)
-                    ui:SetID(index)
-                    ui:SetConfigNodeField(node[name], name, ftype, desc, locale)
-
-                    self[index] = ui
-                end
-                self[index].label   = self.Label
-                self[index].label.text = locale[name]
-                index               = index + 1
-            else
-                Warn("Lack the config ui widget for data type " .. tostring(ftype))
-            end
+        -- Only render when it's visible
+        if not self:IsVisible() then
+            Next(Observable.From(self.OnShow))
         end
 
-        --- Add sub config nodes as group box
-        for name, node in self:GetSubNodes() do
+        -- Rendering the scroll child
+        showNodeFields(self, self:GetChild("ScrollFrame"):GetChild("ScrollChild"), self.ConfigNode, node._Addon._Locale)
 
-        end
+        self.Rendered           = true
     end
 
     ----------------------------------------------
@@ -216,15 +259,13 @@ class "ConfigPanel"             (function(_ENV)
         return InterfaceOptions_AddCategory(self)
     end
 
-    __Arguments__{ NEString, UI, ConfigNode, NEString, NEString/nil }
-    function __new(_, name, parent, node, cateName, cateParent)
-        if _PanelMap[node] then throw("The node already has a config panel binded") end
-
+    __Arguments__{ NEString, UI, ConfigNode, NEString, NEString/nil, Boolean/nil }
+    function __new(_, name, parent, node, cateName, cateParent, showAllSubNodes)
         local frame             = CreateFrame("Frame", nil, parent)
         frame.name              = cateName
         frame.parent            = cateParent
-        _ConfigNode[frame]      = node
-        _PanelMap[node]         = frame
+        frame.__ConfigNode      = node
+        frame.__ShowAllSubNodes = showAllSubNodes
         return frame
     end
 end)
@@ -237,21 +278,18 @@ Style.UpdateSkin("Default",     {
         ScrollFrame             = {
             location            = {
                 Anchor("TOPLEFT", 0, -8),
-                Anchor("BOTTOMRIGHT", - 32, 8)
+                Anchor("BOTTOMRIGHT", -32, 8)
             },
             scrollBarHideable   = true,
-
-            ScrollChild         = {
-                layoutManager   = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
-            },
         },
 
-        Label                   = {
+        labelStyle              = {
             location            = {
                 { Anchor("RIGHT", -4, 0, "LEFT") }
             },
             width               = 80,
             JustifyH            = "LEFT",
         },
+        layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
     }
 })
