@@ -32,10 +32,7 @@ local tsort                     = table.sort
 local isObservable              = function(val) return type(val) == "table" and isObjectType(val, IObservable) end
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
 
-local parentPath                = {}
-
 local CHILD_SETTING             = 0   -- For children
-
 local INSTANT_STYLE_UI_CLASS    = {}
 
 ----------------------------------------------
@@ -50,7 +47,6 @@ local _PropertyChildRecycle     = setmetatable({}, {
     __index                     = function(self, type)
         if isSubType(type, AnimationGroup) or isSubType(type, ControlPoint) or isSubType(type, Animation) then
             -- No recycle for the animation type, since they can't change their parent
-            -- No recycle to the mask texture, it's very special since its parent should be the texture's parent
             rawset(self, type, false)
             return false
         else
@@ -237,7 +233,13 @@ local function prepareSettings(settings, target, final, cache, paths)
 
     local needRecycle           = not cache
     cache                       = cache or _Recycle()
-    if needRecycle and final then for k in pairs(final) do cache[strlower(k)] = k end end
+    if needRecycle and final then
+        for k in pairs(final) do
+            if type(k) == "string" then
+                cache[strlower(k)] = k
+            end
+        end
+    end
     final                       = final or {}
 
     local classCnt
@@ -248,14 +250,15 @@ local function prepareSettings(settings, target, final, cache, paths)
     end
 
     -- Check the share features provided with N-th index
-    local shares                = _Recycle()
+    local shares
 
     for k, v in pairs(settings) do
         local tk                = type(k)
 
-        if tk == "number" then
+        if tk == "number"       then
+            shares              = shares or _Recycle()
             tinsert(shares, k)
-        elseif tk == "string" then
+        elseif tk == "string"   then
             local lk            = strlower(k)
             local ek            = cache[lk]
             local prop          = props[lk]
@@ -331,19 +334,30 @@ local function prepareSettings(settings, target, final, cache, paths)
                     final[k]    = v
                 end
             end
+        elseif isClassSkin and isUIObjectType(k) then
+            if final[k] then
+                -- Only combine the share settings
+                if type(final[k]) == "table" and getmetatable(final[k]) == nil and type(v) == "table" and getmetatable(v) == nil then
+                    final[k]        = prepareSettings(v, { k }, final[k])
+                end
+            else
+                -- No check here
+                final[k]            = v
+            end
         end
     end
 
-    if #shares > 0 then
+    if shares then
         tsort(shares)
 
         for i = #shares, 1, -1 do
             -- Could have its own share skins
             prepareSettings(settings[shares[i]], target, final, cache, paths)
         end
+
+        _Recycle(wipe(shares))
     end
 
-    _Recycle(wipe(shares))
     if needRecycle then _Recycle(wipe(cache)) end
     return final
 end
@@ -583,75 +597,82 @@ local function saveSkinSettings(classes, paths, container, settings)
 
     -- Check inherit
     for name, value in pairs(settings) do
-        if type(name) ~= "string" then throw("The skin settings only accpet string values as key") end
-        if strlower(name) == "inherit" then
-            settings[name]      = nil
+        if type(name) == "string" then
+            if strlower(name) == "inherit" then
+                settings[name]  = nil
 
-            if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
-            local base          = _Skins[strlower(value)]
-            if not base then
-                throw(strformat("The skin named %q doesn't existed", value))
-            elseif not base[class] then
-                throw(strformat("The skin named %q doesn't provide skin for %s", value, tostring(class)))
+                if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
+                local base      = _Skins[strlower(value)]
+                if not base then
+                    throw(strformat("The skin named %q doesn't existed", value))
+                elseif not base[class] then
+                    throw(strformat("The skin named %q doesn't provide skin for %s", value, tostring(class)))
+                end
+
+                copyBaseSkinSettings(container, base[class])
+
+                break
             end
-
-            copyBaseSkinSettings(container, base[class])
-
-            break
+        elseif not isUIObjectType(name) then
+            throw("The skin settings only accpet string values as key")
         end
     end
 
     for name, value in pairs(settings) do
-        local element
+        if type(name) == "string" then
+            local element
 
-        paths[pathIdx]          = name
+            paths[pathIdx]          = name
 
-        for i = 1, pathIdx do
-            element             = __Template__.GetElementType(classes[i], unpack(paths, i))
-            if element then break end
-        end
+            for i = 1, pathIdx do
+                element             = __Template__.GetElementType(classes[i], unpack(paths, i))
+                if element then break end
+            end
 
-        paths[pathIdx]          = nil
+            paths[pathIdx]          = nil
 
-        if element then
-            tinsert(classes, element)
-            tinsert(paths, name)
-            saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value)
-            tremove(classes)
-            tremove(paths)
-        elseif props then
-            name                = strlower(name)
-            local prop          = props[name]
-            if not prop then throw(strformat("The %q isn't a valid property for %s", name, tostring(class))) end
+            if element then
+                tinsert(classes, element)
+                tinsert(paths, name)
+                saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value)
+                tremove(classes)
+                tremove(paths)
+            elseif props then
+                name                = strlower(name)
+                local prop          = props[name]
+                if not prop then throw(strformat("The %q isn't a valid property for %s", name, tostring(class))) end
 
-            if prop.childtype then
-                container[name] = true -- So we can easily track the child property settings
+                if prop.childtype then
+                    container[name] = true -- So we can easily track the child property settings
 
-                if value == NIL or value == CLEAR or isObservable(value) then
-                    if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
-                    container[name]     = value
-                elseif type(value) == "table" and getmetatable(value) == nil then
-                    saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value)
+                    if value == NIL or value == CLEAR or isObservable(value) then
+                        if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
+                        container[name]     = value
+                    elseif type(value) == "table" and getmetatable(value) == nil then
+                        saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value)
+                    else
+                        throw(strformat("The %q is a child generated from property, need table as settings", name))
+                    end
                 else
-                    throw(strformat("The %q is a child generated from property, need table as settings", name))
+                    if value == NIL or value == CLEAR then
+                        container[name]     = value
+                    elseif isObservable(value) then
+                        container[name]     = value
+                    else
+                        if prop.validate then
+                            local ret, msg  = prop.validate(prop.type, value)
+                            if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
+                            value           = ret
+                        end
+
+                        container[name]     = value
+                    end
                 end
             else
-                if value == NIL or value == CLEAR then
-                    container[name]     = value
-                elseif isObservable(value) then
-                    container[name]     = value
-                else
-                    if prop.validate then
-                        local ret, msg  = prop.validate(prop.type, value)
-                        if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
-                        value           = ret
-                    end
-
-                    container[name]     = value
-                end
+                throw("The " .. class .. " has no property definitions")
             end
-        else
-            throw("The " .. class .. " has no property definitions")
+        elseif isUIObjectType(name) then
+            -- @todo
         end
     end
 end
@@ -1532,17 +1553,14 @@ function Style.RegisterSkin(name, settings)
     return true
 end
 
-__Arguments__{ NEString, SkinSettings }:Throwable()
-function Style.UpdateSkin(name, settings)
+__Arguments__{ NEString, SkinSettings, Boolean/nil }:Throwable()
+function Style.UpdateSkin(name, settings, update)
     name                        = strlower(name)
     local skins                 = _Skins[name]
-
-    if not skins then
-        throw("Usage: Style.UpdateSkin(name, settings) - the name doesn't existed")
-    end
+    if not skins then throw("Usage: Style.UpdateSkin(name, settings[, update]) - the name doesn't existed") end
 
     for class, setting in pairs(settings) do
-        local skin              = emptyDefaultStyle(skins[class]) or {}
+        local skin              = not update and emptyDefaultStyle(skins[class]) or skins[class] or {}
         skins[class]            = skin
 
         saveSkinSettings({class}, {}, skin, setting)
