@@ -33,6 +33,7 @@ local isObservable              = function(val) return type(val) == "table" and 
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
 
 local CHILD_SETTING             = 0   -- For children
+local CHILD_CLS_SETTING         = 1   -- For child classes
 local INSTANT_STYLE_UI_CLASS    = {}
 
 ----------------------------------------------
@@ -243,7 +244,6 @@ local function prepareSettings(settings, target, final, cache, paths)
     final                       = final or {}
 
     local classCnt
-
     if isClassSkin then
         paths                   = paths or {}
         classCnt                = #target
@@ -330,8 +330,8 @@ local function prepareSettings(settings, target, final, cache, paths)
                     end
                 elseif not ek then
                     -- No property check here, the error would be raised by the caller
-                    cache[lk]   = k
-                    final[k]    = v
+                    cache[lk]       = k
+                    final[k]        = v
                 end
             end
         elseif isClassSkin and isUIObjectType(k) then
@@ -391,7 +391,7 @@ end
 local function emptyDefaultStyle(settings)
     if settings and settings ~= NIL and settings ~= CLEAR then
         for k, v in pairs(settings) do
-            if k == CHILD_SETTING then
+            if k == CHILD_SETTING or k == CHILD_CLS_SETTING then
                 for child, csetting in pairs(v) do
                     emptyDefaultStyle(csetting)
                 end
@@ -576,7 +576,7 @@ local _ActiveSkin               = {}
 
 local function copyBaseSkinSettings(container, base)
     for k, v in pairs(base) do
-        if k == CHILD_SETTING then
+        if k == CHILD_SETTING or k == CHILD_CLS_SETTING then
             for name, setting in pairs(v) do
                 copyBaseSkinSettings(gettable(gettable(container, k), name), setting)
             end
@@ -587,7 +587,7 @@ local function copyBaseSkinSettings(container, base)
 end
 
 local function saveSkinSettings(classes, paths, container, settings)
-    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  "must be table") end
+    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  " must be table") end
 
     local pathIdx               = #classes
     local class                 = classes[pathIdx]
@@ -595,10 +595,10 @@ local function saveSkinSettings(classes, paths, container, settings)
 
     settings                    = prepareSettings(settings, classes) -- Copy and remove the share settings
 
-    -- Check inherit
+    -- Check inherit & key
     for name, value in pairs(settings) do
         if type(name) == "string" then
-            if strlower(name) == "inherit" then
+            if strlower(name)  == "inherit" then
                 settings[name]  = nil
 
                 if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
@@ -672,15 +672,25 @@ local function saveSkinSettings(classes, paths, container, settings)
                 throw("The " .. class .. " has no property definitions")
             end
         elseif isUIObjectType(name) then
-            -- @todo
+            -- Don't support observable or NIL
+            if value == CLEAR then
+                if container[CHILD_CLS_SETTING] and container[CHILD_CLS_SETTING][name] then
+                    -- Keep the styles settings for skin clear
+                    emptyDefaultStyle(container[CHILD_CLS_SETTING][name])
+                end
+            elseif type(value) == "table" and getmetatable(value) == nil then
+                saveSkinSettings({ name }, {}, gettable(gettable(container, CHILD_CLS_SETTING), name), value)
+            else
+                throw(strformat("The %q is a child class, need table as settings", tostring(name)))
+            end
         end
     end
 end
 
 local function copyToDefault(settings, default)
     for name, value in pairs(settings) do
-        if name == CHILD_SETTING then
-            local childsettings = gettable(default, CHILD_SETTING)
+        if name == CHILD_SETTING or name == CHILD_CLS_SETTING then
+            local childsettings = gettable(default, name)
             for element, setting in pairs(value) do
                 copyToDefault(setting, gettable(childsettings, element))
             end
@@ -693,7 +703,7 @@ end
 local function activeSkin(name, class, skin, force)
     if force and _ActiveSkin[class] and _ActiveSkin[class] ~= name then return end
     if not force and _ActiveSkin[class] == name then return end
-    _ActiveSkin[class] = name
+    _ActiveSkin[class]          = name
 
     local default               = emptyDefaultStyle(_DefaultStyle[class]) or {}
     _DefaultStyle[class]        = default
@@ -705,7 +715,8 @@ end
 ----------------------------------------------
 --                 UIObject                 --
 ----------------------------------------------
-__Abstract__() __Sealed__() class "UIObject"(function(_ENV)
+__Abstract__() __Sealed__()
+class "UIObject"(function(_ENV)
 
     ----------------------------------------------
     --                 Helpers                  --
@@ -980,7 +991,8 @@ end)
 ----------------------------------------------
 --               __Bubbling__               --
 ----------------------------------------------
-__Sealed__() class "__Bubbling__" (function(_ENV)
+__Sealed__()
+class "__Bubbling__" (function(_ENV)
     extend "IApplyAttribute"
 
     local getChild              = UIObject.GetChild
@@ -1041,7 +1053,8 @@ end)
 ----------------------------------------------
 --                 Template                 --
 ----------------------------------------------
-__Sealed__() class "__Template__" (function (_ENV)
+__Sealed__()
+class "__Template__" (function (_ENV)
     extend "IInitAttribute"
 
     local _Template             = {}
@@ -1255,7 +1268,8 @@ end)
 ----------------------------------------------
 --              Style Property              --
 ----------------------------------------------
-__Sealed__() struct "Scorpio.UI.Property" {
+__Sealed__()
+struct "Scorpio.UI.Property" {
     name                        = { type  = NEString, require = true },
     type                        = { type  = AnyType },
     require                     = { type  = ClassType + struct { ClassType }, require = true },
@@ -1499,7 +1513,7 @@ function Style.GetCustomStyles(frame)
     end
 end
 
-__Arguments__{ - UIObject, NEString * 0 } __Iterator__()
+__Arguments__{ -UIObject, NEString * 0 } __Iterator__()
 function Style.GetDefaultStyles(class, ...)
     local default               = _DefaultStyle[class]
 
