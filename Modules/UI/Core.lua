@@ -277,15 +277,15 @@ local function prepareSettings(settings, target, final, cache, paths)
 
                 if element then
                     tinsert(target, element)
-                    tinsert(paths, k)
+                    tinsert(paths,  k)
 
                     if not ek then
-                        cache[lk] = k
+                        cache[lk]   = k
                         if type(v) == "table" and getmetatable(v) == nil then
-                            final[k] = prepareSettings(v, target, nil, nil, paths)
+                            final[k]= prepareSettings(v, target, nil, nil, paths)
                         else
                             -- Error but will be checked later
-                            final[k] = v
+                            final[k]= v
                         end
                     elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
                         -- Combine the share settings
@@ -1744,23 +1744,25 @@ end
 local function buildTempStyle(frame, forClear)
     local styles                            = _Recycle()
     local paths                             = _Recycle()
+    local clspaths                          = _Recycle()
     local children                          = _Recycle()
     local tempClass                         = _Recycle()
+    local childcls
 
     local props                             = _Property[getUIPrototype(frame)]
-    if not props then return styles, children end -- No properties can be found
+    if not props then return styles, children, childcls end -- No properties can be found
 
     -- Prepare the style settings
     -- Custom -> Root Parent Class -> ... -> Parent Class -> Frame Class -> Super Class
     local name                              = _PropertyChildName[frame] or UIObject.GetName(frame)
     local parent                            = UIObject.GetParent(frame)
 
+    clspaths[1]                             = getmetatable(frame)
     while parent and name do
         local cls                           = getmetatable(parent)
-
         tinsert(paths, 1, name)
 
-        if cls and isUIObjectType(cls) then
+        if isUIObjectType(cls) then
             wipe(tempClass)
 
             repeat
@@ -1775,8 +1777,8 @@ local function buildTempStyle(frame, forClear)
                 local index                 = 1
 
                 while default and paths[index] do
-                    default                 = default[CHILD_SETTING]
-                    default                 = default and default[paths[index]]
+                    default                 =  default[CHILD_SETTING]     and default[CHILD_SETTING]    [paths[index]]
+                                            or default[CHILD_CLS_SETTING] and default[CHILD_CLS_SETTING][clspaths[index]]
                     index                   = index + 1
                 end
 
@@ -1791,6 +1793,11 @@ local function buildTempStyle(frame, forClear)
                                     -- So don't create the property child dynamicly
                                     styles[name]    = true
                                 end
+                            end
+                        elseif prop == CHILD_CLS_SETTING then
+                            childcls                = childcls or _Recycle()
+                            for ccls in pairs(value) do
+                                childcls[ccls]      = true
                             end
                         else
                             if value ~= CLEAR or styles[prop] == nil then
@@ -1830,11 +1837,13 @@ local function buildTempStyle(frame, forClear)
             end
         end
 
+        tinsert(clspaths, 1, cls)
         name                                = _PropertyChildName[parent] or UIObject.GetName(parent)
         parent                              = UIObject.GetParent(parent)
     end
 
     _Recycle(wipe(paths))
+    _Recycle(wipe(clspaths))
     _Recycle(wipe(tempClass))
 
     if _CustomStyle[frame] then
@@ -1886,6 +1895,11 @@ local function buildTempStyle(frame, forClear)
                                 children[name] = true
                             end
                         end
+                    elseif prop == CHILD_CLS_SETTING then
+                        childcls            = childcls or _Recycle()
+                        for ccls in pairs(value) do
+                            childcls[ccls]  = true
+                        end
                     elseif styles[prop] == nil or styles[prop] == CLEAR then
                         local noOverride    = true
 
@@ -1917,7 +1931,7 @@ local function buildTempStyle(frame, forClear)
         end
     end
 
-    return styles, children
+    return styles, children, childcls
 end
 
 local function clearStyle(frame)
@@ -1929,7 +1943,7 @@ local function clearStyle(frame)
 
         Trace("[Scorpio.UI]Clear Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-        local styles, children              = buildTempStyle(frame, true)
+        local styles, children, childcls    = buildTempStyle(frame, true)
 
         -- Clear the children
         for name in pairs(children) do
@@ -1948,8 +1962,18 @@ local function clearStyle(frame)
                 end
             end
         end
-
         _Recycle(wipe(children))
+
+        -- Clear the children of the classes, normally won't be used
+        if childcls then
+            for name, child in UIObject.GetChilds(frame) do
+                if childcls[getmetatable(child)] then
+                    clearStyle(child)
+                end
+            end
+
+            _Recycle(wipe(childcls))
+        end
 
         -- Apply the style settings
         local ok, err                       = pcall(clearStylesOnFrame, frame, styles)
@@ -1992,7 +2016,7 @@ function ApplyStyleService()
 
                     Trace("[Scorpio.UI]Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-                    local styles, children  = buildTempStyle(frame)
+                    local styles, children, childcls = buildTempStyle(frame)
 
                     -- Queue the children
                     for name in pairs(children) do
@@ -2006,8 +2030,17 @@ function ApplyStyleService()
                             if child then applyStyle(child) end
                         end
                     end
-
                     _Recycle(wipe(children))
+
+                    -- Queue the children of the target type
+                    if childcls then
+                        for name, child in UIObject.GetChilds(frame) do
+                            if childcls[getmetatable(child)] then
+                                applyStyle(child)
+                            end
+                        end
+                        _Recycle(wipe(childcls))
+                    end
 
                     _StyleQueue[frame]      = nil
 
@@ -2113,7 +2146,7 @@ function UIObject:InstantApplyStyle(skipCheck)
 
     Trace("[Scorpio.UI]Instant Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-    local styles, children  = buildTempStyle(self)
+    local styles, children, childcls = buildTempStyle(self)
 
     -- Check the location props, dirty but should be only property has relationship
     if not skipCheck and type(styles["location"]) == "table" then
@@ -2137,6 +2170,16 @@ function UIObject:InstantApplyStyle(skipCheck)
             child           = props[name].get(self)
             if child then children[name] = child end
         end
+    end
+
+    -- Queue the children of the target class
+    if childcls then
+        for name, child in UIObject.GetChilds(self) do
+            if children[name] == nil and childcls[getmetatable(child)] then
+                children[name] = child
+            end
+        end
+        _Recycle(wipe(childcls))
     end
 
     for name, child in pairs(children) do
