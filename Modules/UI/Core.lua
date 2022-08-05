@@ -586,7 +586,7 @@ local function copyBaseSkinSettings(container, base)
     end
 end
 
-local function saveSkinSettings(classes, paths, container, settings)
+local function saveSkinSettings(classes, paths, container, settings, updateChildClass)
     if type(settings) ~= "table" then throw("The skin settings for " .. class ..  " must be table") end
 
     local pathIdx               = #classes
@@ -634,7 +634,7 @@ local function saveSkinSettings(classes, paths, container, settings)
             if element then
                 tinsert(classes, element)
                 tinsert(paths, name)
-                saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value)
+                saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value, updateChildClass)
                 tremove(classes)
                 tremove(paths)
             elseif props then
@@ -649,7 +649,7 @@ local function saveSkinSettings(classes, paths, container, settings)
                         if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
                         container[name]     = value
                     elseif type(value) == "table" and getmetatable(value) == nil then
-                        saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value)
+                        saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value, updateChildClass)
                     else
                         throw(strformat("The %q is a child generated from property, need table as settings", name))
                     end
@@ -679,7 +679,9 @@ local function saveSkinSettings(classes, paths, container, settings)
                     emptyDefaultStyle(container[CHILD_CLS_SETTING][name])
                 end
             elseif type(value) == "table" and getmetatable(value) == nil then
-                saveSkinSettings({ name }, {}, gettable(gettable(container, CHILD_CLS_SETTING), name), value)
+                local scontainer            = gettable(gettable(container, CHILD_CLS_SETTING), name)
+                if not updateChildClass then emptyDefaultStyle(scontainer) end
+                saveSkinSettings({ name }, {}, scontainer, value, true)
             else
                 throw(strformat("The %q is a child class, need table as settings", tostring(name)))
             end
@@ -1560,15 +1562,15 @@ function Style.RegisterSkin(name, settings)
             local skin          = {}
             skins[class]        = skin
 
-            saveSkinSettings({class}, {}, skin, setting)
+            saveSkinSettings({class}, {}, skin, setting, true)
         end
     end
 
     return true
 end
 
-__Arguments__{ NEString, SkinSettings, Boolean/nil }:Throwable()
-function Style.UpdateSkin(name, settings, update)
+__Arguments__{ NEString, SkinSettings, Boolean/nil, Boolean/nil }:Throwable()
+function Style.UpdateSkin(name, settings, update, updateChildClass)
     name                        = strlower(name)
     local skins                 = _Skins[name]
     if not skins then throw("Usage: Style.UpdateSkin(name, settings[, update]) - the name doesn't existed") end
@@ -1577,7 +1579,7 @@ function Style.UpdateSkin(name, settings, update)
         local skin              = not update and emptyDefaultStyle(skins[class]) or skins[class] or {}
         skins[class]            = skin
 
-        saveSkinSettings({class}, {}, skin, setting)
+        saveSkinSettings({class}, {}, skin, setting, not update or updateChildClass)
         activeSkin(name, class, skin, true)
     end
 end
