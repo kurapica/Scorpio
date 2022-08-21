@@ -18,6 +18,18 @@ local _PanelMap                 = {}
 class "Scorpio"                 (function(_ENV)
     local _PanelCount           = 0
 
+    --- Sets the saved variable to the _Config node
+    function SetSavedVariable(self, name)
+        self._Config:SetSavedVariable(name, 2)
+        return self
+    end
+
+    --- Sets the saved variable to the _CharConfig Node
+    function SetCharSavedVariable(Self, name)
+        self._CharConfig:SetSavedVariable(name, 2)
+        return self
+    end
+
     --- Start using the config panel for the addon
     __Arguments__{ Boolean/nil }
     function UseConfigPanel(self, showAllSubNodes)
@@ -26,7 +38,7 @@ class "Scorpio"                 (function(_ENV)
         if _PanelMap[config] then return self end
 
         _PanelCount             = _PanelCount + 1
-        _PanelMap[config]       = ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, config, addon._Name, nil, showAllSubNodes)
+        _PanelMap[config]       = ConfigCategoryPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, config, addon._Name, nil, showAllSubNodes)
         return self
     end
 
@@ -40,7 +52,7 @@ class "Scorpio"                 (function(_ENV)
         end
 
         _PanelCount             = _PanelCount + 1
-        _PanelMap[node]         = ConfigPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node, name, addon._Name, showAllSubNodes)
+        _PanelMap[node]         = ConfigCategoryPanel("Scorpio_Config_Node_Panel_" .. _PanelCount, InterfaceOptionsFrame, node, name, addon._Name, showAllSubNodes)
         return self
     end
 
@@ -118,7 +130,8 @@ end)
 
 ------------------------------------------------------
 -- Auto-Gen Config UI Panel
-------------------------------------------------------
+-------------------------------------------------------
+--- The panel used to display the config node
 __Sealed__()
 class "ConfigPanel"             (function(_ENV)
     inherit "Frame"
@@ -150,7 +163,23 @@ class "ConfigPanel"             (function(_ENV)
         end
     end
 
-    local function showNodeFields(self, panel, node, locale)
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- Whether show the child config nodes
+    property "ShowAllSubNodes"  { type = Boolean }
+
+    --- The config node
+    property "ConfigNode"       { type = ConfigNode }
+
+    ----------------------------------------------
+    --                  Method                  --
+    ----------------------------------------------
+    --- Refresh the config panel and record the current value
+    function Begin(self)
+        self.__OriginValues     = self.ConfigNode:GetValues()
+        self.__CurrValues       = self.ConfigNode:GetValues()
+
         local index                         = 1
 
         --- Add the data type elements
@@ -191,82 +220,27 @@ class "ConfigPanel"             (function(_ENV)
                 index                       = index + 1
             end
         end
-
-        --- Update layout manager for the panel
-        Style[panel].layoutManager          = self.LayoutManager
     end
 
-    ----------------------------------------------
-    --                 Property                 --
-    ----------------------------------------------
-    --- The label's style
-    property "LabelStyle"       { type = Table }
-
-    --- The layout manager for scroll panel and group panel used in the config panel
-    property "LayoutManager"    { type = ILayoutManager }
-
-    --- The config node
-    property "ConfigNode"       { type = ConfigNode }
-
-    --- Whether the panel is already rendering
-    property "Rendered"         { type = Boolean }
-
-    --- Whether show the child config nodes
-    property "ShowAllSubNodes"  { type = Boolean, field = "__ShowAllSubNodes" }
-
-    --- The config node
-    property "ConfigNode"       { type = ConfigNode, field = "__ConfigNode" }
-
-    ----------------------------------------------
-    --                  Method                  --
-    ----------------------------------------------
-    --- This method will run when the player clicks "okay" in the Interface Options.
-    function okay(self)
-        print("okay")
+    --- Roll back to the old values
+    function Rollback(self)
+        self.ConfigNode:SetValues(self.__OriginValues)
+        self.__OriginValues     = nil
+        self.__CurrValues       = nil
     end
 
-    --- This method will run when the player clicks "cancel" in the Interface Options.
-    function cancel(self)
-        print("cancel")
+    --- Commit the selected value to config node fields
+    function Commit(self)
+        self.ConfigNode:SetValues(self.__CurrValues)
+        self.__OriginValues     = nil
+        self.__CurrValues       = nil
     end
 
-    --- This method will run when the player clicks "defaults".
-    function default(self)
-        print("default")
-    end
-
-    --- This method will run when the Interface Options frame calls its OnShow function and after defaults
-    __AsyncSingle__()
-    function refresh(self)
-        -- Only render when it's visible
-        if not self:IsVisible() then
-            Next(Observable.From(self.OnShow))
-        end
-
-        -- Rendering the scroll child
-        showNodeFields(self, self:GetChild("ScrollFrame"):GetChild("ScrollChild"), self.ConfigNode, node._Addon._Locale)
-
-        self.Rendered           = true
-    end
-
-    ----------------------------------------------
-    --               Constructor                --
-    ----------------------------------------------
-    __Template__{
-        ScrollFrame             = FauxScrollFrame
-    }
-    function __ctor(self)
-        return InterfaceOptions_AddCategory(self)
-    end
-
-    __Arguments__{ NEString, UI, ConfigNode, NEString, NEString/nil, Boolean/nil }
-    function __new(_, name, parent, node, cateName, cateParent, showAllSubNodes)
-        local frame             = CreateFrame("Frame", nil, parent)
-        frame.name              = cateName
-        frame.parent            = cateParent
-        frame.__ConfigNode      = node
-        frame.__ShowAllSubNodes = showAllSubNodes
-        return frame
+    --- Resets the config node field values
+    function Reset(self)
+        self.ConfigNode:SetValues{}
+        self.__OriginValues     = nil
+        self.__CurrValues       = nil
     end
 end)
 
@@ -275,21 +249,6 @@ end)
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        ScrollFrame             = {
-            location            = {
-                Anchor("TOPLEFT", 0, -8),
-                Anchor("BOTTOMRIGHT", -32, 8)
-            },
-            scrollBarHideable   = true,
-        },
-
-        labelStyle              = {
-            location            = {
-                { Anchor("RIGHT", -4, 0, "LEFT") }
-            },
-            width               = 80,
-            JustifyH            = "LEFT",
-        },
         layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
     }
 })

@@ -8,7 +8,7 @@
 	<!-- Config Data Type -->
 	<Script file="ConfigType.lua"/>
 
-	<!-- Config UI -->
+	<!-- Config Panel -->
 	<Script file="ConfigUI.lua"/>
 
 	<!-- Config Node -->

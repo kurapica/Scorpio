@@ -133,8 +133,8 @@ class "ConfigNode"              (function(_ENV)
     --                  Method                  --
     ----------------------------------------------
     --- Sets the field with type and default value
-    __Arguments__{ NEString, EnumType + StructType, Any/nil, NEString/nil, Boolean/nil }:Throwable()
-    function SetField(self, name, ftype, value, desc, enableui)
+    __Arguments__{ NEString, EnumType + StructType, Any/nil, NEString/nil, Boolean/nil, Boolean/nil }:Throwable()
+    function SetField(self, name, ftype, value, desc, enableui, enableQuickApply)
         name                    = strlower(name)
 
         local fields            = _Fields[self]
@@ -147,7 +147,7 @@ class "ConfigNode"              (function(_ENV)
             throw("The field " .. name .. " already has type specified")
         end
 
-        fields[name]            = { type = ftype, desc = desc, enableui = enableui }
+        fields[name]            = { type = ftype, desc = desc, enableui = enableui, enablequickapply = enableQuickApply }
         tinsert(fields, name)
 
         if value ~= nil then
@@ -166,7 +166,7 @@ class "ConfigNode"              (function(_ENV)
         local fields            = _Fields[self]
         local field             = fields and fields[strlower(name)]
         if not field then return end
-        return field.type, clone(field.default, true), field.desc, field.enableui
+        return field.type, clone(field.default, true), field.desc, field.enableui, field.enablequickapply
     end
 
     --- Gets the fields
@@ -177,7 +177,7 @@ class "ConfigNode"              (function(_ENV)
             local yield         = yield
             for _, name in ipairs(fields) do
                 local field     = fields[name]
-                yield(name, field.type, clone(field.default, true), field.desc, field.enableui)
+                yield(name, field.type, clone(field.default, true), field.desc, field.enableui, field.enablequickapply)
             end
         end
     end
@@ -248,7 +248,7 @@ class "ConfigNode"              (function(_ENV)
         return self:InitConfigNode(_G, sv)
     end
 
-    --- Set the value to the field
+    --- Sets the value to the field
     function SetValue(self, name, value, stack, init)
         local rawdata           = _RawData[self]
 
@@ -281,10 +281,56 @@ class "ConfigNode"              (function(_ENV)
             value               = field.default
         end
 
-        value                   = clone(value, true)
-        rawdata[name]           = value
+        if rawdata[name] == value then return end
+        rawdata[name]           = clone(value, true)
 
         return field.subject and field.subject:OnNext( clone(value, true) )
+    end
+
+    --- Sets values to the fields
+    function SetValues(self, values, stack)
+        if type(values) ~= "table" then
+            error("Usage: ConfigNode:SetValues(values[, stack]) - the values must be a table", (stack or 1) + 1)
+        end
+
+        local rawdata           = _RawData[self]
+
+        if not rawdata then
+            if init then return end
+            error("The config node isn't inited, please wait until the saved variable is loaded", (stack or 1) + 1)
+        end
+
+        stack                   = (stack or 1) + 1
+
+        local fields            = _Fields[self]
+        if not fields then return end
+        for _, fldname in ipairs(fields) do
+            self:SetValue(fldname, values[fldname], stack)
+        end
+    end
+
+    --- Gets the value from field
+    function GetValue(self, name)
+        local rawdata           = _RawData[self]
+        if not rawdata then return end
+
+        name                    = strlower(name)
+        return name ~= CHILD_NODE and clone(rawdata[name], true) or nil
+    end
+
+    --- Gets all node field values
+    function GetValues(self)
+        local rawdata           = _RawData[self]
+        if not rawdata then return end
+
+        local ret               = {}
+        for k, v in pairs(rawdata) do
+            if k ~= CHILD_NODE then
+                ret[k]          = clone(v, true)
+            end
+        end
+
+        return ret
     end
 
     --- Init the config node, this must be called by the system, don't use it by your own
@@ -546,7 +592,7 @@ class "__Config__" (function(_ENV)
             default         = ret
         end
 
-        node:SetField(name, ftype, default, self.Desc, self.EnableFieldUI)
+        node:SetField(name, ftype, default, self.Desc, self.EnableFieldUI, self.EnableQuickApply)
         node[name]:Subscribe(target)
 
         return function(value)
@@ -556,7 +602,13 @@ class "__Config__" (function(_ENV)
 
     --- Disable the config ui for field
     function DisableUI(self)
-        self.EnableFieldUI = false
+        self.EnableFieldUI      = false
+        return self
+    end
+
+    --- Disable the quick apply
+    function DisableQuickApply(self)
+        self.EnableQuickApply   = false
         return self
     end
 
@@ -588,6 +640,9 @@ class "__Config__" (function(_ENV)
 
     --- Whether enable the UI for the field
     property "EnableFieldUI"    { type = Boolean }
+
+    --- Disable quick apply, so the config UI won't apply the changed until click the OKay button
+    property "EnableQuickApply" { type = Boolean, default = true }
 
     ----------------------------------------------
     --                Constructor               --
