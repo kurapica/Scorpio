@@ -17,9 +17,7 @@ class "ConfigSubject"           (function(_ENV)
 
     local NODE_FIELD            = 1
     local NAME_FIELD            = 2
-    local TYPE_FIELD            = 3
-    local VALUE_FIELD           = 4
-    local DESC_FIELD            = 5
+    local VALUE_FIELD           = 3
 
     local onNext                = Subject.OnNext
 
@@ -32,14 +30,14 @@ class "ConfigSubject"           (function(_ENV)
     --- The config node field
     property "Field"            { set = false, field = NAME_FIELD }
 
-    --- The config field type
-    property "Type"             { set = false, field = TYPE_FIELD }
-
     --- The current config node field value
     property "Value"            { set = "SetValue", field = VALUE_FIELD }
 
-    --- The config field description
-    property "Desc"             { set = false, field = DESC_FIELD }
+    --- The desc of the config node
+    property "Desc"             { get = function(self) return select(2, self[NODE_FIELD]:GetField(self[NAME_FIELD])) end }
+
+    --- The localized field name
+    property "LocalizedField"   { get = function(self) return self[NODE_FIELD]._Addon._Locale[self[NAME_FIELD]] end }
 
     -----------------------------------------------------------------------
     --                              method                               --
@@ -68,12 +66,10 @@ class "ConfigSubject"           (function(_ENV)
     -----------------------------------------------------------------------
     --                            constructor                            --
     -----------------------------------------------------------------------
-    __Arguments__{ ConfigNode, NEString, AnyType, Any/nil, String/nil }
-    function __ctor(self, node, field, type, value, desc)
+    __Arguments__{ ConfigNode, NEString, Any/nil }
+    function __ctor(self, node, field, value)
         self[NODE_FIELD]        = node
         self[NAME_FIELD]        = field
-        self[TYPE_FIELD]        = type
         self[VALUE_FIELD]       = value
-        self[DESC_FIELD]        = desc
     end
 end)

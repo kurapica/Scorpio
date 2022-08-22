@@ -161,12 +161,13 @@ class "ConfigNode"              (function(_ENV)
     end
 
     --- Gets the field type, default value and description
-    __Arguments__{ NEString }
     function GetField(self, name)
+        if type(name) ~= "string" then return end
+
         local fields            = _Fields[self]
         local field             = fields and fields[strlower(name)]
         if not field then return end
-        return field.type, clone(field.default, true), field.desc, field.enableui, field.enablequickapply
+        return field.type, field.desc, field.enableui, field.enablequickapply
     end
 
     --- Gets the fields
@@ -177,7 +178,7 @@ class "ConfigNode"              (function(_ENV)
             local yield         = yield
             for _, name in ipairs(fields) do
                 local field     = fields[name]
-                yield(name, field.type, clone(field.default, true), field.desc, field.enableui, field.enablequickapply)
+                yield(name, field.type, field.desc, field.enableui, field.enablequickapply)
             end
         end
     end
@@ -397,7 +398,7 @@ class "ConfigNode"              (function(_ENV)
             local subject       = field.subject
             if not subject then
                 local rawdata   = _RawData[self]
-                subject         = ConfigSubject( self, name, field.type, clone(rawdata and rawdata[name], true), field.desc )
+                subject         = ConfigSubject( self, name, clone(rawdata and rawdata[name], true) )
                 field.subject   = subject
             end
             return subject

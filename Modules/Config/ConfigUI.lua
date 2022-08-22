@@ -75,12 +75,19 @@ end)
 __Sealed__()
 interface "IConfigSubjectHandler" (function(_ENV)
     -----------------------------------------------------------
+    --                       property                        --
+    -----------------------------------------------------------
+    --- The config subject
+    __Final__() __Observable__():AsInheritable()
+    property "ConfigNodeField"  { type = ConfigNode, handler = "SetConfigNodeField" }
+
+    -----------------------------------------------------------
     --                    abstract method                    --
     -----------------------------------------------------------
     --- Binding the ui element with a config node field's info,
     -- also can be used to clear the binding if configSubject is nil
     __Abstract__()
-    function SetConfigSubject(self, configSubject)
+    function SetConfigNodeField(self, configSubject)
     end
 end)
 
@@ -180,10 +187,10 @@ class "ConfigPanel"             (function(_ENV)
         self.__OriginValues     = self.ConfigNode:GetValues()
         self.__CurrValues       = self.ConfigNode:GetValues()
 
-        local index                         = 1
+        local index             = 1
 
         --- Add the data type elements
-        for name, ftype, _, desc, enableui in node:GetFields() do
+        for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
             if enableui ~= false then
                 local widget                = getWidgetType(ftype)
                 if widget then
@@ -192,14 +199,12 @@ class "ConfigPanel"             (function(_ENV)
                         -- The field order can't be changed, so we don't need recycle them
                         ui                  = widget("ConfigFieldWidget" .. index, panel)
                         ui:SetID(index)
-                        ui:SetConfigSubject(node[name])
+                        ui.ConfigNodeField  = node[name]
 
                         panel[index]        = ui
                     end
-                    Style[ui].label         = self.LabelStyle
-                    Style[ui].label.text    = locale[name]
                     index                   = index + 1
-                else
+                elseif enableui then
                     Warn("Lack the config ui widget for data type " .. tostring(ftype))
                 end
             end
