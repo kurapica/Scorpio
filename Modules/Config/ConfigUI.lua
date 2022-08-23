@@ -184,45 +184,46 @@ class "ConfigPanel"             (function(_ENV)
     ----------------------------------------------
     --- Refresh the config panel and record the current value
     function Begin(self)
-        self.__OriginValues     = self.ConfigNode:GetValues()
-        self.__CurrValues       = self.ConfigNode:GetValues()
+        local node              = self.ConfigNode
+        self.__OriginValues     = node:GetValues()
 
-        local index             = 1
+        -- Render once
+        if #self == 0 then
+            local index         = 1
+            local locale        = node._Addon._Locale
 
-        --- Add the data type elements
-        for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
-            if enableui ~= false then
-                local widget                = getWidgetType(ftype)
-                if widget then
-                    local ui                = panel[index]
-                    if not ui then
+            --- Add the data type elements
+            for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
+                if enableui ~= false then
+                    local widget            = getWidgetType(ftype)
+                    if widget then
                         -- The field order can't be changed, so we don't need recycle them
-                        ui                  = widget("ConfigFieldWidget" .. index, panel)
+                        local ui            = widget("ConfigFieldWidget" .. index, self)
                         ui:SetID(index)
                         ui.ConfigNodeField  = node[name]
 
-                        panel[index]        = ui
+                        self[index]         = ui
+                        index               = index + 1
+                    else
+                        Warn("Lack the config ui widget for data type " .. tostring(ftype))
                     end
-                    index                   = index + 1
-                elseif enableui then
-                    Warn("Lack the config ui widget for data type " .. tostring(ftype))
                 end
             end
-        end
 
-        --- Add sub config nodes as group box
-        for name, subnode in node:GetSubNodes() do
-            -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
-            if not _PanelMap[subnode] and (subnode.IsUIEnabled or self.ShowAllSubNodes and subnode.IsUIEnabled ~= false) then
-                local ui                    = panel[index]
-                if not ui then
-                    ui                      = GroupBox("ConfigFieldWidget" .. index, panel)
+            --- Add sub config nodes as group box
+            for name, subnode in node:GetSubNodes() do
+                -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
+                if not _PanelMap[subnode] and (subnode.IsUIEnabled or self.ShowAllSubNodes and subnode.IsUIEnabled ~= false) then
+                    local ui                = GroupBox("ConfigFieldWidget" .. index, self)
                     ui:SetID(index)
-                    panel[index]            = ui
+                    self[index]             = ui
+                    Style[ui].header.text   = locale[name]
+                    index                   = index + 1
+
+                    local configPanel       = ConfigPanel("ConfigPanel1", ui)
+                    configPanel.ConfigNode  = subnode
+                    configPanel.ShowAllSubNodes = self.ShowAllSubNodes
                 end
-                Style[ui].header.text       = locale[name]
-                showNodeFields(self, ui, subnode, locale)
-                index                       = index + 1
             end
         end
     end
@@ -231,29 +232,36 @@ class "ConfigPanel"             (function(_ENV)
     function Rollback(self)
         self.ConfigNode:SetValues(self.__OriginValues)
         self.__OriginValues     = nil
-        self.__CurrValues       = nil
     end
 
     --- Commit the selected value to config node fields
     function Commit(self)
-        self.ConfigNode:SetValues(self.__CurrValues)
         self.__OriginValues     = nil
-        self.__CurrValues       = nil
     end
 
     --- Resets the config node field values
     function Reset(self)
         self.ConfigNode:SetValues{}
         self.__OriginValues     = nil
-        self.__CurrValues       = nil
     end
 end)
 
 ------------------------------------------------------
 -- Default Style
 ------------------------------------------------------
+local layoutManager             = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
+
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
+        layoutManager           = layoutManager,
+
+        [GroupBox]              = {
+            layoutManager       = layoutManager,
+
+            [ConfigPanel]       = {
+                Anchor("TOPLEFT", 8, -48),
+                Anchor("RIGHT", -8, 0),
+            }
+        }
     }
 })
