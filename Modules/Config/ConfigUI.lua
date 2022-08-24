@@ -211,7 +211,7 @@ class "ConfigPanel"             (function(_ENV)
 
         --- Render the node field
         for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
-            if enableui ~= false then
+            if enableui then
                 local widget    = __ConfigDataType__.GetWidgetType(ftype)
                 if widget then
                     local ui    = self.NodeFieldWidgets[name]

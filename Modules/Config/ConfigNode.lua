@@ -671,7 +671,7 @@ class "__Config__" (function(_ENV)
     property "Desc"             { type = NEString }
 
     --- Whether enable the UI for the field
-    property "EnableFieldUI"    { type = Boolean }
+    property "EnableFieldUI"    { type = Boolean, default = true }
 
     --- Disable quick apply, so the config UI won't apply the changed until click the OKay button
     property "EnableQuickApply" { type = Boolean, default = true }
