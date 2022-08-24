@@ -81,14 +81,17 @@ interface "IConfigSubjectHandler" (function(_ENV)
     __Final__() __Observable__():AsInheritable()
     property "ConfigNodeField"  { type = ConfigNode, handler = "SetConfigNodeField" }
 
+    --- The value waiting for commit
+    __Abstract__()
+    property "ConfigNodeFieldUnCommitValue" { type = Any }
+
     -----------------------------------------------------------
     --                    abstract method                    --
     -----------------------------------------------------------
     --- Binding the ui element with a config node field's info,
     -- also can be used to clear the binding if configSubject is nil
     __Abstract__()
-    function SetConfigNodeField(self, configSubject)
-    end
+    function SetConfigNodeField(self, configSubject) end
 end)
 
 --- The bidirectional binding between the config node field and widget
@@ -104,7 +107,39 @@ class "__ConfigDataType__"      (function(_ENV)
     --- Gets the widget type for the data type
     __Static__()
     function GetWidgetType(dataType)
-        return _DataTypeWidgetMap[dataType]
+        -- Gets the direct map
+        local widget            = _DataTypeWidgetMap[dataType]
+        if widget then return widget end
+
+        -- Gets the common map
+        if Enum.Validate(dataType) then
+            return _DataTypeWidgetMap[EnumType]
+
+        elseif Struct.Validate(dataType) then
+            local stype         = Struct.GetStructCategory(dataType)
+
+            if stype == StructCategory.CUSTOM then
+                local btype     = Struct.GetBaseStruct(type)
+                while btype do
+                    widget      = _DataTypeWidgetMap[btype]
+                    if widget then return widget end
+                    btype       = Struct.GetBaseStruct(btype)
+                end
+
+                -- Use String as default
+                return _DataTypeWidgetMap[String]
+
+            elseif stype == StructCategory.ARRAY then
+                -- Would use special widget for complex struct types
+                return _DataTypeWidgetMap[ArrayStructType]
+
+            elseif stype == StructCategory.MEMBER then
+                return _DataTypeWidgetMap[MemberStructType]
+
+            elseif stype == StructCategory.DICTIONARY then
+                return _DataTypeWidgetMap[DictStructType]
+            end
+        end
     end
 
     -----------------------------------------------------------
@@ -143,41 +178,23 @@ __Sealed__()
 class "ConfigPanel"             (function(_ENV)
     inherit "Frame"
 
-    local function getWidgetType(dataType)
-        if Enum.Validate(ftype) then
-            return __ConfigDataType__.GetWidgetType(EnumType)
-
-        elseif Struct.Validate(ftype) then
-            local widgetType    = __ConfigDataType__.GetWidgetType(dataType)
-
-            local stype         = Struct.GetStructCategory(ftype)
-            if stype == StructCategory.CUSTOM then
-                local btype     = Struct.GetBaseStruct(type)
-                if btype then return GetConfigTypeUIMap(btype) end
-
-                -- Use String as default
-                return GetConfigTypeUIMap(String)
-
-            elseif stype == StructCategory.ARRAY then
-                return GetConfigTypeUIMap(ArrayStructType)
-
-            elseif stype == StructCategory.MEMBER then
-                return GetConfigTypeUIMap(MemberStructType)
-
-            elseif stype == StructCategory.DICTIONARY then
-                return GetConfigTypeUIMap(DictStructType)
-            end
-        end
-    end
-
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
+    --- The node field map
+    property "NodeFieldWidgets" { default = function() return {} end }
+
+    --- The sub node config panel
+    property "SubNodePanels"    { default = function() return {} end }
+
     --- Whether show the child config nodes
     property "ShowAllSubNodes"  { type = Boolean }
 
     --- The config node
     property "ConfigNode"       { type = ConfigNode }
+
+    __Observable__()
+    property "ConfigNodeName"   { type = String }
 
     ----------------------------------------------
     --                  Method                  --
@@ -185,45 +202,55 @@ class "ConfigPanel"             (function(_ENV)
     --- Refresh the config panel and record the current value
     function Begin(self)
         local node              = self.ConfigNode
+        self.ConfigNodeName     = self.ConfigNode._Name -- Refresh when open
         self.__OriginValues     = node:GetValues()
 
-        -- Render once
-        if #self == 0 then
-            local index         = 1
-            local locale        = node._Addon._Locale
+        -- Start rendering
+        local index             = 1
+        local locale            = node._Addon._Locale
 
-            --- Add the data type elements
-            for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
-                if enableui ~= false then
-                    local widget            = getWidgetType(ftype)
-                    if widget then
+        --- Render the node field
+        for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
+            if enableui ~= false then
+                local widget    = __ConfigDataType__.GetWidgetType(ftype)
+                if widget then
+                    local ui    = self.NodeFieldWidgets[name]
+
+                    if not ui then
                         -- The field order can't be changed, so we don't need recycle them
-                        local ui            = widget("ConfigFieldWidget" .. index, self)
-                        ui:SetID(index)
-                        ui.ConfigNodeField  = node[name]
-
-                        self[index]         = ui
-                        index               = index + 1
-                    else
-                        Warn("Lack the config ui widget for data type " .. tostring(ftype))
+                        ui      = widget("ConfigFieldWidget" .. name, self)
+                        ui.ConfigNodeField          = node[name]
+                        self.NodeFieldWidgets[name] = ui
                     end
+
+                    ui:SetID(index)
+                    if not enablequickapply then
+                        ui.ConfigNodeFieldUnCommitValue = node[name]:GetValue() -- reset the commit value
+                    end
+                    index       = index + 1
+                else
+                    Warn("Lack the config ui widget for data type " .. tostring(ftype))
                 end
             end
+        end
 
-            --- Add sub config nodes as group box
-            for name, subnode in node:GetSubNodes() do
-                -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
-                if not _PanelMap[subnode] and (subnode.IsUIEnabled or self.ShowAllSubNodes and subnode.IsUIEnabled ~= false) then
-                    local ui                = GroupBox("ConfigFieldWidget" .. index, self)
-                    ui:SetID(index)
-                    self[index]             = ui
-                    Style[ui].header.text   = locale[name]
-                    index                   = index + 1
+        --- Render the sub config node panel
+        for name, subnode in node:GetSubNodes() do
+            -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
+            if not _PanelMap[subnode] and (subnode.IsUIEnabled or self.ShowAllSubNodes and subnode.IsUIEnabled ~= false) then
+                local ui        = self.SubNodePanels[name]
 
-                    local configPanel       = ConfigPanel("ConfigPanel1", ui)
-                    configPanel.ConfigNode  = subnode
-                    configPanel.ShowAllSubNodes = self.ShowAllSubNodes
+                if not ui then
+                    ui                      = ConfigPanel("ConfigFieldPanel" .. name, self)
+                    ui.ConfigNode           = subnode
+                    ui.ShowAllSubNodes      = self.ShowAllSubNodes
+                    self.SubNodePanels[name]= ui
                 end
+
+                ui:SetID(index)
+                index           = index + 1
+
+                ui:Begin()
             end
         end
     end
@@ -232,36 +259,81 @@ class "ConfigPanel"             (function(_ENV)
     function Rollback(self)
         self.ConfigNode:SetValues(self.__OriginValues)
         self.__OriginValues     = nil
+
+        for _, panel in pairs(self.SubNodePanels) do
+            panel:Rollback()
+        end
     end
 
     --- Commit the selected value to config node fields
     function Commit(self)
         self.__OriginValues     = nil
+
+        for _, ui in pairs(self.NodeFieldWidgets) do
+            if not ui.ConfigNodeField.EnableQuickApply then
+                ui.ConfigNodeField:SetValue(ui.ConfigNodeFieldUnCommitValue)
+            end
+        end
+
+        for _, panel in pairs(self.SubNodePanels) do
+            panel:Commit()
+        end
     end
 
     --- Resets the config node field values
     function Reset(self)
         self.ConfigNode:SetValues{}
         self.__OriginValues     = nil
+
+        for _, panel in pairs(self.SubNodePanels) do
+            panel:Reset()
+        end
     end
 end)
+
+--- The header of the config panel
+__Sealed__() __Template__(Frame)
+__ChildProperty__(ConfigPanel, "Header")
+class "ConfigPanelHeader" {
+    HeaderText                  = FontString,
+    UnderLine                   = Texture,
+
+    --- The text of the header
+    Text                        = {
+        type                    = String,
+        get                     = function(self)
+            return self:GetChild("HeaderText"):GetText()
+        end,
+        set                     = function(self, text)
+            self:GetChild("HeaderText"):SetText(text or "")
+        end,
+    },
+}
 
 ------------------------------------------------------
 -- Default Style
 ------------------------------------------------------
-local layoutManager             = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 20, MarginBottom = 20, VSpacing = 6 }
-
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        layoutManager           = layoutManager,
+        layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 48, MarginBottom = 20, VSpacing = 6 },
 
-        [GroupBox]              = {
-            layoutManager       = layoutManager,
-
-            [ConfigPanel]       = {
-                Anchor("TOPLEFT", 8, -48),
-                Anchor("RIGHT", -8, 0),
-            }
+        Header                  = {
+            Text                = Wow.FromUIProperty("ConfigNodeName")
         }
+    },
+    [ConfigPanelHeader]         = {
+        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
+        height                  = 36,
+
+        HeaderText              = {
+            fontObject          = OptionsFontHighlight,
+            location            = { Anchor("TOPLEFT", 16, -16) },
+        },
+
+        UnderLine               = {
+            height              = 1,
+            color               = Color(1, 1, 1, 0.2),
+            location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
+        },
     }
 })

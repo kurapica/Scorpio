@@ -36,6 +36,9 @@ class "ConfigSubject"           (function(_ENV)
     --- The desc of the config node
     property "Desc"             { get = function(self) return select(2, self[NODE_FIELD]:GetField(self[NAME_FIELD])) end }
 
+    --- Whether enable quick apply
+    property "EnableQuickApply" { get = function(self) return select(4, self[NODE_FIELD]:GetField(self[NAME_FIELD])) end }
+
     --- The localized field name
     property "LocalizedField"   { get = function(self) return self[NODE_FIELD]._Addon._Locale[self[NAME_FIELD]] end }
 

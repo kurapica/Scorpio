@@ -14,6 +14,7 @@ Scorpio            "Scorpio.Config.ConfigNode"       "1.0.0"
 ------------------------------------------------------
 local _PlayerLogined, _PlayerSpec, _PlayerWarMode
 local _CharNodes, _SpecNodes, _WMNodes
+local _Locale                   = _Locale
 
 local isEnumType                = Enum.Validate
 local isEnumValue               = Enum.ValidateValue
@@ -97,6 +98,7 @@ class "ConfigNode"              (function(_ENV)
 
     local _SubNodes             = Toolset.newtable(true)
     local _ParentNode           = Toolset.newtable(true, true)
+    local _NodeName             = Toolset.newtable(true)
     local _SavedVariable        = Toolset.newtable(true)
     local _Fields               = {} -- { type, subject, default }
     local _EnableUI             = Toolset.newtable(true)
@@ -124,6 +126,9 @@ class "ConfigNode"              (function(_ENV)
     --- The saved variables
     __Abstract__()
     property "_SavedVariable"   { get = function(self) return _SavedVariable[self] end }
+
+    __Abstract__()
+    property "_Name"            { get = function(self) return _NodeName[self] and self._Addon._Locale[_NodeName[self]] end }
 
     --- Whether enable ui for the config node
     __Abstract__()
@@ -432,6 +437,7 @@ class "ConfigNode"              (function(_ENV)
         subNodes[name]          = self
         tinsert(subNodes, name)
         _ParentNode[self]       = node
+        _NodeName[self]         = name
     end
 
     __Arguments__{ ConfigNode, NEString }
@@ -456,6 +462,9 @@ class "AddonConfigNode"         (function(_ENV)
     ----------------------------------------------
     --- The addon of the config node
     property "_Addon"           { get = function(self) return _ConfigAddonMap[self] end }
+
+    --- The config node name
+    property "_Name"            { get = function(self) return self._Addon._Locale[self._Addon._Name] end }
 
     ----------------------------------------------
     --               Constructor                --
@@ -482,6 +491,12 @@ class "CharConfigNode"          (function(_ENV)
     local _AddonConfigMap       = {}
 
     ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- The config node name
+    property "_Name"            { get = function(self) return GetRealmName() .. "-" .. UnitName("player") end }
+
+    ----------------------------------------------
     --                  Method                  --
     ----------------------------------------------
     function InitConfigNode(self, container, name, prevContainer)
@@ -505,6 +520,14 @@ end)
 __Sealed__()
 class "SpecConfigNode"          (function(_ENV)
     inherit "ConfigNode"
+
+    local GetSpecializationInfo = _G.GetSpecializationInfo or function() return nil, _Locale["Specialization"] end
+
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- The config node name
+    property "_Name"            { get = function(self) return select(2, GetSpecializationInfo(_PlayerSpec)) end }
 
     ----------------------------------------------
     --                  Method                  --
@@ -530,6 +553,14 @@ end)
 __Sealed__()
 class "WarModeConfigNode"       (function(_ENV)
     inherit "ConfigNode"
+
+    local IsWarModeDesired      = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
+
+    ----------------------------------------------
+    --                 Property                 --
+    ----------------------------------------------
+    --- The config node name
+    property "_Name"            { get = function(self) return IsWarModeDesired() and _Locale["PVP"] or _Locale["PVE"] end }
 
     ----------------------------------------------
     --                  Method                  --
