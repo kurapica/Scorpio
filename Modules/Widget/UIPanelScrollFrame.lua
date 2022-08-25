@@ -145,7 +145,7 @@ end)
 __Sealed__() class "FauxScrollFrame" (function(_ENV)
     inherit "UIPanelScrollFrame"
 
-    __Template__\
+    __Template__{
         ScrollChild             = Frame
     }
     function __ctor(self)

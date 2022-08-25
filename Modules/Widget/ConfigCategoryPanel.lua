@@ -48,13 +48,17 @@ class "ConfigCategoryPanel"     (function(_ENV)
     --               Constructor                --
     ----------------------------------------------
     __Template__{
-        ScrollChild 			= ConfigPanel
+        {
+            ScrollChild         = {
+                ConfigPanel     = ConfigPanel,
+            }
+        }
     }
     function __ctor(self, name, parent, node, cateName, cateParent, showAllSubNodes)
         self.name               = cateName
         self.parent             = cateParent
 
-        local panel             = self:GetChild("ScrollChild")
+        local panel             = self:GetChild("ScrollChild"):GetChild("ConfigPanel")
         panel.ConfigNode        = node
         panel.ShowAllSubNodes   = showAllSubNodes
 
@@ -77,5 +81,11 @@ Style.UpdateSkin("Default",     {
             Anchor("BOTTOMRIGHT", -32, 8)
         },
         scrollBarHideable   	= true,
+
+        ScrollChild             = {
+            ConfigPanel         = {
+                location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
+            }
+        }
     }
 })

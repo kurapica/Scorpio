@@ -296,7 +296,7 @@ end)
 --- The header of the config panel
 __Sealed__() __Template__(Frame)
 __ChildProperty__(ConfigPanel, "Header")
-class "ConfigPanelHeader" {
+class "ConfigPanelHeader"       {
     HeaderText                  = FontString,
     UnderLine                   = Texture,
 
@@ -317,14 +317,14 @@ class "ConfigPanelHeader" {
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 8, MarginTop = 48, MarginBottom = 20, VSpacing = 6 },
+        layoutManager           = Layout.VerticalLayoutManager{ MarginLeft = 8, MarginTop = 48, MarginBottom = 20, VSpacing = 6 },
 
         Header                  = {
             Text                = Wow.FromUIProperty("ConfigNodeName")
         },
 
         [IConfigSubjectHandler] = {
-            Header              = {
+            Label               = {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
                 justifyH        = "RIGHT",
                 Text            = Wow.FromUIProperty("ConfigNodeField"):Map("x=>x.LocalizedField"),

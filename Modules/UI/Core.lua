@@ -18,6 +18,7 @@ local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL",   pr
 --- Clear the property value of the settings(so other settings may be used for the property)
 local CLEAR                     = Namespace.SaveNamespace("Scorpio.UI.CLEAR", prototype { __tostring = function() return "clear" end })
 
+local isClassType               = Class.Validate
 local isObjectType              = Class.IsObjectType
 local isTypeValidDisabled       = System.Platform.TYPE_VALIDATION_DISABLED
 local getSuperClass             = Class.GetSuperClass
@@ -271,8 +272,10 @@ local function prepareSettings(settings, target, final, cache, paths)
                 paths[classCnt] = k
 
                 for i = 1, #target do
-                    element     = __Template__.GetElementType(target[i], unpack(paths, i))
-                    if element then break end
+                    if isClassType(target[i]) then
+                        element = __Template__.GetElementType(target[i], unpack(paths, i))
+                        if element then break end
+                    end
                 end
 
                 paths[classCnt] = nil
@@ -589,21 +592,21 @@ local function copyBaseSkinSettings(container, base)
 end
 
 local function saveSkinSettings(classes, paths, container, settings, updateChildClass)
-    local pathIdx               = #classes
-    local class                 = classes[pathIdx]
-    local props                 = _Property[Interface.Validate(class) and Interface.GetRequireClass(class) or class]
+    local pathIdx                   = #classes
+    local class                     = classes[pathIdx]
+    local props                     = _Property[Interface.Validate(class) and Interface.GetRequireClass(class) or class]
 
     if type(settings) ~= "table" then throw("The skin settings for " .. class ..  " must be table") end
-    settings                    = prepareSettings(settings, classes) -- Copy and remove the share settings
+    settings                        = prepareSettings(settings, classes) -- Copy and remove the share settings
 
     -- Check inherit & key
     for name, value in pairs(settings) do
         if type(name) == "string" then
             if strlower(name)  == "inherit" then
-                settings[name]  = nil
+                settings[name]      = nil
 
                 if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
-                local base      = _Skins[strlower(value)]
+                local base          = _Skins[strlower(value)]
                 if not base then
                     throw(strformat("The skin named %q doesn't existed", value))
                 elseif not base[class] then
@@ -626,8 +629,10 @@ local function saveSkinSettings(classes, paths, container, settings, updateChild
             paths[pathIdx]          = name
 
             for i = 1, pathIdx do
-                element             = __Template__.GetElementType(classes[i], unpack(paths, i))
-                if element then break end
+                if isClassType(classes[i]) then
+                    element         = __Template__.GetElementType(classes[i], unpack(paths, i))
+                    if element then break end
+                end
             end
 
             paths[pathIdx]          = nil
