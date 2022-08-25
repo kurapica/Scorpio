@@ -20,6 +20,7 @@ local CLEAR                     = Namespace.SaveNamespace("Scorpio.UI.CLEAR", pr
 
 local isObjectType              = Class.IsObjectType
 local isTypeValidDisabled       = System.Platform.TYPE_VALIDATION_DISABLED
+local getSuperClass             = Class.GetSuperClass
 local isUIObject                = UI.IsUIObject
 local isUIObjectType            = UI.IsUIObjectType
 local isSubType                 = Class.IsSubType
@@ -31,6 +32,7 @@ local strlower                  = strlower
 local tsort                     = table.sort
 local isObservable              = function(val) return type(val) == "table" and isObjectType(val, IObservable) end
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
+local isStylableType            = function(k) return isUIObjectType(k) or Interface.Validate(k) and Interface.GetRequireClass(k) and isUIObjectType(Interface.GetRequireClass(k)) end
 
 local CHILD_SETTING             = 0   -- For children
 local CHILD_CLS_SETTING         = 1   -- For child classes
@@ -97,7 +99,7 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
         if not _Property[cls] then
             Trace("[Scorpio.UI]Init Property List for %q", tostring(cls))
 
-            local super         = Class.GetSuperClass(cls)
+            local super         = getSuperClass(cls)
             if super and _Property[super] then
                 _Property[cls]  = clone(_Property[super])
             else
@@ -334,15 +336,15 @@ local function prepareSettings(settings, target, final, cache, paths)
                     final[k]        = v
                 end
             end
-        elseif isClassSkin and isUIObjectType(k) then
+        elseif isClassSkin and isStylableType(k) then
             if final[k] then
                 -- Only combine the share settings
                 if type(final[k]) == "table" and getmetatable(final[k]) == nil and type(v) == "table" and getmetatable(v) == nil then
-                    final[k]        = prepareSettings(v, { k }, final[k])
+                    final[k]    = prepareSettings(v, { k }, final[k])
                 end
             else
                 -- No check here
-                final[k]            = v
+                final[k]        = v
             end
         end
     end
@@ -587,12 +589,11 @@ local function copyBaseSkinSettings(container, base)
 end
 
 local function saveSkinSettings(classes, paths, container, settings, updateChildClass)
-    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  " must be table") end
-
     local pathIdx               = #classes
     local class                 = classes[pathIdx]
-    local props                 = _Property[class]
+    local props                 = _Property[Interface.Validate(class) and Interface.GetRequireClass(class) or class]
 
+    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  " must be table") end
     settings                    = prepareSettings(settings, classes) -- Copy and remove the share settings
 
     -- Check inherit & key
@@ -613,7 +614,7 @@ local function saveSkinSettings(classes, paths, container, settings, updateChild
 
                 break
             end
-        elseif not isUIObjectType(name) then
+        elseif not isStylableType(name) then
             throw("The skin settings only accpet string values as key")
         end
     end
@@ -671,7 +672,7 @@ local function saveSkinSettings(classes, paths, container, settings, updateChild
             else
                 throw("The " .. class .. " has no property definitions")
             end
-        elseif isUIObjectType(name) then
+        elseif isStylableType(name) then
             -- Don't support observable or NIL
             if value == CLEAR then
                 if container[CHILD_CLS_SETTING] and container[CHILD_CLS_SETTING][name] then
@@ -1743,6 +1744,24 @@ local function clearStylesOnFrame(frame, styles)
     _Recycle(wipe(styles))
 end
 
+local function getDefaultByClass(styles, cls)
+    local matchedType
+
+    for stype in pairs(styles) do
+        if isSubType(cls, styles) then
+            if matchedType then
+                if getmetatable(stype).IsSubType(stype, matchedType) then
+                    matchedType             = stype
+                end
+            else
+                matchedType                 = stype
+            end
+        end
+    end
+
+    return matchedType and styles[matchedType]
+end
+
 local function buildTempStyle(frame, forClear)
     local styles                            = _Recycle()
     local paths                             = _Recycle()
@@ -1769,7 +1788,7 @@ local function buildTempStyle(frame, forClear)
 
             repeat
                 tinsert(tempClass, cls)
-                cls                         = Class.GetSuperClass(cls)
+                cls                         = getSuperClass(cls)
             until not cls
 
             for i = #tempClass, 1, -1 do
@@ -1780,7 +1799,7 @@ local function buildTempStyle(frame, forClear)
 
                 while default and paths[index] do
                     default                 =  default[CHILD_SETTING]     and default[CHILD_SETTING]    [paths[index]]
-                                            or default[CHILD_CLS_SETTING] and default[CHILD_CLS_SETTING][clspaths[index]]
+                                            or default[CHILD_CLS_SETTING] and getDefaultByClass(default[CHILD_CLS_SETTING], clspaths[index])
                     index                   = index + 1
                 end
 
@@ -1929,7 +1948,7 @@ local function buildTempStyle(frame, forClear)
                 end
             end
 
-            cls                             = Class.GetSuperClass(cls)
+            cls                             = getSuperClass(cls)
         end
     end
 
@@ -1969,8 +1988,12 @@ local function clearStyle(frame)
         -- Clear the children of the classes, normally won't be used
         if childcls then
             for name, child in UIObject.GetChilds(frame) do
-                if childcls[getmetatable(child)] then
-                    clearStyle(child)
+                local mcls                  = getmetatable(child)
+                for ctype in pairs(childcls) do
+                    if mcls == ctype or isSubType(mcls, ctype) then
+                        clearStyle(child)
+                        break
+                    end
                 end
             end
 
@@ -2037,8 +2060,12 @@ function ApplyStyleService()
                     -- Queue the children of the target type
                     if childcls then
                         for name, child in UIObject.GetChilds(frame) do
-                            if childcls[getmetatable(child)] then
-                                applyStyle(child)
+                            local mcls      = getmetatable(child)
+                            for ctype in pairs(childcls) do
+                                if mcls == ctype or isSubType(mcls, ctype) then
+                                    applyStyle(child)
+                                    break
+                                end
                             end
                         end
                         _Recycle(wipe(childcls))
@@ -2177,8 +2204,14 @@ function UIObject:InstantApplyStyle(skipCheck)
     -- Queue the children of the target class
     if childcls then
         for name, child in UIObject.GetChilds(self) do
-            if children[name] == nil and childcls[getmetatable(child)] then
-                children[name] = child
+            if children[name] == nil then
+                local mcls  = getmetatable(child)
+                for ctype in pairs(childcls) do
+                    if mcls == ctype or isSubType(mcls, ctype) then
+                        children[name] = child
+                        break
+                    end
+                end
             end
         end
         _Recycle(wipe(childcls))

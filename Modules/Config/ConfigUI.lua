@@ -74,6 +74,8 @@ end)
 --- Represents the interface of the config node field handler
 __Sealed__()
 interface "IConfigSubjectHandler" (function(_ENV)
+    require "Frame"
+
     -----------------------------------------------------------
     --                       property                        --
     -----------------------------------------------------------
@@ -315,11 +317,19 @@ class "ConfigPanelHeader" {
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 48, MarginBottom = 20, VSpacing = 6 },
+        layoutManager           = Scorpio.UI.Layout.VerticalLayoutManager{ MarginLeft = 8, MarginTop = 48, MarginBottom = 20, VSpacing = 6 },
 
         Header                  = {
             Text                = Wow.FromUIProperty("ConfigNodeName")
-        }
+        },
+
+        [IConfigSubjectHandler] = {
+            Header              = {
+                location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
+                justifyH        = "RIGHT",
+                Text            = Wow.FromUIProperty("ConfigNodeField"):Map("x=>x.LocalizedField"),
+            }
+        },
     },
     [ConfigPanelHeader]         = {
         location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
