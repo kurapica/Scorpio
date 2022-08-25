@@ -259,8 +259,9 @@ class "ConfigNode"              (function(_ENV)
         local rawdata           = _RawData[self]
 
         if not rawdata then
-            if init then return end
-            error("The config node isn't inited, please wait until the saved variable is loaded", (stack or 1) + 1)
+            -- if init then return end
+            -- error("The config node isn't inited, please wait until the saved variable is loaded", (stack or 1) + 1)
+            return
         end
 
         name                    = strlower(name)

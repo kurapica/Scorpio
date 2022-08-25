@@ -19,17 +19,17 @@ class "ConfigCategoryPanel"     (function(_ENV)
     ----------------------------------------------
     --- This method will run when the player clicks "okay" in the Interface Options.
     function okay(self)
-        self:GetChild("ScrollChild"):Commit()
+        self:GetChild("ScrollChild"):GetChild("ConfigPanel"):Commit()
     end
 
     --- This method will run when the player clicks "cancel" in the Interface Options.
     function cancel(self)
-        self:GetChild("ScrollChild"):Rollback()
+        self:GetChild("ScrollChild"):GetChild("ConfigPanel"):Rollback()
     end
 
     --- This method will run when the player clicks "defaults".
     function default(self)
-        self:GetChild("ScrollChild"):Reset()
+        self:GetChild("ScrollChild"):GetChild("ConfigPanel"):Reset()
     end
 
     --- This method will run when the Interface Options frame calls its OnShow function and after defaults
@@ -41,7 +41,10 @@ class "ConfigCategoryPanel"     (function(_ENV)
         end
 
         -- Rendering and record current value
-        return self:GetChild("ScrollChild"):Begin()
+        local ok, err = pcall(function() self:GetChild("ScrollChild"):GetChild("ConfigPanel"):Begin() end)
+        if not ok then
+            print(err)
+        end
     end
 
     ----------------------------------------------
@@ -67,7 +70,7 @@ class "ConfigCategoryPanel"     (function(_ENV)
 
     __Arguments__{ NEString, UI, ConfigNode, NEString, NEString/nil, Boolean/nil }
     function __new(_, name, parent, node, cateName, cateParent, showAllSubNodes)
-        return CreateFrame("Frame", nil, parent)
+        return CreateFrame("ScrollFrame", nil, parent)
     end
 end)
 
@@ -84,7 +87,7 @@ Style.UpdateSkin("Default",     {
 
         ScrollChild             = {
             ConfigPanel         = {
-                location        = { Anchor("TOPLEFT"), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
+                location        = { Anchor("TOPLEFT", 0, 0), Anchor("RIGHT", -4, 0, "$parent.$parent.ScrollBar", "LEFT") },
             }
         }
     }

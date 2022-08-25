@@ -33,6 +33,9 @@ class "ConfigSubject"           (function(_ENV)
     --- The current config node field value
     property "Value"            { set = "SetValue", field = VALUE_FIELD }
 
+    --- The tyep of the config node field
+    property "Type"             { get = function(self) return select(1, self[NODE_FIELD]:GetField(self[NAME_FIELD])) end }
+
     --- The desc of the config node
     property "Desc"             { get = function(self) return select(2, self[NODE_FIELD]:GetField(self[NAME_FIELD])) end }
 

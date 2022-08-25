@@ -593,7 +593,7 @@ end)
 -----------------------------------------------------------
 --                   Track Bar Widget                    --
 -----------------------------------------------------------
-__Sealed__()
+__Sealed__() __ConfigDataType__(RangeValue)
 class "TrackBar" (function(_ENV)
     inherit "Slider"
 
@@ -604,14 +604,25 @@ class "TrackBar" (function(_ENV)
     local getValueStep          = Slider.GetValueStep
 
     local function OnValueChanged(self)
-        self:GetChild("Text"):SetText(self:GetValue() or "")
+        local value             = self:GetValue()
+        self:GetChild("Text"):SetText(value or "")
+
+        if self.ConfigNodeField then
+            if self.ConfigNodeField.EnableQuickApply then
+                self.ConfigNodeField:SetValue(value)
+            else
+                self.ConfigNodeFieldUnCommitValue = value
+            end
+        end
     end
 
+    --- Sets the value
     function SetValue(self, value)
         setValue(self, value)
-        OnValueChanged(self)
+        self:GetChild("Text"):SetText(self:GetValue())
     end
 
+    --- Gets the value
     function GetValue(self)
         local value             = getValue(self)
         local step              = self:GetValueStep()
@@ -625,13 +636,26 @@ class "TrackBar" (function(_ENV)
         return value
     end
 
+    --- Sets the value step
     function SetValueStep(self, step)
         self.__RealValueStep    = step
         setValueStep(self, step)
     end
 
+    --- Gets the value step
     function GetValueStep(self)
         return self.__RealValueStep or getValueStep(self)
+    end
+
+    --- Sets the config node field
+    function SetConfigNodeField(self, configSubject)
+        local min, max, step    = Struct.GetTemplateParameters(configSubject.Type)
+        self:SetMinMaxValues(min, max)
+        self:SetValueStep(step or (max - min) / 100)
+
+        configSubject:Subscribe(function(value)
+            self:SetValue(value)
+        end)
     end
 
     __Template__{
@@ -919,6 +943,7 @@ Style.UpdateSkin("Default",     {
     [TrackBar]                  = {
         orientation             = "HORIZONTAL",
         enableMouse             = true,
+        size                    = Size(200, 24),
         hitRectInsets           = Inset(0, 0, -10, -10),
         backdrop                = {
             bgFile              = [[Interface\Buttons\UI-SliderBar-Background]],

@@ -1753,7 +1753,7 @@ local function getDefaultByClass(styles, cls)
     local matchedType
 
     for stype in pairs(styles) do
-        if isSubType(cls, styles) then
+        if isSubType(cls, stype) then
             if matchedType then
                 if getmetatable(stype).IsSubType(stype, matchedType) then
                     matchedType             = stype

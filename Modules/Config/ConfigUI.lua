@@ -15,7 +15,7 @@ local _PanelMap                 = {}
 ------------------------------------------------------
 -- Scorpio Extension
 ------------------------------------------------------
-class "Scorpio"                 (function(_ENV)
+class (Scorpio)                (function(_ENV)
     local _PanelCount           = 0
 
     --- Sets the saved variable to the _Config node
@@ -81,7 +81,7 @@ interface "IConfigSubjectHandler" (function(_ENV)
     -----------------------------------------------------------
     --- The config subject
     __Final__() __Observable__():AsInheritable()
-    property "ConfigNodeField"  { type = ConfigNode, handler = "SetConfigNodeField" }
+    property "ConfigNodeField"  { type = ConfigSubject, handler = "SetConfigNodeField" }
 
     --- The value waiting for commit
     __Abstract__()
@@ -99,7 +99,7 @@ end)
 --- The bidirectional binding between the config node field and widget
 __Sealed__()
 class "__ConfigDataType__"      (function(_ENV)
-    extend "IInitAttribute"
+    extend "IApplyAttribute"
 
     local _DataTypeWidgetMap    = {}
 
@@ -121,7 +121,17 @@ class "__ConfigDataType__"      (function(_ENV)
             local stype         = Struct.GetStructCategory(dataType)
 
             if stype == StructCategory.CUSTOM then
-                local btype     = Struct.GetBaseStruct(type)
+                -- Check template first
+                local btype     = Struct.GetTemplate(dataType)
+                if btype and btype ~= dataType then
+                    if _DataTypeWidgetMap[btype] then
+                        return _DataTypeWidgetMap[btype]
+                    end
+                    dataType    = btype
+                end
+
+                -- Check base type
+                btype           = Struct.GetBaseStruct(dataType)
                 while btype do
                     widget      = _DataTypeWidgetMap[btype]
                     if widget then return widget end
@@ -148,7 +158,7 @@ class "__ConfigDataType__"      (function(_ENV)
     --                        method                         --
     -----------------------------------------------------------
     --- modify the target's definition
-    function InitDefinition(self, target, targettype, definition, owner, name, stack)
+    function ApplyAttribute(self, target, targettype, manager, owner, name, stack)
         if not Class.IsSubType(target, Frame) then
             error("The target class must be a sub type of Scorpio.UI.Frame", stack + 1)
         end
@@ -215,10 +225,12 @@ class "ConfigPanel"             (function(_ENV)
         for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
             if enableui then
                 local widget    = __ConfigDataType__.GetWidgetType(ftype)
+                print(name, ftype, widget)
                 if widget then
                     local ui    = self.NodeFieldWidgets[name]
 
                     if not ui then
+                        print("Create", widget, "for", name)
                         -- The field order can't be changed, so we don't need recycle them
                         ui      = widget("ConfigFieldWidget" .. name, self)
                         ui.ConfigNodeField          = node[name]
@@ -317,7 +329,7 @@ class "ConfigPanelHeader"       {
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        layoutManager           = Layout.VerticalLayoutManager{ MarginLeft = 8, MarginTop = 48, MarginBottom = 20, VSpacing = 6 },
+        layoutManager           = Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 48, MarginBottom = 20, VSpacing = 32 },
 
         Header                  = {
             Text                = Wow.FromUIProperty("ConfigNodeName")

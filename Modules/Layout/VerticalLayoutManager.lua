@@ -10,8 +10,8 @@ Scorpio        "Scorpio.Layout.VerticalLayoutManager""1.0.0"
 --========================================================--
 
 __Sealed__()
-class "VerticalLayoutManager"	(function(_ENV)
-	extend "ILayoutManager"
+class "VerticalLayoutManager"   (function(_ENV)
+    extend "ILayoutManager"
 
     -----------------------------------------------------------
     --                       Property                        --
@@ -33,16 +33,21 @@ class "VerticalLayoutManager"	(function(_ENV)
     -----------------------------------------------------------
     --- Refresh the layout of the target frame
     function RefreshLayout(self, frame, iter)
-    	local totalHeight 		= self.MarginTop
+        local totalHeight       = self.MarginTop
+        local prev
 
-    	for i, child in iter do
-    		child:ClearAllPoints()
-    		child:SetPoint("LEFT", self.MarginLeft)
-    		child:SetPoint("TOP", - totalHeight)
-    		totalHeight 		= totalHeight + child:GetHeight() + self.VSpacing
-    	end
+        for i, child in iter do
+            child:ClearAllPoints()
+            if not prev then
+                child:SetPoint("TOPLEFT", self.MarginLeft, - self.MarginTop)
+                prev            = child
+            else
+                child:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, - self.VSpacing)
+            end
+            totalHeight         = totalHeight + child:GetHeight() + self.VSpacing
+        end
 
-    	totalHeight 			= totalHeight + self.MarginBottom
-    	frame:SetHeight(totalHeight)
+        totalHeight             = totalHeight + self.MarginBottom
+        frame:SetHeight(totalHeight)
     end
 end)
