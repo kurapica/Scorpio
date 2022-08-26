@@ -628,7 +628,7 @@ class "__Config__" (function(_ENV)
         end
 
         node:SetField(name, ftype, default, self.Desc, self.EnableFieldUI, self.EnableQuickApply)
-        node[name]:Subscribe(target)\
+        node[name]:Subscribe(target)
         return function(value) node:SetValue(name, value, 2) end
     end
 

@@ -266,6 +266,7 @@ class "ConfigPanel"             (function(_ENV)
         for name, subnode in node:GetSubNodes() do
             -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
             if not _PanelMap[subnode] and (subnode._IsUIEnabled or self.ShowAllSubNodes and subnode._IsUIEnabled ~= false) then
+                print("Create panel for", name)
                 local ui        = self.SubNodePanels[name]
 
                 if not ui then
@@ -343,7 +344,12 @@ class "ConfigPanelHeader"       {
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
-        layoutManager           = Layout.VerticalLayoutManager{ MarginLeft = 100, MarginTop = 48, MarginBottom = 20, VSpacing = 32 },
+        layoutManager           = Layout.VerticalLayoutManager(),
+
+        padding                 = {
+            top                 = 48,
+            bottom              = 20,
+        },
 
         Header                  = {
             Text                = Wow.FromUIProperty("ConfigNodeName")
@@ -353,9 +359,20 @@ Style.UpdateSkin("Default",     {
             Label               = {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
                 justifyH        = "RIGHT",
-                Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x.LocalizedField"),
+                Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.LocalizedField"),
+            },
+
+            Margin              = {
+                left            = 100,
+                bottom          = 32,
             }
         },
+
+        [ConfigPanel]           = {
+            Margin              = {
+                right           = 0, -- width: 100%
+            },
+        }
     },
     [ConfigPanelHeader]         = {
         location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },

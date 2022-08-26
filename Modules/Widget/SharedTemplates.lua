@@ -546,21 +546,27 @@ class "InputBox"                (function(_ENV)
         self:HighlightText(0, 0)
     end
 
-    local function OnTextChanged(self)
+    local function OnTextChangedFix(self)
         return true
     end
 
-    local function OnTextChangedForConfigSubject(self)
+    local function OnTextChanged(self)
         self:SetConfigSubjectValue(self:IsNumeric() and (tonumber(self:GetText()) or 0) or self:GetText())
     end
 
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
-        self.OnTextChanged      = self.OnTextChanged + OnTextChangedForConfigSubject
+        if self.__Subject then
+            self.__Subject:Unsubscribe()
+            self.__Subject      = nil
+        end
+        if not configSubject then return end
+
+        self.OnTextChanged      = self.OnTextChanged + OnTextChanged
         self:SetNumeric(Struct.IsSubType(configSubject.Type, Number))
 
         -- subscribe the config subject
-        configSubject:Subscribe(function(value) self:SetText(value) end)
+        self.__Subject          = configSubject:Subscribe(function(value) self:SetText(value) end)
     end
 
     __InstantApplyStyle__()
@@ -578,7 +584,7 @@ class "InputBox"                (function(_ENV)
                     self:SetNumber(orgVal or "")
                 end
 
-                self.OnTextChanged = self.OnTextChanged - OnTextChanged
+                self.OnTextChanged = self.OnTextChanged - OnTextChangedFix
             else
                 local orgText   = self:GetText() or ""
                 local rtext     = Guid.New()
@@ -591,11 +597,11 @@ class "InputBox"                (function(_ENV)
                     self:SetText(orgText)
                 end
 
-                self.OnTextChanged = self.OnTextChanged - OnTextChanged
+                self.OnTextChanged = self.OnTextChanged - OnTextChangedFix
             end
         end)
 
-        self.OnTextChanged      = self.OnTextChanged + OnTextChanged
+        self.OnTextChanged      = self.OnTextChanged + OnTextChangedFix
 
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
         self.OnEditFocusGained  = self.OnEditFocusGained + OnEditFocusGained
@@ -655,12 +661,18 @@ class "TrackBar"                (function(_ENV)
 
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
+        if self.__Subject then
+            self.__Subject:Unsubscribe()
+            self.__Subject      = nil
+        end
+        if not configSubject then return end
+
         local min, max, step    = Struct.GetTemplateParameters(configSubject.Type)
         self:SetMinMaxValues(min, max)
         self:SetValueStep(step or (max - min) / 100)
 
         -- subscribe the config subject
-        configSubject:Subscribe(function(value) self:SetValue(value) end)
+        self.__Subject          = configSubject:Subscribe(function(value) self:SetValue(value) end)
     end
 
     __Template__{
@@ -947,6 +959,7 @@ Style.UpdateSkin("Default",     {
     [TrackBar]                  = {
         orientation             = "HORIZONTAL",
         enableMouse             = true,
+        obeyStepOnDrag          = true,
         size                    = Size(200, 24),
         hitRectInsets           = Inset(0, 0, -10, -10),
         backdrop                = {

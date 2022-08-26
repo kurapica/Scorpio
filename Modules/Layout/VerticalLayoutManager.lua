@@ -14,40 +14,38 @@ class "VerticalLayoutManager"   (function(_ENV)
     extend "ILayoutManager"
 
     -----------------------------------------------------------
-    --                       Property                        --
-    -----------------------------------------------------------
-    -- The vertical spacing
-    property "VSpacing"         { type = Number, default = 0 }
-
-    -- The top margin
-    property "MarginTop"        { type = Number, default = 0 }
-
-    -- The bottom margin
-    property "MarginBottom"     { type = Number, default = 0 }
-
-    -- The left margin
-    property "MarginLeft"       { type = Number, default = 0 }
-
-    -----------------------------------------------------------
     --                 Implementation method                 --
     -----------------------------------------------------------
     --- Refresh the layout of the target frame
-    function RefreshLayout(self, frame, iter)
-        local totalHeight       = self.MarginTop
+    function RefreshLayout(self, frame, iter, padding)
+        local totalHeight       = 0
         local prev
+        local spacing           = padding and padding.top  or 0
 
-        for i, child in iter do
+        for i, child, margin in iter do
+            local offsetx       = (padding and padding.left or 0) + (margin and margin.left or 0)
+            local offsety       = spacing + (margin and margin.top  or 0)
+
             child:ClearAllPoints()
+
             if not prev then
-                child:SetPoint("TOPLEFT", self.MarginLeft, - self.MarginTop)
-                prev            = child
+                child:SetPoint("TOP", 0, - offsety)
             else
-                child:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, - self.VSpacing)
+                child:SetPoint("TOP", prev, "BOTTOM", 0, - offsety)
             end
-            totalHeight         = totalHeight + child:GetHeight() + self.VSpacing
+
+            child:SetPoint("LEFT", offsetx, 0)
+
+            if margin and margin.right then
+                child:SetPoint("RIGHT", - ((padding and padding.right or 0) + margin.right), 0)
+            end
+
+            totalHeight         = totalHeight + offsety + child:GetHeight()
+            prev                = child
+            spacing             = margin and margin.bottom or 0
         end
 
-        totalHeight             = totalHeight + self.MarginBottom
+        totalHeight             = totalHeight + (padding and padding.bottom or 0)
         frame:SetHeight(totalHeight)
     end
 end)

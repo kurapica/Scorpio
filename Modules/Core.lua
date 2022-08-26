@@ -1220,7 +1220,6 @@ PLoop(function(_ENV)
 
             __Arguments__{ String }
             function __index(self, key)
-                rawset(self, key, key)
                 return key
             end
 

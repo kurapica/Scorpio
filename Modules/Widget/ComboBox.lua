@@ -12,7 +12,7 @@ Scorpio           "Scorpio.Widget.ComboBox"          "1.0.0"
 -----------------------------------------------------------
 --                    ComboBox Widget                    --
 -----------------------------------------------------------
-__Sealed__()
+__Sealed__() __ConfigDataType__(EnumType)
 class "ComboBox" (function(_ENV)
     inherit "Frame"
 
@@ -130,6 +130,10 @@ class "ComboBox" (function(_ENV)
         Next(openDropDownList, self)
     end
 
+    local function onSelectChanged(self, value)
+        self:SetConfigSubjectValue(value)
+    end
+
     --- Fired when the selected value changed
     event "OnSelectChanged"
 
@@ -228,6 +232,27 @@ class "ComboBox" (function(_ENV)
     --- The methods used to clear all items
     function ClearItems(self)
         if self.__ComboBox_Items then wipe(self.__ComboBox_Items) end
+    end
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        if self.__Subject then
+            self.__Subject:Unsubscribe()
+            self.__Subject      = nil
+        end
+        if not configSubject then return end
+
+        local locale            = configSubject.Node._Addon._Locale
+
+        self:ClearItems()
+
+        for name, value in Enum.GetEnumValues(configSubject.Type) do
+            self.Items[value]   = locale[name]
+        end
+
+        -- subscribe the config subject
+        self.OnSelectChanged    = self.OnSelectChanged + onSelectChanged
+        self.__Subject          = configSubject:Subscribe(function(value) self.SelectedValue = value end)
     end
 
     __Template__{
