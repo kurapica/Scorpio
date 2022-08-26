@@ -551,7 +551,7 @@ class "InputBox"                (function(_ENV)
     end
 
     local function OnTextChangedForConfigSubject(self)
-        self:SetConfigSubjectValue(self:GetText())
+        self:SetConfigSubjectValue(self:IsNumeric() and (tonumber(self:GetText()) or 0) or self:GetText())
     end
 
     --- Sets the config node field
