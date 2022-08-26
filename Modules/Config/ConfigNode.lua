@@ -89,7 +89,7 @@ function OnWarModeChanged(self, mode)
 end
 
 ------------------------------------------------------
---- The SavedVariables configuration node
+--- The configuration node
 ------------------------------------------------------
 __Sealed__()
 class "ConfigNode"              (function(_ENV)
@@ -104,7 +104,6 @@ class "ConfigNode"              (function(_ENV)
     local _EnableUI             = Toolset.newtable(true)
 
     local _RawData              = Toolset.newtable(true)
-    local _PrevData             = Toolset.newtable(true)
 
     local strlower              = string.lower
     local strtrim               = Toolset.trim
@@ -132,7 +131,7 @@ class "ConfigNode"              (function(_ENV)
 
     --- Whether enable ui for the config node
     __Abstract__()
-    property "IsUIEnabled"      { get = function(self) return _EnableUI[self] end }
+    property "_IsUIEnabled"      { get = function(self) return _EnableUI[self] end }
 
     ----------------------------------------------
     --                  Method                  --
@@ -153,7 +152,7 @@ class "ConfigNode"              (function(_ENV)
         end
 
         fields[name]            = { type = ftype, desc = desc, enableui = enableui, enablequickapply = enableQuickApply }
-        tinsert(fields, name)
+        tinsert(fields, name)   -- Keeps the field order
 
         if value ~= nil then
             local ret, msg      = validateValue(ftype, value)
@@ -175,7 +174,7 @@ class "ConfigNode"              (function(_ENV)
         return field.type, field.desc, field.enableui, field.enablequickapply
     end
 
-    --- Gets the fields
+    --- Gets the fields with order
     __Iterator__()
     function GetFields(self)
         local fields            = _Fields[self]
@@ -188,7 +187,7 @@ class "ConfigNode"              (function(_ENV)
         end
     end
 
-    --- Gets the sub nodes
+    --- Gets the sub nodes with order
     __Iterator__()
     function GetSubNodes(self)
         local subNodes          = _SubNodes[self]
@@ -199,7 +198,7 @@ class "ConfigNode"              (function(_ENV)
         end
     end
 
-    --- The set saved variables method, must be called in Addon or Module's OnLoad handler
+    --- Sets saved variables, must be called in Addon or Module's OnLoad handler
     function SetSavedVariable(self, sv, stack)
         if type(sv) ~= "string" then
             error("Usage: ConfigNode:SetSavedVariable(sv) - the sv must be a non-empty string", (stack or 1) + 1)
@@ -216,26 +215,29 @@ class "ConfigNode"              (function(_ENV)
 
         _SavedVariable[self]    = sv
 
+        -- Remove self from parent
         if _ParentNode[self] then
-            -- Remove self from parent
             local parent        = _ParentNode[self]
             local subNodes      = _SubNodes[parent]
 
             -- Save the _Addon
             self._Addon         = parent._Addon
 
-            for k, v in pairs(subNodes) do
+            for i, n in ipairs(subNodes) do
+                local v         = subNodes[n]
                 if v == self then
-                    subNodes[k] = nil
+                    subNodes[n] = nil
+                    tremove(subNodes, i)
 
                     if _RawData[self] then
                         _RawData[self] = nil
                     end
 
+                    -- Clear the raw data
                     if _RawData[parent] and _RawData[parent][CHILD_NODE] then
-                        _RawData[parent][CHILD_NODE][k] = nil
+                        _RawData[parent][CHILD_NODE][n] = nil
 
-                        -- Clear the data if not needed
+                        -- Clear the child node data if not needed
                         if next(_RawData[parent][CHILD_NODE]) == nil then
                             _RawData[parent][CHILD_NODE]= nil
                         end
@@ -244,7 +246,7 @@ class "ConfigNode"              (function(_ENV)
                     break
                 end
             end
-            if next(subNodes) == nil then
+            if #subNodes == 0 then
                 _SubNodes[parent] = nil
             end
             _ParentNode[self]   =  nil
@@ -259,9 +261,8 @@ class "ConfigNode"              (function(_ENV)
         local rawdata           = _RawData[self]
 
         if not rawdata then
-            -- if init then return end
-            -- error("The config node isn't inited, please wait until the saved variable is loaded", (stack or 1) + 1)
-            return
+            if init then return end
+            error("The config node isn't inited, please wait until the saved variable is loaded", (stack or 1) + 1)
         end
 
         name                    = strlower(name)
@@ -295,24 +296,25 @@ class "ConfigNode"              (function(_ENV)
     end
 
     --- Sets values to the fields
-    function SetValues(self, values, stack)
+    function SetValues(self, values, stack, init)
+        stack                   = (stack or 1) + 1
+
         if type(values) ~= "table" then
-            error("Usage: ConfigNode:SetValues(values[, stack]) - the values must be a table", (stack or 1) + 1)
+            error("Usage: ConfigNode:SetValues(values[, stack]) - the values must be a table", stack)
         end
 
         local rawdata           = _RawData[self]
 
         if not rawdata then
             if init then return end
-            error("The config node isn't inited, please wait until the saved variable is loaded", (stack or 1) + 1)
+            error("The config node isn't inited, please wait until the saved variable is loaded", stack)
         end
 
-        stack                   = (stack or 1) + 1
 
         local fields            = _Fields[self]
         if not fields then return end
         for _, fldname in ipairs(fields) do
-            self:SetValue(fldname, values[fldname], stack)
+            self:SetValue(fldname, values[fldname], stack, init)
         end
     end
 
@@ -322,7 +324,9 @@ class "ConfigNode"              (function(_ENV)
         if not rawdata then return end
 
         name                    = strlower(name)
-        return name ~= CHILD_NODE and clone(rawdata[name], true) or nil
+        if name ~= CHILD_NODE then
+            return clone(rawdata[name], true)
+        end
     end
 
     --- Gets all node field values
@@ -340,9 +344,9 @@ class "ConfigNode"              (function(_ENV)
         return ret
     end
 
-    --- Init the config node, this must be called by the system, don't use it by your own
+    --- Init the config node, this must be called by the system, don't use it manually
     function InitConfigNode(self, container, name, prevContainer)
-        -- Gets the previous session data
+        -- Gets the previous session data if exists
         local prevdata          = (prevContainer or container)[name]
         if type(prevdata) ~= "table" or getmetatable(prevdata) ~= nil then
             prevdata            = nil
@@ -350,16 +354,14 @@ class "ConfigNode"              (function(_ENV)
 
         -- Build the new raw data
         local rawdata           = {}
-
-        _PrevData[self]         = prevdata
         _RawData[self]          = rawdata
-        container[name]         = rawdata
+        container[name]         = rawdata -- rebuild the data container
 
         -- Init the raw data with field settings
         local fields            = _Fields[self]
         if fields then
             for _, fldname in ipairs(fields) do
-                self:SetValue(fldname, prevdata and prevdata[fldname], nil, true)
+                self:SetValue(fldname, prevdata and prevdata[fldname], 2, true)
             end
         end
 
@@ -391,6 +393,7 @@ class "ConfigNode"              (function(_ENV)
     ----------------------------------------------
     --               Meta-method                --
     ----------------------------------------------
+    --- Gets the node field or create new config nodes
     function __index(self, name)
         if type(name) ~= "string" then return end
 
@@ -414,6 +417,7 @@ class "ConfigNode"              (function(_ENV)
         return ConfigNode(self, name)
     end
 
+    --- Sets the field value
     __newindex                  = SetValue
 
     ----------------------------------------------
@@ -489,8 +493,6 @@ __Sealed__()
 class "CharConfigNode"          (function(_ENV)
     inherit "ConfigNode"
 
-    local _AddonConfigMap       = {}
-
     ----------------------------------------------
     --                 Property                 --
     ----------------------------------------------
@@ -538,7 +540,7 @@ class "SpecConfigNode"          (function(_ENV)
     end
 
     function InitConfigNode(self, container, name, prevContainer)
-        -- Process Char Config Node only after PLAYER_LOGIN
+        -- Process Spec Config Node only after PLAYER_SPECIALIZATION_CHANGED
         if queueSpecConfigNode(self, container, name, prevContainer) then return end
 
         local allSpecData   = container[name] or prevContainer and prevContainer[name] or {}
@@ -626,11 +628,8 @@ class "__Config__" (function(_ENV)
         end
 
         node:SetField(name, ftype, default, self.Desc, self.EnableFieldUI, self.EnableQuickApply)
-        node[name]:Subscribe(target)
-
-        return function(value)
-            node:SetValue(name, value, 2)
-        end
+        node[name]:Subscribe(target)\
+        return function(value) node:SetValue(name, value, 2) end
     end
 
     --- Disable the config ui for field
@@ -680,6 +679,7 @@ class "__Config__" (function(_ENV)
     ----------------------------------------------
     --                Constructor               --
     ----------------------------------------------
+    --- __Config__(_Config, true, "[Type]Boolean [Name]Handler name [Default]true")
     __Arguments__{ ConfigNode, Boolean, NEString/nil }
     function __ctor(self, node, value, desc)
         self.Node               = node
@@ -688,6 +688,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    --- __Config__(_Config, 3, "[Type]Number [Name]Handler name [Default]3")
     __Arguments__{ ConfigNode, Number, NEString/nil }
     function __ctor(self, node, value, desc)
         self.Node               = node
@@ -696,6 +697,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    --- __Config__(_Config, "enable", true, "[Type]Boolean [Name]enable [Default]true")
     __Arguments__{ ConfigNode, NEString, Boolean, NEString/nil }
     function __ctor(self, node, name, value, desc)
         self.Node               = node
@@ -705,6 +707,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    --- __Config__(_Config, "loglevel", 3, "[Type]Number [Name]loglevel [Default]3")
     __Arguments__{ ConfigNode, NEString, Number, NEString/nil }
     function __ctor(self, node, name, value, desc)
         self.Node               = node
@@ -714,6 +717,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    --- __Config__(_Config, "hello")  [Type]String [Name]Handler name [Default]hello
     __Arguments__{ ConfigNode, String }
     function __ctor(self, value)
         self.Node               = node
@@ -721,6 +725,7 @@ class "__Config__" (function(_ENV)
         self.Default            = value
     end
 
+    --- __Config__(_Config, "hello", "world")  [Type]String [Name]hello [Default]world
     __Arguments__{ ConfigNode, NEString, String }
     function __ctor(self, node, name, value)
         self.Node               = node
@@ -729,6 +734,7 @@ class "__Config__" (function(_ENV)
         self.Default            = value
     end
 
+    --- __Config__(_Config, "hello", "world", "[Type]String [Name]hello [Default]world")
     __Arguments__{ ConfigNode, NEString, String, NEString }
     function __ctor(self, node, name, value, desc)
         self.Node               = node
@@ -738,6 +744,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    --- __Config__(_Config, Size, { width = 0, helght = 0 }, "[Type]Size [Name]Handler name [Default]{ width = 0, helght = 0 }")
     __Arguments__{ ConfigNode, EnumType + StructType, Any/nil, NEString/nil }
     function __ctor(self, node, ftype, value, desc)
         self.Node               = node
@@ -746,6 +753,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    --- __Config__(_Config, "size", Size, { width = 0, helght = 0 }, "[Type]Size [Name]size [Default]{ width = 0, helght = 0 }")
     __Arguments__{ ConfigNode, NEString, EnumType + StructType, Any/nil, NEString/nil }
     function __ctor(self, node, name, ftype, value, desc)
         self.Node               = node
@@ -755,6 +763,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    -- __Config__(_Config, { width = Number, height = Number }, { width = 0, height = 0}, "[Type]Anonymous [Name]Handler name [Default]{ width = 0, helght = 0 }")
     __Arguments__{ ConfigNode, RawTable, Any/nil, NEString/nil }
     function __ctor(self, node, definition, value, desc)
         local ok, structType    = Attribute.IndependentCall(function(temp) local type = struct(temp) return type end, definition)
@@ -766,6 +775,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
+    -- __Config__(_Config, "size", { width = Number, height = Number }, { width = 0, height = 0}, "[Type]Anonymous [Name]size [Default]{ width = 0, helght = 0 }")
     __Arguments__{ ConfigNode, NEString, RawTable, Any/nil, NEString/nil }
     function __ctor(self, node, name, definition, value, desc)
         local ok, structType    = Attribute.IndependentCall(function(temp) local type = struct(temp) return type end, definition)
@@ -781,6 +791,8 @@ class "__Config__" (function(_ENV)
     ----------------------------------------------
     --                Meta-Method               --
     ----------------------------------------------
+    --- Sets the default value
+    -- __Config__(_Config, "size", { width = Number, height = Number }){ width = 0, height = 0}
     __Arguments__{ value }
     function __call(self, value)
         self.Default            = value

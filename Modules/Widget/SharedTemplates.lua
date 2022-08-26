@@ -17,7 +17,7 @@ local START_MOVE_RESIZE_DELAY   = 0.05  -- A delay to start moving/resizing to r
 -----------------------------------------------------------
 --- The widget used as a handler to move other frames
 __Sealed__() __ChildProperty__(Frame, "Mover")
-class "Mover" (function(_ENV)
+class "Mover"                   (function(_ENV)
     inherit "Frame"
 
     local _Moving               = setmetatable({}, META_WEAKKEY)
@@ -85,7 +85,7 @@ end)
 
 --- The widget used as handler to resize other frames
 __Sealed__() __ChildProperty__(Frame, "Resizer")
-class "Resizer" (function(_ENV)
+class "Resizer"                 (function(_ENV)
     inherit "Button"
 
     local _ResizingHook         = setmetatable({}, META_WEAKKEY)
@@ -200,7 +200,7 @@ end)
 
 --- The widget used as mask to move, resize, toggle, key binding for the target widget
 __Sealed__()  __ChildProperty__(Frame, "Mask")
-class "Mask" (function(_ENV)
+class "Mask"                    (function(_ENV)
     inherit "Button"
 
     ---------------------------------------------------
@@ -530,8 +530,8 @@ class "UIToggleButton"          { Button, ToggleTexture = { type = Texture, set 
 -----------------------------------------------------------
 --                    InputBox Widget                    --
 -----------------------------------------------------------
-__Sealed__()
-class "InputBox" (function(_ENV)
+__Sealed__() __ConfigDataType__(Number, String)
+class "InputBox"                (function(_ENV)
     inherit "EditBox"
 
     local function OnEscapePressed(self)
@@ -548,6 +548,19 @@ class "InputBox" (function(_ENV)
 
     local function OnTextChanged(self)
         return true
+    end
+
+    local function OnTextChangedForConfigSubject(self)
+        self:SetConfigSubjectValue(self:GetText())
+    end
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        self.OnTextChanged      = self.OnTextChanged + OnTextChangedForConfigSubject
+        self:SetNumeric(Struct.IsSubType(configSubject.Type, Number))
+
+        -- subscribe the config subject
+        configSubject:Subscribe(function(value) self:SetText(value) end)
     end
 
     __InstantApplyStyle__()
@@ -594,7 +607,7 @@ end)
 --                   Track Bar Widget                    --
 -----------------------------------------------------------
 __Sealed__() __ConfigDataType__(RangeValue)
-class "TrackBar" (function(_ENV)
+class "TrackBar"                (function(_ENV)
     inherit "Slider"
 
     local floor                 = math.floor
@@ -606,14 +619,7 @@ class "TrackBar" (function(_ENV)
     local function OnValueChanged(self)
         local value             = self:GetValue()
         self:GetChild("Text"):SetText(value or "")
-
-        if self.ConfigNodeField then
-            if self.ConfigNodeField.EnableQuickApply then
-                self.ConfigNodeField:SetValue(value)
-            else
-                self.ConfigNodeFieldUnCommitValue = value
-            end
-        end
+        self:SetConfigSubjectValue(value)
     end
 
     --- Sets the value
@@ -648,14 +654,13 @@ class "TrackBar" (function(_ENV)
     end
 
     --- Sets the config node field
-    function SetConfigNodeField(self, configSubject)
+    function SetConfigSubject(self, configSubject)
         local min, max, step    = Struct.GetTemplateParameters(configSubject.Type)
         self:SetMinMaxValues(min, max)
         self:SetValueStep(step or (max - min) / 100)
 
-        configSubject:Subscribe(function(value)
-            self:SetValue(value)
-        end)
+        -- subscribe the config subject
+        configSubject:Subscribe(function(value) self:SetValue(value) end)
     end
 
     __Template__{
@@ -673,14 +678,14 @@ end)
 --                     Dialog Widget                     --
 -----------------------------------------------------------
 __Sealed__() __Template__(Frame)
-class "Dialog"  {
+class "Dialog"                  {
     Resizer                     = Resizer,
     CloseButton                 = UIPanelCloseButton,
 }
 
 __Sealed__() __Template__(Mover)
 __ChildProperty__(Dialog, "Header")
-class "DialogHeader" {
+class "DialogHeader"            {
     HeaderText                  = FontString,
 
     --- The text of the header
@@ -713,11 +718,11 @@ class "DialogHeader" {
 --                    GroupBox Widget                    --
 -----------------------------------------------------------
 __Sealed__() __Template__(Frame)
-class "GroupBox" { }
+class "GroupBox"                { }
 
 __Sealed__() __Template__(Frame)
 __ChildProperty__(GroupBox, "Header")
-class "GroupBoxHeader" {
+class "GroupBoxHeader"          {
     HeaderText                  = FontString,
     UnderLine                   = Texture,
 
@@ -737,10 +742,10 @@ class "GroupBoxHeader" {
 --                 UICheckButton Widget                  --
 -----------------------------------------------------------
 __Sealed__()
-class "UICheckButton" { CheckButton }
+class "UICheckButton"           { CheckButton }
 
 __Sealed__()
-class "UIRadioButton" (function(_ENV)
+class "UIRadioButton"           (function(_ENV)
     inherit "CheckButton"
 
     local IsObjectType          = Class.IsObjectType
@@ -770,7 +775,7 @@ class "UIRadioButton" (function(_ENV)
 end)
 
 __Sealed__() __ChildProperty__(CheckButton, "Label")
-class "UICheckButtonLabel" { FontString,
+class "UICheckButtonLabel"      { FontString,
     SetText                     = function(self, text)
         FontString.SetText(self, text)
 
@@ -782,7 +787,6 @@ class "UICheckButtonLabel" { FontString,
                 while trycnt > 0 and not (parent:GetRight() and self:GetLeft()) do
                     Next() trycnt = trycnt - 1
                 end
-
                 if trycnt == 0 then return end
 
                 parent:SetHitRectInsets(0, parent:GetRight() - self:GetLeft() - self:GetStringWidth(), 0, 0)

@@ -50,7 +50,8 @@ class "ConfigSubject"           (function(_ENV)
     -----------------------------------------------------------------------
     function Subscribe(self, ...)
         local observer          = super.Subscribe(self, ...)
-        return observer:OnNext(self[VALUE_FIELD])
+        -- Check value to avoid OnNext when define config node field handlers
+        return self[VALUE_FIELD] ~= nil and observer:OnNext(self[VALUE_FIELD])
     end
 
     --- Provides the observer with new data

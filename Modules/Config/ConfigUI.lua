@@ -81,11 +81,11 @@ interface "IConfigSubjectHandler" (function(_ENV)
     -----------------------------------------------------------
     --- The config subject
     __Final__() __Observable__():AsInheritable()
-    property "ConfigNodeField"  { type = ConfigSubject, handler = "SetConfigNodeField" }
+    property "ConfigSubject"    { type = ConfigSubject, handler = "SetConfigSubject" }
 
     --- The value waiting for commit
-    __Abstract__()
-    property "ConfigNodeFieldUnCommitValue" { type = Any }
+    __Final__()
+    property "ConfigSubjectUnCommitValue" { type = Any }
 
     -----------------------------------------------------------
     --                    abstract method                    --
@@ -93,7 +93,21 @@ interface "IConfigSubjectHandler" (function(_ENV)
     --- Binding the ui element with a config node field's info,
     -- also can be used to clear the binding if configSubject is nil
     __Abstract__()
-    function SetConfigNodeField(self, configSubject) end
+    function SetConfigSubject(self, configSubject) end
+
+    --- Sets the value to the config subject
+    __Final__()
+    function SetConfigSubjectValue(self, value)
+        local configSubject     = self.ConfigSubject
+
+        if configSubject then
+            if configSubject.EnableQuickApply then
+                configSubject:SetValue(value)
+            else
+                self.ConfigSubjectUnCommitValue = value
+            end
+        end
+    end
 end)
 
 --- The bidirectional binding between the config node field and widget
@@ -233,13 +247,13 @@ class "ConfigPanel"             (function(_ENV)
                         print("Create", widget, "for", name)
                         -- The field order can't be changed, so we don't need recycle them
                         ui      = widget("ConfigFieldWidget" .. name, self)
-                        ui.ConfigNodeField          = node[name]
+                        ui.ConfigSubject            = node[name]
                         self.NodeFieldWidgets[name] = ui
                     end
 
                     ui:SetID(index)
                     if not enablequickapply then
-                        ui.ConfigNodeFieldUnCommitValue = node[name]:GetValue() -- reset the commit value
+                        ui.ConfigSubjectUnCommitValue = node[name]:GetValue() -- reset the commit value
                     end
                     index       = index + 1
                 else
@@ -251,7 +265,7 @@ class "ConfigPanel"             (function(_ENV)
         --- Render the sub config node panel
         for name, subnode in node:GetSubNodes() do
             -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
-            if not _PanelMap[subnode] and (subnode.IsUIEnabled or self.ShowAllSubNodes and subnode.IsUIEnabled ~= false) then
+            if not _PanelMap[subnode] and (subnode._IsUIEnabled or self.ShowAllSubNodes and subnode._IsUIEnabled ~= false) then
                 local ui        = self.SubNodePanels[name]
 
                 if not ui then
@@ -284,8 +298,8 @@ class "ConfigPanel"             (function(_ENV)
         self.__OriginValues     = nil
 
         for _, ui in pairs(self.NodeFieldWidgets) do
-            if not ui.ConfigNodeField.EnableQuickApply then
-                ui.ConfigNodeField:SetValue(ui.ConfigNodeFieldUnCommitValue)
+            if not ui.ConfigSubject.EnableQuickApply then
+                ui.ConfigSubject:SetValue(ui.ConfigSubjectUnCommitValue)
             end
         end
 
@@ -339,7 +353,7 @@ Style.UpdateSkin("Default",     {
             Label               = {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
                 justifyH        = "RIGHT",
-                Text            = Wow.FromUIProperty("ConfigNodeField"):Map("x=>x.LocalizedField"),
+                Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x.LocalizedField"),
             }
         },
     },
