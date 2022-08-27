@@ -236,23 +236,14 @@ class "ComboBox" (function(_ENV)
 
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
-        if self.__Subject then
-            self.__Subject:Unsubscribe()
-            self.__Subject      = nil
-        end
-        if not configSubject then return end
-
-        local locale            = configSubject.Node._Addon._Locale
-
         self:ClearItems()
-
         for name, value in Enum.GetEnumValues(configSubject.Type) do
-            self.Items[value]   = locale[name]
+            self.Items[value]   = name
         end
 
         -- subscribe the config subject
         self.OnSelectChanged    = self.OnSelectChanged + onSelectChanged
-        self.__Subject          = configSubject:Subscribe(function(value) self.SelectedValue = value end)
+        return configSubject:Subscribe(function(value) self.SelectedValue = value end)
     end
 
     __Template__{

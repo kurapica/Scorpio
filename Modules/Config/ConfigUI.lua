@@ -71,7 +71,7 @@ end)
 ------------------------------------------------------
 -- Data Type UI Map
 ------------------------------------------------------
---- Represents the interface of the config node field handler
+--- Represents the interface of the config subject handler
 __Sealed__()
 interface "IConfigSubjectHandler" (function(_ENV)
     require "Frame"
@@ -80,33 +80,35 @@ interface "IConfigSubjectHandler" (function(_ENV)
     --                       property                        --
     -----------------------------------------------------------
     --- The config subject
-    __Final__() __Observable__():AsInheritable()
-    property "ConfigSubject"    { type = ConfigSubject, handler = "SetConfigSubject" }
-
-    --- The value waiting for commit
-    __Final__()
-    property "ConfigSubjectUnCommitValue" { type = Any }
+    __Final__() __Observable__()
+    property "ConfigSubject"    { type = ConfigSubject }
 
     -----------------------------------------------------------
     --                    abstract method                    --
     -----------------------------------------------------------
     --- Binding the ui element with a config node field's info,
     -- also can be used to clear the binding if configSubject is nil
-    __Abstract__()
-    function SetConfigSubject(self, configSubject) end
+    __Final__()
+    function SetConfigSubject(self, configSubject)
+        self.ConfigSubject      = configSubject
+
+        if self.__IConfigSubjectObserver then
+            self.__IConfigSubjectObserver:Unsubscribe()
+            self.__IConfigSubjectObserver = nil
+        end
+        if not configSubject then return end
+
+        local normalMethod      = Class.GetNormalMethod(getmetatable(self), "SetConfigSubject")
+        if normalMethod then
+            self.__IConfigSubjectObserver = normalMethod(self, configSubject)
+        end
+    end
 
     --- Sets the value to the config subject
     __Final__()
     function SetConfigSubjectValue(self, value)
         local configSubject     = self.ConfigSubject
-
-        if configSubject then
-            if configSubject.EnableQuickApply then
-                configSubject:SetValue(value)
-            else
-                self.ConfigSubjectUnCommitValue = value
-            end
-        end
+        return configSubject and configSubject:SetValue(value)
     end
 end)
 
@@ -198,7 +200,7 @@ end)
 
 ------------------------------------------------------
 -- Auto-Gen Config UI Panel
--------------------------------------------------------
+------------------------------------------------------
 --- The panel used to display the config node
 __Sealed__()
 class "ConfigPanel"             (function(_ENV)
@@ -233,28 +235,22 @@ class "ConfigPanel"             (function(_ENV)
 
         -- Start rendering
         local index             = 1
-        local locale            = node._Addon._Locale
 
         --- Render the node field
         for name, ftype, desc, enableui, enablequickapply in node:GetFields() do
             if enableui then
                 local widget    = __ConfigDataType__.GetWidgetType(ftype)
-                print(name, ftype, widget)
                 if widget then
                     local ui    = self.NodeFieldWidgets[name]
 
                     if not ui then
-                        print("Create", widget, "for", name)
                         -- The field order can't be changed, so we don't need recycle them
                         ui      = widget("ConfigFieldWidget" .. name, self)
-                        ui.ConfigSubject            = node[name]
+                        ui:SetConfigSubject(node[name])
                         self.NodeFieldWidgets[name] = ui
                     end
 
                     ui:SetID(index)
-                    if not enablequickapply then
-                        ui.ConfigSubjectUnCommitValue = node[name]:GetValue() -- reset the commit value
-                    end
                     index       = index + 1
                 else
                     Warn("Lack the config ui widget for data type " .. tostring(ftype))
@@ -266,7 +262,6 @@ class "ConfigPanel"             (function(_ENV)
         for name, subnode in node:GetSubNodes() do
             -- The node that don't have a config panel and is enabled or not disabled when show all sub nodes
             if not _PanelMap[subnode] and (subnode._IsUIEnabled or self.ShowAllSubNodes and subnode._IsUIEnabled ~= false) then
-                print("Create panel for", name)
                 local ui        = self.SubNodePanels[name]
 
                 if not ui then
@@ -299,9 +294,7 @@ class "ConfigPanel"             (function(_ENV)
         self.__OriginValues     = nil
 
         for _, ui in pairs(self.NodeFieldWidgets) do
-            if not ui.ConfigSubject.EnableQuickApply then
-                ui.ConfigSubject:SetValue(ui.ConfigSubjectUnCommitValue)
-            end
+            ui.ConfigSubject:Commit()
         end
 
         for _, panel in pairs(self.SubNodePanels) do
@@ -340,6 +333,36 @@ class "ConfigPanelHeader"       {
 }
 
 ------------------------------------------------------
+-- Auto-Gen Struct Helper
+------------------------------------------------------
+--- The struct MemberStructType viewer
+__Sealed__() __ConfigDataType__(MemberStructType)
+class "MemberStructTypeViewer"  (function(_ENV)
+    inherit "Frame"
+
+    function SetConfigSubject(self, configSubject)
+        local stype             = configSubject.Type
+
+        for _, mem in Struct.GetMembers(stype) do
+
+        end
+    end
+end)
+
+--- The struct ArrayStructType viewer
+__Sealed__() __ConfigDataType__(ArrayStructType)
+class "ArrayStructTypeViewer"   (function(_ENV)
+    inherit "Frame"
+end)
+
+--- The struct DictStructType viewer
+__Sealed__() __ConfigDataType__(DictStructType)
+class "DictStructTypeViewer"    (function(_ENV)
+    inherit "Frame"
+
+end)
+
+------------------------------------------------------
 -- Default Style
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
@@ -359,7 +382,7 @@ Style.UpdateSkin("Default",     {
             Label               = {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
                 justifyH        = "RIGHT",
-                Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.LocalizedField"),
+                Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
             },
 
             Margin              = {
@@ -388,5 +411,9 @@ Style.UpdateSkin("Default",     {
             color               = Color(1, 1, 1, 0.2),
             location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
         },
+    },
+    [MemberStructTypeViewer]    = {
+        layoutManager           = Layout.VerticalLayoutManager(),
+
     }
 })

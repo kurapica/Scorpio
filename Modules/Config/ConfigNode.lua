@@ -406,9 +406,11 @@ class "ConfigNode"              (function(_ENV)
         if field then
             local subject       = field.subject
             if not subject then
+                local locale    = self._Addon._Locale
                 local rawdata   = _RawData[self]
-                subject         = ConfigSubject( self, name, clone(rawdata and rawdata[name], true) )
+                subject         = ConfigSubject( locale[name], field.type, clone(rawdata and rawdata[name], true), field.enablequickapply, field.desc )
                 field.subject   = subject
+                subject.OnValueSet = function(_, value) return self:SetValue(name, value) end
             end
             return subject
         end

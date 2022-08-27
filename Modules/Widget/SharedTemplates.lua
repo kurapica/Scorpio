@@ -551,22 +551,23 @@ class "InputBox"                (function(_ENV)
     end
 
     local function OnTextChanged(self)
-        self:SetConfigSubjectValue(self:IsNumeric() and (tonumber(self:GetText()) or 0) or self:GetText())
+        if self.__CheckNumber then
+            local value         = tonumber(self:GetText())
+            if value then
+                self:SetConfigSubjectValue(value)
+            end
+        else
+            self:SetConfigSubjectValue(self:GetText())
+        end
     end
 
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
-        if self.__Subject then
-            self.__Subject:Unsubscribe()
-            self.__Subject      = nil
-        end
-        if not configSubject then return end
-
         self.OnTextChanged      = self.OnTextChanged + OnTextChanged
-        self:SetNumeric(Struct.IsSubType(configSubject.Type, Number))
+        self.__CheckNumber      = Struct.IsSubType(configSubject.Type, Number)
 
         -- subscribe the config subject
-        self.__Subject          = configSubject:Subscribe(function(value) self:SetText(value) end)
+        return configSubject:Subscribe(function(value) self:SetText(value) end)
     end
 
     __InstantApplyStyle__()
@@ -661,18 +662,12 @@ class "TrackBar"                (function(_ENV)
 
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
-        if self.__Subject then
-            self.__Subject:Unsubscribe()
-            self.__Subject      = nil
-        end
-        if not configSubject then return end
-
         local min, max, step    = Struct.GetTemplateParameters(configSubject.Type)
         self:SetMinMaxValues(min, max)
         self:SetValueStep(step or (max - min) / 100)
 
         -- subscribe the config subject
-        self.__Subject          = configSubject:Subscribe(function(value) self:SetValue(value) end)
+        return configSubject:Subscribe(function(value) self:SetValue(value) end)
     end
 
     __Template__{
@@ -753,8 +748,51 @@ class "GroupBoxHeader"          {
 -----------------------------------------------------------
 --                 UICheckButton Widget                  --
 -----------------------------------------------------------
-__Sealed__()
-class "UICheckButton"           { CheckButton }
+__Sealed__() __ConfigDataType__(Boolean)
+class "UICheckButton"           (function(_ENV)
+    inherit "CheckButton"
+
+    local function OnValueChanged(self)
+        self:SetConfigSubjectValue(self:GetChecked())
+    end
+
+    --- Sets the text
+    __Async__()
+    function SetText(self, text)
+        local nameText          = self:GetChild("NameText")
+        nameText:SetText(text)
+
+        local trycnt            = 10
+        while trycnt > 0 and not (self:GetRight() and nameText:GetLeft()) do
+            Next() trycnt       = trycnt - 1
+        end
+        if trycnt == 0 then return end
+
+        if self:GetRight() > nameText:GetLeft() then
+            self:SetHitRectInsets(0, self:GetRight() - nameText:GetLeft() - nameText:GetStringWidth(), 0, 0)
+        else
+            self:SetHitRectInsets(0, 0, 0, 0)
+        end
+    end
+
+    --- Gets the text
+    function GetText(self)
+        return self:GetChild("NameText"):GetText()
+    end
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        -- subscribe the config subject
+        return configSubject:Subscribe(function(value) self:SetChecked(value) end)
+    end
+
+    __Template__{
+        NameText                = FontString
+    }
+    function __ctor(self)
+        self.PostClick          = self.PostClick + OnValueChanged
+    end
+end)
 
 __Sealed__()
 class "UIRadioButton"           (function(_ENV)
@@ -781,31 +819,85 @@ class "UIRadioButton"           (function(_ENV)
         return CheckButton.SetChecked(self, flag)
     end
 
+    --- Sets the text
+    SetText                     = UICheckButton.SetText
+
+    --- Gets the text
+    GetText                     = UICheckButton.GetText
+
+    __Template__{
+        NameText                = FontString
+    }
     function __ctor(self)
         self.OnClick            = self.OnClick + OnClick
     end
 end)
 
-__Sealed__() __ChildProperty__(CheckButton, "Label")
-class "UICheckButtonLabel"      { FontString,
-    SetText                     = function(self, text)
-        FontString.SetText(self, text)
+-----------------------------------------------------------
+--                 UIColorPicker Widget                  --
+-----------------------------------------------------------
+--- The color picker
+__Sealed__() __ConfigDataType__(ColorType)
+class "UIColorPicker"           (function(_ENV)
+    inherit "Button"
 
-        Next(function()
-            local parent        = self:GetParent()
-            local trycnt        = 10
+    --- Fired when color picked
+    event "OnColorPicked"
 
-            if parent then
-                while trycnt > 0 and not (parent:GetRight() and self:GetLeft()) do
-                    Next() trycnt = trycnt - 1
-                end
-                if trycnt == 0 then return end
+    -- Helpers
+    local function chooseColor(self)
+        local color             = Scorpio.PickColor(self.Color)
+        if color then
+            self.Color          = color
+            OnColorChoosed(self, color)
 
-                parent:SetHitRectInsets(0, parent:GetRight() - self:GetLeft() - self:GetStringWidth(), 0, 0)
+            self:SetConfigSubjectValue(color)
+        end
+    end
+
+    local function OnClick(self)
+        Next(chooseColor, self)
+    end
+
+    local function OnEnter(self)
+        local color             = Color.NORMAL
+        self:GetChild("ColorSwatch"):SetVertexColor(color.r, color.g, color.b)
+    end
+
+    local function OnLeave(self)
+        local color             = Color.HIGHLIGHT
+        self:GetChild("ColorSwatch"):SetVertexColor(color.r, color.g, color.b)
+    end
+
+    --- The color property
+    property "Color"            {
+        type                    = ColorType,
+        handler                 = function(self, color)
+            if color then
+                self:GetChild("ColorSwatch"):SetColorTexture(color.r, color.g, color.b)
+            else
+                self:GetChild("ColorSwatch"):SetColorTexture(1, 1, 1)
             end
-        end)
-    end,
-}
+        end
+    }
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        -- subscribe the config subject and return the observer for tracking
+        return configSubject:Subscribe(function(value) self:SetChecked(value) end)
+    end
+
+    -- Constructor
+    __Template__{
+        ColorSwatchBG           = Texture,
+        ColorSwatch             = Texture,
+    }
+    function __ctor(self)
+        self.OnClick            = self.OnClick + OnClick
+        self.OnEnter            = self.OnEnter + OnEnter
+        self.OnLeave            = self.OnLeave + OnLeave
+    end
+end)
 
 -----------------------------------------------------------
 --                     Default Style                     --
@@ -922,6 +1014,7 @@ Style.UpdateSkin("Default",     {
     [InputBox]                  = {
         fontObject              = ChatFontNormal,
         autoFocus               = false,
+        size                    = Size(200, 24),
 
         LeftBGTexture           = {
             atlas               = {
@@ -1101,7 +1194,7 @@ Style.UpdateSkin("Default",     {
             alphaMode           = "ADD",
         },
 
-        Label                   = {
+        NameText                = {
             fontObject          = GameFontNormalSmall,
             location            = { Anchor("LEFT", 5, 0, nil, "RIGHT") }
         },
@@ -1130,9 +1223,22 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\Buttons\UI-CheckBox-Check-Disabled]],
             setAllPoints        = true,
         },
-        Label                   = {
+        NameText                = {
             fontObject          = GameFontNormalSmall,
             location            = { Anchor("LEFT", -2, 0, nil, "RIGHT") },
+        },
+    },
+    [UIColorPicker]             = {
+        size                    = Size(32, 32),
+
+        ColorSwatchBG           = {
+            drawLayer           = "ARTWORK",
+            setAllPoints        = true,
+            file                = [[Interface\ChatFrame\ChatFrameColorSwatch]],
+        },
+        ColorSwatch             = {
+            drawLayer           = "OVERLAY",
+            location            = { Anchor("TOPLEFT", 2, -2), Anchor("BOTTOMRIGHT", -2, 2) },
         },
     },
 })

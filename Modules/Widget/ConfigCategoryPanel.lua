@@ -40,6 +40,8 @@ class "ConfigCategoryPanel"     (function(_ENV)
             Next(Observable.From(self.OnShow))
         end
 
+        print("Refresh", self:GetChild("ScrollChild"):GetChild("ConfigPanel").ConfigNode._Name)
+
         -- Rendering and record current value
         local ok, err = pcall(function() self:GetChild("ScrollChild"):GetChild("ConfigPanel"):Begin() end)
         if not ok then
@@ -58,6 +60,8 @@ class "ConfigCategoryPanel"     (function(_ENV)
         }
     }
     function __ctor(self, name, parent, node, cateName, cateParent, showAllSubNodes)
+        self:Hide()
+
         self.name               = cateName
         self.parent             = cateParent
 
