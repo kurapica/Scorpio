@@ -552,13 +552,71 @@ class "InputBox"                (function(_ENV)
 
     local function OnTextChanged(self)
         if self.__CheckNumber then
-            local value         = tonumber(self:GetText())
-            if value then
+            local text          = self:GetText()
+            local value         = tonumber(text)
+            if value and tostring(value) == text then
                 self:SetConfigSubjectValue(value)
             end
         else
             self:SetConfigSubjectValue(self:GetText())
         end
+    end
+
+    local function FixInputDisplay(self)
+        -- Already in the progress
+        if self.OnTextChanged[0] then
+            Delay(0.1)
+            if self.OnTextChanged[0] then return end
+        end
+
+        -- Only continue when it's visible
+        if not self:IsVisible() then
+            Next(Observable.From(self.OnShow))
+        end
+
+        self.OnTextChanged:SetInitFunction(OnTextChangedFix)
+
+        if self:IsNumeric() then
+            local orgVal    = self:GetText()
+            local rval      = (tonumber(orgVal or 0) or 0) + 111111
+            self:SetNumber(rval)
+            rval            = self:GetNumber()
+
+            Next()
+
+            if self:IsNumeric() and self:GetNumber() == rval then
+                self:SetNumber(orgVal or "")
+            end
+        else
+            local orgText   = self:GetText() or ""
+            local rtext     = Guid.New()
+            self:SetText(rtext)
+            rtext           = self:GetText()
+
+            for i = 1, 4 do
+                Next()
+
+                if self:GetText() ~= rtext then
+                    orgText     = self:GetText()
+                end
+
+                rtext           = Guid.New()
+                self:SetText(rtext)
+                rtext           = self:GetText()
+            end
+
+            Next()
+
+            if self:GetText() == rtext then
+                self:SetText(orgText)
+            end
+        end
+
+        self.OnTextChanged:SetInitFunction(nil)
+    end
+
+    local function OnStyleApplied(self)
+        return Next(FixInputDisplay, self)
     end
 
     --- Sets the config node field
@@ -567,43 +625,21 @@ class "InputBox"                (function(_ENV)
         self.__CheckNumber      = Struct.IsSubType(configSubject.Type, Number)
 
         -- subscribe the config subject
-        return configSubject:Subscribe(function(value) self:SetText(value) end)
+        return configSubject:Subscribe(function(value)
+            local hasFocus      = self:HasFocus()
+            local text          = value ~= nil and tostring(value) or ""
+            if text == self:GetText() then return end
+            self:SetText(text)
+            if hasFocus then
+                self:SetFocus()
+                self:SetCursorPosition(#text)
+            end
+        end)
     end
 
     __InstantApplyStyle__()
     function __ctor(self)
-        Next(function()
-            if self:IsNumeric() then
-                local orgVal    = self:GetText()
-                local rval      = (tonumber(orgVal or 0) or 0) + 111111
-                self:SetNumber(rval)
-                rval            = self:GetNumber()
-
-                Next()
-
-                if self:IsNumeric() and self:GetNumber() == rval then
-                    self:SetNumber(orgVal or "")
-                end
-
-                self.OnTextChanged = self.OnTextChanged - OnTextChangedFix
-            else
-                local orgText   = self:GetText() or ""
-                local rtext     = Guid.New()
-                self:SetText(rtext)
-                rtext           = self:GetText()
-
-                Next()
-
-                if not self:IsNumeric() and self:GetText() == rtext then
-                    self:SetText(orgText)
-                end
-
-                self.OnTextChanged = self.OnTextChanged - OnTextChangedFix
-            end
-        end)
-
-        self.OnTextChanged      = self.OnTextChanged + OnTextChangedFix
-
+        self.OnStyleApplied     = self.OnStyleApplied + OnStyleApplied
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
         self.OnEditFocusGained  = self.OnEditFocusGained + OnEditFocusGained
         self.OnEditFocusLost    = self.OnEditFocusLost + OnEditFocusLost

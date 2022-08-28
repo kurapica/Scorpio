@@ -61,13 +61,11 @@ class "ConfigSubject"           (function(_ENV)
 
     --- Provides the observer with new data
     function OnNext(self, value)
-        if self[VALUE_FIELD] ~= value then
-            self[VALUE_FIELD]   = value
-            if not self[QUICKAPPLY_FIELD] then
-                self[UNCOMMIT_FIELD] = value
-            end
-            return onNext(self, value)
+        self[VALUE_FIELD]       = value
+        if not self[QUICKAPPLY_FIELD] then
+            self[UNCOMMIT_FIELD]= value
         end
+        return onNext(self, value)
     end
 
     --- Gets the current value

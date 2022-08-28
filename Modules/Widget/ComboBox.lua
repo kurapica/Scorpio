@@ -269,7 +269,7 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ComboBox]                  = {
-        height                  = 32,
+        Size                    = Size(200, 32),
 
         LeftBGTexture           = {
             drawLayer           = "ARTWORK",

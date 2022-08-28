@@ -130,7 +130,64 @@ UI.Property                     {
     end,
     get                         = function(self)
         return clone(self[PADDING])
-    end
+    end,
+    override                    = { "PaddingLeft", "PaddingRight", "PaddingTop", "PaddingBottom" }
+}
+UI.Property                     {
+    name                        = "PaddingLeft",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[PADDING]           = self[PADDING] or {}
+        self[PADDING].left      = val
+        return RefreshLayout(self)
+    end,
+    get                         = function(self)
+        return clone(self[PADDING])
+    end,
+    override                    = { "Padding" }
+}
+UI.Property                     {
+    name                        = "PaddingRight",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[PADDING]           = self[PADDING] or {}
+        self[PADDING].right     = val
+        return RefreshLayout(self)
+    end,
+    get                         = function(self)
+        return clone(self[PADDING])
+    end,
+    override                    = { "Padding" }
+}
+UI.Property                     {
+    name                        = "PaddingTop",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[PADDING]           = self[PADDING] or {}
+        self[PADDING].top       = val
+        return RefreshLayout(self)
+    end,
+    get                         = function(self)
+        return clone(self[PADDING])
+    end,
+    override                    = { "Padding" }
+}
+UI.Property                     {
+    name                        = "PaddingBottom",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[PADDING]           = self[PADDING] or {}
+        self[PADDING].bottom    = val
+        return RefreshLayout(self)
+    end,
+    get                         = function(self)
+        return clone(self[PADDING])
+    end,
+    override                    = { "Padding" }
 }
 
 --- The margin for layout element
@@ -144,5 +201,62 @@ UI.Property                     {
     end,
     get                         = function(self)
         return clone(self[MARGIN])
-    end
+    end,
+    override                    = { "MarginLeft", "MarginRight", "MarginTop", "MarginBottom" }
+}
+UI.Property                     {
+    name                        = "MarginLeft",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[MARGIN]            = self[MARGIN] or {}
+        self[MARGIN].left       = val
+        return OnStateChanged(self)
+    end,
+    get                         = function(self)
+        return clone(self[MARGIN])
+    end,
+    override                    = { "Margin" }
+}
+UI.Property                     {
+    name                        = "MarginRight",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[MARGIN]            = self[MARGIN] or {}
+        self[MARGIN].right      = val
+        return OnStateChanged(self)
+    end,
+    get                         = function(self)
+        return clone(self[MARGIN])
+    end,
+    override                    = { "Margin" }
+}
+UI.Property                     {
+    name                        = "MarginTop",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[MARGIN]            = self[MARGIN] or {}
+        self[MARGIN].top        = val
+        return OnStateChanged(self)
+    end,
+    get                         = function(self)
+        return clone(self[MARGIN])
+    end,
+    override                    = { "Margin" }
+}
+UI.Property                     {
+    name                        = "MarginBottom",
+    type                        = Number,
+    require                     = Frame,
+    set                         = function(self, val)
+        self[MARGIN]            = self[MARGIN] or {}
+        self[MARGIN].bottom     = val
+        return OnStateChanged(self)
+    end,
+    get                         = function(self)
+        return clone(self[MARGIN])
+    end,
+    override                    = { "Margin" }
 }

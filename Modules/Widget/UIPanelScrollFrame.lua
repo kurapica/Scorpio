@@ -78,7 +78,7 @@ __Sealed__() class "UIPanelScrollBar" (function(_ENV)
 
     --- @Override
     function SetMinMaxValues(self, min, max)
-        if min and max then
+        if min and max and (min + 1) ~= min and (max + 1) ~= max then
             Slider.SetMinMaxValues(self, min, max)
             return refreshState(self)
         end
