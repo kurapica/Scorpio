@@ -345,7 +345,7 @@ class "MemberStructTypeViewer"  (function(_ENV)
         value[name]             = v
 
         for _, mem in Struct.GetMembers(self.ConfigSubject.Type) do
-            if mem:IsRequire() and value[mem:GetName()] then
+            if mem:IsRequire() and value[mem:GetName()] == nil then
                 return
             end
         end
@@ -408,6 +408,26 @@ end)
 __Sealed__() __ConfigDataType__(ArrayStructType)
 class "ArrayStructTypeViewer"   (function(_ENV)
     inherit "Frame"
+
+    local function refreshValue(self)
+        return self:SetConfigSubjectValue(self.Value)
+    end
+
+    --- The Key widget
+    property "IndexWidget"      { }
+
+    --- The value widget
+    property "ValueWidget"      { }
+
+    --- The current value
+    property "Value"            { default = function() return {} end }
+
+    --- Sets the config subject
+    function SetConfigSubject(self, configSubject)
+        return configSubject:Subscribe(function(value)
+            self.Value          = value
+        end)
+    end
 end)
 
 --- The struct DictStructType viewer
@@ -415,6 +435,25 @@ __Sealed__() __ConfigDataType__(DictStructType)
 class "DictStructTypeViewer"    (function(_ENV)
     inherit "Frame"
 
+    local function refreshValue(self)
+        return self:SetConfigSubjectValue(self.Value)
+    end
+
+    --- The Key widget
+    property "KeyWidget"        { }
+
+    --- The value widget
+    property "ValueWidget"      { }
+
+    --- The current value
+    property "Value"            { default = function() return {} end }
+
+    --- Sets the config subject
+    function SetConfigSubject(self, configSubject)
+        return configSubject:Subscribe(function(value)
+            self.Value          = value
+        end)
+    end
 end)
 
 ------------------------------------------------------
