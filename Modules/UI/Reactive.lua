@@ -144,7 +144,7 @@ end
 
 __Arguments__{ -UIObject, IObservable + String }
 __Static__()
-function Wow.GetFrame(ftype, observable)
+function Wow.GetFrameByType(ftype, observable)
     return Observable(function(observer)
         local feature
 
@@ -205,7 +205,64 @@ function Wow.GetFrame(ftype, observable)
     end)
 end
 
-__Static__() __Arguments__{ -UIObject }
+__Arguments__{ IObservable + String }
+__Static__()
+function Wow.GetFrame(observable)
+    return Observable(function(observer)
+        local frame             = getCurrentTarget()
+        local subject
+
+        if type(observable) == "string" then
+            local field         = "__GetFrame_" .. observable .. "Subject"
+            while frame do
+                subject         = frame[field]
+                if subject then break end
+
+                -- Check features
+                local ftype     = getmetatable(frame)
+                local feature   = getFeature(ftype, observable, true)
+
+                if feature then
+                    if isProperty(feature) then
+                        if __Observable__.IsObservableProperty(feature) then
+                            subject     = BehaviorSubject()
+                            frame[field]= subject
+                            observable.From(frame, observable):Subscribe(function(...) subject:OnNext(frame, ...) end )
+                            subject:OnNext(frame)
+                            break
+                        end
+                    elseif isEvent(feature) then
+                        subject     = BehaviorSubject()
+                        frame[field]= subject
+                        Observable.From(frame[observable]):Subscribe(function(...) subject:OnNext(...) end)
+                        subject:OnNext(frame)
+                        break
+                    end
+                end
+
+                frame           = frame:GetParent()
+            end
+        else
+            subject             = frame[observable]
+
+            if not subject then
+                subject         = BehaviorSubject()
+                frame[observable] = subject
+
+                observable:Subscribe(function(...) subject:OnNext(frame, ...) end)
+                subject:OnNext(frame)
+            end
+        end
+
+        if subject then subject:Subscribe(observer) end
+    end)
+end
+
+__Static__() __Arguments__{ -UIObject/nil }
 function Wow.FromFrameSize(type)
-    return Wow.GetFrame(type, "OnSizeChanged"):Map(function(frm) return frm:GetSize() end)
+    if type then
+        return Wow.GetFrameByType(type, "OnSizeChanged"):Map(function(frm) return frm:GetSize() end)
+    else
+        return Wow.GetFrame("OnSizeChanged"):Map(function(frm) return frm:GetSize() end)
+    end
 end

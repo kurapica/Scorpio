@@ -165,9 +165,11 @@ class "ComboBox" (function(_ENV)
             for i, item in ipairs(items) do
                 if item.checkvalue == value then
                     self.Text   = item.text
-                    break
+                    return
                 end
             end
+
+            self.Text           = ""
         end
     }
 

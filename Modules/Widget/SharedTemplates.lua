@@ -867,7 +867,7 @@ class "UIColorPicker"           (function(_ENV)
         local color             = Scorpio.PickColor(self.Color)
         if color then
             self.Color          = color
-            OnColorChoosed(self, color)
+            OnColorPicked(self, color)
 
             self:SetConfigSubjectValue(color)
         end
@@ -875,16 +875,6 @@ class "UIColorPicker"           (function(_ENV)
 
     local function OnClick(self)
         Next(chooseColor, self)
-    end
-
-    local function OnEnter(self)
-        local color             = Color.NORMAL
-        self:GetChild("ColorSwatch"):SetVertexColor(color.r, color.g, color.b)
-    end
-
-    local function OnLeave(self)
-        local color             = Color.HIGHLIGHT
-        self:GetChild("ColorSwatch"):SetVertexColor(color.r, color.g, color.b)
     end
 
     --- The color property
@@ -902,7 +892,7 @@ class "UIColorPicker"           (function(_ENV)
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
         -- subscribe the config subject and return the observer for tracking
-        return configSubject:Subscribe(function(value) self:SetChecked(value) end)
+        return configSubject:Subscribe(function(value) self.Color = value end)
     end
 
     -- Constructor
@@ -912,8 +902,6 @@ class "UIColorPicker"           (function(_ENV)
     }
     function __ctor(self)
         self.OnClick            = self.OnClick + OnClick
-        self.OnEnter            = self.OnEnter + OnEnter
-        self.OnLeave            = self.OnLeave + OnLeave
     end
 end)
 
@@ -1032,7 +1020,7 @@ Style.UpdateSkin("Default",     {
     [InputBox]                  = {
         fontObject              = ChatFontNormal,
         autoFocus               = false,
-        size                    = Size(200, 24),
+        size                    = Size(150, 24),
 
         LeftBGTexture           = {
             atlas               = {

@@ -2943,7 +2943,7 @@ else  -- For 9.0
             getCoordValue("LRx", pieceSetup, repeatX, repeatY), getCoordValue("LRy", pieceSetup, repeatX, repeatY)
     end
 
-    local function applyTextureCoords(self)
+    local function applyTextureCoords(self, retryCnt)
         local backdrop          = backdropInfo[self[0]]
         if not backdrop then return end
 
@@ -2968,13 +2968,19 @@ else  -- For 9.0
             end
         end
 
+        local ok                = true
         for name in pairs(textureUVs) do
             local texture       = getPropertyChild(self, name)
             if texture then
-                if texture == "BackdropCenter" then
-                    texture:SetTexCoord(setupCoordinates("BackdropCenter", repeatX, repeatY))
+                if name == "BackdropCenter" then
+                    ok          = pcall(texture.SetTexCoord, texture, setupCoordinates(name, repeatX, repeatY))
                 else
-                    texture:SetTexCoord(setupCoordinates(name, edgeRepeatX, edgeRepeatY))
+                    ok          = pcall(texture.SetTexCoord, texture, setupCoordinates(name, edgeRepeatX, edgeRepeatY))
+                end
+                if not ok then
+                    retryCnt    = (type(retryCnt) == "number" and retryCnt or 0) + 1
+                    if type(retryCnt) == "number" and retryCnt > 5 then return end
+                    return Next(applyTextureCoords, self, retryCnt)
                 end
             end
         end

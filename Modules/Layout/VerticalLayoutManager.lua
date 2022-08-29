@@ -21,7 +21,7 @@ class "VerticalLayoutManager"   (function(_ENV)
     -----------------------------------------------------------
     --- Refresh the layout of the target frame
     function RefreshLayout(self, frame, iter, padding)
-        local _, minHeight      = self:GetMinResize()
+        local _, minHeight      = frame:GetMinResize()
         local totalHeight       = 0
         local prev
         local spacing           = padding and padding.top  or 0

@@ -114,8 +114,8 @@ class "ArrayStructTypeViewer"   (function(_ENV)
         end
     end
 
-    local function refreshValue(self, value)
-        return self:SetConfigSubjectValue(clone(self.Value))
+    local function refreshValue(self)
+        return self:SetConfigSubjectValue(clone(self.Value, true))
     end
 
     local function onAdd(self)
@@ -135,11 +135,10 @@ class "ArrayStructTypeViewer"   (function(_ENV)
         end
     end
 
-    local function onDel(elf)
+    local function onDel(self)
         self                    = self:GetParent()
         local index             = self:GetChild("IndexList").SelectedValue
         if index and index <= #self.Value then
-            self.SelectedValue  = nil
             tremove(self.Value, index)
             return refreshValue(self)
         end
@@ -161,13 +160,11 @@ class "ArrayStructTypeViewer"   (function(_ENV)
     property "SelectedValue"    { handler = function(self, val) return self.ValueWidget and self.ValueWidget.ConfigSubject:OnNext(val) end }
 
     --- The current value
+    __Set__(PropertySet.DeepClone)
     property "Value"            {
         type                    = Table,
         default                 = function() return {} end,
-        handler                 = function(self, val)
-            self.Value          = clone(val, true)
-            return refreshList(self)
-        end
+        handler                 = refreshList
     }
 
     --- The member name to be displayed
@@ -178,9 +175,10 @@ class "ArrayStructTypeViewer"   (function(_ENV)
 
     --- Sets the config subject
     function SetConfigSubject(self, configSubject)
-        local eleType           = Struct.GetArrayElement(dataType)
+        local eleType           = Struct.GetArrayElement(configSubject.Type)
         local widget            = __ConfigDataType__.GetWidgetType(eleType)
         local name              = "Element"
+
         if not widget then return end
 
         if self.ValueWidget then
@@ -269,12 +267,13 @@ class "DictStructTypeViewer"    (function(_ENV)
         end
     end
 
-    local function onDel(elf)
+    local function onDel(self)
         self                    = self:GetParent()
-        local index             = self:GetChild("IndexList").SelectedValue
-        if index and index <= #self.Value then
+        if self.SelectedKey then
+            self.Value[self.SelectedKey] = nil
+            self.SelectedKey    = nil
             self.SelectedValue  = nil
-            tremove(self.Value, index)
+            self:GetChild("IndexList").SelectedValue = nil
             return refreshValue(self)
         end
     end
@@ -302,19 +301,17 @@ class "DictStructTypeViewer"    (function(_ENV)
     property "SelectedValue"    { handler = function(self, val) return self.ValueWidget and self.ValueWidget.ConfigSubject:OnNext(val) end }
 
     --- The current value
+    __Set__(PropertySet.DeepClone)
     property "Value"            {
         type                    = Table,
         default                 = function() return {} end,
-        handler                 = function(self, val)
-            self.Value          = clone(val, true)
-            return refreshList(self)
-        end
+        handler                 = refreshList
     }
 
     --- Sets the config subject
     function SetConfigSubject(self, configSubject)
-        local keyType           = Struct.GetDictionaryKey(dataType)
-        local eleType           = Struct.GetDictionaryValue(dataType)
+        local keyType           = Struct.GetDictionaryKey(configSubject.Type)
+        local eleType           = Struct.GetDictionaryValue(configSubject.Type)
         local keyWidget         = __ConfigDataType__.GetWidgetType(keyType)
         local widget            = __ConfigDataType__.GetWidgetType(eleType)
         if not widget then return end
@@ -328,7 +325,7 @@ class "DictStructTypeViewer"    (function(_ENV)
             sub.OnValueSet      = function(s, v) self.SelectedKey = v end
 
             -- The field order can't be changed, so we don't need recycle them
-            ui                  = widget("ConfigFieldWidgetKey", self)
+            ui                  = keyWidget("ConfigFieldWidgetKey", self)
             ui:SetConfigSubject(sub)
             ui:SetID(1)
             self.KeyWidget      = ui
@@ -394,7 +391,7 @@ Style.UpdateSkin("Default",     {
                 Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
             },
 
-            marginLeft          = 100,
+            marginLeft          = 80,
             marginBottom        = 24,
         },
     },
@@ -414,17 +411,18 @@ Style.UpdateSkin("Default",     {
             bottom              = 32, -- For buttons
         },
         marginRight             = 8,
-        MinResize               = Size(100, 180), -- The min height
+        MinResize               = Size(100, 200), -- The min height
 
         -- children
         IndexList               = {
             location            = {
                 Anchor("TOPLEFT", 8, -8),
+                Anchor("BOTTOMLEFT", 8, 8),
             },
-            width               = 100,
+            width               = 150,
         },
         Remove                  = {
-            location            = { Anchor("BOTTOMRIGHT", -8, -4) },
+            location            = { Anchor("BOTTOMRIGHT", -8, 8) },
             size                = Size(48, 24),
             text                = "-",
         },
@@ -441,8 +439,8 @@ Style.UpdateSkin("Default",     {
 
         -- config subject handler
         [IConfigSubjectHandler] = {
-            marginLeft          = 100,
-            marginBottom        = 24,
+            marginLeft          = 160,
+            marginBottom        = 36,
         },
     },
     [DictStructTypeViewer]      = {
@@ -461,17 +459,18 @@ Style.UpdateSkin("Default",     {
             bottom              = 32, -- For buttons
         },
         marginRight             = 8,
-        MinResize               = Size(100, 180), -- The min height
+        MinResize               = Size(100, 200), -- The min height
 
         -- children
         IndexList               = {
             location            = {
                 Anchor("TOPLEFT", 8, -8),
+                Anchor("BOTTOMLEFT", 8, 8),
             },
-            width               = 100,
+            width               = 150,
         },
         Remove                  = {
-            location            = { Anchor("BOTTOMRIGHT", -8, -4) },
+            location            = { Anchor("BOTTOMRIGHT", -8, 8) },
             size                = Size(48, 24),
             text                = "-",
         },
@@ -489,8 +488,8 @@ Style.UpdateSkin("Default",     {
                 Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
             },
 
-            marginLeft          = 150,
-            marginBottom        = 24,
+            marginLeft          = 230,
+            marginBottom        = 36,
         },
     },
 })

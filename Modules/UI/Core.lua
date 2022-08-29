@@ -1145,7 +1145,6 @@ class "__Template__" (function (_ENV)
             elseif type(k) == "number" and type(v) == "table" and getmetatable(v) == nil and not subtree then
                 subtree         = v
             else
-                print(k, v)
                 error("The __Template__'s element type must be an ui object type", stack + 1)
             end
         end

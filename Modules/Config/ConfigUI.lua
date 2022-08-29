@@ -346,7 +346,7 @@ Style.UpdateSkin("Default",     {
                 Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
             },
 
-            marginLeft          = 100, -- Leave the space for label
+            marginLeft          = 80, -- Leave the space for label
             marginBottom        = 24,  -- vspacing between ui elements
         },
     },
