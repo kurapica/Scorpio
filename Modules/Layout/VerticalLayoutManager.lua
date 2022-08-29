@@ -13,11 +13,15 @@ __Sealed__()
 class "VerticalLayoutManager"   (function(_ENV)
     extend "ILayoutManager"
 
+    -- single instance
+    local instance
+
     -----------------------------------------------------------
     --                 Implementation method                 --
     -----------------------------------------------------------
     --- Refresh the layout of the target frame
     function RefreshLayout(self, frame, iter, padding)
+        local _, minHeight      = self:GetMinResize()
         local totalHeight       = 0
         local prev
         local spacing           = padding and padding.top  or 0
@@ -46,6 +50,17 @@ class "VerticalLayoutManager"   (function(_ENV)
         end
 
         totalHeight             = totalHeight + (padding and padding.bottom or 0)
-        frame:SetHeight(totalHeight)
+        frame:SetHeight(math.max(totalHeight, minHeight or 0))
+    end
+
+    -----------------------------------------------------------
+    --                      constructor                      --
+    -----------------------------------------------------------
+    function __ctor(self)
+        instance                = instance
+    end
+
+    function __exist(_)
+        return instance
     end
 end)

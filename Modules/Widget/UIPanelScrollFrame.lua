@@ -598,14 +598,17 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
     --- The selected value of the list frame
     property "SelectedValue"            { field = "__SelectedValue", handler = function(self, value)
+            local selected              = false
             if self.__ListItems and value ~= nil then
                 for i, v in ipairs(self.__ListItems) do
                     if v.checkvalue == value then
+                        selected        = true
                         rawset(self, "__SelectedIndex", i)
                         break
                     end
                 end
-            else
+            end
+            if not selected then
                 rawset(self, "__SelectedIndex", 0)
             end
 

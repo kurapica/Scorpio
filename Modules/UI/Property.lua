@@ -2810,11 +2810,50 @@ __ChildProperty__(Frame, "Label2")
 __ChildProperty__(Frame, "Label3")
 class "UIPanelLabel"    { FontString }
 
-Style.UpdateSkin("Default", {
-    [UIPanelLabel]      = {
-        drawLayer       = "BACKGROUND",
-        fontObject      = GameFontHighlight,
-        justifyH        = "RIGHT",
+Style.UpdateSkin("Default",     {
+    [UIPanelLabel]              = {
+        drawLayer               = "BACKGROUND",
+        fontObject              = GameFontHighlight,
+        justifyH                = "RIGHT",
+    },
+})
+
+------------------------------------------------------------
+--                     Frame Header                       --
+------------------------------------------------------------
+--- The header of frames
+__Sealed__() __ChildProperty__(Frame, "Header")
+__Template__(Frame)
+class "UIFrameHeader"           {
+    HeaderText                  = FontString,
+
+    --- The text of the header
+    Text                        = {
+        type                    = String,
+        get                     = function(self)
+            return self:GetChild("HeaderText"):GetText()
+        end,
+        set                     = function(self, text)
+            self:GetChild("HeaderText"):SetText(text or "")
+        end,
+    },
+}
+
+Style.UpdateSkin("Default",     {
+    [UIFrameHeader]             = {
+        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
+        height                  = 36,
+
+        HeaderText              = {
+            fontObject          = OptionsFontHighlight,
+            location            = { Anchor("TOPLEFT", 16, -16) },
+        },
+
+        BottomBGTexture         = {
+            height              = 1,
+            color               = Color(1, 1, 1, 0.2),
+            location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
+        },
     },
 })
 

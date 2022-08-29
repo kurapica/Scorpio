@@ -763,24 +763,6 @@ class "DialogHeader"            {
 __Sealed__() __Template__(Frame)
 class "GroupBox"                { }
 
-__Sealed__() __Template__(Frame)
-__ChildProperty__(GroupBox, "Header")
-class "GroupBoxHeader"          {
-    HeaderText                  = FontString,
-    UnderLine                   = Texture,
-
-    --- The text of the header
-    Text                        = {
-        type                    = String,
-        get                     = function(self)
-            return self:GetChild("HeaderText"):GetText()
-        end,
-        set                     = function(self, text)
-            self:GetChild("HeaderText"):SetText(text or "")
-        end,
-    },
-}
-
 -----------------------------------------------------------
 --                 UICheckButton Widget                  --
 -----------------------------------------------------------
@@ -1194,21 +1176,6 @@ Style.UpdateSkin("Default",     {
             insets              = { left = 5, right = 5, top = 5, bottom = 5 }
         },
         backdropBorderColor     = Color(0.6, 0.6, 0.6),
-    },
-    [GroupBoxHeader]            = {
-        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
-        height                  = 48,
-
-        HeaderText              = {
-            fontObject          = OptionsFontHighlight,
-            location            = { Anchor("TOPLEFT", 16, -16) },
-        },
-
-        UnderLine               = {
-            height              = 1,
-            color               = Color(1, 1, 1, 0.2),
-            location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
-        },
     },
     [UIRadioButton]             = {
         size                    = Size(16, 16),

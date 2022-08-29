@@ -159,13 +159,19 @@ class "__ConfigDataType__"      (function(_ENV)
 
             elseif stype == StructCategory.ARRAY then
                 -- Would use special widget for complex struct types
-                return _DataTypeWidgetMap[ArrayStructType]
+                local eleType   = Struct.GetArrayElement(dataType)
+                return GetWidgetType(eleType) and _DataTypeWidgetMap[ArrayStructType]
 
             elseif stype == StructCategory.MEMBER then
                 return _DataTypeWidgetMap[MemberStructType]
 
             elseif stype == StructCategory.DICTIONARY then
-                return _DataTypeWidgetMap[DictStructType]
+                local keyType   = Struct.GetDictionaryKey(dataType)
+                local valType   = Struct.GetDictionaryValue(dataType)
+
+                if (Enum.Validate(keyType) or Struct.GetStructCategory(keyType) == StructCategory.CUSTOM) and GetWidgetType(valType) then
+                    return _DataTypeWidgetMap[DictStructType]
+                end
             end
         end
     end
@@ -313,166 +319,26 @@ class "ConfigPanel"             (function(_ENV)
     end
 end)
 
---- The header of the config panel
-__Sealed__() __Template__(Frame)
-__ChildProperty__(ConfigPanel, "Header")
-class "ConfigPanelHeader"       {
-    HeaderText                  = FontString,
-    UnderLine                   = Texture,
-
-    --- The text of the header
-    Text                        = {
-        type                    = String,
-        get                     = function(self)
-            return self:GetChild("HeaderText"):GetText()
-        end,
-        set                     = function(self, text)
-            self:GetChild("HeaderText"):SetText(text or "")
-        end,
-    },
-}
-
-------------------------------------------------------
--- Auto-Gen Struct Helper
-------------------------------------------------------
---- The struct MemberStructType viewer
-__Sealed__() __ConfigDataType__(MemberStructType)
-class "MemberStructTypeViewer"  (function(_ENV)
-    inherit "Frame"
-
-    local function refreshValue(self, name, v)
-        local value             = self.Value
-        value[name]             = v
-
-        for _, mem in Struct.GetMembers(self.ConfigSubject.Type) do
-            if mem:IsRequire() and value[mem:GetName()] == nil then
-                return
-            end
-        end
-
-        return self:SetConfigSubjectValue(value)
-    end
-
-    --- The member widget
-    property "MemberWidgets"    { default = function() return {} end }
-
-    --- The current value
-    property "Value"            { default = function() return {} end }
-
-    --- Sets the config subject
-    function SetConfigSubject(self, configSubject)
-        local stype             = configSubject.Type
-        local index             = 1
-
-        for _, mem in Struct.GetMembers(stype) do
-            local name          = mem:GetName()
-            local type          = mem:GetType()
-            local widget        = __ConfigDataType__.GetWidgetType(type)
-            if widget then
-                local ui        = self.MemberWidgets[name]
-
-                if not ui then
-                    local sub   = ConfigSubject(name, type, nil, true)
-                    sub.OnValueSet = function(s, v) s:OnNext(v) refreshValue(self, name, v) end
-
-                    -- The field order can't be changed, so we don't need recycle them
-                    ui          = widget("ConfigFieldWidget" .. name, self)
-                    ui:SetConfigSubject(sub)
-                    self.MemberWidgets[name] = ui
-                end
-
-                ui:SetID(index)
-                index           = index + 1
-            else
-                Warn("Lack the config ui widget for data type " .. tostring(ftype))
-            end
-        end
-
-        return configSubject:Subscribe(function(value)
-            self.Value          = value
-
-            if type(value) == "table" then
-                for name, ui in pairs(self.MemberWidgets) do
-                    ui.ConfigSubject:OnNext(value[name])
-                end
-            else
-                for name, ui in pairs(self.MemberWidgets) do
-                    ui.ConfigSubject:OnNext(nil)
-                end
-            end
-        end)
-    end
-end)
-
---- The struct ArrayStructType viewer
-__Sealed__() __ConfigDataType__(ArrayStructType)
-class "ArrayStructTypeViewer"   (function(_ENV)
-    inherit "Frame"
-
-    local function refreshValue(self)
-        return self:SetConfigSubjectValue(self.Value)
-    end
-
-    --- The Key widget
-    property "IndexWidget"      { }
-
-    --- The value widget
-    property "ValueWidget"      { }
-
-    --- The current value
-    property "Value"            { default = function() return {} end }
-
-    --- Sets the config subject
-    function SetConfigSubject(self, configSubject)
-        return configSubject:Subscribe(function(value)
-            self.Value          = value
-        end)
-    end
-end)
-
---- The struct DictStructType viewer
-__Sealed__() __ConfigDataType__(DictStructType)
-class "DictStructTypeViewer"    (function(_ENV)
-    inherit "Frame"
-
-    local function refreshValue(self)
-        return self:SetConfigSubjectValue(self.Value)
-    end
-
-    --- The Key widget
-    property "KeyWidget"        { }
-
-    --- The value widget
-    property "ValueWidget"      { }
-
-    --- The current value
-    property "Value"            { default = function() return {} end }
-
-    --- Sets the config subject
-    function SetConfigSubject(self, configSubject)
-        return configSubject:Subscribe(function(value)
-            self.Value          = value
-        end)
-    end
-end)
-
 ------------------------------------------------------
 -- Default Style
 ------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
+        -- Layout settings
         layoutManager           = Layout.VerticalLayoutManager(),
 
         padding                 = {
-            top                 = 48,
+            top                 = 48, -- For header
             bottom              = 20,
         },
-        marginRight             = 0,
+        marginRight             = 0,  -- To be used as layout element, take width 100%
 
+        -- Config panel header
         Header                  = {
             Text                = Wow.FromUIProperty("ConfigNodeName")
         },
 
+        -- Config ui
         [IConfigSubjectHandler] = {
             label               = {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
@@ -480,50 +346,8 @@ Style.UpdateSkin("Default",     {
                 Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
             },
 
-            marginLeft          = 100,
-            marginBottom        = 24,
+            marginLeft          = 100, -- Leave the space for label
+            marginBottom        = 24,  -- vspacing between ui elements
         },
     },
-    [ConfigPanelHeader]         = {
-        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
-        height                  = 36,
-
-        HeaderText              = {
-            fontObject          = OptionsFontHighlight,
-            location            = { Anchor("TOPLEFT", 16, -16) },
-        },
-
-        UnderLine               = {
-            height              = 1,
-            color               = Color(1, 1, 1, 0.2),
-            location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
-        },
-    },
-    [MemberStructTypeViewer]    = {
-        layoutManager           = Layout.VerticalLayoutManager(),
-
-        backdrop                = {
-            edgeFile            = [[Interface\Tooltips\UI-Tooltip-Border]],
-            tile                = true, tileSize = 16, edgeSize = 16,
-            insets              = { left = 5, right = 5, top = 5, bottom = 5 }
-        },
-        backdropBorderColor     = Color(0.6, 0.6, 0.6),
-
-        padding                 = {
-            top                 = 8,
-            bottom              = 8,
-        },
-        marginRight             = 8,
-
-        [IConfigSubjectHandler] = {
-            label               = {
-                location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
-                justifyH        = "RIGHT",
-                Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
-            },
-
-            marginLeft          = 100,
-            marginBottom        = 24,
-        },
-    }
 })

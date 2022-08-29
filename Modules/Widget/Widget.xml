@@ -10,4 +10,5 @@
     <Script file="TabControl.lua"/>
     <Script file="CodeEditor.lua"/>
     <Script file="ConfigCategoryPanel.lua"/>
+    <Script file="ConfigStructTypeViewer.lua"/>
 </Ui>
