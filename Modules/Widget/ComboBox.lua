@@ -9,6 +9,8 @@
 Scorpio           "Scorpio.Widget.ComboBox"          "1.0.0"
 --========================================================--
 
+local _L                        = _Locale
+
 -----------------------------------------------------------
 --                    ComboBox Widget                    --
 -----------------------------------------------------------
@@ -240,7 +242,7 @@ class "ComboBox" (function(_ENV)
     function SetConfigSubject(self, configSubject)
         self:ClearItems()
         for name, value in Enum.GetEnumValues(configSubject.Type) do
-            self.Items[value]   = name
+            self.Items[value]   = _L[name]
         end
 
         -- subscribe the config subject

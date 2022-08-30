@@ -52,5 +52,202 @@ L["Please delete those addons:"] = "请删除以下插件:"
 -----------------------------------------------------------
 --                 Auto-Gen Config Type                  --
 -----------------------------------------------------------
-_L["Key"] = "主键"
-_L["Value"] = "对应值"
+L["Key"]                = "主键"
+L["Value"]              = "对应值"
+
+-----------------------------------------------------------
+--                       Enum Name                       --
+-----------------------------------------------------------
+
+-- FramePoint
+L["TOPLEFT"]            = "左上角"
+L["TOPRIGHT"]           = "右上角"
+L["BOTTOMLEFT"]         = "左下角"
+L["BOTTOMRIGHT"]        = "左下角"
+L["TOP"]                = "上"
+L["BOTTOM"]             = "下"
+L["LEFT"]               = "左"
+L["RIGHT"]              = "右"
+L["CENTER"]             = "中间"
+
+-- FrameStrata
+L["PARENT"]             = "和父元素一致"
+L["BACKGROUND"]         = "背景"
+L["LOW"]                = "低"
+L["MEDIUM"]             = "中等"
+L["HIGH"]               = "高"
+L["DIALOG"]             = "对话框"
+L["FULLSCREEN"]         = "全屏"
+L["FULLSCREEN_DIALOG"]  = "全屏对话框"
+L["TOOLTIP"]            = "提示"
+
+-- DrawLayer
+L["BACKGROUND"]         = "背景"
+L["BORDER"]             = "边框"
+L["ARTWORK"]            = "绘图"
+L["OVERLAY"]            = "覆盖"
+L["HIGHLIGHT"]          = "高亮"
+
+-- AlphaMode
+L["DISABLE"]            = true
+L["BLEND"]              = true
+L["ALPHAKEY"]           = true
+L["ADD"]                = true
+L["MOD"]                = true
+
+-- OutlineType
+L["NONE"]               = true
+L["NORMAL"]             = true
+L["THICK"]              = true
+
+-- JustifyVType
+L["MIDDLE"]             = "中间"
+
+-- JustifyHType
+L["CENTER"]             = "中央"
+
+-- Orientation
+L["HORIZONTAL"]         = "水平方向"
+L["VERTICAL"]           = "竖直方向"
+
+-- FontAlphabet
+L["roman"]              = "罗马"
+L["korean"]             = "韩文"
+L["simplifiedchinese"]  = "简体中文"
+L["traditionalchinese"] = "繁体中文"
+L["russian"]            = "俄语"
+
+-- WrapMode
+L["CLAMP"]              = true
+L["REPEAT"]             = true
+L["CLAMPTOBLACK"]       = true
+L["CLAMPTOBLACKADDITIVE"] = true
+L["CLAMPTOWHITE"]       = true
+L["MIRROR"]             = true
+
+-- FilterMode
+L["LINEAR"]             = true
+L["TRILINEAR"]          = true
+L["NEAREST"]            = true
+
+-- AnimLoopType
+L["NONE"]               = true
+L["REPEAT"]             = true
+L["BOUNCE"]             = true
+
+-- AnimSmoothType
+L["NONE"]               = true
+L["IN"]                 = true
+L["OUT"]                = true
+L["IN_OUT"]             = true
+L["OUT_IN"]             = true
+
+-- AnimCurveType
+L["NONE"]               = true
+L["SMOOTH"]             = true
+
+-- AnchorType
+L["ANCHOR_TOPRIGHT"]    = "右上角锚点"
+L["ANCHOR_RIGHT"]       = "右侧锚点"
+L["ANCHOR_BOTTOMRIGHT"] = "右下角锚点"
+L["ANCHOR_TOPLEFT"]     = "左上角锚点"
+L["ANCHOR_LEFT"]        = "左侧锚点"
+L["ANCHOR_BOTTOMLEFT"]  = "左下角锚点"
+L["ANCHOR_CURSOR"]      = "鼠标锚点"
+L["ANCHOR_PRESERVE"]    = "保留锚点"
+L["ANCHOR_NONE"]        = "无锚点"
+
+
+
+-----------------------------------------------------------
+--                  Struct Member Name                   --
+-----------------------------------------------------------
+-- AtlasType
+L["atlas"]              = "材质集"
+L["useAtlasSize"]       = "使用材质原始大小"
+
+-- Dimension & Position
+L["x"]                  = "横轴坐标"
+L["y"]                  = "纵轴坐标"
+L["z"]                  = "枢轴坐标"
+
+-- Size
+L["width"]              = "宽度"
+L["height"]             = "高度"
+
+-- MinMax
+L["min"]                = "最小值"
+L["max"]                = "最大值"
+
+-- Inset
+L["left"]               = "左"
+L["right"]              = "右"
+L["top"]                = "上"
+L["bottom"]             = "下"
+
+-- GradientType
+L["orientation"]        = "方向"
+L["mincolor"]           = "颜色最小值"
+L["maxcolor"]           = "颜色最大值"
+
+-- AlphaGradientType
+L["start"]              = "起始"
+L["length"]             = "长度"
+
+-- FontType
+L["font"]               = "字体"
+L["height"]             = "高度"
+L["outline"]            = "轮廓"
+L["monochrome"]         = "单色"
+
+-- BackdropType
+L["bgFile"]             = "背景材质"
+L["edgeFile"]           = "边缘材质"
+L["tile"]               = "平铺"
+L["tileEdge"]           = "平铺边缘"
+L["tileSize"]           = "平铺尺寸"
+L["edgeSize"]           = "边缘尺寸"
+L["alphaMode"]          = "透明度模式"
+L["insets"]             = "偏移"
+
+-- Anchor
+L["point"]              = "锚点"
+L["relativeTo"]         = "关联元素"
+L["relativePoint"]      = "关联锚点"
+
+-- RectType
+L["ULx"]                = "左上角横轴坐标"
+L["ULy"]                = "左上角纵轴坐标"
+L["LLx"]                = "左下角横轴坐标"
+L["LLy"]                = "左下角纵轴坐标"
+L["URx"]                = "右上角横轴坐标"
+L["URy"]                = "右上角纵轴坐标"
+L["LRx"]                = "右下角横轴坐标"
+L["LRy"]                = "右下角纵轴坐标"
+
+-- LightType
+L["enabled"]            = "启用"
+L["omni"]               = "全向"
+L["dir"]                = "方向"
+L["ambIntensity"]       = "环绕强度"
+L["ambColor"]           = "环绕颜色"
+L["dirIntensity"]       = "方向强度"
+L["dirColor"]           = "方向颜色"
+
+-- TextureType
+L["file"]               = "文件"
+L["color"]              = "颜色"
+
+-- FadeoutOption
+L["duration"]           = "为期"
+L["delay"]              = "延迟"
+L["stop"]               = "结束"
+L["autohide"]           = "自动隐藏"
+
+-- AnimateTexCoords
+L["textureWidth"]       = "材质宽度"
+L["textureHeight"]      = "材质高度"
+L["frameWidth"]         = "界面宽度"
+L["frameHeight"]        = "界面高度"
+L["numFrames"]          = "帧数"
+L["throttle"]           = "阀值"
