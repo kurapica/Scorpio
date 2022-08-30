@@ -3,7 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/12/12                              --
--- Update Date :  2021/10/24                              --
+-- Update Date :  2022/08/30                              --
 --========================================================--
 
 PLoop(function(_ENV)
@@ -1184,34 +1184,42 @@ PLoop(function(_ENV)
         --                  Locale                  --
         ----------------------------------------------
         __Sealed__()
-        class "Localization" (function(_ENV)
-            _Localizations = {}
+        class "Localization"    (function(_ENV)
+            _Localizations      = {}
+            _RootLocale         = {}
 
-            enum "Locale" {
-                "deDE",             -- German
-                --"enGB",             -- British English
-                "enUS",             -- American English
-                "esES",             -- Spanish (European)
-                "esMX",             -- Spanish (Latin American)
-                "itIT",             -- Italian (Italy)
-                "frFR",             -- French
-                "koKR",             -- Korean
-                "ptBR",             -- Portuguese (Brazil)
-                "ruRU",             -- Russian
-                "zhCN",             -- Chinese (simplified; mainland China)
-                "zhTW",             -- Chinese (traditional; Taiwan)
+            enum "Locale"       {
+                "deDE",         -- German
+                --"enGB",       -- British English
+                "enUS",         -- American English
+                "esES",         -- Spanish (European)
+                "esMX",         -- Spanish (Latin American)
+                "itIT",         -- Italian (Italy)
+                "frFR",         -- French
+                "koKR",         -- Korean
+                "ptBR",         -- Portuguese (Brazil)
+                "ruRU",         -- Russian
+                "zhCN",         -- Chinese (simplified; mainland China)
+                "zhTW",         -- Chinese (traditional; Taiwan)
             }
 
             ----------------------------------------------
-            ----------------- Constructor ----------------
+            --              Static Feature              --
             ----------------------------------------------
-            __Arguments__{ NEString }
-            function Localization(self, name)
-                _Localizations[name] = self
+            __Static__()
+            property "Root"     { type = Localization }
+
+            ----------------------------------------------
+            --                Constructor               --
+            ----------------------------------------------
+            __Arguments__{ NEString, Localization/nil }
+            function Localization(self, name, root)
+                _Localizations[name]= self
+                _RootLocale[self]   = root or Localization.Root
             end
 
             ----------------------------------------------
-            ----------------- Meta-Method ----------------
+            --                Meta-Method               --
             ----------------------------------------------
             __Arguments__{ NEString }
             function __exist(_, name)
@@ -1220,7 +1228,16 @@ PLoop(function(_ENV)
 
             __Arguments__{ String }
             function __index(self, key)
-                return key
+                local root      = _RootLocale[self]
+                local value     = root and rawget(root, key)
+
+                if not value then
+                    local lkey  = strlower(key)
+                    value       = rawget(self, lkey) or root and rawget(root, lkey) or key
+                end
+
+                rawset(self, key, value)
+                return value
             end
 
             __Arguments__{ String + Number, String }

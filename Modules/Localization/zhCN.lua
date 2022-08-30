@@ -1,6 +1,9 @@
 local L                         = Scorpio("Scorpio")._Locale("zhCN")
 if not L then return end
 
+-----------------------------------------------------------
+--                Macro Condition Dialog                 --
+-----------------------------------------------------------
 L["Confirm when you finished the key binding"] = "完成按键绑定后点击确认"
 
 L["Player is in a vehicle and can exit it at will."] = "玩家在一个载具中并且可以正常退出。"
@@ -36,8 +39,18 @@ L["Player currently has an extra action bar/button."] = "玩家目前有一个�
 L["Player's main action bar is currently replaced by the override action bar."] = "玩家的主动作条正被override动作覆盖。"
 L["Player's main action bar is currently replaced by the possess action bar."] = "玩家的主动作条正被被控制者的动作条覆盖。比如心灵控制"
 L["Player's main action bar is currently replaced by a temporary shapeshift action bar."] = "玩家的动作条被一个临时变形动作条覆盖。（玩家被boss变形后）"
+L["Player's holding the shift key"] = ""
+L["Player's holding the ctrl key"] = ""
+L["Player's holding the alt key"] = ""
+L["Player's mouse cursor is currently holding an item/ability/macro/etc"] = ""
 
 L["The conditional target :"] = "条件对象："
 L["The macro conditions :"] = "宏条件："
 
 L["Please delete those addons:"] = "请删除以下插件:"
+
+-----------------------------------------------------------
+--                 Auto-Gen Config Type                  --
+-----------------------------------------------------------
+_L["Key"] = "主键"
+_L["Value"] = "对应值"
