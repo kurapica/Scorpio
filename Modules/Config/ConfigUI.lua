@@ -359,7 +359,7 @@ Style.UpdateSkin("Default",     {
             },
 
             marginLeft          = 80, -- Leave the space for label
-            marginBottom        = 24,  -- vspacing between ui elements
+            marginBottom        = 24, -- vspacing between ui elements
         },
     },
 })
