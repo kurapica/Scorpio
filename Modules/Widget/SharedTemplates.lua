@@ -667,6 +667,7 @@ class "TrackBar"                (function(_ENV)
 
     --- Sets the value
     function SetValue(self, value)
+        if type(value) ~= "number" then return end
         setValue(self, value)
         self:GetChild("Text"):SetText(self:GetValue())
     end

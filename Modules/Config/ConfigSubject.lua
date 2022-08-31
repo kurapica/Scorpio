@@ -62,7 +62,8 @@ class "ConfigSubject"           (function(_ENV)
     function Subscribe(self, ...)
         local observer          = super.Subscribe(self, ...)
         -- Check value to avoid OnNext when define config node field handlers
-        return self[VALUE_FIELD] ~= nil and observer:OnNext(self[VALUE_FIELD])
+        observer:OnNext(self[VALUE_FIELD])
+        return observer
     end
 
     --- Provides the observer with new data
@@ -97,7 +98,7 @@ class "ConfigSubject"           (function(_ENV)
     -----------------------------------------------------------------------
     --                            constructor                            --
     -----------------------------------------------------------------------
-    __Arguments__{ String, AnyType, Any/nil, Boolean/nil, String/nil, Localization }
+    __Arguments__{ String, AnyType, Any/nil, Boolean/nil, String/nil, Localization/nil }
     function __ctor(self, name, type, value, enablequickapply, desc, locale)
         self[NAME_FIELD]        = name
         self[TYPE_FIELD]        = type

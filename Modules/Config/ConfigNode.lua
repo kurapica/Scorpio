@@ -559,7 +559,7 @@ __Sealed__()
 class "WarModeConfigNode"       (function(_ENV)
     inherit "ConfigNode"
 
-    local IsWarModeDesired      = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
+    local IsWarModeDesired      = C_PvP and C_PvP.IsWarModeDesired or function() return false end
 
     ----------------------------------------------
     --                 Property                 --

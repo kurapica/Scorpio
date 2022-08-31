@@ -49,7 +49,7 @@ class "VerticalLayoutManager"   (function(_ENV)
             spacing             = margin and margin.bottom or 0
         end
 
-        totalHeight             = totalHeight + (padding and padding.bottom or 0)
+        totalHeight             = totalHeight + spacing + (padding and padding.bottom or 0)
         frame:SetHeight(math.max(totalHeight, minHeight or 0))
     end
 

@@ -273,13 +273,13 @@ end)
 -----------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [ComboBox]                  = {
-        Size                    = Size(200, 32),
+        Size                    = Size(160, 32),
 
         LeftBGTexture           = {
             drawLayer           = "ARTWORK",
             file                = [[Interface\Glues\CharacterCreate\CharacterCreate-LabelFrame]],
             width               = 25,
-            location            = { Anchor("TOPLEFT", 0, 16), Anchor("BOTTOMLEFT", 0, -16) },
+            location            = { Anchor("TOPLEFT", -16, 16), Anchor("BOTTOMLEFT", -16, -16) },
             texCoords           = RectType(0, 0.1953125, 0, 1),
         },
 

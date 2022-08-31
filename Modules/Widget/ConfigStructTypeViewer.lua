@@ -38,11 +38,17 @@ class "MemberStructTypeViewer"  (function(_ENV)
         local locale            = configSubject.Locale
         local stype             = configSubject.Type
         local index             = 1
+        local hasRequire        = false
 
         for _, mem in Struct.GetMembers(stype) do
             local name          = mem:GetName()
             local type          = mem:GetType()
             local widget        = __ConfigDataType__.GetWidgetType(type)
+
+            if mem:IsRequire() then
+                hasRequire      = true
+            end
+
             if widget then
                 local ui        = self.MemberWidgets[name]
 
@@ -64,9 +70,12 @@ class "MemberStructTypeViewer"  (function(_ENV)
         end
 
         return configSubject:Subscribe(function(value)
+            if type(value) ~= "table" then
+                value           = not hasRequire and stype() or nil
+            end
             self.Value          = value
 
-            if type(value) == "table" then
+            if value then
                 for name, ui in pairs(self.MemberWidgets) do
                     ui.ConfigSubject:OnNext(value[name])
                 end
@@ -393,7 +402,7 @@ Style.UpdateSkin("Default",     {
             },
 
             marginLeft          = 80,
-            marginBottom        = 24,
+            marginBottom        = 32,
         },
     },
     [ArrayStructTypeViewer]     = {
