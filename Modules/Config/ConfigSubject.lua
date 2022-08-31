@@ -9,6 +9,8 @@
 Scorpio            "Scorpio.Config.ConfigSubject"    "1.0.0"
 --========================================================--
 
+local _L                        = _Locale
+
 --- The config subject is a bidirectional binding
 __Sealed__() __Final__()
 class "ConfigSubject"           (function(_ENV)
@@ -18,8 +20,9 @@ class "ConfigSubject"           (function(_ENV)
     local TYPE_FIELD            = 2
     local VALUE_FIELD           = 3
     local QUICKAPPLY_FIELD      = 4
-    local DESC_FIELD            = 5
-    local UNCOMMIT_FIELD        = 6
+    local LOCALE_FIELD          = 5
+    local DESC_FIELD            = 6
+    local UNCOMMIT_FIELD        = 7
 
     local onNext                = Subject.OnNext
 
@@ -49,6 +52,9 @@ class "ConfigSubject"           (function(_ENV)
 
     --- The un-commit value
     property "UnCommitValue"    { field = UNCOMMIT_FIELD, set = false }
+
+    --- The localization to for texts
+    property "Locale"           { field = LOCALE_FIELD, set = false, default = _L }
 
     -----------------------------------------------------------------------
     --                              method                               --
@@ -91,12 +97,13 @@ class "ConfigSubject"           (function(_ENV)
     -----------------------------------------------------------------------
     --                            constructor                            --
     -----------------------------------------------------------------------
-    __Arguments__{ String, AnyType, Any/nil, Boolean/nil, String/nil }
-    function __ctor(self, name, type, value, enablequickapply, desc)
+    __Arguments__{ String, AnyType, Any/nil, Boolean/nil, String/nil, Localization }
+    function __ctor(self, name, type, value, enablequickapply, desc, locale)
         self[NAME_FIELD]        = name
         self[TYPE_FIELD]        = type
         self[VALUE_FIELD]       = value
         self[QUICKAPPLY_FIELD]  = enablequickapply
+        self[LOCALE_FIELD]      = locale
         self[DESC_FIELD]        = desc
 
         if not enablequickapply then

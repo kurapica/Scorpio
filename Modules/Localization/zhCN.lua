@@ -68,13 +68,17 @@ L["TOP"]                = "上"
 L["BOTTOM"]             = "下"
 L["LEFT"]               = "左"
 L["RIGHT"]              = "右"
-L["CENTER"]             = "中间"
+L["CENTER"]             = "正中"
+
+-- FlyoutDirection
+L["UP"]                 = "上"
+L["DOWN"]               = "下"
 
 -- FrameStrata
-L["PARENT"]             = "和父元素一致"
+L["PARENT"]             = "父元素"
 L["BACKGROUND"]         = "背景"
 L["LOW"]                = "低"
-L["MEDIUM"]             = "中等"
+L["MEDIUM"]             = "中"
 L["HIGH"]               = "高"
 L["DIALOG"]             = "对话框"
 L["FULLSCREEN"]         = "全屏"
@@ -82,29 +86,25 @@ L["FULLSCREEN_DIALOG"]  = "全屏对话框"
 L["TOOLTIP"]            = "提示"
 
 -- DrawLayer
-L["BACKGROUND"]         = "背景"
 L["BORDER"]             = "边框"
 L["ARTWORK"]            = "绘图"
 L["OVERLAY"]            = "覆盖"
 L["HIGHLIGHT"]          = "高亮"
 
 -- AlphaMode
-L["DISABLE"]            = true
-L["BLEND"]              = true
-L["ALPHAKEY"]           = true
-L["ADD"]                = true
-L["MOD"]                = true
+L["DISABLE"]            = "忽略Alpha通道"
+L["BLEND"]              = "使用Alpha通道"
+L["ALPHAKEY"]           = "将Alpha解释为透明或不透明"
+L["ADD"]                = "使用Alpha通道并避开白色"
+L["MOD"]                = "忽略Alpha通道并重叠图像"
 
 -- OutlineType
-L["NONE"]               = true
-L["NORMAL"]             = true
-L["THICK"]              = true
+L["NONE"]               = "无"
+L["NORMAL"]             = "普通"
+L["THICK"]              = "粗"
 
 -- JustifyVType
 L["MIDDLE"]             = "中间"
-
--- JustifyHType
-L["CENTER"]             = "中央"
 
 -- Orientation
 L["HORIZONTAL"]         = "水平方向"
@@ -112,39 +112,37 @@ L["VERTICAL"]           = "竖直方向"
 
 -- FontAlphabet
 L["roman"]              = "罗马"
-L["korean"]             = "韩文"
+L["korean"]             = "韩语"
 L["simplifiedchinese"]  = "简体中文"
 L["traditionalchinese"] = "繁体中文"
 L["russian"]            = "俄语"
 
 -- WrapMode
-L["CLAMP"]              = true
-L["REPEAT"]             = true
-L["CLAMPTOBLACK"]       = true
-L["CLAMPTOBLACKADDITIVE"] = true
-L["CLAMPTOWHITE"]       = true
-L["MIRROR"]             = true
+L["CLAMP"]              = "无限扩展纹理边缘"
+L["CLAMPTOBLACK"]       = "用黑色填充溢出"
+L["CLAMPTOBLACKADDITIVE"] = "用透明黑色填充溢出"
+L["CLAMPTOWHITE"]       = "用白色填充溢出"
+L["REPEAT"]             = "无限重复整个纹理"
+L["MIRROR"]             = "无限重复整个纹理，镜像相邻的迭代"
 
 -- FilterMode
-L["LINEAR"]             = true
-L["TRILINEAR"]          = true
-L["NEAREST"]            = true
+L["LINEAR"]             = "双线性滤波"
+L["TRILINEAR"]          = "三线过滤"
+L["NEAREST"]            = "最近邻过滤"
 
 -- AnimLoopType
-L["NONE"]               = true
-L["REPEAT"]             = true
-L["BOUNCE"]             = true
+L["NONE"]               = "无"
+L["REPEAT"]             = "重复"
+L["BOUNCE"]             = "跳跃"
 
 -- AnimSmoothType
-L["NONE"]               = true
-L["IN"]                 = true
-L["OUT"]                = true
-L["IN_OUT"]             = true
-L["OUT_IN"]             = true
+L["IN"]                 = "进"
+L["OUT"]                = "出"
+L["IN_OUT"]             = "进_出"
+L["OUT_IN"]             = "出_进"
 
 -- AnimCurveType
-L["NONE"]               = true
-L["SMOOTH"]             = true
+L["SMOOTH"]             = "平滑"
 
 -- AnchorType
 L["ANCHOR_TOPRIGHT"]    = "右上角锚点"
@@ -157,6 +155,19 @@ L["ANCHOR_CURSOR"]      = "鼠标锚点"
 L["ANCHOR_PRESERVE"]    = "保留锚点"
 L["ANCHOR_NONE"]        = "无锚点"
 
+-- ButtonStateType
+L["PUSHED"]             = "按下"
+
+-- VertexIndexType
+L["UpperLeft"]          = "左上"
+L["LowerLeft"]          = "左下"
+L["UpperRight"]         = "右上"
+L["LowerRight"]         = "右下"
+
+-- FillStyle
+L["STANDARD"]           = "标准"
+L["STANDARD_NO_RANGE_FILL"] = "标准无范围填充"
+L["REVERSE"]            = "翻转"
 
 
 -----------------------------------------------------------

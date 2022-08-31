@@ -9,8 +9,6 @@
 Scorpio      "Scorpio.Widget.ConfigStructTypeViewer" "1.0.0"
 --========================================================--
 
-local _L                        = _Locale
-
 --- The struct MemberStructType viewer
 __Sealed__() __ConfigDataType__(MemberStructType)
 class "MemberStructTypeViewer"  (function(_ENV)
@@ -37,6 +35,7 @@ class "MemberStructTypeViewer"  (function(_ENV)
 
     --- Sets the config subject
     function SetConfigSubject(self, configSubject)
+        local locale            = configSubject.Locale
         local stype             = configSubject.Type
         local index             = 1
 
@@ -48,7 +47,7 @@ class "MemberStructTypeViewer"  (function(_ENV)
                 local ui        = self.MemberWidgets[name]
 
                 if not ui then
-                    local sub   = ConfigSubject(name, type, nil, true)
+                    local sub   = ConfigSubject(locale[name], type, nil, true, nil, locale)
                     sub.OnValueSet = function(s, v) s:OnNext(v) refreshValue(self, name, v) end
 
                     -- The field order can't be changed, so we don't need recycle them
@@ -175,6 +174,7 @@ class "ArrayStructTypeViewer"   (function(_ENV)
 
     --- Sets the config subject
     function SetConfigSubject(self, configSubject)
+        local locale            = configSubject.Locale
         local eleType           = Struct.GetArrayElement(configSubject.Type)
         local widget            = __ConfigDataType__.GetWidgetType(eleType)
         local name              = "Element"
@@ -186,7 +186,7 @@ class "ArrayStructTypeViewer"   (function(_ENV)
                 return Warn("The ArrayStructTypeViewer can't be re-used for different data types")
             end
         else
-            local sub           = ConfigSubject(name, eleType, nil, true)
+            local sub           = ConfigSubject(name, eleType, nil, true, nil, locale)
             sub.OnValueSet      = function(s, v) self.SelectedValue = v end
 
             -- The field order can't be changed, so we don't need recycle them
@@ -310,6 +310,7 @@ class "DictStructTypeViewer"    (function(_ENV)
 
     --- Sets the config subject
     function SetConfigSubject(self, configSubject)
+        local locale            = configSubject.Locale
         local keyType           = Struct.GetDictionaryKey(configSubject.Type)
         local eleType           = Struct.GetDictionaryValue(configSubject.Type)
         local keyWidget         = __ConfigDataType__.GetWidgetType(keyType)
@@ -321,7 +322,7 @@ class "DictStructTypeViewer"    (function(_ENV)
                 return Warn("The DictStructTypeViewer can't be re-used for different data types")
             end
         else
-            local sub           = ConfigSubject(_L["Key"], keyType, nil, true)
+            local sub           = ConfigSubject(locale["Key"], keyType, nil, true, nil, locale)
             sub.OnValueSet      = function(s, v) self.SelectedKey = v end
 
             -- The field order can't be changed, so we don't need recycle them
@@ -336,7 +337,7 @@ class "DictStructTypeViewer"    (function(_ENV)
                 return Warn("The DictStructTypeViewer can't be re-used for different data types")
             end
         else
-            local sub           = ConfigSubject(_L["Value"], eleType, nil, true)
+            local sub           = ConfigSubject(locale["Value"], eleType, nil, true, nil, locale)
             sub.OnValueSet      = function(s, v) self.SelectedValue = v end
 
             -- The field order can't be changed, so we don't need recycle them
