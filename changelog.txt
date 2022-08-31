@@ -1,9 +1,7 @@
-2022/08/31 v147
-	1. The config node system is added for saved variables.
-	2. The auto-gen config panel framework is added for config nodes.
-
-2022/08/01 v146
+2022/08/31 v146
 	1. In a skin of the ui class, it can set the skin for other classes, that'd be applied on all child of the same classes.
+	2. The config node system is added for saved variables.
+	3. The auto-gen config panel framework is added for config nodes.
 
 2021/10/24 v136
 	1. A dynamic task threshold mechanism added, so the cpu time may be required more for too many tasks.
