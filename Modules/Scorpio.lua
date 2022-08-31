@@ -9,6 +9,9 @@
 Scorpio            "Scorpio"                         "1.0.0"
 --========================================================--
 
+-- Register the scorpio locale as the root localization to share the translation
+Localization.Root           = _Locale
+
 ----------------------------------------------
 --           Addon Event Handler            --
 ----------------------------------------------

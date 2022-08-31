@@ -78,8 +78,10 @@ __Sealed__() class "UIPanelScrollBar" (function(_ENV)
 
     --- @Override
     function SetMinMaxValues(self, min, max)
-        Slider.SetMinMaxValues(self, min, max)
-        return refreshState(self)
+        if min and max and (min + 1) ~= min and (max + 1) ~= max then
+            Slider.SetMinMaxValues(self, min, max)
+            return refreshState(self)
+        end
     end
 
     __Template__{
@@ -266,7 +268,6 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
     inherit "UIPanelScrollFrame"
 
     export { tremove = table.remove, Color }
-
 
     ------------------------------------------------------
     -- Translate
@@ -472,6 +473,28 @@ __Sealed__() class "ListFrame" (function(_ENV)
         return OnItemDoubleClick(list, list.SelectedValue)
     end
 
+    local function getItemButton(self, i)
+        local scrollChild       = self:GetChild("ScrollChild")
+        local btn               = scrollChild:GetChild("ItemButton" .. i)
+        if not btn then
+            btn                 = self.ListItemButtonType("ItemButton" .. i, scrollChild)
+            btn:InstantApplyStyle()
+
+            btn:ClearAllPoints()
+            if i == 1 then
+                btn:SetPoint("TOPLEFT")
+            else
+                btn:SetPoint("TOPLEFT", scrollChild:GetChild("ItemButton" .. (i-1)), "BOTTOMLEFT")
+            end
+            btn:SetPoint("RIGHT")
+
+            btn.OnClick         = btn.OnClick + ItemButton_OnClick
+            btn.OnDoubleClick   = btn.OnDoubleClick + ItemButton_OnDoubleClick
+        end
+        btn:Show()
+        return btn
+    end
+
     local function refreshItems(self)
         local offset            = self.__ListOffset or 0
         local items             = self.__ListItems
@@ -485,8 +508,7 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
         for i = 1, self.DisplayCount do
             local item          = items and items[offset + i]
-            local btn           = scrollChild:GetChild("ItemButton" .. i)
-            if not btn then return end
+            local btn           = getItemButton(self, i)
 
             if item then
                 btn:SetText(item.text)
@@ -530,38 +552,16 @@ __Sealed__() class "ListFrame" (function(_ENV)
         local scrollBar         = self:GetChild("ScrollBar")
         local scrollChild       = self:GetChild("ScrollChild")
         local count             = self.__ListItems and #self.__ListItems or 0
-        local totalheight       = 0
+        local btn               = getItemButton(self, 1)
+        local btnHeight         = btn:GetHeight()
 
-        for i = 1, self.DisplayCount do
-            local btn           = scrollChild:GetChild("ItemButton" .. i)
-            if not btn then
-                btn             = self.ListItemButtonType("ItemButton" .. i, scrollChild)
-                btn:InstantApplyStyle()
-
-                btn:ClearAllPoints()
-                if i == 1 then
-                    btn:SetPoint("TOPLEFT")
-                else
-                    btn:SetPoint("TOPLEFT", scrollChild:GetChild("ItemButton" .. (i-1)), "BOTTOMLEFT")
-                end
-                btn:SetPoint("RIGHT")
-                btn:Show()
-
-                btn.OnClick     = btn.OnClick + ItemButton_OnClick
-                btn.OnDoubleClick = btn.OnDoubleClick + ItemButton_OnDoubleClick
-            end
-
-            totalheight         = totalheight + btn:GetHeight()
-        end
+        self.DisplayCount       = math.min(20, btnHeight and btnHeight > 0 and  math.floor( (scrollBar:GetHeight() + btnHeight * 0.75) / btnHeight) or 5)
 
         local disidx            = self.DisplayCount + 1
         while scrollChild:GetChild("ItemButton" .. disidx) do
             scrollChild:GetChild("ItemButton" .. disidx):Hide()
             disidx              = disidx + 1
         end
-
-        local diff              = self:GetHeight() - scrollChild:GetHeight()
-        self:SetHeight(totalheight + diff)
 
         local yrange            = count - self.DisplayCount
 
@@ -596,14 +596,17 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
     --- The selected value of the list frame
     property "SelectedValue"            { field = "__SelectedValue", handler = function(self, value)
+            local selected              = false
             if self.__ListItems and value ~= nil then
                 for i, v in ipairs(self.__ListItems) do
                     if v.checkvalue == value then
+                        selected        = true
                         rawset(self, "__SelectedIndex", i)
                         break
                     end
                 end
-            else
+            end
+            if not selected then
                 rawset(self, "__SelectedIndex", 0)
             end
 
@@ -726,7 +729,7 @@ __Sealed__() class "ListFrame" (function(_ENV)
     }
 
     --- The display item count
-    property "DisplayCount"             { type = Number, default = 5, handler = refreshList }
+    property "DisplayCount"             { type = Number, default = 5 }
 
     --- Whether don't automatically adjust the scroll range
     property "NoAutoAdjustScrollRange"  { default = true, set = false }
@@ -764,6 +767,7 @@ __Sealed__() class "ListFrame" (function(_ENV)
 
         self:InstantApplyStyle()
         self.OnShow             = self.OnShow + refreshList
+        self.OnSizeChanged      = self.OnSizeChanged + refreshList
         return refreshList(self)
     end
 end)
@@ -1549,6 +1553,7 @@ Style.UpdateSkin("Default",     {
             insets              = { left = 5, right = 5, top = 5, bottom = 5 }
         },
         backdropBorderColor     = Color(0.6, 0.6, 0.6),
+        size                    = Size(150, 190),
 
         ScrollBar               = {
             scrollStep          = 1,

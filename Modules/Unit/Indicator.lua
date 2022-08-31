@@ -272,10 +272,15 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
                 end
 
                 local eleIdx    = 1
+                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer
                 for i = 1, #cache do
                     local slot  = cache[i]
                     if slot then
-                        local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAuraBySlot(unit, slot)
+                        if hasUnitAuraSlots then
+                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAuraBySlot(unit, slot)
+                        else
+                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAura(unit, slot, filter)
+                        end
 
                         self.Elements[eleIdx]:Show()
 

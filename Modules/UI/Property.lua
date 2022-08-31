@@ -2810,11 +2810,50 @@ __ChildProperty__(Frame, "Label2")
 __ChildProperty__(Frame, "Label3")
 class "UIPanelLabel"    { FontString }
 
-Style.UpdateSkin("Default", {
-    [UIPanelLabel]      = {
-        drawLayer       = "BACKGROUND",
-        fontObject      = GameFontHighlight,
-        justifyH        = "RIGHT",
+Style.UpdateSkin("Default",     {
+    [UIPanelLabel]              = {
+        drawLayer               = "BACKGROUND",
+        fontObject              = GameFontHighlight,
+        justifyH                = "RIGHT",
+    },
+})
+
+------------------------------------------------------------
+--                     Frame Header                       --
+------------------------------------------------------------
+--- The header of frames
+__Sealed__() __ChildProperty__(Frame, "Header")
+__Template__(Frame)
+class "UIFrameHeader"           {
+    HeaderText                  = FontString,
+
+    --- The text of the header
+    Text                        = {
+        type                    = String,
+        get                     = function(self)
+            return self:GetChild("HeaderText"):GetText()
+        end,
+        set                     = function(self, text)
+            self:GetChild("HeaderText"):SetText(text or "")
+        end,
+    },
+}
+
+Style.UpdateSkin("Default",     {
+    [UIFrameHeader]             = {
+        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
+        height                  = 36,
+
+        HeaderText              = {
+            fontObject          = OptionsFontHighlight,
+            location            = { Anchor("TOPLEFT", 16, -16) },
+        },
+
+        BottomBGTexture         = {
+            height              = 1,
+            color               = Color(1, 1, 1, 0.2),
+            location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
+        },
     },
 })
 
@@ -2904,7 +2943,7 @@ else  -- For 9.0
             getCoordValue("LRx", pieceSetup, repeatX, repeatY), getCoordValue("LRy", pieceSetup, repeatX, repeatY)
     end
 
-    local function applyTextureCoords(self)
+    local function applyTextureCoords(self, retryCnt)
         local backdrop          = backdropInfo[self[0]]
         if not backdrop then return end
 
@@ -2929,13 +2968,19 @@ else  -- For 9.0
             end
         end
 
+        local ok                = true
         for name in pairs(textureUVs) do
             local texture       = getPropertyChild(self, name)
             if texture then
-                if texture == "BackdropCenter" then
-                    texture:SetTexCoord(setupCoordinates("BackdropCenter", repeatX, repeatY))
+                if name == "BackdropCenter" then
+                    ok          = pcall(texture.SetTexCoord, texture, setupCoordinates(name, repeatX, repeatY))
                 else
-                    texture:SetTexCoord(setupCoordinates(name, edgeRepeatX, edgeRepeatY))
+                    ok          = pcall(texture.SetTexCoord, texture, setupCoordinates(name, edgeRepeatX, edgeRepeatY))
+                end
+                if not ok then
+                    retryCnt    = (type(retryCnt) == "number" and retryCnt or 0) + 1
+                    if type(retryCnt) == "number" and retryCnt > 5 then return end
+                    return Next(applyTextureCoords, self, retryCnt)
                 end
             end
         end

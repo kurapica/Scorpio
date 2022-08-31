@@ -18,8 +18,10 @@ local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL",   pr
 --- Clear the property value of the settings(so other settings may be used for the property)
 local CLEAR                     = Namespace.SaveNamespace("Scorpio.UI.CLEAR", prototype { __tostring = function() return "clear" end })
 
+local isClassType               = Class.Validate
 local isObjectType              = Class.IsObjectType
 local isTypeValidDisabled       = System.Platform.TYPE_VALIDATION_DISABLED
+local getSuperClass             = Class.GetSuperClass
 local isUIObject                = UI.IsUIObject
 local isUIObjectType            = UI.IsUIObjectType
 local isSubType                 = Class.IsSubType
@@ -31,11 +33,10 @@ local strlower                  = strlower
 local tsort                     = table.sort
 local isObservable              = function(val) return type(val) == "table" and isObjectType(val, IObservable) end
 local gettable                  = function(self, key) local val = self[key] if not val or val == NIL or val == CLEAR then val = {} self[key] = val end return val end
-
-local parentPath                = {}
+local isStylableType            = function(k) return isUIObjectType(k) or Interface.Validate(k) and Interface.GetRequireClass(k) and isUIObjectType(Interface.GetRequireClass(k)) end
 
 local CHILD_SETTING             = 0   -- For children
-
+local CHILD_CLS_SETTING         = 1   -- For child classes
 local INSTANT_STYLE_UI_CLASS    = {}
 
 ----------------------------------------------
@@ -50,7 +51,6 @@ local _PropertyChildRecycle     = setmetatable({}, {
     __index                     = function(self, type)
         if isSubType(type, AnimationGroup) or isSubType(type, ControlPoint) or isSubType(type, Animation) then
             -- No recycle for the animation type, since they can't change their parent
-            -- No recycle to the mask texture, it's very special since its parent should be the texture's parent
             rawset(self, type, false)
             return false
         else
@@ -100,7 +100,7 @@ Runtime.OnTypeDefined           = Runtime.OnTypeDefined + function(ptype, cls)
         if not _Property[cls] then
             Trace("[Scorpio.UI]Init Property List for %q", tostring(cls))
 
-            local super         = Class.GetSuperClass(cls)
+            local super         = getSuperClass(cls)
             if super and _Property[super] then
                 _Property[cls]  = clone(_Property[super])
             else
@@ -237,25 +237,31 @@ local function prepareSettings(settings, target, final, cache, paths)
 
     local needRecycle           = not cache
     cache                       = cache or _Recycle()
-    if needRecycle and final then for k in pairs(final) do cache[strlower(k)] = k end end
+    if needRecycle and final then
+        for k in pairs(final) do
+            if type(k) == "string" then
+                cache[strlower(k)] = k
+            end
+        end
+    end
     final                       = final or {}
 
     local classCnt
-
     if isClassSkin then
         paths                   = paths or {}
         classCnt                = #target
     end
 
     -- Check the share features provided with N-th index
-    local shares                = _Recycle()
+    local shares
 
     for k, v in pairs(settings) do
         local tk                = type(k)
 
-        if tk == "number" then
+        if tk == "number"       then
+            shares              = shares or _Recycle()
             tinsert(shares, k)
-        elseif tk == "string" then
+        elseif tk == "string"   then
             local lk            = strlower(k)
             local ek            = cache[lk]
             local prop          = props[lk]
@@ -266,23 +272,25 @@ local function prepareSettings(settings, target, final, cache, paths)
                 paths[classCnt] = k
 
                 for i = 1, #target do
-                    element     = __Template__.GetElementType(target[i], unpack(paths, i))
-                    if element then break end
+                    if isClassType(target[i]) then
+                        element = __Template__.GetElementType(target[i], unpack(paths, i))
+                        if element then break end
+                    end
                 end
 
                 paths[classCnt] = nil
 
                 if element then
                     tinsert(target, element)
-                    tinsert(paths, k)
+                    tinsert(paths,  k)
 
                     if not ek then
-                        cache[lk] = k
+                        cache[lk]   = k
                         if type(v) == "table" and getmetatable(v) == nil then
-                            final[k] = prepareSettings(v, target, nil, nil, paths)
+                            final[k]= prepareSettings(v, target, nil, nil, paths)
                         else
                             -- Error but will be checked later
-                            final[k] = v
+                            final[k]= v
                         end
                     elseif type(final[ek]) == "table" and getmetatable(final[ek]) == nil and  type(v) == "table" and getmetatable(v) == nil then
                         -- Combine the share settings
@@ -327,23 +335,34 @@ local function prepareSettings(settings, target, final, cache, paths)
                     end
                 elseif not ek then
                     -- No property check here, the error would be raised by the caller
-                    cache[lk]   = k
-                    final[k]    = v
+                    cache[lk]       = k
+                    final[k]        = v
                 end
+            end
+        elseif isClassSkin and isStylableType(k) then
+            if final[k] then
+                -- Only combine the share settings
+                if type(final[k]) == "table" and getmetatable(final[k]) == nil and type(v) == "table" and getmetatable(v) == nil then
+                    final[k]    = prepareSettings(v, { k }, final[k])
+                end
+            else
+                -- No check here
+                final[k]        = v
             end
         end
     end
 
-    if #shares > 0 then
+    if shares then
         tsort(shares)
 
         for i = #shares, 1, -1 do
             -- Could have its own share skins
             prepareSettings(settings[shares[i]], target, final, cache, paths)
         end
+
+        _Recycle(wipe(shares))
     end
 
-    _Recycle(wipe(shares))
     if needRecycle then _Recycle(wipe(cache)) end
     return final
 end
@@ -377,7 +396,7 @@ end
 local function emptyDefaultStyle(settings)
     if settings and settings ~= NIL and settings ~= CLEAR then
         for k, v in pairs(settings) do
-            if k == CHILD_SETTING then
+            if k == CHILD_SETTING or k == CHILD_CLS_SETTING then
                 for child, csetting in pairs(v) do
                     emptyDefaultStyle(csetting)
                 end
@@ -562,7 +581,7 @@ local _ActiveSkin               = {}
 
 local function copyBaseSkinSettings(container, base)
     for k, v in pairs(base) do
-        if k == CHILD_SETTING then
+        if k == CHILD_SETTING or k == CHILD_CLS_SETTING then
             for name, setting in pairs(v) do
                 copyBaseSkinSettings(gettable(gettable(container, k), name), setting)
             end
@@ -572,94 +591,114 @@ local function copyBaseSkinSettings(container, base)
     end
 end
 
-local function saveSkinSettings(classes, paths, container, settings)
-    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  "must be table") end
+local function saveSkinSettings(classes, paths, container, settings, updateChildClass)
+    local pathIdx                   = #classes
+    local class                     = classes[pathIdx]
+    local props                     = _Property[Interface.Validate(class) and Interface.GetRequireClass(class) or class]
 
-    local pathIdx               = #classes
-    local class                 = classes[pathIdx]
-    local props                 = _Property[class]
+    if type(settings) ~= "table" then throw("The skin settings for " .. class ..  " must be table") end
+    settings                        = prepareSettings(settings, classes) -- Copy and remove the share settings
 
-    settings                    = prepareSettings(settings, classes) -- Copy and remove the share settings
-
-    -- Check inherit
+    -- Check inherit & key
     for name, value in pairs(settings) do
-        if type(name) ~= "string" then throw("The skin settings only accpet string values as key") end
-        if strlower(name) == "inherit" then
-            settings[name]      = nil
+        if type(name) == "string" then
+            if strlower(name)  == "inherit" then
+                settings[name]      = nil
 
-            if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
-            local base          = _Skins[strlower(value)]
-            if not base then
-                throw(strformat("The skin named %q doesn't existed", value))
-            elseif not base[class] then
-                throw(strformat("The skin named %q doesn't provide skin for %s", value, tostring(class)))
+                if type(value) ~= "string" then throw("The inherit only accpet skin name as value") end
+                local base          = _Skins[strlower(value)]
+                if not base then
+                    throw(strformat("The skin named %q doesn't existed", value))
+                elseif not base[class] then
+                    throw(strformat("The skin named %q doesn't provide skin for %s", value, tostring(class)))
+                end
+
+                copyBaseSkinSettings(container, base[class])
+
+                break
             end
-
-            copyBaseSkinSettings(container, base[class])
-
-            break
+        elseif not isStylableType(name) then
+            throw("The skin settings only accpet string values as key")
         end
     end
 
     for name, value in pairs(settings) do
-        local element
+        if type(name) == "string" then
+            local element
 
-        paths[pathIdx]          = name
+            paths[pathIdx]          = name
 
-        for i = 1, pathIdx do
-            element             = __Template__.GetElementType(classes[i], unpack(paths, i))
-            if element then break end
-        end
-
-        paths[pathIdx]          = nil
-
-        if element then
-            tinsert(classes, element)
-            tinsert(paths, name)
-            saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value)
-            tremove(classes)
-            tremove(paths)
-        elseif props then
-            name                = strlower(name)
-            local prop          = props[name]
-            if not prop then throw(strformat("The %q isn't a valid property for %s", name, tostring(class))) end
-
-            if prop.childtype then
-                container[name] = true -- So we can easily track the child property settings
-
-                if value == NIL or value == CLEAR or isObservable(value) then
-                    if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
-                    container[name]     = value
-                elseif type(value) == "table" and getmetatable(value) == nil then
-                    saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value)
-                else
-                    throw(strformat("The %q is a child generated from property, need table as settings", name))
-                end
-            else
-                if value == NIL or value == CLEAR then
-                    container[name]     = value
-                elseif isObservable(value) then
-                    container[name]     = value
-                else
-                    if prop.validate then
-                        local ret, msg  = prop.validate(prop.type, value)
-                        if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
-                        value           = ret
-                    end
-
-                    container[name]     = value
+            for i = 1, pathIdx do
+                if isClassType(classes[i]) then
+                    element         = __Template__.GetElementType(classes[i], unpack(paths, i))
+                    if element then break end
                 end
             end
-        else
-            throw("The " .. class .. " has no property definitions")
+
+            paths[pathIdx]          = nil
+
+            if element then
+                tinsert(classes, element)
+                tinsert(paths, name)
+                saveSkinSettings(classes, paths, gettable(gettable(container, CHILD_SETTING), name), value, updateChildClass)
+                tremove(classes)
+                tremove(paths)
+            elseif props then
+                name                = strlower(name)
+                local prop          = props[name]
+                if not prop then throw(strformat("The %q isn't a valid property for %s", name, tostring(class))) end
+
+                if prop.childtype then
+                    container[name] = true -- So we can easily track the child property settings
+
+                    if value == NIL or value == CLEAR or isObservable(value) then
+                        if container[CHILD_SETTING] then container[CHILD_SETTING][name] = nil end
+                        container[name]     = value
+                    elseif type(value) == "table" and getmetatable(value) == nil then
+                        saveSkinSettings({ prop.childtype }, {}, gettable(gettable(container, CHILD_SETTING), name), value, updateChildClass)
+                    else
+                        throw(strformat("The %q is a child generated from property, need table as settings", name))
+                    end
+                else
+                    if value == NIL or value == CLEAR then
+                        container[name]     = value
+                    elseif isObservable(value) then
+                        container[name]     = value
+                    else
+                        if prop.validate then
+                            local ret, msg  = prop.validate(prop.type, value)
+                            if msg then throw(Struct.GetErrorMessage(msg, prop.name)) end
+                            value           = ret
+                        end
+
+                        container[name]     = value
+                    end
+                end
+            else
+                throw("The " .. class .. " has no property definitions")
+            end
+        elseif isStylableType(name) then
+            -- Don't support observable or NIL
+            if value == CLEAR then
+                if container[CHILD_CLS_SETTING] and container[CHILD_CLS_SETTING][name] then
+                    -- Keep the styles settings for skin clear
+                    emptyDefaultStyle(container[CHILD_CLS_SETTING][name])
+                end
+            elseif type(value) == "table" and getmetatable(value) == nil then
+                local scontainer            = gettable(gettable(container, CHILD_CLS_SETTING), name)
+                if not updateChildClass then emptyDefaultStyle(scontainer) end
+                saveSkinSettings({ name }, {}, scontainer, value, true)
+            else
+                throw(strformat("The %q is a child class, need table as settings", tostring(name)))
+            end
         end
     end
 end
 
 local function copyToDefault(settings, default)
     for name, value in pairs(settings) do
-        if name == CHILD_SETTING then
-            local childsettings = gettable(default, CHILD_SETTING)
+        if name == CHILD_SETTING or name == CHILD_CLS_SETTING then
+            local childsettings = gettable(default, name)
             for element, setting in pairs(value) do
                 copyToDefault(setting, gettable(childsettings, element))
             end
@@ -672,7 +711,7 @@ end
 local function activeSkin(name, class, skin, force)
     if force and _ActiveSkin[class] and _ActiveSkin[class] ~= name then return end
     if not force and _ActiveSkin[class] == name then return end
-    _ActiveSkin[class] = name
+    _ActiveSkin[class]          = name
 
     local default               = emptyDefaultStyle(_DefaultStyle[class]) or {}
     _DefaultStyle[class]        = default
@@ -684,7 +723,8 @@ end
 ----------------------------------------------
 --                 UIObject                 --
 ----------------------------------------------
-__Abstract__() __Sealed__() class "UIObject"(function(_ENV)
+__Abstract__() __Sealed__()
+class "UIObject"(function(_ENV)
 
     ----------------------------------------------
     --                 Helpers                  --
@@ -712,6 +752,9 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
 
     -- Fired when child is changed
     event "OnChildChanged"
+
+    -- Fired when the ui object's style is appled
+    event "OnStyleApplied"
 
     ----------------------------------------------
     --              Static Methods              --
@@ -823,7 +866,11 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
             end
         end
 
-        if parent == nil then return pcall(setParent, self, nil) end
+        if parent == nil then
+            pcall(setParent, self, nil)
+            OnParentChanged(self, parent, oparent)
+            return
+        end
 
         local pui               = parent[0]
         local children          = _ChildMap[pui]
@@ -840,8 +887,8 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
         children[name]          = self
 
         OnParentChanged(self, parent, oparent)
-        Next(raiseChildChange, parent,  self, true)
         Next(raiseChildChange, oparent, self, false)
+        Next(raiseChildChange, parent,  self, true)
     end
 
     --- Gets the children of the frame
@@ -937,6 +984,7 @@ __Abstract__() __Sealed__() class "UIObject"(function(_ENV)
     __Final__() __Arguments__{ UI }
     function __new(cls, ui)
         local self              = { [0] = ui[0] }
+        _NameMap[ui[0]]         = ui.GetName and ui:GetName()
         UI.RegisterProxyUI(self)
         UI.RegisterRawUI(ui)
         return self
@@ -951,7 +999,8 @@ end)
 ----------------------------------------------
 --               __Bubbling__               --
 ----------------------------------------------
-__Sealed__() class "__Bubbling__" (function(_ENV)
+__Sealed__()
+class "__Bubbling__" (function(_ENV)
     extend "IApplyAttribute"
 
     local getChild              = UIObject.GetChild
@@ -1012,7 +1061,8 @@ end)
 ----------------------------------------------
 --                 Template                 --
 ----------------------------------------------
-__Sealed__() class "__Template__" (function (_ENV)
+__Sealed__()
+class "__Template__" (function (_ENV)
     extend "IInitAttribute"
 
     local _Template             = {}
@@ -1226,7 +1276,8 @@ end)
 ----------------------------------------------
 --              Style Property              --
 ----------------------------------------------
-__Sealed__() struct "Scorpio.UI.Property" {
+__Sealed__()
+struct "Scorpio.UI.Property" {
     name                        = { type  = NEString, require = true },
     type                        = { type  = AnyType },
     require                     = { type  = ClassType + struct { ClassType }, require = true },
@@ -1470,7 +1521,7 @@ function Style.GetCustomStyles(frame)
     end
 end
 
-__Arguments__{ - UIObject, NEString * 0 } __Iterator__()
+__Arguments__{ -UIObject, NEString * 0 } __Iterator__()
 function Style.GetDefaultStyles(class, ...)
     local default               = _DefaultStyle[class]
 
@@ -1502,6 +1553,7 @@ end
 --               Skin System                --
 ----------------------------------------------
 local SkinSettings              = struct { [ - UIObject ] = Table }
+local OnStyleAppliedEvent       = Class.GetFeature(UIObject, "OnStyleApplied")
 
 __Arguments__{ NEString, SkinSettings/nil }:Throwable()
 function Style.RegisterSkin(name, settings)
@@ -1516,27 +1568,24 @@ function Style.RegisterSkin(name, settings)
             local skin          = {}
             skins[class]        = skin
 
-            saveSkinSettings({class}, {}, skin, setting)
+            saveSkinSettings({class}, {}, skin, setting, true)
         end
     end
 
     return true
 end
 
-__Arguments__{ NEString, SkinSettings }:Throwable()
-function Style.UpdateSkin(name, settings)
+__Arguments__{ NEString, SkinSettings, Boolean/nil, Boolean/nil }:Throwable()
+function Style.UpdateSkin(name, settings, update, updateChildClass)
     name                        = strlower(name)
     local skins                 = _Skins[name]
-
-    if not skins then
-        throw("Usage: Style.UpdateSkin(name, settings) - the name doesn't existed")
-    end
+    if not skins then throw("Usage: Style.UpdateSkin(name, settings[, update]) - the name doesn't existed") end
 
     for class, setting in pairs(settings) do
-        local skin              = emptyDefaultStyle(skins[class]) or {}
+        local skin              = not update and emptyDefaultStyle(skins[class]) or skins[class] or {}
         skins[class]            = skin
 
-        saveSkinSettings({class}, {}, skin, setting)
+        saveSkinSettings({class}, {}, skin, setting, not update or updateChildClass)
         activeSkin(name, class, skin, true)
     end
 end
@@ -1658,6 +1707,9 @@ function applyStylesOnFrame(frame, styles)
 
     _Recycle(wipe(priority))
     _Recycle(wipe(styles))
+
+    -- Notify the style is applied
+    OnStyleAppliedEvent(frame)
 end
 
 local function clearStylesOnFrame(frame, styles)
@@ -1697,31 +1749,51 @@ local function clearStylesOnFrame(frame, styles)
     _Recycle(wipe(styles))
 end
 
+local function getDefaultByClass(styles, cls)
+    local matchedType
+
+    for stype in pairs(styles) do
+        if isSubType(cls, stype) then
+            if matchedType then
+                if getmetatable(stype).IsSubType(stype, matchedType) then
+                    matchedType             = stype
+                end
+            else
+                matchedType                 = stype
+            end
+        end
+    end
+
+    return matchedType and styles[matchedType]
+end
+
 local function buildTempStyle(frame, forClear)
     local styles                            = _Recycle()
     local paths                             = _Recycle()
+    local clspaths                          = _Recycle()
     local children                          = _Recycle()
     local tempClass                         = _Recycle()
+    local childcls
 
     local props                             = _Property[getUIPrototype(frame)]
-    if not props then return styles, children end -- No properties can be found
+    if not props then return styles, children, childcls end -- No properties can be found
 
     -- Prepare the style settings
     -- Custom -> Root Parent Class -> ... -> Parent Class -> Frame Class -> Super Class
     local name                              = _PropertyChildName[frame] or UIObject.GetName(frame)
     local parent                            = UIObject.GetParent(frame)
 
+    clspaths[1]                             = getmetatable(frame)
     while parent and name do
         local cls                           = getmetatable(parent)
-
         tinsert(paths, 1, name)
 
-        if cls and isUIObjectType(cls) then
+        if isUIObjectType(cls) then
             wipe(tempClass)
 
             repeat
                 tinsert(tempClass, cls)
-                cls                         = Class.GetSuperClass(cls)
+                cls                         = getSuperClass(cls)
             until not cls
 
             for i = #tempClass, 1, -1 do
@@ -1731,8 +1803,8 @@ local function buildTempStyle(frame, forClear)
                 local index                 = 1
 
                 while default and paths[index] do
-                    default                 = default[CHILD_SETTING]
-                    default                 = default and default[paths[index]]
+                    default                 =  default[CHILD_SETTING]     and default[CHILD_SETTING]    [paths[index]]
+                                            or default[CHILD_CLS_SETTING] and getDefaultByClass(default[CHILD_CLS_SETTING], clspaths[index])
                     index                   = index + 1
                 end
 
@@ -1747,6 +1819,11 @@ local function buildTempStyle(frame, forClear)
                                     -- So don't create the property child dynamicly
                                     styles[name]    = true
                                 end
+                            end
+                        elseif prop == CHILD_CLS_SETTING then
+                            childcls                = childcls or _Recycle()
+                            for ccls in pairs(value) do
+                                childcls[ccls]      = true
                             end
                         else
                             if value ~= CLEAR or styles[prop] == nil then
@@ -1786,11 +1863,13 @@ local function buildTempStyle(frame, forClear)
             end
         end
 
+        tinsert(clspaths, 1, cls)
         name                                = _PropertyChildName[parent] or UIObject.GetName(parent)
         parent                              = UIObject.GetParent(parent)
     end
 
     _Recycle(wipe(paths))
+    _Recycle(wipe(clspaths))
     _Recycle(wipe(tempClass))
 
     if _CustomStyle[frame] then
@@ -1842,6 +1921,11 @@ local function buildTempStyle(frame, forClear)
                                 children[name] = true
                             end
                         end
+                    elseif prop == CHILD_CLS_SETTING then
+                        childcls            = childcls or _Recycle()
+                        for ccls in pairs(value) do
+                            childcls[ccls]  = true
+                        end
                     elseif styles[prop] == nil or styles[prop] == CLEAR then
                         local noOverride    = true
 
@@ -1869,11 +1953,11 @@ local function buildTempStyle(frame, forClear)
                 end
             end
 
-            cls                             = Class.GetSuperClass(cls)
+            cls                             = getSuperClass(cls)
         end
     end
 
-    return styles, children
+    return styles, children, childcls
 end
 
 local function clearStyle(frame)
@@ -1885,7 +1969,7 @@ local function clearStyle(frame)
 
         Trace("[Scorpio.UI]Clear Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-        local styles, children              = buildTempStyle(frame, true)
+        local styles, children, childcls    = buildTempStyle(frame, true)
 
         -- Clear the children
         for name in pairs(children) do
@@ -1904,8 +1988,22 @@ local function clearStyle(frame)
                 end
             end
         end
-
         _Recycle(wipe(children))
+
+        -- Clear the children of the classes, normally won't be used
+        if childcls then
+            for name, child in UIObject.GetChilds(frame) do
+                local mcls                  = getmetatable(child)
+                for ctype in pairs(childcls) do
+                    if mcls == ctype or isSubType(mcls, ctype) then
+                        clearStyle(child)
+                        break
+                    end
+                end
+            end
+
+            _Recycle(wipe(childcls))
+        end
 
         -- Apply the style settings
         local ok, err                       = pcall(clearStylesOnFrame, frame, styles)
@@ -1948,7 +2046,7 @@ function ApplyStyleService()
 
                     Trace("[Scorpio.UI]Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-                    local styles, children  = buildTempStyle(frame)
+                    local styles, children, childcls = buildTempStyle(frame)
 
                     -- Queue the children
                     for name in pairs(children) do
@@ -1962,8 +2060,21 @@ function ApplyStyleService()
                             if child then applyStyle(child) end
                         end
                     end
-
                     _Recycle(wipe(children))
+
+                    -- Queue the children of the target type
+                    if childcls then
+                        for name, child in UIObject.GetChilds(frame) do
+                            local mcls      = getmetatable(child)
+                            for ctype in pairs(childcls) do
+                                if mcls == ctype or isSubType(mcls, ctype) then
+                                    applyStyle(child)
+                                    break
+                                end
+                            end
+                        end
+                        _Recycle(wipe(childcls))
+                    end
 
                     _StyleQueue[frame]      = nil
 
@@ -2069,7 +2180,7 @@ function UIObject:InstantApplyStyle(skipCheck)
 
     Trace("[Scorpio.UI]Instant Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
 
-    local styles, children  = buildTempStyle(self)
+    local styles, children, childcls = buildTempStyle(self)
 
     -- Check the location props, dirty but should be only property has relationship
     if not skipCheck and type(styles["location"]) == "table" then
@@ -2093,6 +2204,22 @@ function UIObject:InstantApplyStyle(skipCheck)
             child           = props[name].get(self)
             if child then children[name] = child end
         end
+    end
+
+    -- Queue the children of the target class
+    if childcls then
+        for name, child in UIObject.GetChilds(self) do
+            if children[name] == nil then
+                local mcls  = getmetatable(child)
+                for ctype in pairs(childcls) do
+                    if mcls == ctype or isSubType(mcls, ctype) then
+                        children[name] = child
+                        break
+                    end
+                end
+            end
+        end
+        _Recycle(wipe(childcls))
     end
 
     for name, child in pairs(children) do

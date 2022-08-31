@@ -3,7 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2016/12/12                              --
--- Update Date :  2021/10/24                              --
+-- Update Date :  2022/08/30                              --
 --========================================================--
 
 PLoop(function(_ENV)
@@ -1184,34 +1184,42 @@ PLoop(function(_ENV)
         --                  Locale                  --
         ----------------------------------------------
         __Sealed__()
-        class "Localization" (function(_ENV)
-            _Localizations = {}
+        class "Localization"    (function(_ENV)
+            _Localizations      = {}
+            _RootLocale         = {}
 
-            enum "Locale" {
-                "deDE",             -- German
-                --"enGB",             -- British English
-                "enUS",             -- American English
-                "esES",             -- Spanish (European)
-                "esMX",             -- Spanish (Latin American)
-                "itIT",             -- Italian (Italy)
-                "frFR",             -- French
-                "koKR",             -- Korean
-                "ptBR",             -- Portuguese (Brazil)
-                "ruRU",             -- Russian
-                "zhCN",             -- Chinese (simplified; mainland China)
-                "zhTW",             -- Chinese (traditional; Taiwan)
+            enum "Locale"       {
+                "deDE",         -- German
+                --"enGB",       -- British English
+                "enUS",         -- American English
+                "esES",         -- Spanish (European)
+                "esMX",         -- Spanish (Latin American)
+                "itIT",         -- Italian (Italy)
+                "frFR",         -- French
+                "koKR",         -- Korean
+                "ptBR",         -- Portuguese (Brazil)
+                "ruRU",         -- Russian
+                "zhCN",         -- Chinese (simplified; mainland China)
+                "zhTW",         -- Chinese (traditional; Taiwan)
             }
 
             ----------------------------------------------
-            ----------------- Constructor ----------------
+            --              Static Feature              --
             ----------------------------------------------
-            __Arguments__{ NEString }
-            function Localization(self, name)
-                _Localizations[name] = self
+            __Static__()
+            property "Root"     { type = Localization }
+
+            ----------------------------------------------
+            --                Constructor               --
+            ----------------------------------------------
+            __Arguments__{ NEString, Localization/nil }
+            function Localization(self, name, root)
+                _Localizations[name]= self
+                _RootLocale[self]   = root or Localization.Root
             end
 
             ----------------------------------------------
-            ----------------- Meta-Method ----------------
+            --                Meta-Method               --
             ----------------------------------------------
             __Arguments__{ NEString }
             function __exist(_, name)
@@ -1220,8 +1228,16 @@ PLoop(function(_ENV)
 
             __Arguments__{ String }
             function __index(self, key)
-                rawset(self, key, key)
-                return key
+                local root      = _RootLocale[self]
+                local value     = root and rawget(root, key)
+
+                if not value then
+                    local lkey  = strlower(key)
+                    value       = rawget(self, lkey) or root and rawget(root, lkey) or key
+                end
+
+                rawset(self, key, value)
+                return value
             end
 
             __Arguments__{ String + Number, String }
@@ -1249,6 +1265,7 @@ PLoop(function(_ENV)
         --  SavedVariable Config Node Declaration   --
         ----------------------------------------------
         class "Scorpio.Config.ConfigNode"       {}
+        class "Scorpio.Config.AddonConfigNode"  {}
         class "Scorpio.Config.CharConfigNode"   {}
         class "Scorpio.Config.SpecConfigNode"   {}
         class "Scorpio.Config.WarModeConfigNode"{}
@@ -1758,10 +1775,10 @@ PLoop(function(_ENV)
         property "_Locale"          { type = Localization, default = function(self) return Localization(self._Addon._Name) end }
 
         --- The saved variable config node, don't make it readonly, so sub-addon can have its own config node with its own saved variables
-        property "_Config"          { type = ConfigNode, default = function(self) return self._Parent and self._Parent._Config or ConfigNode() end }
+        property "_Config"          { type = AddonConfigNode, default = function(self) return self._Parent and self._Parent._Config or AddonConfigNode(self) end }
 
         --- The saved variable per character config node
-        property "_CharConfig"      { type = CharConfigNode, default = function(self) return CharConfigNode(self._Config, "__char") end }
+        property "_CharConfig"      { set = false, default = function(self) return CharConfigNode(self._Config, "__char") end }
 
         --- The saved variable spec config node
         property "_SpecConfig"      { set = false, default = function(self) return SpecConfigNode(self._CharConfig, "__spec") end }

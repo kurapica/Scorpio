@@ -17,7 +17,7 @@ local START_MOVE_RESIZE_DELAY   = 0.05  -- A delay to start moving/resizing to r
 -----------------------------------------------------------
 --- The widget used as a handler to move other frames
 __Sealed__() __ChildProperty__(Frame, "Mover")
-class "Mover" (function(_ENV)
+class "Mover"                   (function(_ENV)
     inherit "Frame"
 
     local _Moving               = setmetatable({}, META_WEAKKEY)
@@ -85,7 +85,7 @@ end)
 
 --- The widget used as handler to resize other frames
 __Sealed__() __ChildProperty__(Frame, "Resizer")
-class "Resizer" (function(_ENV)
+class "Resizer"                 (function(_ENV)
     inherit "Button"
 
     local _ResizingHook         = setmetatable({}, META_WEAKKEY)
@@ -200,7 +200,7 @@ end)
 
 --- The widget used as mask to move, resize, toggle, key binding for the target widget
 __Sealed__()  __ChildProperty__(Frame, "Mask")
-class "Mask" (function(_ENV)
+class "Mask"                    (function(_ENV)
     inherit "Button"
 
     ---------------------------------------------------
@@ -530,7 +530,8 @@ class "UIToggleButton"          { Button, ToggleTexture = { type = Texture, set 
 -----------------------------------------------------------
 --                    InputBox Widget                    --
 -----------------------------------------------------------
-__Sealed__() class "InputBox" (function(_ENV)
+__Sealed__() __ConfigDataType__(Number, String)
+class "InputBox"                (function(_ENV)
     inherit "EditBox"
 
     local function OnEscapePressed(self)
@@ -545,44 +546,100 @@ __Sealed__() class "InputBox" (function(_ENV)
         self:HighlightText(0, 0)
     end
 
-    local function OnTextChanged(self)
+    local function OnTextChangedFix(self)
         return true
+    end
+
+    local function OnTextChanged(self)
+        if self.__CheckNumber then
+            local text          = self:GetText()
+            local value         = tonumber(text)
+            if value and tostring(value) == text then
+                self:SetConfigSubjectValue(value)
+            end
+        else
+            self:SetConfigSubjectValue(self:GetText())
+        end
+    end
+
+    local function FixInputDisplay(self)
+        -- Already in the progress
+        if self.OnTextChanged[0] then
+            Delay(0.1)
+            if self.OnTextChanged[0] then return end
+        end
+
+        -- Only continue when it's visible
+        if not self:IsVisible() then
+            Next(Observable.From(self.OnShow))
+        end
+
+        self.OnTextChanged:SetInitFunction(OnTextChangedFix)
+
+        if self:IsNumeric() then
+            local orgVal    = self:GetText()
+            local rval      = (tonumber(orgVal or 0) or 0) + 111111
+            self:SetNumber(rval)
+            rval            = self:GetNumber()
+
+            Next()
+
+            if self:IsNumeric() and self:GetNumber() == rval then
+                self:SetNumber(orgVal or "")
+            end
+        else
+            local orgText   = self:GetText() or ""
+            local rtext     = Guid.New()
+            self:SetText(rtext)
+            rtext           = self:GetText()
+
+            for i = 1, 4 do
+                Next()
+
+                if self:GetText() ~= rtext then
+                    orgText     = self:GetText()
+                end
+
+                rtext           = Guid.New()
+                self:SetText(rtext)
+                rtext           = self:GetText()
+            end
+
+            Next()
+
+            if self:GetText() == rtext then
+                self:SetText(orgText)
+            end
+        end
+
+        self.OnTextChanged:SetInitFunction(nil)
+    end
+
+    local function OnStyleApplied(self)
+        return Next(FixInputDisplay, self)
+    end
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        self.OnTextChanged      = self.OnTextChanged + OnTextChanged
+        self.__CheckNumber      = Struct.IsSubType(configSubject.Type, Number)
+
+        -- subscribe the config subject
+        return configSubject:Subscribe(function(value)
+            local hasFocus      = self:HasFocus()
+            local text          = value ~= nil and tostring(value) or ""
+            if text == self:GetText() then return end
+            self:SetText(text)
+            if hasFocus then
+                self:SetFocus()
+                self:SetCursorPosition(#text)
+            end
+        end)
     end
 
     __InstantApplyStyle__()
     function __ctor(self)
-        Next(function()
-            if self:IsNumeric() then
-                local orgVal    = self:GetText()
-                local rval      = (tonumber(orgVal or 0) or 0) + 111111
-                self:SetNumber(rval)
-                rval            = self:GetNumber()
-
-                Next()
-
-                if self:IsNumeric() and self:GetNumber() == rval then
-                    self:SetNumber(orgVal or "")
-                end
-
-                self.OnTextChanged = self.OnTextChanged - OnTextChanged
-            else
-                local orgText   = self:GetText() or ""
-                local rtext     = Guid.New()
-                self:SetText(rtext)
-                rtext           = self:GetText()
-
-                Next()
-
-                if not self:IsNumeric() and self:GetText() == rtext then
-                    self:SetText(orgText)
-                end
-
-                self.OnTextChanged = self.OnTextChanged - OnTextChanged
-            end
-        end)
-
-        self.OnTextChanged      = self.OnTextChanged + OnTextChanged
-
+        self.OnStyleApplied     = self.OnStyleApplied + OnStyleApplied
         self.OnEscapePressed    = self.OnEscapePressed + OnEscapePressed
         self.OnEditFocusGained  = self.OnEditFocusGained + OnEditFocusGained
         self.OnEditFocusLost    = self.OnEditFocusLost + OnEditFocusLost
@@ -592,7 +649,8 @@ end)
 -----------------------------------------------------------
 --                   Track Bar Widget                    --
 -----------------------------------------------------------
-__Sealed__() class "TrackBar" (function(_ENV)
+__Sealed__() __ConfigDataType__(RangeValue)
+class "TrackBar"                (function(_ENV)
     inherit "Slider"
 
     local floor                 = math.floor
@@ -602,14 +660,19 @@ __Sealed__() class "TrackBar" (function(_ENV)
     local getValueStep          = Slider.GetValueStep
 
     local function OnValueChanged(self)
-        self:GetChild("Text"):SetText(self:GetValue() or "")
+        local value             = self:GetValue()
+        self:GetChild("Text"):SetText(value or "")
+        self:SetConfigSubjectValue(value)
     end
 
+    --- Sets the value
     function SetValue(self, value)
+        if type(value) ~= "number" then return end
         setValue(self, value)
-        OnValueChanged(self)
+        self:GetChild("Text"):SetText(self:GetValue())
     end
 
+    --- Gets the value
     function GetValue(self)
         local value             = getValue(self)
         local step              = self:GetValueStep()
@@ -623,13 +686,25 @@ __Sealed__() class "TrackBar" (function(_ENV)
         return value
     end
 
+    --- Sets the value step
     function SetValueStep(self, step)
         self.__RealValueStep    = step
         setValueStep(self, step)
     end
 
+    --- Gets the value step
     function GetValueStep(self)
         return self.__RealValueStep or getValueStep(self)
+    end
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        local min, max, step    = Struct.GetTemplateParameters(configSubject.Type)
+        self:SetMinMaxValues(min, max)
+        self:SetValueStep(step or (max - min) / 100)
+
+        -- subscribe the config subject
+        return configSubject:Subscribe(function(value) self:SetValue(value) end)
     end
 
     __Template__{
@@ -647,14 +722,14 @@ end)
 --                     Dialog Widget                     --
 -----------------------------------------------------------
 __Sealed__() __Template__(Frame)
-class "Dialog"  {
+class "Dialog"                  {
     Resizer                     = Resizer,
     CloseButton                 = UIPanelCloseButton,
 }
 
 __Sealed__() __Template__(Mover)
 __ChildProperty__(Dialog, "Header")
-class "DialogHeader" {
+class "DialogHeader"            {
     HeaderText                  = FontString,
 
     --- The text of the header
@@ -687,34 +762,59 @@ class "DialogHeader" {
 --                    GroupBox Widget                    --
 -----------------------------------------------------------
 __Sealed__() __Template__(Frame)
-class "GroupBox" { }
-
-__Sealed__() __Template__(Frame)
-__ChildProperty__(GroupBox, "Header")
-class "GroupBoxHeader" {
-    HeaderText                  = FontString,
-    UnderLine                   = Texture,
-
-    --- The text of the header
-    Text                        = {
-        type                    = String,
-        get                     = function(self)
-            return self:GetChild("HeaderText"):GetText()
-        end,
-        set                     = function(self, text)
-            self:GetChild("HeaderText"):SetText(text or "")
-        end,
-    },
-}
+class "GroupBox"                { }
 
 -----------------------------------------------------------
 --                 UICheckButton Widget                  --
 -----------------------------------------------------------
-__Sealed__()
-class "UICheckButton" { CheckButton }
+__Sealed__() __ConfigDataType__(Boolean)
+class "UICheckButton"           (function(_ENV)
+    inherit "CheckButton"
+
+    local function OnValueChanged(self)
+        self:SetConfigSubjectValue(self:GetChecked())
+    end
+
+    --- Sets the text
+    __Async__()
+    function SetText(self, text)
+        local nameText          = self:GetChild("NameText")
+        nameText:SetText(text)
+
+        local trycnt            = 10
+        while trycnt > 0 and not (self:GetRight() and nameText:GetLeft()) do
+            Next() trycnt       = trycnt - 1
+        end
+        if trycnt == 0 then return end
+
+        if self:GetRight() > nameText:GetLeft() then
+            self:SetHitRectInsets(0, self:GetRight() - nameText:GetLeft() - nameText:GetStringWidth(), 0, 0)
+        else
+            self:SetHitRectInsets(0, 0, 0, 0)
+        end
+    end
+
+    --- Gets the text
+    function GetText(self)
+        return self:GetChild("NameText"):GetText()
+    end
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        -- subscribe the config subject
+        return configSubject:Subscribe(function(value) self:SetChecked(value) end)
+    end
+
+    __Template__{
+        NameText                = FontString
+    }
+    function __ctor(self)
+        self.PostClick          = self.PostClick + OnValueChanged
+    end
+end)
 
 __Sealed__()
-class "UIRadioButton" (function(_ENV)
+class "UIRadioButton"           (function(_ENV)
     inherit "CheckButton"
 
     local IsObjectType          = Class.IsObjectType
@@ -738,32 +838,73 @@ class "UIRadioButton" (function(_ENV)
         return CheckButton.SetChecked(self, flag)
     end
 
+    --- Sets the text
+    SetText                     = UICheckButton.SetText
+
+    --- Gets the text
+    GetText                     = UICheckButton.GetText
+
+    __Template__{
+        NameText                = FontString
+    }
     function __ctor(self)
         self.OnClick            = self.OnClick + OnClick
     end
 end)
 
-__Sealed__() __ChildProperty__(CheckButton, "Label")
-class "UICheckButtonLabel" { FontString,
-    SetText                     = function(self, text)
-        FontString.SetText(self, text)
+-----------------------------------------------------------
+--                 UIColorPicker Widget                  --
+-----------------------------------------------------------
+--- The color picker
+__Sealed__() __ConfigDataType__(ColorType)
+class "UIColorPicker"           (function(_ENV)
+    inherit "Button"
 
-        Next(function()
-            local parent        = self:GetParent()
-            local trycnt        = 10
+    --- Fired when color picked
+    event "OnColorPicked"
 
-            if parent then
-                while trycnt > 0 and not (parent:GetRight() and self:GetLeft()) do
-                    Next() trycnt = trycnt - 1
-                end
+    -- Helpers
+    local function chooseColor(self)
+        local color             = Scorpio.PickColor(self.Color)
+        if color then
+            self.Color          = color
+            OnColorPicked(self, color)
 
-                if trycnt == 0 then return end
+            self:SetConfigSubjectValue(color)
+        end
+    end
 
-                parent:SetHitRectInsets(0, parent:GetRight() - self:GetLeft() - self:GetStringWidth(), 0, 0)
+    local function OnClick(self)
+        Next(chooseColor, self)
+    end
+
+    --- The color property
+    property "Color"            {
+        type                    = ColorType,
+        handler                 = function(self, color)
+            if color then
+                self:GetChild("ColorSwatch"):SetColorTexture(color.r, color.g, color.b)
+            else
+                self:GetChild("ColorSwatch"):SetColorTexture(1, 1, 1)
             end
-        end)
-    end,
-}
+        end
+    }
+
+    --- Sets the config node field
+    function SetConfigSubject(self, configSubject)
+        -- subscribe the config subject and return the observer for tracking
+        return configSubject:Subscribe(function(value) self.Color = value end)
+    end
+
+    -- Constructor
+    __Template__{
+        ColorSwatchBG           = Texture,
+        ColorSwatch             = Texture,
+    }
+    function __ctor(self)
+        self.OnClick            = self.OnClick + OnClick
+    end
+end)
 
 -----------------------------------------------------------
 --                     Default Style                     --
@@ -880,6 +1021,7 @@ Style.UpdateSkin("Default",     {
     [InputBox]                  = {
         fontObject              = ChatFontNormal,
         autoFocus               = false,
+        size                    = Size(150, 24),
 
         LeftBGTexture           = {
             atlas               = {
@@ -917,6 +1059,8 @@ Style.UpdateSkin("Default",     {
     [TrackBar]                  = {
         orientation             = "HORIZONTAL",
         enableMouse             = true,
+        obeyStepOnDrag          = true,
+        size                    = Size(200, 24),
         hitRectInsets           = Inset(0, 0, -10, -10),
         backdrop                = {
             bgFile              = [[Interface\Buttons\UI-SliderBar-Background]],
@@ -1022,21 +1166,6 @@ Style.UpdateSkin("Default",     {
         },
         backdropBorderColor     = Color(0.6, 0.6, 0.6),
     },
-    [GroupBoxHeader]            = {
-        location                = { Anchor("TOPLEFT"), Anchor("TOPRIGHT") },
-        height                  = 48,
-
-        HeaderText              = {
-            fontObject          = OptionsFontHighlight,
-            location            = { Anchor("TOPLEFT", 16, -16) },
-        },
-
-        UnderLine               = {
-            height              = 1,
-            color               = Color(1, 1, 1, 0.2),
-            location            = { Anchor("TOPLEFT", 0, -3, "HeaderText", "BOTTOMLEFT"), Anchor("RIGHT", -16, 0) },
-        },
-    },
     [UIRadioButton]             = {
         size                    = Size(16, 16),
 
@@ -1057,7 +1186,7 @@ Style.UpdateSkin("Default",     {
             alphaMode           = "ADD",
         },
 
-        Label                   = {
+        NameText                = {
             fontObject          = GameFontNormalSmall,
             location            = { Anchor("LEFT", 5, 0, nil, "RIGHT") }
         },
@@ -1086,9 +1215,22 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\Buttons\UI-CheckBox-Check-Disabled]],
             setAllPoints        = true,
         },
-        Label                   = {
+        NameText                = {
             fontObject          = GameFontNormalSmall,
             location            = { Anchor("LEFT", -2, 0, nil, "RIGHT") },
+        },
+    },
+    [UIColorPicker]             = {
+        size                    = Size(32, 32),
+
+        ColorSwatchBG           = {
+            drawLayer           = "ARTWORK",
+            setAllPoints        = true,
+            file                = [[Interface\ChatFrame\ChatFrameColorSwatch]],
+        },
+        ColorSwatch             = {
+            drawLayer           = "OVERLAY",
+            location            = { Anchor("TOPLEFT", 2, -2), Anchor("BOTTOMRIGHT", -2, 2) },
         },
     },
 })
