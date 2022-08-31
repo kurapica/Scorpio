@@ -25,8 +25,20 @@ class (Scorpio)                (function(_ENV)
     end
 
     --- Sets the saved variable to the _CharConfig Node
-    function SetCharSavedVariable(Self, name)
+    function SetCharSavedVariable(self, name)
         self._CharConfig:SetSavedVariable(name, 2)
+        return self
+    end
+
+    __Arguments__{ ConfigNode }
+    function EnableConfigUI(self, configNode)
+        configNode:EnableUI()
+        return self
+    end
+
+    __Arguments__{ ConfigNode }
+    function DisableConfigUI(self, configNode)
+        configNode:DisableUI()
         return self
     end
 

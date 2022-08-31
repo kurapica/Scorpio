@@ -765,7 +765,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
-    -- __Config__(_Config, { width = Number, height = Number }, { width = 0, height = 0}, "[Type]Anonymous [Name]Handler name [Default]{ width = 0, helght = 0 }")
+    --- __Config__(_Config, { width = Number, height = Number }, { width = 0, height = 0}, "[Type]Anonymous [Name]Handler name [Default]{ width = 0, helght = 0 }")
     __Arguments__{ ConfigNode, RawTable, Any/nil, NEString/nil }
     function __ctor(self, node, definition, value, desc)
         local ok, structType    = Attribute.IndependentCall(function(temp) local type = struct(temp) return type end, definition)
@@ -777,7 +777,7 @@ class "__Config__" (function(_ENV)
         self.Desc               = desc
     end
 
-    -- __Config__(_Config, "size", { width = Number, height = Number }, { width = 0, height = 0}, "[Type]Anonymous [Name]size [Default]{ width = 0, helght = 0 }")
+    --- __Config__(_Config, "size", { width = Number, height = Number }, { width = 0, height = 0}, "[Type]Anonymous [Name]size [Default]{ width = 0, helght = 0 }")
     __Arguments__{ ConfigNode, NEString, RawTable, Any/nil, NEString/nil }
     function __ctor(self, node, name, definition, value, desc)
         local ok, structType    = Attribute.IndependentCall(function(temp) local type = struct(temp) return type end, definition)

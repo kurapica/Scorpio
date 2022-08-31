@@ -269,7 +269,6 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
 
     export { tremove = table.remove, Color }
 
-
     ------------------------------------------------------
     -- Translate
     ------------------------------------------------------
