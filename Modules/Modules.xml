@@ -3,6 +3,9 @@
     <Script file="Core.lua"/>
 
     <!-- Localization -->
+    <Script file="Localization/enUS.lua"/>
+
+    <!-- Localization -->
     <Script file="Localization/zhCN.lua"/>
 
     <!-- Scorpio Global -->
@@ -10,9 +13,6 @@
 
     <!-- Scorpio SVManager -->
     <Script file="SVManager.lua"/>
-
-    <!-- Scorpio Addon -->
-    <Script file="Scorpio.lua"/>
 
     <!-- Scorpio Reactive -->
    	<Script file="Reactive.lua"/>

@@ -73,4 +73,7 @@
 
     <!--Scorpio.Action -->
     <Include file="Modules\Action\Action.xml"/>
+
+    <!-- Scorpio Addon -->
+    <Script file="Scorpio.lua"/>
 </Ui>

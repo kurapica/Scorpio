@@ -2,6 +2,20 @@ local L                         = Scorpio("Scorpio")._Locale("zhCN")
 if not L then return end
 
 -----------------------------------------------------------
+--                      Core System                      --
+-----------------------------------------------------------
+L["smoothloading"] = "平滑启动"
+L["loglevel"] = "日志等级"
+L["taskthreshold"] = "任务耗时阈值"
+L["taskfactor"] = "任务耗时因子"
+L["Trace"] = "跟踪"
+L["Debug"] = "调试"
+L["Info"] = "信息"
+L["Warn"] = "警告"
+L["Error"] = "错误"
+L["Fatal"] = "致命错误"
+
+-----------------------------------------------------------
 --                Macro Condition Dialog                 --
 -----------------------------------------------------------
 L["Confirm when you finished the key binding"] = "完成按键绑定后点击确认"

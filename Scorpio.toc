@@ -12,7 +12,7 @@
 ## X-Wago-ID: RaN0kaGj
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
-## SavedVariables: Scorpio_DB
+## SavedVariables: Scorpio_DB, Scorpio_Setting
 ## SavedVariablesPerCharacter: Scorpio_DB_Char
 
 Scorpio.xml

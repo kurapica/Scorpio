@@ -126,6 +126,7 @@ PLoop(function(_ENV)
         -- Phase Settings
         PHASE_THRESHOLD         = 15    -- The max task operation time per phase
         PHASE_TIME_FACTOR       = 0.4   -- The factor used to calculate the task operation time per phase
+        SMOOTH_LOADING          = true
 
         -- System Task Settings
         EVENT_CLEAR_INTERVAL    = 100   -- The interval for event task clear
@@ -275,6 +276,9 @@ PLoop(function(_ENV)
 
                 if taskreq <= fpslimit * 2 then
                     g_PhaseTime             = fpslimit
+                elseif not SMOOTH_LOADING and taskreq > PHASE_THRESHOLD * 50 then
+                    -- Reduce the waiting time when entering the game
+                    g_PhaseTime             = taskreq / 2
                 else
                     if g_DynamicThreshold < PHASE_THRESHOLD then
                         g_PhaseTime         = PHASE_THRESHOLD
@@ -1738,6 +1742,9 @@ PLoop(function(_ENV)
         ----------------------------------------------
         --             Static  Property             --
         ----------------------------------------------
+        --- Enable smoothing loading to minimal the loading screen
+        __Static__() property "SmoothLoading"   { type = Boolean, get = function() return SMOOTH_LOADING end, set = function(self, val) SMOOTH_LOADING = val or false end }
+
         --- The max task operation time per phase(ms)
         __Static__() property "TaskThreshold"   { type = Integer, get = function() return PHASE_THRESHOLD end, set = function(self, val) PHASE_THRESHOLD = Clamp(val or 0, 5, 100) end }
 
