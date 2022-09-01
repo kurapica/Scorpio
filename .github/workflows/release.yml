@@ -31,29 +31,10 @@ jobs:
 
       # we first have to clone the AddOn project, this is a required step
       - name: Clone project
-        uses: actions/checkout@v1  # note: checkout@v2 breaks git history, so generating a changelog and
-                                   # file naming for non-tagged builds will not work properly
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # gets git history for changelogs
 
       # once cloned, we just run the GitHub Action for the packager project
       - name: Package and release
-        uses: BigWigsMods/packager@v1
-        with:
-          args: -g retail
-          
-      # another example where we supply additional arguments, this example is specifically to release
-      # for the Burning Crusade Classic version of the game and doesn't upload to WoWInterface
-      - name: Package and release for Burning Crusade Classic
-        uses: BigWigsMods/packager@v1
-        with:
-          args: -g bcc
-          
-      # once cloned, we just run the GitHub Action for the packager project
-      - name: Package and release for classic
-        uses: BigWigsMods/packager@v1
-        with:
-          args: -g classic
-
-      - name: Package and release for WLK
-        uses: BigWigsMods/packager@v1
-        with:
-          args: -g wrath
+        uses: BigWigsMods/packager@v2
