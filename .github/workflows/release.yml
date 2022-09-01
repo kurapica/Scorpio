@@ -52,3 +52,8 @@ jobs:
         uses: BigWigsMods/packager@v1
         with:
           args: -g classic
+
+      - name: Package and release for WLK
+        uses: BigWigsMods/packager@v1
+        with:
+          args: -g wrath
