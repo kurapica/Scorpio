@@ -222,7 +222,7 @@ Wow.UnitAura                    = UnitAuraPredicate.PredicateUnitAura
 ------------------------------------------------------------
 --                      Wow Classic                       --
 ------------------------------------------------------------
-if Scorpio.IsRetail or Scorpio.IsBCC then return end
+if not Scorpio.IsClassic then return end
 
 --- Try Get LibClassicDurations
 pcall(LoadAddOn, "LibClassicDurations")
