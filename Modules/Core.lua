@@ -341,7 +341,9 @@ PLoop(function(_ENV)
                             -- Process the task
                             local ok, msg   = resume(task)
                             if not ok then
-                                pcall(geterrorhandler(), msg)
+                                if msg ~= "cannot resume dead coroutine" then
+                                    pcall(geterrorhandler(), msg)
+                                end
                                 if _RunSingleAsync[task] then
                                     if type(_RunSingleAsync[task]) == "string" then
                                         _SingleAsync[_RunSingleAsync[task]] = false
@@ -394,7 +396,9 @@ PLoop(function(_ENV)
                             -- Process the task
                             local ok, msg   = resume(task)
                             if not ok then
-                                pcall(geterrorhandler(), msg)
+                                if msg ~= "cannot resume dead coroutine" then
+                                    pcall(geterrorhandler(), msg)
+                                end
                                 if _RunSingleAsync[task] then
                                     if type(_RunSingleAsync[task]) == "string" then
                                         _SingleAsync[_RunSingleAsync[task]] = false
