@@ -241,8 +241,8 @@ class "ComboBox" (function(_ENV)
     --- Sets the config node field
     function SetConfigSubject(self, configSubject)
         self:ClearItems()
-        for name, value in Enum.GetEnumValues(configSubject.Type) do
-            self.Items[value]   = _L[name]
+        for _, value in XDictionary(Enum.GetEnumValues(configSubject.Type)).Values:ToList():Sort():GetIterator() do
+            self.Items[value]   = _L[configSubject.Type(value)]
         end
 
         -- subscribe the config subject
