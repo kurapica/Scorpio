@@ -15,14 +15,16 @@ export { clone                  = Toolset.clone }
 
 --- The layout manager
 __Sealed__()
-interface "ILayoutManager"      {
+interface "ILayoutManager"      (function(_ENV)
+
     --- Refresh the layout of the frame by its children with IDs
-    __Abstract__(),
-    RefreshLayout               = function (self, frame, iter) end,
+    __Abstract__()
+    function RefreshLayout(self, frame, iter) end
 
     --- Whether include the hide childrens
-    IncludeHideChildren         = { type = Boolean, default = false }
-}
+    __Abstract__()
+    property "IncludeHideChildren"  { type = Boolean, default = false }
+end)
 
 ------------------------------------------------------
 -- Helpers
