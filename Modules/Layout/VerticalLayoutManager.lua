@@ -13,9 +13,6 @@ __Sealed__()
 class "VerticalLayoutManager"   (function(_ENV)
     extend "ILayoutManager"
 
-    -- single instance
-    local instance
-
     -----------------------------------------------------------
     --                 Implementation method                 --
     -----------------------------------------------------------
@@ -25,6 +22,7 @@ class "VerticalLayoutManager"   (function(_ENV)
         local totalHeight       = 0
         local prev
         local spacing           = padding and padding.top  or 0
+        local showHide          = self.ShowHideChildren
 
         for i, child, margin in iter do
             local offsetx       = (padding and padding.left or 0) + (margin and margin.left or 0)
@@ -43,6 +41,10 @@ class "VerticalLayoutManager"   (function(_ENV)
             if margin and margin.right then
                 child:SetPoint("RIGHT", - ((padding and padding.right or 0) + margin.right), 0)
             end
+            if showHide and not child:IsShown() then
+                showHide        = showHide == true and {} or showHide
+                showHide[#showHide + 1] = child
+            end
 
             totalHeight         = totalHeight + offsety + child:GetHeight()
             prev                = child
@@ -51,16 +53,26 @@ class "VerticalLayoutManager"   (function(_ENV)
 
         totalHeight             = totalHeight + spacing + (padding and padding.bottom or 0)
         frame:SetHeight(math.max(totalHeight, minHeight or 0))
+
+        if type(showHide) == "table" then
+            for i = 1, #showHide do
+                showHide[i]:SetShown(true)
+            end
+        end
     end
+
+    -----------------------------------------------------------
+    --                       property                        --
+    -----------------------------------------------------------
+    --- Whether show the hidden children when re-layouted
+    property "ShowHideChildren" { type = Boolean, default = false }
 
     -----------------------------------------------------------
     --                      constructor                      --
     -----------------------------------------------------------
-    function __ctor(self)
-        instance                = instance
-    end
-
-    function __exist(_)
-        return instance
+    __Arguments__{ Boolean/nil, Boolean/nil }
+    function __ctor(self, includeHideChildren, showHideChildren)
+        self.IncludeHideChildren= includeHideChildren
+        self.ShowHideChildren   = showHideChildren
     end
 end)

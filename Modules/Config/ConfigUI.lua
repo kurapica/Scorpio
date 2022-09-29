@@ -264,6 +264,7 @@ class "ConfigPanel"             (function(_ENV)
                     if not ui then
                         -- The field order can't be changed, so we don't need recycle them
                         ui      = widget("ConfigFieldWidget" .. name, self)
+                        ui:Hide() -- Wait re-layout
                         ui:SetConfigSubject(node[name])
                         self.NodeFieldWidgets[name] = ui
                     end
@@ -284,6 +285,7 @@ class "ConfigPanel"             (function(_ENV)
 
                 if not ui then
                     ui                      = ConfigPanel("ConfigFieldPanel" .. name, self)
+                    ui:Hide()
                     ui.ConfigNode           = subnode
                     ui.ShowAllSubNodes      = self.ShowAllSubNodes
                     self.SubNodePanels[name]= ui
@@ -337,7 +339,7 @@ end)
 Style.UpdateSkin("Default",     {
     [ConfigPanel]               = {
         -- Layout settings
-        layoutManager           = Layout.VerticalLayoutManager(),
+        layoutManager           = Layout.VerticalLayoutManager(true, true),
 
         padding                 = {
             top                 = 48, -- For header

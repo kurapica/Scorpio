@@ -18,7 +18,10 @@ __Sealed__()
 interface "ILayoutManager"      {
     --- Refresh the layout of the frame by its children with IDs
     __Abstract__(),
-    RefreshLayout               = function (self, frame, iter) end
+    RefreshLayout               = function (self, frame, iter) end,
+
+    --- Whether include the hide childrens
+    IncludeHideChildren         = { type = Boolean, default = false }
 }
 
 ------------------------------------------------------
@@ -38,20 +41,27 @@ function IsLayoutable(self)
     return id and id > 0
 end
 
+function IsLayoutableWithHidden(self)
+    local getID                 = self.GetID
+    local id                    = getID and getID(self)
+    return id and id > 0
+end
+
 function CompareByID(a, b)
     return a:GetID() < b:GetID()
 end
 
 __Iterator__()
-function GetLayoutChildren(self)
+function GetLayoutChildren(self, incHide)
     local yield                 = coroutine.yield
-    for i, child in XDictionary(self:GetChilds()).Values:Filter(IsLayoutable):ToList():Sort(CompareByID):GetIterator() do
+    for i, child in XDictionary(self:GetChilds()).Values:Filter(incHide and IsLayoutableWithHidden or IsLayoutable):ToList():Sort(CompareByID):GetIterator() do
         yield(i, child, child[MARGIN])
     end
 end
 
 __Async__()
 function RefreshLayout(self)
+    if not self then return end
     if not self[FRAME_MANAGER] then return end
 
     local token                 = (taskToken[self] or 0) + 1
@@ -61,7 +71,7 @@ function RefreshLayout(self)
     for i = 1, 3 do Next() if token ~= taskToken[self] then return end end
 
     -- Refresh the layouts
-    self[FRAME_MANAGER]:RefreshLayout(self, GetLayoutChildren(self), self[PADDING])
+    self[FRAME_MANAGER]:RefreshLayout(self, GetLayoutChildren(self, self[FRAME_MANAGER].IncludeHideChildren), self[PADDING])
 
     -- Release the token
     taskToken[self]             = nil
