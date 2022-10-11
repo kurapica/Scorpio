@@ -410,7 +410,7 @@ if Scorpio.IsRetail then return end
 _Parent.UnitGetTotalAbsorbs     = _G.UnitGetTotalAbsorbs     or Toolset.fakefunc
 _Parent.UnitGetTotalHealAbsorbs = _G.UnitGetTotalHealAbsorbs or Toolset.fakefunc
 
-if true then return end
+if not Scorpio.IsWLK then return end
 
 _Parent.UnitGetIncomingHeals    = _G.UnitGetIncomingHeals    or Toolset.fakefunc
 
@@ -447,7 +447,7 @@ LibHealComm.RegisterCallback("Scorpio", "HealComm_GUIDDisappeared", HealComm_Hea
 
 INCOMING_HEAL_WINDOW            = 4
 
-_Parent.UnitGetIncomingHeals    = _G.UnitGetIncomingHeals or function(unit, casterUnit)
+_Parent.UnitGetIncomingHeals    = function(unit, casterUnit)
     local guid                  = UnitGUID(unit)
     local incoming              = 0
 
