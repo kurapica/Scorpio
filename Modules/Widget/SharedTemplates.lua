@@ -740,8 +740,10 @@ class "DialogHeader"            {
             headerText:SetText(text or "")
 
             Next(function()
-                local minwidth  = self:GetMinResize() or 0
-                local maxwidth  = self:GetMaxResize() or math.huge
+                local minResize = Style[self].minResize
+                local maxResize = Style[self].maxResize
+                local minwidth  = minResize and minResize.width or 0
+                local maxwidth  = maxResize and maxResize.width or math.huge
                 if maxwidth == 0 then maxwidth = math.huge end
                 maxwidth        = math.min(maxwidth, self:GetParent() and self:GetParent():GetWidth() or math.huge)
                 local textwidth = headerText:GetStringWidth() + self.TextPadding

@@ -18,7 +18,8 @@ class "VerticalLayoutManager"   (function(_ENV)
     -----------------------------------------------------------
     --- Refresh the layout of the target frame
     function RefreshLayout(self, frame, iter, padding)
-        local _, minHeight      = frame:GetMinResize()
+        local minResize         = Style[frame].minResize
+        local minHeight         = minResize and minResize.height or 0
         local totalHeight       = 0
         local prev
         local spacing           = padding and padding.top  or 0
@@ -52,7 +53,7 @@ class "VerticalLayoutManager"   (function(_ENV)
         end
 
         totalHeight             = totalHeight + spacing + (padding and padding.bottom or 0)
-        frame:SetHeight(math.max(totalHeight, minHeight or 0))
+        frame:SetHeight(math.max(totalHeight, minHeight))
 
         if type(showHide) == "table" then
             for i = 1, #showHide do
