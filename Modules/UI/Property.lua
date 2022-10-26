@@ -1153,7 +1153,7 @@ do
                         or  function(self, val) self:SetScaleTo(val.x, val.y) end,
         get             = Scale.GetToScale
                         and function(self) return Dimension(self:GetToScale()) end
-                        or  function(self) return Dimension(self:GetScaleTo()),
+                        or  function(self) return Dimension(self:GetScaleTo()) end,
     }
 
     --- the animation's scaling factors
