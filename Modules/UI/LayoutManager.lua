@@ -155,7 +155,7 @@ UI.Property                     {
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].left
     end,
     override                    = { "Padding" }
 }
@@ -169,7 +169,7 @@ UI.Property                     {
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].right
     end,
     override                    = { "Padding" }
 }
@@ -183,7 +183,7 @@ UI.Property                     {
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].top
     end,
     override                    = { "Padding" }
 }
@@ -197,7 +197,7 @@ UI.Property                     {
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].bottom
     end,
     override                    = { "Padding" }
 }
@@ -226,7 +226,7 @@ UI.Property                     {
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].left
     end,
     override                    = { "Margin" }
 }
@@ -240,7 +240,7 @@ UI.Property                     {
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].right
     end,
     override                    = { "Margin" }
 }
@@ -254,7 +254,7 @@ UI.Property                     {
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].top
     end,
     override                    = { "Margin" }
 }
@@ -268,7 +268,7 @@ UI.Property                     {
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].bottom
     end,
     override                    = { "Margin" }
 }
