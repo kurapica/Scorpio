@@ -360,7 +360,7 @@ __Sealed__() class "HtmlViewer" (function(_ENV)
         child:SetWidth(self:GetWidth() - self:GetChild("ScrollBar"):GetWidth())
         if(child:GetHeight() <= 0) then child:SetHeight(self:GetHeight()) end
 
-        child:SetText(child.RawText)
+        child:SetText(child.RawText or "")
     end
 
     ---Run when the mouse clicks a hyperlink in the SimpleHTML fram=

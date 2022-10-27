@@ -574,6 +574,12 @@ do
     }
 
     __Sealed__()
+    struct "TexCoordRange" {
+        { name = "low",         type = Dimension, require = true },
+        { name = "high",        type = Dimension, require = true },
+    }
+
+    __Sealed__()
     struct "PropertyAccessor" {
         { name = "set",         type = Function, require = true },
         { name = "get",         type = Any }

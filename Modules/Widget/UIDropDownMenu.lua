@@ -651,8 +651,10 @@ local function refreshMenuSize(self)
     maxw                        = maxw + (insets and (insets.left + insets.right) or 0)
     offset                      = math.abs(offset) + (insets and insets.bottom or 0)
 
-    local minwidth, minheight   = self:GetMinResize()
-    local maxwidth, maxheight   = self:GetMaxResize()
+    local minResize             = Style[self].minResize
+    local maxResize             = Style[self].maxResize
+    local minwidth, minheight   = minResize and minResize.width or 0, minResize and minResize.height or 0
+    local maxwidth, maxheight   = maxResize and maxResize.width or 0, maxResize and maxResize.height or 0
 
     if maxwidth == 0  then maxwidth  = nil end
     if maxheight == 0 then maxheight = nil end

@@ -109,6 +109,7 @@ UI.Property                     {
     name                        = "LayoutManager",
     type                        = ILayoutManager,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, manager)
         if self[FRAME_MANAGER] == manager then return end
         self[FRAME_MANAGER]     = manager
@@ -136,6 +137,7 @@ UI.Property                     {
     name                        = "Padding",
     type                        = Inset,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, padding)
         self[PADDING]           = padding
         return RefreshLayout(self)
@@ -149,13 +151,14 @@ UI.Property                     {
     name                        = "PaddingLeft",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[PADDING]           = self[PADDING] or {}
         self[PADDING].left      = val
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].left
     end,
     override                    = { "Padding" }
 }
@@ -163,13 +166,14 @@ UI.Property                     {
     name                        = "PaddingRight",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[PADDING]           = self[PADDING] or {}
         self[PADDING].right     = val
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].right
     end,
     override                    = { "Padding" }
 }
@@ -177,13 +181,14 @@ UI.Property                     {
     name                        = "PaddingTop",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[PADDING]           = self[PADDING] or {}
         self[PADDING].top       = val
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].top
     end,
     override                    = { "Padding" }
 }
@@ -191,13 +196,14 @@ UI.Property                     {
     name                        = "PaddingBottom",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[PADDING]           = self[PADDING] or {}
         self[PADDING].bottom    = val
         return RefreshLayout(self)
     end,
     get                         = function(self)
-        return clone(self[PADDING])
+        return self[PADDING] and self[PADDING].bottom
     end,
     override                    = { "Padding" }
 }
@@ -207,6 +213,7 @@ UI.Property                     {
     name                        = "Margin",
     type                        = Inset,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, margin)
         self[MARGIN]            = margin
         return OnStateChanged(self)
@@ -220,13 +227,14 @@ UI.Property                     {
     name                        = "MarginLeft",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[MARGIN]            = self[MARGIN] or {}
         self[MARGIN].left       = val
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].left
     end,
     override                    = { "Margin" }
 }
@@ -234,13 +242,14 @@ UI.Property                     {
     name                        = "MarginRight",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[MARGIN]            = self[MARGIN] or {}
         self[MARGIN].right      = val
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].right
     end,
     override                    = { "Margin" }
 }
@@ -248,13 +257,14 @@ UI.Property                     {
     name                        = "MarginTop",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[MARGIN]            = self[MARGIN] or {}
         self[MARGIN].top        = val
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].top
     end,
     override                    = { "Margin" }
 }
@@ -262,13 +272,14 @@ UI.Property                     {
     name                        = "MarginBottom",
     type                        = Number,
     require                     = Frame,
+    nilable                     = true,
     set                         = function(self, val)
         self[MARGIN]            = self[MARGIN] or {}
         self[MARGIN].bottom     = val
         return OnStateChanged(self)
     end,
     get                         = function(self)
-        return clone(self[MARGIN])
+        return self[MARGIN] and self[MARGIN].bottom
     end,
     override                    = { "Margin" }
 }

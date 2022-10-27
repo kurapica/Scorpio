@@ -359,6 +359,17 @@ do
         set             = function(self, width) self:SetWidth(width) end,
         override        = { "Size" },
     }
+
+    --- The pass through buttons
+    if Frame.SetPassThroughButtons then
+    UI.Property         {
+        name            = "SetPassThroughButtons",
+        type            = struct { String },
+        require         = Button,
+        nilable         = true,
+        secure          = true,
+        set             = function(self, val) if val then self:SetPassThroughButtons(unpack(val)) else self:SetPassThroughButtons(nil) end end
+    } end
 end
 
 ------------------------------------------------------------
@@ -381,7 +392,7 @@ do
         type            = ColorType,
         require         = { Texture, FontString, Line },
         default         = Color.WHITE,
-        get             = function(self) if self.GetVertexColor then return Color(self:GetVertexColor()) end end,
+        get             = Texture.GetVertexColor and function(self) return Color(self:GetVertexColor()) end,
         set             = function(self, color) self:SetVertexColor(color.r, color.g, color.b, color.a) end,
     }
 
@@ -508,11 +519,43 @@ do
     UI.Property         {
         name            = "TextColor",
         type            = ColorType,
-        require         = FONT_TYPES,
+        require         =  { EditBox, FontString, MessageFrame, SimpleHTML },
         default         = Color(1, 1, 1),
         get             = function(self) return Color(self:GetTextColor()) end,
         set             = function(self, color) self:SetTextColor(color.r, color.g, color.b, color.a) end,
     }
+
+    --- the fontstring's default text color
+    if Scorpio.IsRetail then
+
+    UI.Property         {
+        name            = "TextColor",
+        type            = ColorType,
+        require         = SimpleHTML,
+        default         = Color(1, 1, 1),
+        set             = function(self, color)
+            self:SetTextColor("h1", color.r, color.g, color.b, color.a)
+            self:SetTextColor("h2", color.r, color.g, color.b, color.a)
+            self:SetTextColor("h3", color.r, color.g, color.b, color.a)
+            self:SetTextColor("p", color.r, color.g, color.b, color.a)
+        end,
+    }
+
+    --- the Font object
+    UI.Property         {
+        name            = "FontObject",
+        type            = FontObject,
+        require         = SimpleHTML,
+        set             = function(self, fontObject)
+            self:SetFontObject("h1", fontObject)
+            self:SetFontObject("h2", fontObject)
+            self:SetFontObject("h3", fontObject)
+            self:SetFontObject("p", fontObject)
+        end,
+        override        = { "Font" },
+    }
+
+    end
 
     --- whether the text wrap will be indented
     UI.Property         {
@@ -644,12 +687,15 @@ do
         name            = "Gradient",
         type            = GradientType,
         require         = { Texture, Line },
-        set             = function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
-        clear           = function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
+        set             = Scorpio.IsRetail and function(self, val) self:SetGradient(val.orientation, val.mincolor, val.maxcolor) end
+                        or function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
+        clear           = Scorpio.IsRetail and function(self) self:SetGradient("HORIZONTAL", Color.WHITE, Color.WHITE) end
+                        or function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
         depends         = _Texture_Deps,
     }
 
     --- The gradient color shading (including opacity in the gradient) for the texture
+    if Texture.SetGradientAlpha then
     UI.Property         {
         name            = "GradientAlpha",
         type            = GradientType,
@@ -657,7 +703,7 @@ do
         set             = function(self, val) self:SetGradientAlpha(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.mincolor.a, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b, val.maxcolor.a) end,
         clear           = function(self) self:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1) end,
         depends         = _Texture_Deps,
-    }
+    } end
 
     --- whether the texture object loads its image file in the background
     UI.Property         {
@@ -665,20 +711,25 @@ do
         type            = Boolean,
         require         = { Texture, Line },
         default         = false,
-        get             = function(self) return self:GetNonBlocking() end,
-        set             = function(self, val) self:SetNonBlocking(val) end,
+        get             = Texture.GetNonBlocking
+                        and function(self) return self:GetNonBlocking() end
+                        or  function(self) return self:IsBlockingLoadRequested() end,
+        set             = Texture.SetNonBlocking
+                        and function(self, val) self:SetNonBlocking(val) end
+                        or  function(self, val) self:SetBlockingLoadsRequested(val) end,
     }
 
     --- The rotation of the texture
+    if Texture.SetRotation then
     UI.Property         {
         name            = "Rotation",
         type            = Number,
         require         = { Texture, Line, Cooldown },
         default         = 0,
-        get             = function(self) return self:GetRotation() end,
+        get             = Texture.GetRotation and function(self) return self:GetRotation() end,
         set             = function(self, val) self:SetRotation(val) end,
         depends         = _Texture_Deps,
-    }
+    } end
 
     --- whether snap to pixel grid
     UI.Property         {
@@ -963,6 +1014,17 @@ do
         get             = function(self) return self:IsSetToFinalAlpha() end,
     }
 
+    --- The speed multiplier
+    if AnimationGroup.SetAnimationSpeedMultiplier then
+    UI.Property         {
+        name            = "SpeedMultiplier",
+        type            = Number,
+        require         = AnimationGroup,
+        default         = 1,
+        set             = function(self, val) self:SetAnimationSpeedMultiplier(val) end,
+        get             = function(self) return self:GetAnimationSpeedMultiplier() end,
+    } end
+
     --- Time for the animation to progress from start to finish (in seconds)
     UI.Property         {
         name            = "Duration",
@@ -1046,8 +1108,12 @@ do
         type            = AnimCurveType,
         require         = Path,
         default         = "NONE",
-        set             = function(self, val) self:SetCurve(val) end,
-        get             = function(self) return self:GetCurve() end,
+        set             = Path.SetCurve
+                        and function(self, val) self:SetCurve(val) end
+                        or  function(self, val) self:SetCurveType(val) end,
+        get             = Path.GetCurve
+                        and function(self) return self:GetCurve() end
+                        or  function(self) return self:GetCurveType() end,
     }
 
     --- the offsets settings
@@ -1102,8 +1168,12 @@ do
         type            = Dimension,
         require         = Scale,
         default         = Dimension(1, 1),
-        set             = function(self, val) self:SetFromScale(val.x, val.y) end,
-        get             = function(self) return Dimension(self:GetFromScale()) end,
+        set             = Scale.SetFromScale
+                        and function(self, val) self:SetFromScale(val.x, val.y) end
+                        or  function(self, val) self:SetScaleFrom(val.x, val.y) end,
+        get             = Scale.GetFromScale
+                        and function(self) return Dimension(self:GetFromScale()) end
+                        or  function(self) return Dimension(self:GetScaleFrom()) end
     }
 
     --- the animation's scale amount that end to
@@ -1112,8 +1182,12 @@ do
         type            = Dimension,
         require         = Scale,
         default         = Dimension(1, 1),
-        set             = function(self, val) self:SetToScale(val.x, val.y) end,
-        get             = function(self) return Dimension(self:GetToScale()) end,
+        set             = Scale.SetToScale
+                        and function(self, val) self:SetToScale(val.x, val.y) end
+                        or  function(self, val) self:SetScaleTo(val.x, val.y) end,
+        get             = Scale.GetToScale
+                        and function(self) return Dimension(self:GetToScale()) end
+                        or  function(self) return Dimension(self:GetScaleTo()) end,
     }
 
     --- the animation's scaling factors
@@ -1165,6 +1239,7 @@ do
     }
 
     --- the 3D depth of the frame (for stereoscopic 3D setups)
+    if Frame.SetDepth then
     UI.Property         {
         name            = "Depth",
         type            = Number,
@@ -1173,7 +1248,7 @@ do
         secure          = true,
         set             = function(self, val) self:SetDepth(val) end,
         get             = function(self) return self:GetDepth() end,
-    }
+    } end
 
     --- Whether the frame don't save its location in layout-cache
     UI.Property         {
@@ -1202,7 +1277,9 @@ do
         type            = Boolean,
         require         = Frame,
         default         = false,
-        set             = function(self, val) self:SetFrameBuffer(val) end,
+        set             = Frame.SetFrameBuffer
+                        and function(self, val) self:SetFrameBuffer(val) end
+                        or  function(self, val) self:SetIsFrameBuffer(val) end,
     }
 
     --- the level at which the frame is layered relative to others in its strata
@@ -1260,6 +1337,7 @@ do
     }
 
     --- whether the frame's depth property is ignored (for stereoscopic 3D setups)
+    if Frame.IgnoreDepth then
     UI.Property         {
         name            = "IgnoringDepth",
         type            = Boolean,
@@ -1267,7 +1345,7 @@ do
         default         = false,
         set             = function(self, val) self:IgnoreDepth(val) end,
         get             = function(self) return self:IsIgnoringDepth() end,
-    }
+    } end
 
     --- Whether the joystick is enabled for the frame
     UI.Property         {
@@ -1289,16 +1367,6 @@ do
         secure          = true,
         set             = function(self, val) self:EnableKeyboard(val) end,
         get             = function(self) return self:IsKeyboardEnabled() end,
-    }
-
-    --- the maximum size of the frame for user resizing
-    UI.Property         {
-        name            = "MaxResize",
-        type            = Size,
-        require         = Frame,
-        default         = Size(0, 0),
-        set             = function(self, val) self:SetMaxResize(val.width, val.height) end,
-        get             = function(self) return Size(self:GetMaxResize()) end,
     }
 
     --- Whether the mouse click is enabled
@@ -1354,8 +1422,38 @@ do
         type            = Size,
         require         = Frame,
         default         = Size(0, 0),
-        set             = function(self, val) self:SetMinResize(val.width, val.height) end,
-        get             = function(self) return Size(self:GetMinResize()) end,
+        set             = Frame.SetMinResize
+                        and function(self, val) self:SetMinResize(val.width, val.height) end
+                        or  function(self, val)
+                            local _, _, aw, ah = self:GetResizeBounds()
+                            self:SetResizeBounds(val.width, val.height, aw or 0, ah or 0)
+                        end,
+        get             = Frame.GetMinResize
+                        and function(self) return Size(self:GetMinResize()) end
+                        or  function(self)
+                            local iw, ih = self:GetResizeBounds()
+                            return Size(iw or 0, ih or 0)
+                        end ,
+    }
+
+    --- the maximum size of the frame for user resizing
+    UI.Property         {
+        name            = "MaxResize",
+        type            = Size,
+        require         = Frame,
+        default         = Size(0, 0),
+        set             = Frame.SetMaxResize
+                        and function(self, val) self:SetMaxResize(val.width, val.height) end
+                        or  function(self, val)
+                            local iw, ih = self:GetResizeBounds()
+                            self:SetResizeBounds(iw or val.width, ih or val.height, val.width, val.height)
+                        end,
+        get             = Frame.GetMaxResize
+                        and function(self) return Size(self:GetMaxResize()) end
+                        or  function(self)
+                            local _, _, mw, mh = self:GetResizeBounds()
+                            return Size(mw or 0, mh or 0)
+                        end,
     }
 
     --- whether the frame can be moved by the user
@@ -1497,6 +1595,7 @@ do
         require         = Button,
         nilable         = true,
         childtype       = Texture,
+        clear           = Button.ClearPushedTexture and function(self) self:ClearPushedTexture() end,
         set             = function(self, val) self:SetPushedTexture(val) end,
     }
 
@@ -1507,6 +1606,7 @@ do
         require         = Button,
         nilable         = true,
         childtype       = Texture,
+        clear           = Button.ClearHighlightTexture and function(self) self:ClearHighlightTexture() end,
         set             = function(self, val) self:SetHighlightTexture(val) end,
     }
 
@@ -1517,6 +1617,7 @@ do
         require         = Button,
         nilable         = true,
         childtype       = Texture,
+        clear           = Button.ClearNormalTexture and function(self) self:ClearNormalTexture() end,
         set             = function(self, val) self:SetNormalTexture(val) end,
     }
 
@@ -1527,6 +1628,7 @@ do
         require         = Button,
         nilable         = true,
         childtype       = Texture,
+        clear           = Button.ClearDisabledTexture and function(self) self:ClearDisabledTexture() end,
         set             = function(self, val) self:SetDisabledTexture(val) end,
     }
 
@@ -1559,6 +1661,16 @@ do
         set             = function(self, val) self:SetDisabledFontObject(val) end,
         get             = function(self) return self:GetDisabledFontObject() end,
     }
+
+    --- Lock the highlight
+    if Button.SetHighlightLocked then
+    UI.Property         {
+        name            = "HighlightLocked",
+        type            = Boolean,
+        require         = Button,
+        default         = false,
+        set             = function(self, val) self:SetHighlightLocked(val) end,
+    } end
 end
 
 ------------------------------------------------------------
@@ -1775,6 +1887,17 @@ do
         default         = false,
         set             = function(self, val) self:SetUseCircularEdge(val) end,
     }
+
+    --- The tex coord range
+    if Cooldown.SetTexCoordRange then
+    UI.Property         {
+        name            = "TexCoordRange",
+        type            = Boolean,
+        require         = Cooldown,
+        default         = { low = Dimension(0, 0), high = Dimension(1, 1) },
+        set             = function(self, val) self:SetTexCoordRange(val.low, val.high) end,
+    }
+    end
 end
 
 ------------------------------------------------------------
@@ -2179,13 +2302,14 @@ do
     }
 
     --- The texture atlas
+    if StatusBar.SetStatusBarAtlas then
     UI.Property         {
         name            = "StatusBarAtlas",
         type            = String,
         require         = StatusBar,
         set             = function(self, val) self:SetStatusBarAtlas(val) end,
         get             = function(self) return self:GetStatusBarAtlas() end,
-    }
+    } end
 
     --- the color shading for the status bar's texture
     UI.Property         {
@@ -2197,6 +2321,7 @@ do
         get             = function(self) return Color(self:GetStatusBarColor()) end,
     }
 
+    --- The texture
     UI.Property         {
         name            = "StatusBarTexture",
         type            = Texture,
@@ -2205,6 +2330,28 @@ do
         childtype       = Texture,
         set             = function(self, val) self:SetStatusBarTexture(val) end,
     }
+
+    --- The desaturation
+    if StatusBar.SetStatusBarDesaturation then
+    UI.Property         {
+        name            = "StatusBarDesaturation",
+        type            = Number,
+        require         = StatusBar,
+        default         = 0,
+        get             = function(self) return self:GetStatusBarDesaturation() end,
+        set             = function(self, val) self:SetStatusBarDesaturation(val) end,
+    } end
+
+    --- Whether desaturated
+    if StatusBar.SetStatusBarDesaturated then
+    UI.Property         {
+        name            = "StatusBarDesaturation",
+        type            = Boolean,
+        require         = StatusBar,
+        default         = false,
+        get             = function(self) return self:IsStatusBarDesaturated() end,
+        set             = function(self, val) self:SetStatusBarDesaturated(val) end,
+    } end
 end
 
 ------------------------------------------------------------
