@@ -1209,25 +1209,27 @@ do
         return not _NoDragGroup[GetGroup(group)]
     end
 
-    __NoCombat__()
-    function EnableButtonDown(group, value)
-        group                   = GetGroup(group)
+    if not Scorpio.IsRetail then
+        __NoCombat__()
+        function EnableButtonDown(group, value)
+            group                   = GetGroup(group)
 
-        if not _MouseDownGroup[group] then
-            _MouseDownGroup[group] = value or nil
+            if not _MouseDownGroup[group] then
+                _MouseDownGroup[group] = value or nil
 
-            if _ActionButtonGroupList[group] then
-                local reg       = value and "AnyDown" or "AnyUp"
+                if _ActionButtonGroupList[group] then
+                    local reg       = value and "AnyDown" or "AnyUp"
 
-                for btn in pairs(_ActionButtonGroupList[group]) do
-                    btn:RegisterForClicks(reg)
+                    for btn in pairs(_ActionButtonGroupList[group]) do
+                        btn:RegisterForClicks(reg)
+                    end
                 end
             end
         end
-    end
 
-    function IsButtonDownEnabled(group)
-        return _MouseDownGroup[GetGroup(group)]
+        function IsButtonDownEnabled(group)
+            return _MouseDownGroup[GetGroup(group)]
+        end
     end
 
     function SetActionButtonGroup(self, group, old)
@@ -1241,13 +1243,19 @@ do
         _ActionButtonGroupList[group][self]     = true
 
         self:SetAttribute("IFActionHandlerGroup", group)
-        self:RegisterForClicks(_MouseDownGroup[group] and "AnyDown" or "AnyUp")
+        if not Scorpio.IsRetail then
+            self:RegisterForClicks(_MouseDownGroup[group] and "AnyDown" or "AnyUp")
+        end
     end
 
     function SetupActionButton(self)
         SetActionButtonGroup(self, self.ActionButtonGroup)
 
         self:RegisterForDrag("LeftButton", "RightButton")
+
+        if Scorpio.IsRetail then
+            self:RegisterForClicks("AnyUp", "AnyDown")
+        end
 
 
         _ManagerFrame:WrapScript(self, "OnShow",   _OnShowSnippet)
@@ -1331,13 +1339,15 @@ class "SecureActionButton" (function(_ENV)
         set                     = function(self, group, value) DisableDrag(group, not value) end,
     }
 
-    --- Whether the action button group use mouse down to trigger
-    __Static__() __Indexer__(String)
-    property "UseMouseDown"     {
-        type                    = Boolean,
-        get                     = function(self, group) return IsButtonDownEnabled(group) end,
-        set                     = function(self, group, value) EnableButtonDown(group, value) end,
-    }
+    if not Scorpio.IsRetail then
+        --- Whether the action button group use mouse down to trigger
+        __Static__() __Indexer__(String)
+        property "UseMouseDown" {
+            type                = Boolean,
+            get                 = function(self, group) return IsButtonDownEnabled(group) end,
+            set                 = function(self, group, value) EnableButtonDown(group, value) end,
+        }
+    end
 
     ------------------------------------------------------
     --                     Property                     --
