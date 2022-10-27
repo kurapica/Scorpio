@@ -18,6 +18,8 @@ local _PanelMap                 = {}
 class (Scorpio)                (function(_ENV)
     local _PanelCount           = 0
 
+    local InterfaceOptionsFrame = _G.InterfaceOptionsFrame or _G.SettingsPanel
+
     --- Sets the saved variable to the _Config node
     function SetSavedVariable(self, name)
         self._Config:SetSavedVariable(name, 2)

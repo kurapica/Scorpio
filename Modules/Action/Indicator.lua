@@ -742,6 +742,7 @@ Style.UpdateSkin("Default",     {
 
     [ContainerFrameItemButton]  = {
         alpha                   = 1,
+        RegisterForClicks       = Scorpio.IsRetail and { "AnyUp", "AnyDown" },
 
         SearchOverlay           = {
             drawLayer           = "OVERLAY",

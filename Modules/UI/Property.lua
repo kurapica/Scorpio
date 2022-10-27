@@ -519,11 +519,43 @@ do
     UI.Property         {
         name            = "TextColor",
         type            = ColorType,
-        require         = FONT_TYPES,
+        require         =  { EditBox, FontString, MessageFrame, SimpleHTML },
         default         = Color(1, 1, 1),
         get             = function(self) return Color(self:GetTextColor()) end,
         set             = function(self, color) self:SetTextColor(color.r, color.g, color.b, color.a) end,
     }
+
+    --- the fontstring's default text color
+    if Scorpio.IsRetail then
+
+    UI.Property         {
+        name            = "TextColor",
+        type            = ColorType,
+        require         = SimpleHTML,
+        default         = Color(1, 1, 1),
+        set             = function(self, color)
+            self:SetTextColor("h1", color.r, color.g, color.b, color.a)
+            self:SetTextColor("h2", color.r, color.g, color.b, color.a)
+            self:SetTextColor("h3", color.r, color.g, color.b, color.a)
+            self:SetTextColor("p", color.r, color.g, color.b, color.a)
+        end,
+    }
+
+    --- the Font object
+    UI.Property         {
+        name            = "FontObject",
+        type            = FontObject,
+        require         = SimpleHTML,
+        set             = function(self, fontObject)
+            self:SetFontObject("h1", fontObject)
+            self:SetFontObject("h2", fontObject)
+            self:SetFontObject("h3", fontObject)
+            self:SetFontObject("p", fontObject)
+        end,
+        override        = { "Font" },
+    }
+
+    end
 
     --- whether the text wrap will be indented
     UI.Property         {
@@ -655,8 +687,10 @@ do
         name            = "Gradient",
         type            = GradientType,
         require         = { Texture, Line },
-        set             = function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
-        clear           = function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
+        set             = Scorpio.IsRetail and function(self, val) self:SetGradient(val.orientation, val.mincolor, val.maxcolor) end
+                        or function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
+        clear           = Scorpio.IsRetail and function(self) self:SetGradient("HORIZONTAL", Color.WHITE, Color.WHITE) end
+                        or function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
         depends         = _Texture_Deps,
     }
 

@@ -252,6 +252,7 @@ function handler:IsActivedAction()
 end
 
 function handler:SetTooltip(tip)
+    tip:SetOwner(self, "ANCHOR_LEFT");
     local target                = self.ActionTarget
     if target == 0 then
         tip:SetText(BACKPACK_TOOLTIP, 1.0, 1.0, 1.0)
@@ -270,11 +271,20 @@ function handler:SetTooltip(tip)
                     tip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..bindingKey..")"..FONT_COLOR_CODE_CLOSE)
                 end
             end
-            if (not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(target))) then
-                for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
-                    if ( GetBagSlotFlag(target, i) ) then
-                        tip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[i]))
-                        break
+            if Scorpio.IsRetail then
+                if ContainerFrame_CanContainerUseFilterMenu(target) then
+                    local filterFlag = ContainerFrameSettingsManager:GetFilterFlag(target);
+                    if filterFlag then
+                        GameTooltip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[filterFlag]));
+                    end
+                end
+            else
+                if (not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(target))) then
+                    for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
+                        if ( GetBagSlotFlag(target, i) ) then
+                            tip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[i]))
+                            break
+                        end
                     end
                 end
             end
@@ -282,8 +292,6 @@ function handler:SetTooltip(tip)
         else
             tip:SetText(EQUIP_CONTAINER, 1.0, 1.0, 1.0)
         end
-    else
-
     end
 end
 
