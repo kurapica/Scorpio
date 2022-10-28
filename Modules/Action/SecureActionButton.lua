@@ -230,6 +230,27 @@ function PET_BATTLE_OPENING_START()
     end
 end
 
+if Scorpio.IsRetail then
+    __SystemEvent__()
+    function CVAR_UPDATE(name, value)
+        if name == "ActionButtonUseKeyDown" then
+            if tonumber(value) == 1 then
+                for kind, handler in pairs(_IFActionTypeHandler) do
+                    for _, button in handler:GetIterator() do
+                        button:RegisterForClicks("AnyUp", "AnyDown")
+                    end
+                end
+            else
+                for kind, handler in pairs(_IFActionTypeHandler) do
+                    for _, button in handler:GetIterator() do
+                        button:RegisterForClicks("AnyUp")
+                    end
+                end
+            end
+        end
+    end
+end
+
 ------------------------------------------------------
 --               Action Type Handler                --
 ------------------------------------------------------
@@ -1243,8 +1264,16 @@ do
         _ActionButtonGroupList[group][self]     = true
 
         self:SetAttribute("IFActionHandlerGroup", group)
+
+        -- Register for clicks
         if not Scorpio.IsRetail then
             self:RegisterForClicks(_MouseDownGroup[group] and "AnyDown" or "AnyUp")
+        else
+            if tonumber(GetCVar("ActionButtonUseKeyDown")) == 1 then
+                self:RegisterForClicks("AnyUp", "AnyDown")
+            else
+                self:RegisterForClicks("AnyUp")
+            end
         end
     end
 
@@ -1252,11 +1281,6 @@ do
         SetActionButtonGroup(self, self.ActionButtonGroup)
 
         self:RegisterForDrag("LeftButton", "RightButton")
-
-        if Scorpio.IsRetail then
-            self:RegisterForClicks("AnyUp", "AnyDown")
-        end
-
 
         _ManagerFrame:WrapScript(self, "OnShow",   _OnShowSnippet)
         _ManagerFrame:WrapScript(self, "OnHide",   _OnHideSnippet)
