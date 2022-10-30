@@ -943,4 +943,5 @@ SearchOverlaySkin               = {
 ChargeCooldownSkin              = {
     setAllPoints                = true,
     cooldown                    = Wow.FromUIProperty("ChargeCooldown"),
+    frameStrata                 = "TOOLTIP",
 }
