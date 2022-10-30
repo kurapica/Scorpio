@@ -573,6 +573,7 @@ class "InputBox"                (function(_ENV)
         if not self:IsVisible() then
             Next(Observable.From(self.OnShow))
         end
+        if self.OnTextChanged[0] then return end
 
         self.OnTextChanged:SetInitFunction(OnTextChangedFix)
 
