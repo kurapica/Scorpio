@@ -115,6 +115,7 @@ UI.Property                     {
         self[FRAME_MANAGER]     = manager
 
         if manager then
+            self.OnSizeChanged  = self.OnSizeChanged  + RefreshLayout
             self.OnChildChanged = self.OnChildChanged + OnChildChanged
 
             for name, child in self:GetChilds() do
@@ -123,6 +124,7 @@ UI.Property                     {
 
             return RefreshLayout(self)
         else
+            self.OnSizeChanged  = self.OnSizeChanged  - RefreshLayout
             self.OnChildChanged = self.OnChildChanged - OnChildChanged
 
             for name, child in self:GetChilds() do
