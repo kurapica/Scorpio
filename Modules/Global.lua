@@ -454,7 +454,7 @@ class "Color" (function(_ENV)
     end
 
     function __eq(self, val)
-        return self.r == val.r and self.g == val.g and self.b == val.b
+        return self.r == val.r and self.g == val.g and self.b == val.b and self.a == val.a
     end
 end)
 
