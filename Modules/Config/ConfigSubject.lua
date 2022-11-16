@@ -23,6 +23,7 @@ class "ConfigSubject"           (function(_ENV)
     local LOCALE_FIELD          = 5
     local DESC_FIELD            = 6
     local UNCOMMIT_FIELD        = 7
+    local INITED_FIELD          = 8
 
     local onNext                = Subject.OnNext
 
@@ -56,18 +57,22 @@ class "ConfigSubject"           (function(_ENV)
     --- The localization to for texts
     property "Locale"           { field = LOCALE_FIELD, set = false, default = _L }
 
+    --- Whther the subject is inited
+    property "Inited"           { field = INITED_FIELD }
+
     -----------------------------------------------------------------------
     --                              method                               --
     -----------------------------------------------------------------------
     function Subscribe(self, ...)
         local observer          = super.Subscribe(self, ...)
         -- Check value to avoid OnNext when define config node field handlers
-        observer:OnNext(self[VALUE_FIELD])
+        if self[INITED_FIELD] then observer:OnNext(self[VALUE_FIELD]) end
         return observer
     end
 
     --- Provides the observer with new data
     function OnNext(self, value)
+        self[INITED_FIELD]      = true
         self[VALUE_FIELD]       = value
         if not self[QUICKAPPLY_FIELD] then
             self[UNCOMMIT_FIELD]= value

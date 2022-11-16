@@ -1244,6 +1244,8 @@ if Scorpio.IsRetail then return end
 Style.UpdateSkin("Default", {
     [InputBox]                  = {
         fontObject              = ChatFontNormal,
+        autoFocus               = false,
+        size                    = Size(150, 24),
 
         LeftBGTexture           = {
             file                = [[Interface\Common\Common-Input-Border]],
