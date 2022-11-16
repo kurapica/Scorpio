@@ -58,6 +58,7 @@ class "MemberStructTypeViewer"  (function(_ENV)
 
                     -- The field order can't be changed, so we don't need recycle them
                     ui          = widget("ConfigFieldWidget" .. name, self)
+                    ui:Hide()
                     ui:SetConfigSubject(sub)
                     self.MemberWidgets[name] = ui
                 end
@@ -200,6 +201,7 @@ class "ArrayStructTypeViewer"   (function(_ENV)
 
             -- The field order can't be changed, so we don't need recycle them
             ui                  = widget("ConfigFieldWidget" .. name, self)
+            ui:Hide()
             ui:SetConfigSubject(sub)
             ui:SetID(1)
             self.ValueWidget    = ui
@@ -336,6 +338,7 @@ class "DictStructTypeViewer"    (function(_ENV)
 
             -- The field order can't be changed, so we don't need recycle them
             ui                  = keyWidget("ConfigFieldWidgetKey", self)
+            ui:Hide()
             ui:SetConfigSubject(sub)
             ui:SetID(1)
             self.KeyWidget      = ui
@@ -351,6 +354,7 @@ class "DictStructTypeViewer"    (function(_ENV)
 
             -- The field order can't be changed, so we don't need recycle them
             ui                  = widget("ConfigFieldWidgetValue", self)
+            ui:Hide()
             ui:SetConfigSubject(sub)
             ui:SetID(2)
             self.ValueWidget    = ui
@@ -386,7 +390,7 @@ Style.UpdateSkin("Default",     {
         backdropBorderColor     = Color(0.6, 0.6, 0.6),
 
         -- layout
-        layoutManager           = Layout.VerticalLayoutManager(),
+        layoutManager           = Layout.VerticalLayoutManager(true, true),
         padding                 = {
             top                 = 8,
             bottom              = 8,
@@ -415,7 +419,7 @@ Style.UpdateSkin("Default",     {
         backdropBorderColor     = Color(0.6, 0.6, 0.6),
 
         -- layout
-        layoutManager           = Layout.VerticalLayoutManager(),
+        layoutManager           = Layout.VerticalLayoutManager(true, true),
         padding                 = {
             top                 = 8,
             bottom              = 32, -- For buttons
@@ -463,7 +467,7 @@ Style.UpdateSkin("Default",     {
         backdropBorderColor     = Color(0.6, 0.6, 0.6),
 
         -- layout
-        layoutManager           = Layout.VerticalLayoutManager(),
+        layoutManager           = Layout.VerticalLayoutManager(true, true),
         padding                 = {
             top                 = 8,
             bottom              = 32, -- For buttons

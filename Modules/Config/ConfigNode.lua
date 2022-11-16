@@ -153,7 +153,6 @@ class "ConfigNode"              (function(_ENV)
 
         fields[name]            = { type = ftype, desc = desc, enableui = enableui, enablequickapply = enableQuickApply }
         tinsert(fields, name)   -- Keeps the field order
-
         if value ~= nil then
             local ret, msg      = validateValue(ftype, value)
             if msg then throw( Struct.GetErrorMessage(msg, name) ) end
@@ -410,6 +409,9 @@ class "ConfigNode"              (function(_ENV)
                 local rawdata   = _RawData[self]
                 subject         = ConfigSubject( locale[name], field.type, clone(rawdata and rawdata[name], true), field.enablequickapply, field.desc, locale )
                 field.subject   = subject
+                if rawdata then
+                    subject.Inited = true
+                end
                 subject.OnValueSet = function(_, value) return self:SetValue(name, value) end
             end
             return subject
