@@ -121,6 +121,7 @@ enum "Classes"                  {
     "DEATHKNIGHT",
     "MONK",
     "DEMONHUNTER",
+    "EVOKER",
 }
 
 __Sealed__()
@@ -144,6 +145,7 @@ enum "ClassPower"   {
     ARCANE_CHARGES              = 16,
     FURY                        = 17,
     PAIN                        = 18,
+    ESSENCE                     = 19,
 }
 
 __Sealed__()
@@ -509,6 +511,9 @@ class "Color" (function(_ENV)
     --- The Demonhunter class's default color
     __Static__() property "DEMONHUNTER"     { default = Color(0.64, 0.19, 0.79) }
 
+    --- The Evoker class's default color
+    __Static__() property "EVOKER"          { default = Color(0, 0.25, 0.75, 1) }
+
     ------------------ Powers -------------------
     --- The mana's default color
     __Static__() property "MANA"            { default = Color(0.00, 0.00, 1.00) }
@@ -566,6 +571,9 @@ class "Color" (function(_ENV)
 
     --- The stagger's dangerous color
     __Static__() property "STAGGER_DYING"   { default = Color(1.00, 0.42, 0.42) }
+
+    --- The essence's color
+    __Static__() property "ESSENCE"         { default = Color(0, 0.25, 0.75, 1) }
 
     ------------------ Vehicle ------------------
     --- The ammoslot's default color

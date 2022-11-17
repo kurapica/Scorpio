@@ -22,7 +22,7 @@ class "SecureGroupPanel" (function(_ENV)
 
     __Sealed__() enum "RoleType"        { "MAINTANK", "MAINASSIST", "TANK", "HEALER", "DAMAGER", "NONE" }
 
-    __Sealed__() enum "PlayerClass"     { "WARRIOR", "DEATHKNIGHT", "PALADIN", "MONK", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER", "DEMONHUNTER" }
+    __Sealed__() enum "PlayerClass"     { "WARRIOR", "DEATHKNIGHT", "PALADIN", "MONK", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER", "DEMONHUNTER", "EVOKER" }
 
     __Sealed__() struct "GroupFilter"   { System.Number }
 
@@ -30,7 +30,7 @@ class "SecureGroupPanel" (function(_ENV)
 
     __Sealed__() struct "RoleFilter"    { RoleType }
 
-    DEFAULT_CLASS_SORT_ORDER    = { "WARRIOR", "DEATHKNIGHT", "PALADIN", "MONK", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER", "DEMONHUNTER" }
+    DEFAULT_CLASS_SORT_ORDER    = { "WARRIOR", "DEATHKNIGHT", "PALADIN", "MONK", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER", "DEMONHUNTER", "EVOKER" }
     DEFAULT_ROLE_SORT_ORDER     = { "MAINTANK", "MAINASSIST", "TANK", "HEALER", "DAMAGER", "NONE"}
     DEFAULT_GROUP_SORT_ORDER    = { 1, 2, 3, 4, 5, 6, 7, 8 }
 

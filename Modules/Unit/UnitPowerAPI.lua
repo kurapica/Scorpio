@@ -123,6 +123,9 @@ OnEnable                        = OnEnable + function ()
             NextEvent("PLAYER_SPECIALIZATION_CHANGED")
         end
 
+    elseif _PlayerClass == "EVOKER" then
+        _ClassPowerToken        = "ESSENCE"
+        _ClassPowerType         = PowerType.Essence
     end
 
     return RefreshClassPower()
@@ -151,7 +154,7 @@ function RefreshClassPower()
             elseif _ClassPowerType == PowerType.Runes then
                 Wow.FromEvent("RUNE_POWER_UPDATE"):Map("=>'player'"):Subscribe(_ClassPowerSubject)
             else
-                Wow.FromEvent("UNIT_POWER_FREQUENT"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
+                Wow.FromEvent("UNIT_POWER_FREQUENT", "UNIT_POWER_POINT_CHARGE"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
                 Wow.FromEvent("UNIT_MAXPOWER"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
             end
         end
