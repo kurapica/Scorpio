@@ -161,7 +161,7 @@ __Sealed__() class "SVManager" (function(_ENV)
     __Sealed__() class "SVCharManager" (function(_ENV)
         inherit (SVProxy)
 
-        if Scorpio.IsRetail then
+        if Scorpio.IsRetail or Scorpio.IsWLK then
             ----------------------------------------------
             --               SVSpecManager              --
             ----------------------------------------------

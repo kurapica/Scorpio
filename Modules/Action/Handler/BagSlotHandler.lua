@@ -69,9 +69,9 @@ _BagCache                       = {}
 LE_ITEM_QUALITY_POOR            = _G.LE_ITEM_QUALITY_POOR or _G.Enum.ItemQuality.Poor
 REPAIR_COST                     = _G.REPAIR_COST
 
-BACKPACK_CONTAINER              = _G.BACKPACK_CONTAINER or _G.Enum.BagIndex.Backpack
-BANK_CONTAINER                  = _G.BANK_CONTAINER or _G.Enum.BagIndex.Bank
-REAGENTBANK_CONTAINER           = _G.REAGENTBANK_CONTAINER or _G.Enum.BagIndex.Reagentbank
+BACKPACK_CONTAINER              = _G.BACKPACK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Backpack
+BANK_CONTAINER                  = _G.BANK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Bank
+REAGENTBANK_CONTAINER           = _G.REAGENTBANK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Reagentbank
 NUM_BAG_SLOTS                   = _G.NUM_BAG_SLOTS or _G.Constants.InventoryConstants.NumBagSlots
 NUM_BANKBAGSLOTS                = _G.NUM_BANKBAGSLOTS or _G.Constants.InventoryConstants.NumBankBagSlots
 NUM_BANKGENERIC_SLOTS           = _G.NUM_BANKGENERIC_SLOTS or _G.Constants.InventoryConstants.NumGenericBankSlots

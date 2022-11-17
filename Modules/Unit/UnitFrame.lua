@@ -632,7 +632,7 @@ do
     ------------------------------------------------------
     --                   Module Event                   --
     ------------------------------------------------------
-    if Scorpio.IsRetail then
+    if Scorpio.IsRetail or Scorpio.IsWLK then
         -- Save in Spec
         function OnLoad(self)
             _SVData.Char.Spec:SetDefault {
