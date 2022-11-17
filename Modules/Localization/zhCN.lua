@@ -68,6 +68,8 @@ L["Please delete those addons:"] = "请删除以下插件:"
 -----------------------------------------------------------
 L["Key"]                = "主键"
 L["Value"]              = "对应值"
+L["Primary Specialization"] = "主专精"
+L["Secondary Specialization"] = "从专精"
 
 -----------------------------------------------------------
 --                       Enum Name                       --

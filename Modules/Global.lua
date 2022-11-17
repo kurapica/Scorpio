@@ -17,7 +17,7 @@ import "System.Serialization"
 --                        Prepare                         --
 ------------------------------------------------------------
 
-GetSpecialization               = GetSpecialization or function() return 1 end
+GetSpecialization               = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
 IsWarModeDesired                = C_PvP and C_PvP.IsWarModeDesired or function() return false end
 
 -------------------- META --------------------

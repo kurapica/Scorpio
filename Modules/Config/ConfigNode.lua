@@ -528,7 +528,16 @@ __Sealed__()
 class "SpecConfigNode"          (function(_ENV)
     inherit "ConfigNode"
 
-    local GetSpecializationInfo = _G.GetSpecializationInfo or function() return nil, _Locale["Specialization"] end
+    local GetSpecializationInfo = _G.GetSpecializationInfo
+                                or _G.GetActiveTalentGroup and function()
+                                    local spec  = GetActiveTalentGroup()
+                                    if spec == 1 then
+                                        return 1, _Locale["Primary Specialization"]
+                                    else
+                                        return 2, _Locale["Secondary Specialization"]
+                                    end
+                                end
+                                or function() return nil, _Locale["Specialization"] end
 
     ----------------------------------------------
     --                 Property                 --

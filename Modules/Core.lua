@@ -57,7 +57,7 @@ PLoop(function(_ENV)
             DefaultPool         = Threading.ThreadPool.Default,
 
             debugprofilestop    = debugprofilestop,
-            GetSpecialization   = GetSpecialization or function() return 1 end,
+            GetSpecialization   = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end,
             IsWarModeDesired    = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
         }
 
@@ -2217,7 +2217,7 @@ PLoop(function(_ENV)
         RegisterEvent(ScorpioManager, "ADDON_LOADED")
         RegisterEvent(ScorpioManager, "PLAYER_LOGIN")
         RegisterEvent(ScorpioManager, "PLAYER_LOGOUT")
-        RegisterEvent(ScorpioManager, "PLAYER_SPECIALIZATION_CHANGED")
+        RegisterEvent(ScorpioManager, _G.GetSpecialization and "PLAYER_SPECIALIZATION_CHANGED" or "ACTIVE_TALENT_GROUP_CHANGED", "PLAYER_SPECIALIZATION_CHANGED")
         RegisterEvent(ScorpioManager, "PLAYER_ENTERING_WORLD")
         RegisterEvent(ScorpioManager, "PLAYER_FLAGS_CHANGED")
         RegisterEvent(ScorpioManager, "LOADING_SCREEN_DISABLED")
