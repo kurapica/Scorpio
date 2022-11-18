@@ -1128,7 +1128,7 @@ PLoop(function(_ENV)
         function ScorpioManager.PLAYER_SPECIALIZATION_CHANGED(unit)
             if not _Logined then return end
 
-            if not unit or UnitIsUnit(unit, "player") then
+            if not unit or type(unit) == "number" or UnitIsUnit(unit, "player") then
                 local spec      = GetSpecialization() or 1
                 if _PlayerSpec ~= spec then
                     _PlayerSpec = spec
