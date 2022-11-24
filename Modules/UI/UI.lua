@@ -590,11 +590,11 @@ end
 --                   Font                   --
 ----------------------------------------------
 __Sealed__()
-struct "FontObject" {  function(val, onlyvalid) if not (type(val) == "table" and val.GetObjectType and val:GetObjectType() == "Font") then return onlyvalid or "the %s must a font object" end end }
+struct "FontObject"             {  function(val, onlyvalid) if not (type(val) == "table" and val.GetObjectType and val:GetObjectType() == "Font") then return onlyvalid or "the %s must a font object" end end }
 
 --- The Font object is to be shared between other objects that share font characteristics
 __Sealed__() __Final__()
-class "Font" (function(_ENV)
+class "Font"                    (function(_ENV)
     ----------------------------------------------
     --                 Methods                  --
     ----------------------------------------------
@@ -657,3 +657,8 @@ class "Font" (function(_ENV)
         return self, true
     end
 end)
+
+-- Pre-define frame type
+class "UIObject"                {}
+class "LayoutFrame"             { UIObject }
+class "Frame"                   { LayoutFrame }
