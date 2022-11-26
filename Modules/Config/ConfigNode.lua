@@ -806,7 +806,6 @@ class "__Config__" (function(_ENV)
     ----------------------------------------------
     --- Sets the default value
     -- __Config__(_Config, "size", { width = Number, height = Number }){ width = 0, height = 0}
-    __Arguments__{ value }
     function __call(self, value)
         self.Default            = value
     end
