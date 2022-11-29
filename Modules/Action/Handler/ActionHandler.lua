@@ -154,7 +154,7 @@ do
     end
 
     -- bonusbar map
-    for i = 1, 4 do
+    for i = 1, 5 do
         tinsert(state, ("[bonusbar:%d]%d"):format(i, i+6))
     end
 
