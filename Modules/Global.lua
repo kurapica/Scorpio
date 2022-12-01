@@ -512,7 +512,7 @@ class "Color" (function(_ENV)
     __Static__() property "DEMONHUNTER"     { default = Color(0.64, 0.19, 0.79) }
 
     --- The Evoker class's default color
-    __Static__() property "EVOKER"          { default = Color(0, 0.25, 0.75, 1) }
+    __Static__() property "EVOKER"          { default = Color(0.20, 0.57646, 0.498) }
 
     ------------------ Powers -------------------
     --- The mana's default color
@@ -573,7 +573,7 @@ class "Color" (function(_ENV)
     __Static__() property "STAGGER_DYING"   { default = Color(1.00, 0.42, 0.42) }
 
     --- The essence's color
-    __Static__() property "ESSENCE"         { default = Color(0, 0.25, 0.75, 1) }
+    __Static__() property "ESSENCE"         { default = Color(0.20, 0.57646, 0.498) }
 
     ------------------ Vehicle ------------------
     --- The ammoslot's default color
