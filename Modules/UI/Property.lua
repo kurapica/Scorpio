@@ -459,7 +459,7 @@ do
     UI.Property         {
         name            = "FontObject",
         type            = FontObject,
-        require         = FONT_TYPES,
+        require         =  { EditBox, FontString, MessageFrame },
         get             = function(self) return self:GetFontObject() end,
         set             = function(self, fontObject) self:SetFontObject(fontObject) end,
         override        = { "Font" },
@@ -519,15 +519,13 @@ do
     UI.Property         {
         name            = "TextColor",
         type            = ColorType,
-        require         =  { EditBox, FontString, MessageFrame, SimpleHTML },
+        require         =  { EditBox, FontString, MessageFrame },
         default         = Color(1, 1, 1),
         get             = function(self) return Color(self:GetTextColor()) end,
         set             = function(self, color) self:SetTextColor(color.r, color.g, color.b, color.a) end,
     }
 
     --- the fontstring's default text color
-    if Scorpio.IsRetail then
-
     UI.Property         {
         name            = "TextColor",
         type            = ColorType,
@@ -554,8 +552,6 @@ do
         end,
         override        = { "Font" },
     }
-
-    end
 
     --- whether the text wrap will be indented
     UI.Property         {
