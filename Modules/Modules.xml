@@ -4,9 +4,8 @@
 
     <!-- Localization -->
     <Script file="Localization/enUS.lua"/>
-
-    <!-- Localization -->
     <Script file="Localization/zhCN.lua"/>
+    <Script file="Localization/zhTW.lua"/>
 
     <!-- Scorpio Global -->
     <Script file="Global.lua"/>
