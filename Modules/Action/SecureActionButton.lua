@@ -1237,13 +1237,12 @@ do
 
             if not _MouseDownGroup[group] then
                 _MouseDownGroup[group] = value or nil
+            end
+            if _ActionButtonGroupList[group] then
+                local reg       = value and "AnyDown" or "AnyUp"
 
-                if _ActionButtonGroupList[group] then
-                    local reg       = value and "AnyDown" or "AnyUp"
-
-                    for btn in pairs(_ActionButtonGroupList[group]) do
-                        btn:RegisterForClicks(reg)
-                    end
+                for btn in pairs(_ActionButtonGroupList[group]) do
+                    btn:RegisterForClicks(reg)
                 end
             end
         end
