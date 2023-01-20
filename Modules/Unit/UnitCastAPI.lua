@@ -68,7 +68,9 @@ function UNIT_SPELLCAST_DELAYED(unit, castID)
         s, e                        = s / 1000, e / 1000
 
         _UnitCastSubject:OnNext(unit, n, t, s, e - s)
-        _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
+        if _CurrentCastEndTime[unit] then
+            _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
+        end
     end
 end
 
@@ -94,7 +96,9 @@ function UNIT_SPELLCAST_CHANNEL_UPDATE(unit)
     s, e                        = s / 1000, e / 1000
 
     _UnitCastSubject:OnNext(unit, n, t, s, e - s)
-    _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
+    if _CurrentCastEndTime[unit] then
+        _UnitCastDelay:OnNext(unit, e - _CurrentCastEndTime[unit])
+    end
 end
 
 __SystemEvent__()
