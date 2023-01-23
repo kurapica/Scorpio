@@ -22,6 +22,9 @@
     <Script file="PLoop\System\Collections\Array.lua"/>
     <Script file="PLoop\System\Collections\Queue.lua"/>
 
+    <!-- System.UnitTest -->
+    <Script file="PLoop\System\UnitTest.lua"/>
+
     <!--System.Configuration-->
     <Script file="PLoop\System\Configuration.lua"/>
 

@@ -20,8 +20,7 @@ function OnLoad(self)
     _Addon:SetSavedVariable("Scorpio_Setting"):UseConfigPanel()
 
     -- Bind the SetDefault log handler
-    Logger.Default:AddHandler(errorhandler, Logger.LogLevel.Error)
-    Logger.Default:AddHandler(print, Logger.LogLevel.Info)
+    Logger.Default:AddHandler(print)
 end
 
 ----------------------------------------------
