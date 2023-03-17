@@ -1197,6 +1197,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end
 
     local function registerAutoComplete(self, x, y, w, h)
+        if not self.__Owner.AutoCompleteEnable then return end
+
         autoCompleteEditor      = self
         autoCompleteTime        = GetTime() + self.__Owner.AutoCompleteDelay
         autoComplete_x          = x
@@ -3134,6 +3136,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
 
     --- The delay to show the auto complete
     property "AutoCompleteDelay"{ type = Number, default = 0.5 }
+
+    --- Whether enable the auto complete
+    property "AutoCompleteEnable"{type = Boolean, default = true }
 
     --- The max count of the undo list, -1 means no limit, 0 mean no undo/redo operation
     property "MaxOperationCount"{ type = Number, default = -1 }
