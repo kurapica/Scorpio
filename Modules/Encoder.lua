@@ -111,7 +111,7 @@ function Scorpio.DeflateEncode(str)
 
         return result
     else
-        return Deflate.Encode(str)
+        return Deflate.Encode(str, true)
     end
 end
 
