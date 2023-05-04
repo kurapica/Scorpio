@@ -427,6 +427,7 @@ function setCustomStyle(target, pname, value, stack, nodirectapply)
 
             if value == nil or value == CLEAR or value == NIL then
                 cval            = value or CLEAR
+                directapply     = value == NIL
             elseif type(value) == "table" and getmetatable(value) == nil then
                 local child, new= prop.get(target)
                 if child then
@@ -443,8 +444,8 @@ function setCustomStyle(target, pname, value, stack, nodirectapply)
             end
         else
             if value == nil or value == NIL or value == CLEAR then
-                directapply     = false
                 cval            = value or CLEAR
+                directapply     = value == NIL
             elseif isObservable(value) then
                 cval            = value
             else
@@ -463,6 +464,7 @@ function setCustomStyle(target, pname, value, stack, nodirectapply)
             haschanges          = true
 
             if directapply then
+                if cval == CLEAR or cval == NIL then cval = nil end
                 return applyProperty(target, prop, cval)
             end
         end
@@ -1336,6 +1338,10 @@ struct "Scorpio.UI.Property" {
                     if set then set(self, child) end
                     _PropertyChildMap[setting][self]= child
                     _PropertyChildName[child]       = childname
+
+                    -- reset the custom style
+                    gettable(_CustomStyle, self)[childname] = true
+                    applyStyle(child)
                 end
 
                 return child, true

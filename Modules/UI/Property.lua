@@ -2322,7 +2322,7 @@ do
         name            = "StatusBarTexture",
         type            = Texture,
         require         = StatusBar,
-        nilable         = true,
+        default         = "",
         childtype       = Texture,
         set             = function(self, val) self:SetStatusBarTexture(val) end,
     }
