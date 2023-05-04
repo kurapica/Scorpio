@@ -50,11 +50,6 @@ OnEnable                        = OnEnable + function ()
 
     elseif _PlayerClass == "PALADIN" and Scorpio.IsRetail then
         _ClassPowerToken        = "HOLY_POWER"
-
-        local level             = UnitLevel("player")
-        while level < PALADINPOWERBAR_SHOW_LEVEL do
-            level               = NextEvent("PLAYER_LEVEL_UP")
-        end
         _ClassPowerType         = PowerType.HolyPower
 
     elseif _PlayerClass == "MONK" then
@@ -89,7 +84,7 @@ OnEnable                        = OnEnable + function ()
         _ClassPowerToken        = "COMBO_POINTS"
 
         while true do
-            _ClassPowerType     = GetShapeshiftFormID() == CAT_FORM and PowerType.ComboPoints or nil
+            _ClassPowerType     = GetShapeshiftFormID() == DRUID_CAT_FORM and PowerType.ComboPoints or nil
             Continue(RefreshClassPower)
             NextEvent("UPDATE_SHAPESHIFT_FORM")
         end
