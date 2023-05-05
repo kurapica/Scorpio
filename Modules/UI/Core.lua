@@ -1340,7 +1340,7 @@ struct "Scorpio.UI.Property" {
                     _PropertyChildName[child]       = childname
 
                     -- reset the custom style
-                    gettable(_CustomStyle, self)[childname] = true
+                    gettable(_CustomStyle, self)[childname] = nil
                     applyStyle(child)
                 end
 
