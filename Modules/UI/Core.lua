@@ -1292,6 +1292,7 @@ struct "Scorpio.UI.Property" {
     secure                      = { type  = Boolean },  -- Whether forbidden during combat
     depends                     = { type  = struct { NEString } },  -- Processed after other properties
     override                    = { type  = struct { NEString } },  -- override other properties
+    instant                     = { type  = Boolean }, -- Whether the property child style should be applied instantly
 
     __valid                     = function(self)
         if not self.childtype and not self.set then
@@ -1310,6 +1311,7 @@ struct "Scorpio.UI.Property" {
             secure              = self.secure,
             nilable             = self.nilable,
             childtype           = self.childtype,
+            instant             = self.instant,
         }
 
         if self.childtype then
@@ -2063,7 +2065,13 @@ function ApplyStyleService()
                         elseif props[name] and props[name].childtype and styles[name] == true then
                             styles[name]    = nil
                             child           = props[name].get(frame)
-                            if child then applyStyle(child) end
+                            if child then
+                                if props[name].instant then
+                                    child:InstantApplyStyle()
+                                else
+                                    applyStyle(child)
+                                end
+                            end
                         end
                     end
                     _Recycle(wipe(children))

@@ -2325,6 +2325,7 @@ do
         default         = "",
         childtype       = Texture,
         set             = function(self, val) self:SetStatusBarTexture(val) end,
+        instant         = true,
     }
 
     --- The desaturation
@@ -3143,7 +3144,7 @@ else  -- For 9.0
                         -- Not using the style to reduce the cost for dynamic settings
                         texture:ClearAllPoints()
                         texture:SetDrawLayer("ARTWORK")
-                        texture:SetBlendMode("ADD")
+                        -- texture:SetBlendMode("ADD")
                         texture:SetTexCoord(0, 1, 0, 1)
                         texture:SetTexture(nil)
                         texture:SetVertexColor(1, 1, 1)

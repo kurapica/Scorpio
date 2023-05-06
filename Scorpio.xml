@@ -48,10 +48,12 @@
 
     <!--System.Reactive-->
     <Script file="PLoop\System\Observer.lua"/>
+    <Script file="PLoop\System\Reactive\Reactive.lua"/>
     <Script file="PLoop\System\Reactive\Observer.lua"/>
     <Script file="PLoop\System\Reactive\Subject.lua"/>
     <Script file="PLoop\System\Reactive\Observable.lua"/>
     <Script file="PLoop\System\Reactive\Operator.lua"/>
+    <Script file="PLoop\System\Reactive\Watch.lua"/>
 
     <!--Scorpio.Core -->
     <Include file="Modules\Modules.xml"/>

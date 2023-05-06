@@ -1,3 +1,8 @@
+2023/05/06 v184
+	1. Add `instant` to UI property, so the property child can be applied styles instantly with its owner. Normally used to fix the problem for status bar texture.
+	2. Add `watch` and `reactive` system.
+	3. Fix the re-using of the back drop.
+
 2022/08/31 v146
 	1. In a skin of the ui class, it can set the skin for other classes, that'd be applied on all child of the same classes.
 	2. The config node system is added for saved variables.

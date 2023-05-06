@@ -853,6 +853,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         ["struct"]              = _IndentNone,
         ["interface"]           = _IndentNone,
         ["extend"]              = _IndentNone,
+        ["reactive"]            = _IndentNone,
+        ["watch"]               = _IndentNone,
     }
 
     -- Special
