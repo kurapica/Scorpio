@@ -430,7 +430,7 @@ class "Color" (function(_ENV)
 
     __Arguments__{ String }
     function __new(_, str)
-        local r, g, b, a        = str:match("|c(%w%w)(%w%w)(%w%w)(%w%w)")
+        local a, r, g, b        = str:match("|c(%w%w)(%w%w)(%w%w)(%w%w)")
         if r and g and b and a then
             r                   = tonumber(r, 16)
             g                   = tonumber(g, 16)
