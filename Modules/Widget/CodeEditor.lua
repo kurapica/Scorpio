@@ -2646,8 +2646,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     end
 
                     if handled then
-                        self.ActiveKeys[key] = true
-                        return self:SetPropagateKeyboardInput(false)
+                        if not InCombatLockdown() then
+                            self.ActiveKeys[key] = true
+                            self:SetPropagateKeyboardInput(false)
+                        end
+                        return
                     end
 
                     if key == "PAGEUP" then
@@ -2702,8 +2705,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         end
 
                         if startp <= cursorPos then
-                            self.ActiveKeys[key] = true
-                            self:SetPropagateKeyboardInput(false)
+                            if not InCombatLockdown() then
+                                self.ActiveKeys[key] = true
+                                self:SetPropagateKeyboardInput(false)
+                            end
 
                             editor:SetCursorPosition(startp - 1)
                         end
@@ -2779,8 +2784,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                                 editor._SKIPCURCHG = nil
                                 editor._SKIPCURCHGARROW = nil
                                 skipCtrl    = true
-                                self.ActiveKeys[key] = true
-                                self:SetPropagateKeyboardInput(false)
+
+                                if not InCombatLockdown() then
+                                    self.ActiveKeys[key] = true
+                                    self:SetPropagateKeyboardInput(false)
+                                end
 
                                 SetCursorPosition(editor.__Owner, editor._HighlightEnd)
                             end
@@ -2790,8 +2798,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                                 local s, e  = getWord(text, cursorPos, nil, true)
 
                                 if s and e then
-                                    self.ActiveKeys[key] = true
-                                    self:SetPropagateKeyboardInput(false)
+                                    if not InCombatLockdown() then
+                                        self.ActiveKeys[key] = true
+                                        self:SetPropagateKeyboardInput(false)
+                                    end
 
                                     editor:SetCursorPosition(e)
                                 end
@@ -2813,8 +2823,11 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                                 editor._SKIPCURCHG = nil
                                 editor._SKIPCURCHGARROW = nil
                                 skipCtrl    = true
-                                self.ActiveKeys[key] = true
-                                self:SetPropagateKeyboardInput(false)
+
+                                if not InCombatLockdown then
+                                    self.ActiveKeys[key] = true
+                                    self:SetPropagateKeyboardInput(false)
+                                end
 
                                 SetCursorPosition(editor.__Owner, editor._HighlightStart)
                             end
@@ -2824,8 +2837,10 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                                 local s, e  = getWord(text, cursorPos, true)
 
                                 if s and e then
-                                    self.ActiveKeys[key] = true
-                                    self:SetPropagateKeyboardInput(false)
+                                    if not InCombatLockdown() then
+                                        self.ActiveKeys[key] = true
+                                        self:SetPropagateKeyboardInput(false)
+                                    end
 
                                     editor:SetCursorPosition(s - 1)
                                 end
@@ -2846,10 +2861,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         endPrevKey(editor)
                         editor._DELETE      = true
                         newOperation(editor, _Operation.DELETE)
-                        self.ActiveKeys[key]= true
-                        self:SetPropagateKeyboardInput(false)
 
-                        return Continue(asyncDelete, editor)
+                        if not InCombatLockdown() then
+                            self.ActiveKeys[key]= true
+                            self:SetPropagateKeyboardInput(false)
+
+                            return Continue(asyncDelete, editor)
+                        end
                     end
                     return
                 end
@@ -2859,10 +2877,13 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                         endPrevKey(editor)
                         editor._BACKSPACE   = cursorPos
                         newOperation(editor, _Operation.BACKSPACE)
-                        self.ActiveKeys[key]= true
-                        self:SetPropagateKeyboardInput(false)
 
-                        return Continue(asyncBackdpace, editor)
+                        if not InCombatLockdown() then
+                            self.ActiveKeys[key]= true
+                            self:SetPropagateKeyboardInput(false)
+
+                            return Continue(asyncBackdpace, editor)
+                        end
                     end
                     return
                 end
@@ -2880,6 +2901,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             if IsShiftKeyDown() then
                 -- shift+
                 if IsControlKeyDown() then
+                    -- Disable in combat
+                    if InCombatLockdown() then return end
+
                     self:SetPropagateKeyboardInput(false)
 
                     if key == "D" then
@@ -2944,6 +2968,8 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                     end
                     return
                 elseif key == "K" then
+                    if InCombatLockdown() then return end
+
                     -- Format the text
                     self.ActiveKeys[key]= true
                     self:SetPropagateKeyboardInput(false)
@@ -2960,7 +2986,9 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     end)
 
     _KeyScan:SetScript("OnKeyUp", function (self, key)
-        self:SetPropagateKeyboardInput(true)
+        if not InCombatLockdown() then
+            self:SetPropagateKeyboardInput(true)
+        end
 
         self.ActiveKeys[key] = nil
 
