@@ -871,6 +871,7 @@ class "UIObject"(function(_ENV)
         if parent == nil then
             pcall(setParent, self, nil)
             OnParentChanged(self, parent, oparent)
+            Next(raiseChildChange, oparent, self, false)
             return
         end
 
