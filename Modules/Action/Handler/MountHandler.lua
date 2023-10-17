@@ -5,7 +5,7 @@
 -- Create Date :  2021/03/29                              --
 --========================================================--
 
-if not Scorpio.IsRetail then return end
+if not C_MountJournal then return end
 
 --========================================================--
 Scorpio        "Scorpio.Secure.MountHandler"         "1.0.0"

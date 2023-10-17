@@ -5,7 +5,7 @@
 -- Create Date :  2021/03/29                              --
 --========================================================--
 
-if not Scorpio.IsRetail then return end
+if not _G.C_PetJournal then return end
 
 --========================================================--
 Scorpio        "Scorpio.Secure.BattlePetHandler"     "1.0.0"

@@ -1,4 +1,4 @@
-## Interface: 30401
+## Interface: 30403
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: @project-version@

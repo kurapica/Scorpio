@@ -683,10 +683,8 @@ do
         name            = "Gradient",
         type            = GradientType,
         require         = { Texture, Line },
-        set             = (Scorpio.IsRetail or Scorpio.IsWLK) and function(self, val) self:SetGradient(val.orientation, val.mincolor, val.maxcolor) end
-                        or function(self, val) self:SetGradient(val.orientation, val.mincolor.r, val.mincolor.g, val.mincolor.b, val.maxcolor.r, val.maxcolor.g, val.maxcolor.b) end,
-        clear           = (Scorpio.IsRetail or Scorpio.IsWLK) and function(self) self:SetGradient("HORIZONTAL", Color.WHITE, Color.WHITE) end
-                        or function(self) self:SetGradient("HORIZONTAL", 1, 1, 1, 1, 1, 1) end,
+        set             = function(self, val) self:SetGradient(val.orientation, val.mincolor, val.maxcolor) end,
+        clear           = function(self) self:SetGradient("HORIZONTAL", Color.WHITE, Color.WHITE) end,
         depends         = _Texture_Deps,
     }
 

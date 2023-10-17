@@ -61,7 +61,7 @@ function OnEnable(self)
     OnEnable                    = nil
 
     -- Load toy informations
-    if Scorpio.IsRetail then
+    if _G.C_ToyBox then
         C_ToyBox.ForceToyRefilter()
 
         UpdateToys()
@@ -73,7 +73,7 @@ end
 ------------------------------------------------------
 -- System Event Handler
 ------------------------------------------------------
-if Scorpio.IsRetail then
+if _G.C_ToyBox then
     __SystemEvent__()
     function SPELLS_CHANGED()
         for _, btn in handler:GetIterator() do

@@ -86,7 +86,7 @@ function OnEnable()
 end
 
 -- Fix the GetContainerItemInfo
-if Scorpio.IsRetail then
+do
     local original              = GetContainerItemInfo
 
     local infoCache             = {}
