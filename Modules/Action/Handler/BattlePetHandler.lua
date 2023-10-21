@@ -42,11 +42,13 @@ SUMMON_RANDOM_ID                = 0
 function OnEnable(self)
     OnEnable                    = nil
 
-    C_PetJournal.PickupSummonRandomPet()
+    if C_PetJournal.PickupSummonRandomPet then
+        C_PetJournal.PickupSummonRandomPet()
 
-    local ty, pick              = GetCursorInfo()
-    ClearCursor()
-    SUMMON_RANDOM_ID            = pick
+        local ty, pick              = GetCursorInfo()
+        ClearCursor()
+        SUMMON_RANDOM_ID            = pick
+    end
 
     return handler:RefreshActionButtons()
 end
@@ -78,7 +80,7 @@ end
 
 function handler:PickupAction(target)
     if target == SUMMON_RANDOM_ID then
-        return C_PetJournal.PickupSummonRandomPet()
+        return C_PetJournal.PickupSummonRandomPet and C_PetJournal.PickupSummonRandomPet()
     else
         return C_PetJournal.PickupPet(target)
     end
