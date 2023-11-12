@@ -3262,7 +3262,7 @@ else  -- For 9.0
                 backdropInfo[self[0]] = false
             end
 
-            return applyBackdrop(self)
+            return applyBackdrop(self) or applyBackdropBorderColor(self) or applyBackdropColor(self)
         end,
         get                 = function(self)
             return clone(backdropInfo[self[0]], true)
