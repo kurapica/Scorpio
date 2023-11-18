@@ -14,6 +14,15 @@ import(SecureActionButton)
 _ToyFilter                      = {}
 _ToyFilterTemplate              = "_ToyFilter[%d] = true"
 
+if Scorpio.IsRetail then
+    local oIsItemInRange        = _G.IsItemInRange
+
+    function IsItemInRange(...)
+        if not InCombatLockdown() then return oIsItemInRange(...) end
+        return true
+    end
+end
+
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
