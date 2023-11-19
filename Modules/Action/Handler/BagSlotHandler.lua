@@ -88,7 +88,6 @@ end
 -- Fix the GetContainerItemInfo
 do
     local original              = GetContainerItemInfo
-
     local infoCache             = {}
 
     function GetContainerItemInfo(bag, slot)
@@ -102,6 +101,28 @@ do
         if info then
             return info.iconFileID, info.stackCount, info.isLocked, info.quality, info.isReadable, info.hasLoot, info.hyperlink, info.isFiltered, info.hasNoValue, info.itemID, info.isBound
         end
+    end
+end
+
+-- Fix the GetContainerItemQuestInfo
+do
+    local original              = GetContainerItemQuestInfo
+    local infoCache             = {}
+    if original then
+        function GetContainerItemQuestInfo(bag, slot)
+            local time          = GetTime()
+            local info          = infoCache[bag * 100 + slot]
+            if not info or info.time < time - 0.1 then
+                info                = original(bag, slot)
+                if info then info.time = time end
+            end
+
+            if info then
+                return info.isQuestItem, info.questID, info.isActive
+            end
+        end
+    else
+        GetContainerItemQuestInfo = Toolset.fakefunc
     end
 end
 
@@ -621,4 +642,3 @@ C_NewItems                      = _G.C_NewItems or {
 
 IsBattlePayItem                 = _G.IsBattlePayItem or Toolset.fakefunc
 IsArtifactRelicItem             = _G.IsArtifactRelicItem or Toolset.fakefunc
-GetContainerItemQuestInfo       = _G.GetContainerItemQuestInfo or Toolset.fakefunc

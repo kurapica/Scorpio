@@ -232,7 +232,7 @@ do
         require         = { LayoutFrame, Line },
         default         = 1,
         get             = function(self) return self:GetAlpha() end,
-        set             = function(self, alpha) self:SetAlpha(alpha) end,
+        set             = function(self, alpha) self:SetAlpha(alpha < 0 and 0 or alpha > 1 and 1 or alpha) end,
     }
 
     --- the frame's fadeout settings
