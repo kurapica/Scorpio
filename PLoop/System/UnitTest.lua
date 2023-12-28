@@ -156,7 +156,7 @@ PLoop(function(_ENV)
             --- Checks that the message should match the pattern
             __Static__()
             function Match(pattern, msg)
-                if type(msg) ~= "string" or not msg:match(pattern) then
+                if not tostring(msg):match(pattern) then
                     throw(TestFailureException("Should match " .. strformat("%q", pattern) .. ", got " .. strformat("%q", tostring(msg or "nil"))))
                 end
             end
@@ -164,7 +164,7 @@ PLoop(function(_ENV)
             --- Checks that the message should contains the pattern as plain text
             __Static__()
             function Find(pattern, msg)
-                if type(msg) ~= "string" or not msg:find(pattern, 1, true) then
+                if not tostring(msg):find(pattern, 1, true) then
                     throw(TestFailureException("Should find " .. strformat("%q", pattern) .. ", got " .. strformat("%q", tostring(msg or "nil"))))
                 end
             end
@@ -264,17 +264,18 @@ PLoop(function(_ENV)
                 local ok, msg           = pcall(tcase.func)
 
                 if not ok and tcase.state == TestState.Succeed then
-                    if type(msg) == "string" then
-                        Warn("[UnitTest]%s.%s Error%s%s", tcase.owner._FullName, tcase.name, msg and " - " or "", msg or "")
-
-                        tcase.state     = TestState.Error
-                        tcase.message   = msg
-                    elseif isObjectType(msg, TestFailureException) then
+                    if isObjectType(msg, TestFailureException) then
                         local message   = msg.Message .. (msg.Source and ("@" .. msg.Source) or "")
                         Warn("[UnitTest]%s.%s Failed - %s", tcase.owner._FullName, tcase.name, message)
 
                         tcase.state     = TestState.Failed
                         tcase.message   = message
+
+                    elseif type(msg) == "string" or isObjectType(msg, Exception) then
+                        Warn("[UnitTest]%s.%s Error%s%s", tcase.owner._FullName, tcase.name, msg and " - " or "", tostring(msg) or "")
+
+                        tcase.state     = TestState.Error
+                        tcase.message   = tostring(msg)
                     end
                 end
 

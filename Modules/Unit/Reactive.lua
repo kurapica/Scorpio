@@ -18,7 +18,7 @@ local FromEvent                 = Scorpio.Wow.FromEvent
 
 --- The interface should be extended by all unit frame types(include secure and non-secure)
 __Sealed__()
-interface "IUnitFrame" (function(_ENV)
+interface "IUnitFrame"          (function(_ENV)
     ------------------------------------------------------
     --                      Event                       --
     ------------------------------------------------------
@@ -33,7 +33,12 @@ end)
 
 --- The unsecure unit frame that'd be used as nameplates
 __Sealed__()
-class "InSecureUnitFrame" { Frame, IUnitFrame }
+class "InSecureUnitFrame"       (function(_ENV)
+    inherit "Frame"
+    extend "IUnitFrame"
+
+    property "Unit"             { type = String, event = "OnUnitRefresh" }
+end)
 
 __Sealed__()
 class "UnitFrameSubject" (function(_ENV)
