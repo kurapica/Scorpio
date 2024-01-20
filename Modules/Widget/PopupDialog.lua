@@ -13,7 +13,7 @@ export {
     running                     = coroutine.running,
     yield                       = coroutine.yield,
     resume                      = coroutine.resume,
-    OpenColorPicker             = OpenColorPicker,
+    OpenColorPicker             = _G.OpenColorPicker or function(info) return ColorPickerFrame:SetupColorPickerAndShow(info) end,
 
     POPUP_TYPE_ALERT            = 1,
     POPUP_TYPE_INPUT            = 2,
@@ -688,15 +688,17 @@ function showPopup()
                 r               = color.r,
                 g               = color.g,
                 b               = color.b,
-                opacity         = 1 - color.a,
+                opacity         = color.a,
                 swatchFunc      = function()
-                    if firstopen or ColorPickerFrame:IsShown() then firstopen = false return end
-                    Next(showPopup) _CurrentPopup = nil
+                    Next(function()
+                        if firstopen or ColorPickerFrame:IsShown() then firstopen = false return end
+                        Next(showPopup) _CurrentPopup = nil
 
-                    local r,g,b = ColorPickerFrame:GetColorRGB()
-                    local a     = 1 - OpacitySliderFrame:GetValue()
+                        local r,g,b = ColorPickerFrame:GetColorRGB()
+                        local a     = ColorPickerFrame:GetColorAlpha()
 
-                    return resume(thread, Color(r, g, b, a))
+                        return resume(thread, Color(r, g, b, a))
+                    end)
                 end,
                 cancelFunc      = function()
                     Next(showPopup) _CurrentPopup = nil
@@ -717,13 +719,13 @@ function showPopup()
                     end
 
                     local r,g,b = ColorPickerFrame:GetColorRGB()
-                    local a     = 1 - OpacitySliderFrame:GetValue()
+                    local a     = ColorPickerFrame:GetColorAlpha()
 
                     return thread(Color(r, g, b, a))
                 end,
                 opacityFunc     = function()
                     local r,g,b = ColorPickerFrame:GetColorRGB()
-                    local a     = 1 - OpacitySliderFrame:GetValue()
+                    local a     = ColorPickerFrame:GetColorAlpha()
 
                     return thread(Color(r, g, b, a))
                 end,

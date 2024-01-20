@@ -274,6 +274,11 @@ __Sealed__() class "Translation"            (function(_ENV) inherit(Animation)  
 --- LineTranslation is an Animation type that applies an affine translation to its affected Line
 __Sealed__() class "LineTranslation"        (function(_ENV) inherit(Translation)__new = function (_, name, parent, ...) return parent:CreateAnimation("LineTranslation", nil, ...) end InstallPrototype(_ENV, AnimationGroup) end)
 
+if Scorpio.IsRetail then
+    --- VertexColor is used to animate changes to vertex colors on textures
+    __Sealed__() class "VertexColor"        (function(_ENV) inherit(Translation)__new = function (_, name, parent, ...) return parent:CreateAnimation("VertexColor", nil, ...) end InstallPrototype(_ENV, AnimationGroup) end)
+end
+
 ------------------------------------------------------------
 --                    Frame Widgets                       --
 ------------------------------------------------------------

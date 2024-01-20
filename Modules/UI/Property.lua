@@ -1193,6 +1193,23 @@ do
         set             = function(self, val) self:SetScale(val.x, val.y) end,
         get             = function(self) return Dimension(self:GetScale()) end,
     }
+
+    if Scorpio.IsRetail then
+        --- the animate changes to vertex colors
+        UI.Property     {
+            name        = "StartColor",
+            type        = ColorType,
+            require     = VertexColor,
+            set         = function(self, color) self:SetStartColor(color) end,
+        }
+
+        UI.Property     {
+            name        = "EndColor",
+            type        = ColorType,
+            require     = VertexColor,
+            set         = function(self, color) self:SetEndColor(color) end,
+        }
+    end
 end
 
 ------------------------------------------------------------
