@@ -675,6 +675,7 @@ function showPopup()
     elseif qtype == POPUP_TYPE_COLORPICKER then
         _CurrentPopup           = ColorPickerFrame
         local color             = ColorType(message)
+        local useColorAlpha     = ColorPickerFrame.GetColorAlpha and true or false
 
         while ColorPickerFrame:IsShown() or InCombatLockdown() do
             Next()
@@ -688,14 +689,14 @@ function showPopup()
                 r               = color.r,
                 g               = color.g,
                 b               = color.b,
-                opacity         = color.a,
+                opacity         = useColorAlpha and color.a or (1 - color.a),
                 swatchFunc      = function()
                     Next(function()
                         if firstopen or ColorPickerFrame:IsShown() then firstopen = false return end
                         Next(showPopup) _CurrentPopup = nil
 
                         local r,g,b = ColorPickerFrame:GetColorRGB()
-                        local a     = ColorPickerFrame:GetColorAlpha()
+                        local a     = useColorAlpha and ColorPickerFrame:GetColorAlpha() or (1 - OpacitySliderFrame:GetValue())
 
                         return resume(thread, Color(r, g, b, a))
                     end)
@@ -719,13 +720,13 @@ function showPopup()
                     end
 
                     local r,g,b = ColorPickerFrame:GetColorRGB()
-                    local a     = ColorPickerFrame:GetColorAlpha()
+                    local a     = useColorAlpha and ColorPickerFrame:GetColorAlpha() or (1 - OpacitySliderFrame:GetValue())
 
                     return thread(Color(r, g, b, a))
                 end,
                 opacityFunc     = function()
                     local r,g,b = ColorPickerFrame:GetColorRGB()
-                    local a     = ColorPickerFrame:GetColorAlpha()
+                    local a     = useColorAlpha and ColorPickerFrame:GetColorAlpha() or (1 - OpacitySliderFrame:GetValue())
 
                     return thread(Color(r, g, b, a))
                 end,
