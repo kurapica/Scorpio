@@ -247,7 +247,7 @@ function handler:IsConsumableAction()
 end
 
 function handler:IsInRange()
-    return IsItemInRange(self.ActionTarget, self:GetAttribute("unit"))
+    return IsItemInRange(self.ActionTarget, self:GetAttribute("unit") or "target")
 end
 
 function handler:SetTooltip(tip)
