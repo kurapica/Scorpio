@@ -13,12 +13,6 @@ __Sealed__() enum "BagSlotCountStyle" { "Hidden", "Empty", "Total", "AllEmpty", 
 
 _Enabled                        = false
 
-if _G.C_Container then
-    for k, v in pairs(_G.C_Container) do
-        _M[k]                   = v
-    end
-end
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------

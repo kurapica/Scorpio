@@ -11,14 +11,6 @@ Scorpio        "Scorpio.Secure.BagSlotHandler"       "1.0.0"
 
 _Enabled                        = false
 
-if _G.C_Container then
-    for k, v in pairs(_G.C_Container) do
-        _M[k]                   = v
-    end
-end
-
-IsItemInRange                   = _G.IsItemInRange or _G.C_Item and C_Item.IsItemInRange
-
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
