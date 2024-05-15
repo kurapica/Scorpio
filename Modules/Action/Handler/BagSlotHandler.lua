@@ -17,6 +17,8 @@ if _G.C_Container then
     end
 end
 
+IsItemInRange                   = _G.IsItemInRange or _G.C_Item and C_Item.IsItemInRange
+
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
