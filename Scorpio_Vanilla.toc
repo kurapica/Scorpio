@@ -1,4 +1,4 @@
-## Interface: 11500
+## Interface: 11502
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: @project-version@

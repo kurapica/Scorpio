@@ -508,7 +508,7 @@ end
 function handler:IsInRange()
     local bag                   = self.ActionTarget
     if bag >= 0 and bag <= 4 then
-        return IsItemInRange(GetContainerItemID(self.ActionTarget, self.ActionDetail), self:GetAttribute("unit"))
+        return IsItemInRange(GetContainerItemID(self.ActionTarget, self.ActionDetail), self:GetAttribute("unit") or "target")
     end
 end
 

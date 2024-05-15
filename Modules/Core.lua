@@ -1770,6 +1770,9 @@ PLoop(function(_ENV)
         --- Whether the game is WLK
         __Static__() property "IsWLK"           { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_WRATH_CLASSIC end }
 
+        --- Whether the game is Cataclysm
+        __Static__() property "IsCataclysm"     { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CATACLYSM_CLASSIC end }
+
         ----------------------------------------------
         --                 Property                 --
         ----------------------------------------------
