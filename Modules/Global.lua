@@ -16,9 +16,23 @@ import "System.Serialization"
 ------------------------------------------------------------
 --                        Prepare                         --
 ------------------------------------------------------------
-
 GetSpecialization               = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
-IsWarModeDesired                = C_PvP and C_PvP.IsWarModeDesired or function() return false end
+IsWarModeDesired                = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
+
+for k, v in pairs(_G) do
+    -- auto import
+    if type(k) == "string" and k:match("C_%w+") and type(v) == "table" and getmetatable(v) == nil then
+        local define            = {}
+
+        for n, m in pairs(v) do
+            if type(n) == "string" and type(m) == "function" then
+                define[n]       = type(_G[n]) == "function" and _G[n] or m
+            end
+        end
+
+        Environment.RegisterGlobalNamespace(interface(define))
+    end
+end
 
 -------------------- META --------------------
 META_WEAKKEY                    = { __mode = "k" }

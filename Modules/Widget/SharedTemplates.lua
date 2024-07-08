@@ -137,7 +137,7 @@ class "Resizer"                 (function(_ENV)
     end
 
     local function onMouseDown(self)
-        if self.ResizeTarget:IsResizable() then
+        if self.ResizeTarget and self.ResizeTarget:IsResizable() then
             _Resizing[self]     = false
             return Scorpio.Continue(checkResizing, self)
         end
