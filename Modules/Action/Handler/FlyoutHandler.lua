@@ -9,7 +9,7 @@
 Scorpio        "Scorpio.Secure.FlyoutHandler"        "1.0.0"
 --========================================================--
 
-MAX_SKILLLINE_TABS              = _G.MAX_SKILLLINE_TABS
+MAX_SKILLLINE_TABS              = _G.MAX_SKILLLINE_TABS or 8
 
 _FlyoutSlot                     = {}
 _FlyoutTexture                  = {}

@@ -9,6 +9,20 @@
 Scorpio        "Scorpio.Widget.ConfigCategoryPanel"  "1.0.0"
 --========================================================--
 
+InterfaceOptions_AddCategory    = _G.InterfaceOptions_AddCategory or function (frame, addOn, position)
+    if frame.parent then
+        local category          = _G.Settings.GetCategory(frame.parent)
+        local subcategory, layout = _G.Settings.RegisterCanvasLayoutSubcategory(category, frame, frame.name, frame.name)
+        subcategory.ID = frame.name
+        return subcategory, category
+    else
+        local category, layout  = _G.Settings.RegisterCanvasLayoutCategory(frame, frame.name, frame.name)
+        category.ID = frame.name
+        _G.Settings.RegisterAddOnCategory(category)
+        return category
+    end
+end
+
 --- The category panel to hold the config panel with scroll frame
 __Sealed__()
 class "ConfigCategoryPanel"     (function(_ENV)
@@ -44,6 +58,10 @@ class "ConfigCategoryPanel"     (function(_ENV)
         local ok, err = pcall(function() self:GetChild("ScrollFrame"):GetChild("ScrollChild"):GetChild("ConfigPanel"):Begin() end)
         if not ok then print(err) end
     end
+
+    OnCommit                        = okay
+    OnDefault                       = default
+    OnRefresh                       = refresh
 
     ----------------------------------------------
     --               Constructor                --

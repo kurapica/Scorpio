@@ -9,6 +9,15 @@
 Scorpio            "Scorpio.Config.UI"               "1.0.0"
 --========================================================--
 
+InterfaceOptionsFrame_OpenToCategory = _G.InterfaceOptionsFrame_OpenToCategory or function (categoryIDOrFrame)
+    if type(categoryIDOrFrame) == "table" then
+        local categoryID        = categoryIDOrFrame.name
+        return _G.Settings.OpenToCategory(categoryID)
+    else
+        return _G.Settings.OpenToCategory(categoryIDOrFrame)
+    end
+end
+
 -- Shared
 local _PanelMap                 = {}
 
