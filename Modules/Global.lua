@@ -21,12 +21,12 @@ IsWarModeDesired                = _G.C_PvP and _G.C_PvP.IsWarModeDesired or func
 
 for k, v in pairs(_G) do
     -- auto import
-    if type(k) == "string" and k:match("C_%w+") and type(v) == "table" and getmetatable(v) == nil then
+    if type(k) == "string" and k:match("^C_%w+") and type(v) == "table" and getmetatable(v) == nil then
         local define            = {}
 
         for n, m in pairs(v) do
-            if type(n) == "string" and type(m) == "function" then
-                define[n]       = type(_G[n]) == "function" and _G[n] or m
+            if type(n) == "string" and type(m) == "function" and type(_G[n]) ~= "function" then
+                define[n]       =  m
             end
         end
 
