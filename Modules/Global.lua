@@ -14,18 +14,37 @@ namespace          "Scorpio"
 import "System.Serialization"
 
 ------------------------------------------------------------
+--                    Deprecated API                      --
+------------------------------------------------------------
+__Sealed__()
+interface "DeprecatedApi"       (function(_ENV)
+    local version               = select(4, GetBuildInfo())
+
+
+    GetSpecialization           = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
+    IsWarModeDesired            = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
+
+    --- GetMouseFocus
+    if version and version >= 110000 then
+        function GetMouseFocus()
+            local ret           = GetMouseFoci()
+            return ret and ret[1]
+        end
+    end
+end)
+
+Environment.RegisterGlobalNamespace(DeprecatedApi)
+
+------------------------------------------------------------
 --                        Prepare                         --
 ------------------------------------------------------------
-GetSpecialization               = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
-IsWarModeDesired                = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
-
 for k, v in pairs(_G) do
     -- auto import
     if type(k) == "string" and k:match("^C_%w+") and type(v) == "table" and getmetatable(v) == nil then
         local define            = {}
 
         for n, m in pairs(v) do
-            if type(n) == "string" and type(m) == "function" and type(_G[n]) ~= "function" then
+            if type(n) == "string" and type(m) == "function" and type(_G[n]) ~= "function" and not DeprecatedApi[n] then
                 define[n]       =  m
             end
         end
@@ -33,6 +52,7 @@ for k, v in pairs(_G) do
         Environment.RegisterGlobalNamespace(interface(define))
     end
 end
+
 
 -------------------- META --------------------
 META_WEAKKEY                    = { __mode = "k" }
@@ -166,6 +186,13 @@ __Sealed__()
 enum "WarMode"  {
     PVE                         = 1,
     PVP                         = 2,
+}
+
+__Sealed__() __Shareable__()
+enum "SpellBookSpellBank"       {
+    PLAYER                      = _G.Enum and _G.Enum.SpellBookSpellBank and _G.Enum.SpellBookSpellBank.Player or "player",
+    PET                         = _G.Enum and _G.Enum.SpellBookSpellBank and _G.Enum.SpellBookSpellBank.Pet or "pet",
+    SPELL                       = _G.Enum and _G.Enum.SpellBookSpellBank and _G.Enum.SpellBookSpellBank.Player or "spell",
 }
 
 ------------------------------------------------------------

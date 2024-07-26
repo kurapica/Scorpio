@@ -49,12 +49,12 @@ function UpdateFlyoutSlotMap()
 
         if not isGuild and offspecID == 0 then
             for index = offset + 1, offset + numEntries do
-                type, id = GetSpellBookItemInfo(index, "spell")
+                type, id = GetSpellBookItemInfo(index, SpellBookSpellBank.SPELL)
 
                 if type == "FLYOUT" then
                     if not _FlyoutSlot[id] then
                         _FlyoutSlot[id] = index
-                        _FlyoutTexture[id] = GetSpellBookItemTexture(index, "spell")
+                        _FlyoutTexture[id] = GetSpellBookItemTexture(index, SpellBookSpellBank.SPELL)
                     end
                 end
             end

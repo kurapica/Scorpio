@@ -151,7 +151,7 @@ function UpdateMacroMap()
     local str                   = {}
     local cnt                   = 0
     local index                 = 1
-    local _, id                 = GetSpellBookItemInfo(index, "spell")
+    local _, id                 = GetSpellBookItemInfo(index, SpellBookSpellBank.SPELL)
 
     while id do
         local name              = GetSpellInfo(id)
@@ -162,7 +162,7 @@ function UpdateMacroMap()
         end
 
         index                   = index + 1
-        _, id                   = GetSpellBookItemInfo(index, "spell")
+        _, id                   = GetSpellBookItemInfo(index, SpellBookSpellBank.SPELL)
     end
 
     if cnt > 0 then
@@ -185,8 +185,8 @@ function UpdateProfession()
     for i = 1, 6 do
         if lst[i] then
             offset              = 1 + select(6, GetProfessionInfo(lst[i]))
-            spell               = select(2, GetSpellBookItemInfo(offset, "spell"))
-            name                = GetSpellBookItemName(offset, "spell")
+            spell               = select(2, GetSpellBookItemInfo(offset, SpellBookSpellBank.SPELL))
+            name                = GetSpellBookItemName(offset, SpellBookSpellBank.SPELL)
 
             if _Profession[name] ~= spell then
                 _Profession[name] = spell
