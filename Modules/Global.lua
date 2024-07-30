@@ -24,12 +24,24 @@ interface "DeprecatedApi"       (function(_ENV)
     GetSpecialization           = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
     IsWarModeDesired            = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
 
-    --- GetMouseFocus
     if version and version >= 110000 then
+        local originGetSpellBookItemInfo = _G.C_SpellBook.GetSpellBookItemInfo
+
         function GetMouseFocus()
             local ret           = GetMouseFoci()
             return ret and ret[1]
         end
+
+        function GetSpellBookItemInfo(index, bank)
+            local info          = originGetSpellBookItemInfo(index, bank)
+            if info then        return info.itemType, info.spellID end
+        end
+
+        GetSpellBookItemName    = _G.C_SpellBook.GetSpellBookItemName
+        IsAttackSpell           = _G.C_Spell.IsAutoAttackSpell
+        IsHarmfulSpell          = _G.C_Spell.IsSpellHarmful
+        IsHelpfulSpell          = _G.C_Spell.IsSpellHelpful
+        IsPassiveSpell          = _G.C_Spell.IsSpellPassive
     end
 end)
 
@@ -193,6 +205,15 @@ enum "SpellBookSpellBank"       {
     PLAYER                      = _G.Enum and _G.Enum.SpellBookSpellBank and _G.Enum.SpellBookSpellBank.Player or "player",
     PET                         = _G.Enum and _G.Enum.SpellBookSpellBank and _G.Enum.SpellBookSpellBank.Pet or "pet",
     SPELL                       = _G.Enum and _G.Enum.SpellBookSpellBank and _G.Enum.SpellBookSpellBank.Player or "spell",
+}
+
+__Sealed__()
+enum "SpellBookItemType"        {
+    NONE                        = _G.Enum and _G.Enum.SpellBookItemType and _G.Enum.SpellBookItemType.None or "NONE",
+    SPELL                       = _G.Enum and _G.Enum.SpellBookItemType and _G.Enum.SpellBookItemType.Spell or "SPELL",
+    FUTURESPELL                 = _G.Enum and _G.Enum.SpellBookItemType and _G.Enum.SpellBookItemType.FutureSpell or "FUTURESPELL",
+    PETACTION                   = _G.Enum and _G.Enum.SpellBookItemType and _G.Enum.SpellBookItemType.PetAction or "PETACTION",
+    FLYOUT                      = _G.Enum and _G.Enum.SpellBookItemType and _G.Enum.SpellBookItemType.Flyout or "FLYOUT",
 }
 
 ------------------------------------------------------------
