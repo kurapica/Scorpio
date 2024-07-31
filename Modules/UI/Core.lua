@@ -2193,7 +2193,7 @@ function UIObject:InstantApplyStyle(skipCheck)
 
     local debugname         = self:GetName(true) or self:GetObjectType()
 
-    Trace("[Scorpio.UI]Instant Apply Style: %s%s", debugname, _PropertyChildName[frame] and (" - " .. _PropertyChildName[frame]) or "")
+    Trace("[Scorpio.UI]Instant Apply Style: %s%s", debugname, _PropertyChildName[self] and (" - " .. _PropertyChildName[self]) or "")
 
     local styles, children, childcls = buildTempStyle(self)
 

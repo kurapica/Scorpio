@@ -21,7 +21,7 @@ local getFeature                = Class.GetFeature
 
 __Static__() __Arguments__{ NEString * 1 }
 function Wow.FromUIProperty(...)
-    local name                  = select("#", ...) == 1 and name or { ... }
+    local name                  = select("#", ...) == 1 and select(1, ...) or { ... }
     return Observable(function(observer)
         local indicator         = getCurrentTarget()
 
@@ -63,7 +63,7 @@ end
 
 __Static__() __Arguments__{ NEString * 1 }
 function Wow.FromPanelProperty(...)
-    local name                  = select("#", ...) == 1 and name or { ... }
+    local name                  = select("#", ...) == 1 and select(1, ...) or { ... }
     return Observable(function(observer)
         local indicator         = getCurrentTarget()
 

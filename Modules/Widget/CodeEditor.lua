@@ -684,14 +684,14 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         return startp
     end
 
-    _IndentFunc = _IndentFunc or {}
-    _ShiftIndentFunc = _ShiftIndentFunc or {}
+    _IndentFunc                 = {}
+    _ShiftIndentFunc            = {}
 
     do
         setmetatable(_IndentFunc, {
             __index = function(self, key)
                 if tonumber(key) then
-                    local tab = floor(tonumber(key))
+                    local tab   = floor(tonumber(key))
 
                     if tab > 0 then
                         if not rawget(self, key) then
@@ -3138,7 +3138,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
     property "TabWidth"         { type = NaturalNumber, default = 4, handler = refreshText }
 
     --- Whether show the line num
-    property "ShowLineNum"      { type = Bool, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; Style[self].LineHolder.visible = flag; self:RefreshLayout() end }
+    property "ShowLineNum"      { type = Boolean, default = true, handler = function(self, flag) Style[self].ScrollChild.LineNum.visible = flag; Style[self].LineHolder.visible = flag; self:RefreshLayout() end }
 
     --- The default text color
     property "DefaultColor"     { type = ColorType, handler = refreshText, default = Color(1, 1, 1) }

@@ -349,7 +349,7 @@ Style.UpdateSkin("Default",     {
             texCoords           = RectType(0.84375, 1.0, 0, 1.0),
         },
         ButtonText              = {
-            fontObject          = GlueFontNormalSmall,
+            fontObject          = GameFontNormalSmall,
         },
 
         HighlightTexture        = {
@@ -358,9 +358,9 @@ Style.UpdateSkin("Default",     {
             alphamode           = "ADD",
         },
 
-        normalFont              = GlueFontNormalSmall,
+        normalFont              = GameFontNormalSmall,
         disabledFont            = GameFontDisableSmall,
-        highlightFont           = GlueFontHighlightSmall,
+        highlightFont           = GameFontHighlightSmall,
     },
     [TabControl]                = {
         RightScroll             = {
