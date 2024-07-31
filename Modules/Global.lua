@@ -43,27 +43,25 @@ interface "DeprecatedApi"       (function(_ENV)
         IsHelpfulSpell          = _G.C_Spell.IsSpellHelpful
         IsPassiveSpell          = _G.C_Spell.IsSpellPassive
     end
+
+    ------------------------------------------------------------
+    --                        Prepare                         --
+    ------------------------------------------------------------
+    for k, v in pairs(_G) do
+        -- auto import
+        if type(k) == "string" and k:match("^C_%w+") and type(v) == "table" and getmetatable(v) == nil then
+            local define        = {}
+
+            for n, m in pairs(v) do
+                if type(n) == "string" and type(m) == "function" and type(_G[n]) ~= "function" and not DeprecatedApi[n] then
+                    _ENV[n]     =  m
+                end
+            end
+        end
+    end
 end)
 
 Environment.RegisterGlobalNamespace(DeprecatedApi)
-
-------------------------------------------------------------
---                        Prepare                         --
-------------------------------------------------------------
-for k, v in pairs(_G) do
-    -- auto import
-    if type(k) == "string" and k:match("^C_%w+") and type(v) == "table" and getmetatable(v) == nil then
-        local define            = {}
-
-        for n, m in pairs(v) do
-            if type(n) == "string" and type(m) == "function" and type(_G[n]) ~= "function" and not DeprecatedApi[n] then
-                define[n]       =  m
-            end
-        end
-
-        Environment.RegisterGlobalNamespace(interface(define))
-    end
-end
 
 
 -------------------- META --------------------
