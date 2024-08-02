@@ -23,8 +23,8 @@ handler                         = ActionTypeHandler {
         local target            = ...
 
         if _StanceMap[target] then
-            self:SetAttribute("*type*", "macro")
-            self:SetAttribute("*macrotext*", "/click StanceButton".. _StanceMap[target])
+            self:SetAttribute("*type*", "click")
+            Manager:CallMethod("BindProxyClick", self:GetName(), "StanceButton".. _StanceMap[target])
         elseif _MacroMap[target] then
             self:SetAttribute("*type*", "macro")
             self:SetAttribute("*macrotext*", "/cast ".. _MacroMap[target])
@@ -41,6 +41,7 @@ handler                         = ActionTypeHandler {
     ClearSnippet                = [[
         self:SetAttribute("*type*", nil)
         self:SetAttribute("*macrotext*", nil)
+        Manager:CallMethod("ClearProxyClick", self:GetName())
     ]],
 }
 
@@ -139,8 +140,8 @@ function UpdateStanceMap()
 
         for _, btn in handler:GetIterator() do
             if _StanceMap[btn.ActionTarget] then
-                btn:SetAttribute("*type*", "macro")
-                btn:SetAttribute("*macrotext*", "/click StanceButton".._StanceMap[btn.ActionTarget])
+                btn:SetAttribute("*type*", "click")
+                Manager:BindProxyClick(btn:GetName(), "StanceButton" .. _StanceMap[btn.ActionTarget])
             end
         end
     end

@@ -27,14 +27,14 @@ handler                         = ActionTypeHandler {
 
         if tonumber(target) then
             -- Use macro to toggle auto cast
-            self:SetAttribute("type2", "macro")
-            self:SetAttribute("macrotext2", "/click PetActionButton".. target .. " RightButton")
+            self:SetAttribute("type2", "click")
+            Manager:CallMethod("BindProxyClick", self:GetName(), "PetActionButton".. target)
         end
     ]],
 
     ClearSnippet                = [[
         self:SetAttribute("type2", nil)
-        self:SetAttribute("macrotext2", nil)
+        Manager:CallMethod("ClearProxyClick", self:GetName())
     ]],
 
     PreClickSnippet             = [[

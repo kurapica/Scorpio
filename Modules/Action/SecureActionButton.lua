@@ -924,6 +924,18 @@ function _ManagerFrame:UpdateActionButton(name)
     end
 end
 
+__SecureMethod__() __NoCombat__()
+function _ManagerFrame:BindProxyClick(name, proxy)
+    self                        = GetProxyUI(_G[name])
+    self:SetAttribute("clickbutton", _G[proxy])
+end
+
+__SecureMethod__() __NoCombat__()
+function _ManagerFrame:ClearProxyClick(name)
+    self                        = GetProxyUI(_G[name])
+    self:SetAttribute("clickbutton", nil)
+end
+
 ------------------------------------------------------
 --                  Secure Snippet                  --
 ------------------------------------------------------

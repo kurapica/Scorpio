@@ -38,24 +38,31 @@ handler                         = ActionTypeHandler {
         target                  = tonumber(target)
 
         if target == 0 then
-            self:SetAttribute("*type*", "macro")
-            self:SetAttribute("*macrotext*", "/click MainMenuBarBackpackButton")
+            self:SetAttribute("*type*", "click")
+            Manager:CallMethod("BindProxyClick", self:GetName(), "MainMenuBarBackpackButton")
+
         elseif target and target <= 4 then
-            self:SetAttribute("*type*", "macro")
-            self:SetAttribute("*macrotext*", "/click CharacterBag".. tostring(target-1) .."Slot")
-        elseif target and target <= 11 then
-            self:SetAttribute("*type*", "openbank")
-            Manager:CallMethod("RegisterBankBag", self:GetName())
+            self:SetAttribute("*type*", "click")
+            Manager:CallMethod("BindProxyClick", self:GetName(), "CharacterBag".. tostring(target-1) .."Slot")
+
         else
-            self:SetAttribute("*type*", nil)
-            self:SetAttribute("*macrotext*", nil)
-            Manager:CallMethod("UnregisterBankBag", self:GetName())
+            Manager:CallMethod("ClearProxyClick", self:GetName())
+
+            if target and target <= 11 then
+                self:SetAttribute("*type*", "openbank")
+                Manager:CallMethod("RegisterBankBag", self:GetName())
+            else
+                self:SetAttribute("*type*", nil)
+                self:SetAttribute("*macrotext*", nil)
+                Manager:CallMethod("UnregisterBankBag", self:GetName())
+            end
         end
     ]],
 
     ClearSnippet                = [[
         self:SetAttribute("*type*", nil)
         self:SetAttribute("*macrotext*", nil)
+        Manager:CallMethod("ClearProxyClick", self:GetName())
         Manager:CallMethod("UnregisterBankBag", self:GetName())
     ]],
 

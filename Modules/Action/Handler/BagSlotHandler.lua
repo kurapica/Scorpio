@@ -23,17 +23,15 @@ handler                         = ActionTypeHandler {
     ReceiveStyle                = "Keep",
 
     UpdateSnippet               = [[
-        self:SetAttribute("*type1", "macro")
-        self:SetAttribute("*type2", "macro")
-        self:SetAttribute("*macrotext1", "/click Scorpio_BagSlot_FakeItemButton LeftButton")
-        self:SetAttribute("*macrotext2", "/click Scorpio_BagSlot_FakeItemButton RightButton")
+        self:SetAttribute("*type1", "click")
+        self:SetAttribute("*type2", "click")
+        Manager:CallMethod("BindProxyClick", self:GetName(), "Scorpio_BagSlot_FakeItemButton")
         Manager:CallMethod("RegisterBagSlot", self:GetName())
     ]],
     ClearSnippet                = [[
         self:SetAttribute("*type1", nil)
         self:SetAttribute("*type2", nil)
-        self:SetAttribute("*macrotext1", nil)
-        self:SetAttribute("*macrotext2", nil)
+        Manager:CallMethod("ClearProxyClick", self:GetName())
         Manager:CallMethod("UnregisterBagSlot", self:GetName())
     ]],
     ReceiveSnippet              = "Custom",
