@@ -44,17 +44,17 @@ function UpdateFlyoutSlotMap()
     wipe(_FlyoutTexture)
 
     for i = 1, MAX_SKILLLINE_TABS do
-        name, texture, offset, numEntries, isGuild, offspecID = GetSpellTabInfo(i)
+        name, texture, offset, numEntries, isGuild, offspecID = C_SpellBook.GetSpellBookSkillLineInfo(i)
         if not name then break end
 
         if not isGuild and offspecID == 0 then
             for index = offset + 1, offset + numEntries do
-                type, id = GetSpellBookItemInfo(index, SpellBookSpellBank.SPELL)
+                type, id = GetSpellBookItemInfo(index, Enum.SpellBookSpellBank.SPELL)
 
-                if type == SpellBookItemType.FLYOUT then
+                if type == Enum.SpellBookItemType.FLYOUT then
                     if not _FlyoutSlot[id] then
                         _FlyoutSlot[id] = index
-                        _FlyoutTexture[id] = GetSpellBookItemTexture(index, SpellBookSpellBank.SPELL)
+                        _FlyoutTexture[id] = C_SpellBook.GetSpellBookItemTexture(index, Enum.SpellBookSpellBank.SPELL)
                     end
                 end
             end
@@ -68,7 +68,7 @@ end
 
 -- Overwrite methods
 function handler:PickupAction(target)
-    return PickupSpellBookItem(_FlyoutSlot[target], "spell")
+    return C_SpellBook.PickupSpellBookItem(_FlyoutSlot[target], "spell")
 end
 
 function handler:GetActionTexture()

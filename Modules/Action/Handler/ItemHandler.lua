@@ -196,7 +196,7 @@ function handler:PickupAction(target)
     if _ToyFilter[target] then
         return  C_ToyBox.PickupToyBoxItem(target)
     else
-        return PickupItem(target)
+        return C_Item.PickupItem(target)
     end
 end
 
@@ -205,17 +205,17 @@ function handler:GetActionTexture()
     if _ToyFilter[target] then
         return (select(3, C_ToyBox.GetToyInfo(target)))
     else
-        return GetItemIcon(target)
+        return C_Item.GetItemIcon(target)
     end
 end
 
 function handler:GetActionCount()
     local target                = self.ActionTarget
-    return _ToyFilter[target] and 0 or GetItemCount(target)
+    return _ToyFilter[target] and 0 or C_Item.GetItemCount(target)
 end
 
 function handler:GetActionCooldown()
-    return GetItemCooldown(self.ActionTarget)
+    return C_Item.GetItemCooldown(self.ActionTarget)
 end
 
 function handler:IsEquippedItem()
@@ -225,21 +225,21 @@ end
 
 function handler:IsActivedAction()
     -- Block now, no event to deactivate
-    return false and IsCurrentItem(self.ActionTarget)
+    return false and C_Item.IsCurrentItem(self.ActionTarget)
 end
 
 function handler:IsUsableAction()
     local target                = self.ActionTarget
-    return _ToyFilter[target] or IsUsableItem(target)
+    return _ToyFilter[target] or C_Item.IsUsableItem(target)
 end
 
 function handler:IsConsumableAction()
     local target                = self.ActionTarget
     if _ToyFilter[target] then return false end
     -- return IsConsumableItem(target) blz sucks, wait until IsConsumableItem is fixed
-    local maxStack              = select(8, GetItemInfo(target))
+    local maxStack              = select(8, C_Item.GetItemInfo(target))
 
-    if IsUsableItem(target) and maxStack and maxStack > 1 then
+    if C_Item.IsUsableItem(target) and maxStack and maxStack > 1 then
         return true
     else
         return false
@@ -255,7 +255,7 @@ function handler:SetTooltip(tip)
     if _ToyFilter[target] then
         tip:SetToyByItemID(target)
     else
-        local link              = select(2, GetItemInfo(self.ActionTarget))
+        local link              = select(2, C_Item.GetItemInfo(self.ActionTarget))
         return link and tip:SetHyperlink(link)
     end
 end
@@ -267,8 +267,8 @@ end
 function handler:Map(target, detail)
     if tonumber(target) then
         -- pass
-    elseif target and select(2, GetItemInfo(target)) then
-        target                  = select(2, GetItemInfo(target)):match("item:(%d+)")
+    elseif target and select(2, C_Item.GetItemInfo(target)) then
+        target                  = select(2, C_Item.GetItemInfo(target)):match("item:(%d+)")
     end
     target                      = tonumber(target)
 

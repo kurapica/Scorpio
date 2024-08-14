@@ -101,7 +101,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
     local slotMap               = {}
 
     local refreshAura, refreshAuraByPriorty
-    local hasUnitAuraSlots      = _G.UnitAuraSlots and true or false
+    local hasUnitAuraSlots      = C_UnitAuras.GetAuraSlots and true or false
 
     if hasUnitAuraSlots then
         function refreshAura(self, unit, filter, eleIdx, auraIdx, continuationToken, ...)
@@ -109,7 +109,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             for i = 1, select("#", ...) do
                 local slot          = select(i, ...)
 
-                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = UnitAuraBySlot(unit, slot)
+                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = C_UnitAuras.GetAuraDataBySlot(unit, slot)
 
                 if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3) then
                     self.Elements[eleIdx]:Show()
@@ -136,7 +136,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             end
 
             if continuationToken then
-                return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAuraSlots(unit, filter, self.MaxCount - eleIdx + 1, continuationToken))
+                return refreshAura(self, unit, filter, eleIdx, auraIdx, C_UnitAuras.GetAuraSlots(unit, filter, self.MaxCount - eleIdx + 1, continuationToken))
             else
                 return eleIdx
             end
@@ -146,7 +146,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             for i = 1, select("#", ...) do
                 local slot          = select(i, ...)
 
-                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = UnitAuraBySlot(unit, slot)
+                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = C_UnitAuras.GetAuraDataBySlot(unit, slot)
 
                 if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3) then
                     local order     = priority[name] or priority[spellId]
@@ -162,7 +162,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
                 auraIdx             = auraIdx + 1
             end
 
-            return continuationToken and refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAuraSlots(unit, filter, self.MaxCount, continuationToken))
+            return continuationToken and refreshAuraByPriorty(self, unit, filter, priority, auraIdx, C_UnitAuras.GetAuraSlots(unit, filter, self.MaxCount, continuationToken))
         end
     else
         function refreshAura(self, unit, filter, eleIdx, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
@@ -189,7 +189,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             end
 
             auraIdx                 = auraIdx + 1
-            return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAura(unit, auraIdx, filter))
+            return refreshAura(self, unit, filter, eleIdx, auraIdx, C_UnitAuras.GetAuraDataByIndex(unit, auraIdx, filter))
         end
 
         function refreshAuraByPriorty(self, unit, filter, priority, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
@@ -205,7 +205,7 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             end
 
             auraIdx                 = auraIdx + 1
-            return refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAura(unit, auraIdx, filter))
+            return refreshAuraByPriorty(self, unit, filter, priority, auraIdx, C_UnitAuras.GetAuraDataByIndex(unit, auraIdx, filter))
         end
     end
 
@@ -259,16 +259,16 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
             local auraPriority  = self.AuraPriority
             if not auraPriority or #auraPriority == 0 then
                 if hasUnitAuraSlots then
-                    self.Count  = refreshAura(self, unit, filter, 1, 1, UnitAuraSlots(unit, filter, self.MaxCount)) - 1
+                    self.Count  = refreshAura(self, unit, filter, 1, 1, C_UnitAuras.GetAuraSlots(unit, filter, self.MaxCount)) - 1
                 else
-                    self.Count  = refreshAura(self, unit, filter, 1, 1, UnitAura(unit, 1, filter)) - 1
+                    self.Count  = refreshAura(self, unit, filter, 1, 1, C_UnitAuras.GetAuraDataByIndex(unit, 1, filter)) - 1
                 end
             else
                 wipe(cache) for i = 1, #auraPriority do cache[i] = false end
                 if hasUnitAuraSlots then
-                    refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAuraSlots(unit, filter, self.MaxCount))
+                    refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, C_UnitAuras.GetAuraSlotsSlots(unit, filter, self.MaxCount))
                 else
-                    refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAura(unit, 1, filter))
+                    refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, C_UnitAuras.GetAuraDataByIndex(unit, 1, filter))
                 end
 
                 local eleIdx    = 1
@@ -277,9 +277,9 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
                     local slot  = cache[i]
                     if slot then
                         if hasUnitAuraSlots then
-                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAuraBySlot(unit, slot)
+                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = C_UnitAuras.GetAuraDataBySlot(unit, slot)
                         else
-                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAura(unit, slot, filter)
+                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = C_UnitAuras.GetAuraDataByIndex(unit, slot, filter)
                         end
 
                         self.Elements[eleIdx]:Show()

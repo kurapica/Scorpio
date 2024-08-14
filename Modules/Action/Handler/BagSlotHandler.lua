@@ -77,12 +77,12 @@ function OnEnable()
     return handler:RefreshActionButtons()
 end
 
--- Fix the GetContainerItemInfo
+-- Fix the C_Container.GetContainerItemInfo
 do
-    local original              = GetContainerItemInfo
+    local original              = C_Container.GetContainerItemInfo
     local infoCache             = {}
 
-    function GetContainerItemInfo(bag, slot)
+    function C_Container.GetContainerItemInfo(bag, slot)
         local time              = GetTime()
         local info              = infoCache[bag * 100 + slot]
         if not info or info.time < time - 0.1 then
@@ -167,7 +167,7 @@ end
 __SystemEvent__()
 function ITEM_LOCK_CHANGED(bag, slot)
     if _BagCache[bag] and slot then
-        local _, _, locked      = GetContainerItemInfo(bag, slot)
+        local _, _, locked      = C_Container.GetContainerItemInfo(bag, slot)
 
         for btn, bslot in pairs(_BagCache[bag]) do
             if bslot == slot then
@@ -216,7 +216,7 @@ function MERCHANT_SHOW()
     for _, bag in ipairs(_ContainerBag) do
         if _BagCache[bag] then
             for btn, slot in pairs(_BagCache[bag]) do
-                local texture, itemCount, locked, quality, readable, _, _, isFiltered, noValue, itemID = GetContainerItemInfo(bag, slot)
+                local texture, itemCount, locked, quality, readable, _, _, isFiltered, noValue, itemID = C_Container.GetContainerItemInfo(bag, slot)
                 if itemID then
                     btn.IsJunk  = (quality == LE_ITEM_QUALITY_POOR and not noValue)
                 else
@@ -405,7 +405,7 @@ function handler:Refresh()
     local bag, slot             = self.ActionTarget, self.ActionDetail
     if not bag or not slot then return end
 
-    local texture, itemCount, locked, quality, readable, _, _, isFiltered, noValue, itemID = GetContainerItemInfo(bag, slot)
+    local texture, itemCount, locked, quality, readable, _, _, isFiltered, noValue, itemID = C_Container.GetContainerItemInfo(bag, slot)
     local isQuestItem, questId, isActive = GetContainerItemQuestInfo(bag, slot)
 
     if itemID then
@@ -449,23 +449,23 @@ function handler:Refresh()
 end
 
 function handler:ReceiveAction(target, detail)
-    return PickupContainerItem(target, detail)
+    return C_Container.PickupContainerItem(target, detail)
 end
 
 function handler:HasAction()
-    return GetContainerItemID(self.ActionTarget, self.ActionDetail) and true or false
+    return C_Container.GetContainerItemID(self.ActionTarget, self.ActionDetail) and true or false
 end
 
 function handler:GetActionTexture()
-    return (GetContainerItemInfo(self.ActionTarget, self.ActionDetail))
+    return (C_Container.GetContainerItemInfo(self.ActionTarget, self.ActionDetail))
 end
 
 function handler:GetActionCount()
-    return (select(2, GetContainerItemInfo(self.ActionTarget, self.ActionDetail)))
+    return (select(2, C_Container.GetContainerItemInfo(self.ActionTarget, self.ActionDetail)))
 end
 
 function handler:GetActionCooldown()
-    return GetContainerItemCooldown(self.ActionTarget, self.ActionDetail)
+    return C_Container.GetContainerItemCooldown(self.ActionTarget, self.ActionDetail)
 end
 
 function handler:IsEquippedItem()
@@ -480,34 +480,34 @@ function handler:IsUsableAction()
     local bag                   = self.ActionTarget
 
     if bag >= 0 and bag <= 4 then
-        local item              = GetContainerItemID(bag, self.ActionDetail)
-        return item and IsUsableItem(item)
+        local item              = C_Container.GetContainerItemID(bag, self.ActionDetail)
+        return item and C_Item.IsUsableItem(item)
     else
         return true
     end
 end
 
 function handler:IsConsumableAction()
-    local item                  = GetContainerItemID(self.ActionTarget, self.ActionDetail)
+    local item                  = C_Container.GetContainerItemID(self.ActionTarget, self.ActionDetail)
     if not item then return false end
 
-    local maxStack              = select(8, GetItemInfo(item)) or 0
+    local maxStack              = select(8, C_Item.GetItemInfo(item)) or 0
     return maxStack > 1
 end
 
 function handler:IsInRange()
     local bag                   = self.ActionTarget
     if bag >= 0 and bag <= 4 then
-        return IsItemInRange(GetContainerItemID(self.ActionTarget, self.ActionDetail), self:GetAttribute("unit") or "target")
+        return IsItemInRange(C_Container.GetContainerItemID(self.ActionTarget, self.ActionDetail), self:GetAttribute("unit") or "target")
     end
 end
 
 function handler:IsSearchOverlayShow()
-    return (select(8, GetContainerItemInfo(self.ActionTarget, self.ActionDetail)))
+    return (select(8, C_Container.GetContainerItemInfo(self.ActionTarget, self.ActionDetail)))
 end
 
 function handler:IsIconLocked()
-    local _, _, locked          = GetContainerItemInfo(self.ActionTarget, self.ActionDetail)
+    local _, _, locked          = C_Container.GetContainerItemInfo(self.ActionTarget, self.ActionDetail)
     return locked
 end
 
@@ -575,7 +575,7 @@ function handler:SetTooltip(GameTooltip)
         if IsModifiedClick("DRESSUP") and self._BagSlot_ItemID then
             ShowInspectCursor()
         elseif showSell then
-            ShowContainerSellCursor(self.ActionTarget, self.ActionDetail)
+            C_Container.ShowContainerSellCursor(self.ActionTarget, self.ActionDetail)
         elseif self._BagSlot_Readable then
             ShowInspectCursor()
         else

@@ -89,7 +89,7 @@ function OnEnable(self)
     _BagSlotMap[0]              = GetInventorySlotInfo("BackSlot")
 
     for i = 1, 11 do
-        _BagSlotMap[i]          = ContainerIDToInventoryID(i)
+        _BagSlotMap[i]          = C_Container.ContainerIDToInventoryID(i)
         tinsert(cache, _BagSlotMapTemplate:format(i, _BagSlotMap[i]))
     end
 
@@ -189,7 +189,7 @@ function handler:HasAction()
 end
 
 function handler:IsSearchOverlayShow()
-    return IsContainerFiltered(self.ActionTarget)
+    return C_Container.IsContainerFiltered(self.ActionTarget)
 end
 
 function handler:IsIconLocked()
@@ -208,7 +208,7 @@ function handler:GetActionCharges()
     if style == "Hidden" then
         return nil
     elseif style == "Empty" or style == "Total" then
-        local free, total       = GetContainerNumFreeSlots(self.ActionTarget), GetContainerNumSlots(self.ActionTarget)
+        local free, total       = C_Container.GetContainerNumFreeSlots(self.ActionTarget), C_Container.GetContainerNumSlots(self.ActionTarget)
         if style == "Empty" then
             return free, total
         else
@@ -217,12 +217,12 @@ function handler:GetActionCharges()
     elseif style == "AllEmpty" or style == "All" then
         if self.ActionTarget <= 4 then
             local sFree, sTotal, free, total, bagFamily = 0, 0
-            local _, tarFamily  = GetContainerNumFreeSlots(self.ActionTarget)
+            local _, tarFamily  = C_Container.GetContainerNumFreeSlots(self.ActionTarget)
             if not tarFamily then return nil end
 
             for i = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-                free, bagFamily = GetContainerNumFreeSlots(i)
-                total           = GetContainerNumSlots(i)
+                free, bagFamily = C_Container.GetContainerNumFreeSlots(i)
+                total           = C_Container.GetContainerNumSlots(i)
                 if bagFamily == tarFamily then
                     sFree       = sFree + free
                     sTotal      = sTotal + total
@@ -280,9 +280,9 @@ function handler:SetTooltip(tip)
                     end
                 end
             else
-                if (not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(target))) then
+                if (not IsInventoryItemProfessionBag("player", C_Container.ContainerIDToInventoryID(target))) then
                     for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
-                        if ( GetBagSlotFlag(target, i) ) then
+                        if ( C_Container.GetBagSlotFlag(target, i) ) then
                             tip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[i]))
                             break
                         end

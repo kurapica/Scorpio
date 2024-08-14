@@ -152,10 +152,10 @@ function UpdateMacroMap()
     local str                   = {}
     local cnt                   = 0
     local index                 = 1
-    local _, id                 = GetSpellBookItemInfo(index, SpellBookSpellBank.SPELL)
+    local _, id                 = GetSpellBookItemInfo(index, Enum.SpellBookSpellBank.SPELL)
 
     while id do
-        local name              = GetSpellInfo(id)
+        local name              = C_Spell.GetSpellName(id)
         if name and _MacroMap[id] ~= name then
             _MacroMap[id]       = name
             cnt                 = cnt + 1
@@ -163,7 +163,7 @@ function UpdateMacroMap()
         end
 
         index                   = index + 1
-        _, id                   = GetSpellBookItemInfo(index, SpellBookSpellBank.SPELL)
+        _, id                   = GetSpellBookItemInfo(index, Enum.SpellBookSpellBank.SPELL)
     end
 
     if cnt > 0 then
@@ -186,14 +186,14 @@ function UpdateProfession()
     for i = 1, 6 do
         if lst[i] then
             offset              = 1 + select(6, GetProfessionInfo(lst[i]))
-            spell               = select(2, GetSpellBookItemInfo(offset, SpellBookSpellBank.SPELL))
-            name                = GetSpellBookItemName(offset, SpellBookSpellBank.SPELL)
+            spell               = select(2, GetSpellBookItemInfo(offset, Enum.SpellBookSpellBank.SPELL))
+            name                = GetSpellBookItemName(offset, Enum.SpellBookSpellBank.SPELL)
 
             if _Profession[name] ~= spell then
                 _Profession[name] = spell
 
                 for _, btn in handler:GetIterator() do
-                    if GetSpellInfo(btn.ActionTarget) == name then
+                    if C_Spell.GetSpellInfo(btn.ActionTarget) == name then
                         btn:SetAction("spell", spell)
                     end
                 end
@@ -210,7 +210,7 @@ function handler:Refresh()
     if not target then return end
 
     if not _StanceMap[target] and not _MacroMap[target] then
-        local name              = GetSpellInfo(target)
+        local name              = C_Spell.GetSpellInfo(target)
         if name and _MacroMap[target] ~= name then
             _MacroMap[target]   = name
 
@@ -225,7 +225,7 @@ function handler:Refresh()
 end
 
 function handler:PickupAction(target)
-    return PickupSpell(target)
+    return C_Spell.PickupSpell(target)
 end
 
 function handler:GetActionTexture()
@@ -234,25 +234,25 @@ function handler:GetActionTexture()
     if _StanceMap[target] then
         return (GetShapeshiftFormInfo(_StanceMap[target]))
     elseif _MacroMap[target] then
-        return GetSpellTexture(_MacroMap[target])
+        return C_Spell.GetSpellTexture(_MacroMap[target])
     else
-        return GetSpellTexture(target)
+        return C_Spell.GetSpellTexture(target)
     end
 end
 
 function handler:GetActionCharges()
     local target                = self.ActionTarget
     if _MacroMap[target] then
-        return GetSpellCharges(_MacroMap[target])
+        return C_Spell.GetSpellCharges(_MacroMap[target])
     else
-        return GetSpellCharges(target)
+        return C_Spell.GetSpellCharges(target)
     end
 end
 
 function handler:GetActionCount()
     local target                = self.ActionTarget
     if _MacroMap[target] then
-        return GetSpellCount(_MacroMap[target])
+        return C_Spell.GetSpellCount(_MacroMap[target])
     end
 end
 
@@ -260,20 +260,20 @@ function handler:GetActionCooldown()
     local target                = self.ActionTarget
 
     if _StanceMap[target] then
-        if select(2, GetSpellCooldown(target)) > 2 then
-            return GetSpellCooldown(target)
+        if select(2, C_Spell.GetSpellCooldown(target)) > 2 then
+            return C_Spell.GetSpellCooldown(target)
         else
             return 0, 0
         end
     elseif _MacroMap[target] then
-        return GetSpellCooldown(_MacroMap[target])
+        return C_Spell.GetSpellCooldown(_MacroMap[target])
     else
-        return GetSpellCooldown(target)
+        return C_Spell.GetSpellCooldown(target)
     end
 end
 
 function handler:IsAttackAction()
-    return IsAttackSpell(GetSpellInfo(self.ActionTarget))
+    return IsAttackSpell(C_Spell.GetSpellInfo(self.ActionTarget))
 end
 
 function handler:IsActivedAction()
@@ -281,13 +281,13 @@ function handler:IsActivedAction()
     if _StanceMap[target] then
         return select(2, GetShapeshiftFormInfo(_StanceMap[target]))
     elseif _MacroMap[target] then
-        return IsCurrentSpell(_MacroMap[target])
+        return C_Spell.IsCurrentSpell(_MacroMap[target])
     end
 end
 
 function handler:IsAutoRepeatAction()
     local target                = _MacroMap[self.ActionTarget]
-    return target and IsAutoRepeatSpell(target)
+    return target and C_Spell.IsAutoRepeatSpell(target)
 end
 
 function handler:IsUsableAction()
@@ -296,7 +296,7 @@ function handler:IsUsableAction()
     if _StanceMap[target] then
         return select(3, GetShapeshiftFormInfo(_StanceMap[target]))
     elseif _MacroMap[target] then
-        return IsUsableSpell(_MacroMap[target])
+        return C_Spell.IsUsableSpell(_MacroMap[target])
     end
 end
 
@@ -308,7 +308,7 @@ end
 function handler:IsInRange()
     local target                = self.ActionTarget
     if not _StanceMap[target] and _MacroMap[target] then
-        local val               = IsSpellInRange(_MacroMap[target], self:GetAttribute("unit"))
+        local val               = C_Spell.IsSpellInRange(_MacroMap[target], self:GetAttribute("unit"))
         if val == 1 then return true end
         if val == 0 then return false end
         return val
@@ -332,12 +332,12 @@ function handler:Map(target, detail)
     if tonumber(target) then
         target                  = tonumber(target)
     else
-        target                  = GetSpellLink(target)
+        target                  = C_Spell.GetSpellLink(target)
         target                  = tonumber(target and target:match("spell:(%d+)"))
     end
 
-    if target and _Profession[GetSpellInfo(target)] then
-        target                  = _Profession[GetSpellInfo(target)]
+    if target and _Profession[C_Spell.GetSpellInfo(target)] then
+        target                  = _Profession[C_Spell.GetSpellInfo(target)]
     end
 
     return target, detail

@@ -69,7 +69,7 @@ function DelayRefreshIcon(self)
     if self.ActionType == "battlepet" then
         local target, icon      = self.ActionTarget
         if target == SUMMON_RANDOM_ID then
-            icon                = GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
+            icon                = C_Spell.GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
         else
             icon                = select(9, C_PetJournal.GetPetInfoByPetID(target))
         end
@@ -89,7 +89,7 @@ end
 function handler:GetActionTexture()
     local target, icon          = self.ActionTarget
     if target == SUMMON_RANDOM_ID then
-        icon                    = GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
+        icon                    = C_Spell.GetSpellTexture(SUMMON_RANDOM_FAVORITE_PET_SPELL)
     else
         icon                    = select(9, C_PetJournal.GetPetInfoByPetID(target))
     end

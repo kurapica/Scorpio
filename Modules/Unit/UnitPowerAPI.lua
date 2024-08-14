@@ -109,7 +109,7 @@ OnEnable                        = OnEnable + function ()
     elseif _PlayerClass == "HUNTER" then
 
     elseif _PlayerClass == "DEMONHUNTER" then
-        SOULFRAGMENTNAME        = GetSpellInfo(SOULFRAGMENT)
+        SOULFRAGMENTNAME        = C_Spell.GetSpellInfo(SOULFRAGMENT)
         _ClassPowerToken        = "DEMONHUNTER"
 
         while true do

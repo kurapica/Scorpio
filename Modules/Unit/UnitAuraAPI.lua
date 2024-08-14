@@ -28,14 +28,14 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
 
     local refreshAura, scanForUnit
 
-    if _G.UnitAuraSlots then
+    if C_UnitAuras.GetAuraSlots then
         function refreshAura(cache, unit, filter, auraIdx, continuationToken, ...)
             local singleSpellIDMap  = singleSpellID[filter]
             local singleSpellNameMap= singleSpellName[filter]
 
             for i = 1, select("#", ...) do
                 local slot          = select(i, ...)
-                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAuraBySlot(unit, slot)
+                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = C_UnitAuras.GetAuraDataBySlot(unit, slot)
 
                 if singleSpellIDMap[spellId] then
                     cache[spellId]  = auraIdx
@@ -48,11 +48,11 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
                 auraIdx             = auraIdx + 1
             end
 
-            return continuationToken and refreshAura(cache, unit, filter, auraIdx, UnitAuraSlots(unit, filter, 16, continuationToken))
+            return continuationToken and refreshAura(cache, unit, filter, auraIdx, C_UnitAuras.GetAuraSlots(unit, filter, 16, continuationToken))
         end
 
         function scanForUnit(cache, unit, filter)
-            return refreshAura(cache, unit, filter, 1, UnitAuraSlots(unit, filter, 16))
+            return refreshAura(cache, unit, filter, 1, C_UnitAuras.GetAuraSlots(unit, filter, 16))
         end
     else
         function scanForUnit(cache, unit, filter)
@@ -60,7 +60,7 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
             local singleSpellNameMap= singleSpellName[filter]
 
             local auraIdx           = 1
-            local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAura(unit, auraIdx, filter)
+            local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = C_UnitAuras.GetAuraDataByIndex(unit, auraIdx, filter)
 
             while name do
                 if singleSpellIDMap[spellId] then
@@ -72,7 +72,7 @@ __Final__() interface "UnitAuraPredicate" (function(_ENV)
                 end
 
                 auraIdx             = auraIdx + 1
-                name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAura(unit, auraIdx, filter)
+                name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = C_UnitAuras.GetAuraDataByIndex(unit, auraIdx, filter)
             end
         end
     end
@@ -225,7 +225,7 @@ Wow.UnitAura                    = UnitAuraPredicate.PredicateUnitAura
 if not Scorpio.IsClassic then return end
 
 --- Try Get LibClassicDurations
-pcall(LoadAddOn, "LibClassicDurations")
+pcall(C_AddOns.LoadAddOn, "LibClassicDurations")
 
 local ok, LibClassicDurations   = pcall(_G.LibStub, "LibClassicDurations")
 if not (ok and LibClassicDurations) then return end

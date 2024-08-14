@@ -2096,7 +2096,7 @@ PLoop(function(_ENV)
             function AttachAttribute(self, target, targettype, owner, name, stack)
                 if Class.IsObjectType(owner, Scorpio) then
                     local addon = self.Addon
-                    if IsAddOnLoaded(addon) then
+                    if C_AddOns.IsAddOnLoaded(addon) then
                         owner:SecureHook(self.Target, self.TargetFunc or name, target)
                     else
                         local targetTbl = self.Target

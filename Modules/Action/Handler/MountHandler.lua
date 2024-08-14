@@ -110,7 +110,7 @@ function DelayRefreshIcon(self)
     if self.ActionType == "mount" then
         local target, icon      = self.ActionTarget
         if target == SUMMON_RANDOM_ID then
-            icon                = GetSpellTexture(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
+            icon                = C_Spell.GetSpellTexture(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
         else
             icon                = (select(3, GetMountInfoByID(target)))
         end
@@ -137,7 +137,7 @@ end
 function handler:GetActionTexture()
     local target, icon          = self.ActionTarget
     if target == SUMMON_RANDOM_ID then
-        icon                    = GetSpellTexture(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
+        icon                    = C_Spell.GetSpellTexture(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
     else
         icon                    = (select(3, GetMountInfoByID(target)))
     end
@@ -158,7 +158,7 @@ end
 
 function handler:IsUsableAction()
     local target                = self.ActionTarget
-    local canSummon             = not InCombatLockdown() and IsUsableSpell(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
+    local canSummon             = not InCombatLockdown() and C_Spell.IsUsableSpell(SUMMON_RANDOM_FAVORITE_MOUNT_SPELL)
     if target == SUMMON_RANDOM_ID then
         return canSummon
     else

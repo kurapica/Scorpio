@@ -344,7 +344,7 @@ function UnitCastingInfo(unit)
     if guid == _PlayerGUID then
         if _IsCastAutoShot then
             if CastingInfo() then return CastingInfo() end
-            local name, _, texture = GetSpellInfo(HUNTER_AUTO)
+            local name, _, texture = C_Spell.GetSpellInfo(HUNTER_AUTO)
             return name, _, texture, _AutoStart, _AutoEnd, nil, _AutoLine
         end
         return CastingInfo()
@@ -352,7 +352,7 @@ function UnitCastingInfo(unit)
 
     local info                  = _CastingInfo[guid]
     if info and info.endtime then
-        return info.spellName, "", select(3, GetSpellInfo(info.spellName)), info.start, info.endtime, nil, info.LineID
+        return info.spellName, "", select(3, C_Spell.GetSpellInfo(info.spellName)), info.start, info.endtime, nil, info.LineID
     end
 end
 

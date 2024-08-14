@@ -328,7 +328,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
             return Wow.FromUnitEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_AURA"):Next():Map(function(unit)
                 local index     = 1
                 repeat
-                    local n, _, _, d = UnitAura(unit, index, "HARMFUL")
+                    local n, _, _, d = C_UnitAuras.GetAuraDataByIndex(unit, index, "HARMFUL")
                     local color = _DISPELLABLE[d]
                     if color then return color end
                     index       = index + 1
@@ -374,7 +374,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
             return Wow.FromUnitEvent("UNIT_AURA"):Next():Map(function(unit)
                 local index     = 1
                 repeat
-                    local n, _, _, d = UnitAura(unit, index, "HARMFUL")
+                    local n, _, _, d = C_UnitAuras.GetAuraDataByIndex(unit, index, "HARMFUL")
                     local color = _DISPELLABLE[d]
                     if color then return color end
                     index       = index + 1
@@ -415,7 +415,7 @@ if not Scorpio.IsWLK then return end
 _Parent.UnitGetIncomingHeals    = _G.UnitGetIncomingHeals    or Toolset.fakefunc
 
 --- Try Get LibHealComm
-pcall(LoadAddOn, "LibHealComm-4.0")
+pcall(C_AddOns.LoadAddOn, "LibHealComm-4.0")
 
 local ok, LibHealComm           = pcall(_G.LibStub, "LibHealComm-4.0")
 if not (ok and LibHealComm) then return end

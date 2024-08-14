@@ -23,7 +23,7 @@ do
             parse               = function (spell)
                 if (type(spell) == "string" or type(spell) == "number") then
                     -- Only keep spell id
-                    local name, _, _, _, _, _, spellId = GetSpellInfo(spell)
+                    local name, _, _, _, _, _, spellId = C_Spell.GetSpellInfo(spell)
                     if name then return spellId, IsHarmfulSpell(name) end
                 end
 
@@ -31,16 +31,16 @@ do
             end,
             content             = "spell",
             tranMacro           = Scorpio.IsRetail and function (spell, with)
-                if GetSpellInfo(spell) then
-                    return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell))
+                if C_Spell.GetSpellInfo(spell) then
+                    return ("/%s %%unit\n/cast %s"):format(with, C_Spell.GetSpellInfo(spell))
                 end
             end or function (spell, with)
-                if GetSpellInfo(spell) then
-                    local sub   = GetSpellSubtext(spell)
+                if C_Spell.GetSpellInfo(spell) then
+                    local sub   = C_Spell.GetSpellSubtext(spell)
                     if sub and sub ~= "" then
-                        return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell).."("..sub..")")
+                        return ("/%s %%unit\n/cast %s"):format(with, C_Spell.GetSpellInfo(spell).."("..sub..")")
                     else
-                        return ("/%s %%unit\n/cast %s"):format(with, GetSpellInfo(spell))
+                        return ("/%s %%unit\n/cast %s"):format(with, C_Spell.GetSpellInfo(spell))
                     end
                 end
             end
@@ -74,16 +74,16 @@ do
         Item                    = {
             type                = "item",
             parse               = function (item)
-                if (type(item) == "string" or type(item) == "number") and GetItemInfo(item) then
-                    return tonumber(select(GetItemInfo(item), 2):match('item:(%d+)'))
+                if (type(item) == "string" or type(item) == "number") and C_Spell.GetItemInfo(item) then
+                    return tonumber(select(C_Spell.GetItemInfo(item), 2):match('item:(%d+)'))
                 end
 
                 error("Invalid item|id|link", 3)
             end,
             content             = "item",
             tranMacro           = function (item, with)
-                if GetItemInfo(item) then
-                    return ("/%s %%unit\n/use %s"):format(with, GetItemInfo(item))
+                if C_Spell.GetItemInfo(item) then
+                    return ("/%s %%unit\n/use %s"):format(with, C_Spell.GetItemInfo(item))
                 end
             end
         },
