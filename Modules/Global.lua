@@ -26,6 +26,10 @@ interface "DeprecatedApi"       (function(_ENV)
 
     if version and version >= 110000 then
         local originGetSpellBookItemInfo = _G.C_SpellBook.GetSpellBookItemInfo
+        local originGetSpellInfo         = _G.C_Spell.GetSpellInfo
+        local GetSpellBookSkillLineInfo  = _G.C_SpellBook.GetSpellBookSkillLineInfo
+        local originGetSpellCooldown     = _G.C_Spell.GetSpellCooldown
+        local originUnitAura             = _G.C_UnitAuras.GetAuraDataByIndex
 
         function GetMouseFocus()
             local ret           = GetMouseFoci()
@@ -42,6 +46,36 @@ interface "DeprecatedApi"       (function(_ENV)
         IsHarmfulSpell          = _G.C_Spell.IsSpellHarmful
         IsHelpfulSpell          = _G.C_Spell.IsSpellHelpful
         IsPassiveSpell          = _G.C_Spell.IsSpellPassive
+
+        UnitAura                = function(...)
+            local aura          = originUnitAura(...)
+            if aura then
+                return aura.name, aura.icon, aura.charges, aura.dispelName, aura.duration, aura.expirationTime, aura.sourceUnit, aura.isStealable, aura.nameplateShowPersonal, aura.spellId, aura.canApplyAura, aura.isBossAura, aura.isFromPlayerOrPlayerPet, aura.nameplateShowAll, aura.timeMod
+            end
+        end
+
+        GetNumSpellTabs         = _G.C_SpellBook.GetNumSpellBookSkillLines
+        GetSpellCount           = _G.C_Spell.GetSpellCastCount
+        IsUsableSpell           = _G.C_Spell.IsSpellUsable
+
+        GetSpellInfo            = _G.GetSpellInfo or function(id)
+            local info          = originGetSpellInfo(id)
+            if info then
+                return info.name, nil, info.iconID, info.castTime, info.minRange, info.maxRange, info.spellID, info.originalIconID
+            end
+        end
+        GetSpellTabInfo         = function(i)
+            local info          = GetSpellBookSkillLineInfo(i)
+            if info then
+                return info.name, info.iconID, info.itemIndexOffset, info.numSpellBookItems, info.isGuild, info.offSpecID
+            end
+        end
+        GetSpellCooldown        = function(id)
+            local info          = originGetSpellCooldown(id)
+            if info then
+                return info.startTime, info.duration, info.isEnabled and 1 or 0, info.modRate
+            end
+        end
     end
 
     ------------------------------------------------------------
