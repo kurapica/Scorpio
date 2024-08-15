@@ -50,7 +50,7 @@ interface "DeprecatedApi"       (function(_ENV)
         UnitAura                = function(...)
             local aura          = originUnitAura(...)
             if aura then
-                return aura.name, aura.icon, aura.charges, aura.dispelName, aura.duration, aura.expirationTime, aura.sourceUnit, aura.isStealable, aura.nameplateShowPersonal, aura.spellId, aura.canApplyAura, aura.isBossAura, aura.isFromPlayerOrPlayerPet, aura.nameplateShowAll, aura.timeMod
+                return aura.name, aura.icon, aura.applications, aura.dispelName, aura.duration, aura.expirationTime, aura.sourceUnit, aura.isStealable, aura.nameplateShowPersonal, aura.spellId, aura.canApplyAura, aura.isBossAura, aura.isFromPlayerOrPlayerPet, aura.nameplateShowAll, aura.timeMod, unpack(aura.points)
             end
         end
 
