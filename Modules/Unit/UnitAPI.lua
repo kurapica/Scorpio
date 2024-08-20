@@ -55,6 +55,16 @@ function Wow.UnitName(withServer)
 end
 
 __Static__() __AutoCache__()
+function Wow.UnitOwnerName(withServer)
+    return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(
+        function(unit)
+            unit                = unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
+            return unit and GetUnitName(unit, withServer)
+        end
+    )
+end
+
+__Static__() __AutoCache__()
 function Wow.UnitColor()
     return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(function(unit)
         local _, cls            = UnitClass(unit)
