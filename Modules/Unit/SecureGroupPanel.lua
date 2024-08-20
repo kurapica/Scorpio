@@ -145,7 +145,7 @@ class "SecureGroupPanel" (function(_ENV)
                 end
             ]])
 
-            Manager:SetAttribute("updateStateForChild", [[
+            Manager:SetAttribute("updateDeadStateForChild", [[
                 local id        = ...
 
                 if id then
@@ -161,13 +161,35 @@ class "SecureGroupPanel" (function(_ENV)
                 end
             ]])
 
+            Manager:SetAttribute("updateVehicleStateForChild", [[
+                local id        = ...
+
+                if id then
+                    local shadow= ShadowFrames[id]
+                    local unit  = shadow:GetAttribute("unit")
+
+                    UnregisterAttributeDriver(shadow, "invehicle")
+                    shadow:SetAttribute("invehicle", nil)
+
+                    if unit then
+                        RegisterAttributeDriver(shadow, "invehicle", format("[@%s,unithasvehicleui]true;false;", unit))
+                    end
+                end
+            ]])
+
             Manager:SetAttribute("refreshUnitFrames", [[
                 local count     = #ShadowFrames
+                local vehicle   = Manager:GetAttribute("showVehicle")
+
                 for i = 1, count do
                     local frm   = UnitFrames[i]
                     if not frm then return end
 
-                    frm:SetAttribute("unit", ShadowFrames[i]:GetAttribute("unit"))
+                    local unit  = ShadowFrames[i]:GetAttribute("unit")
+                    if unit and vehicle and UnitHasVehicleUI(unit) then
+                        unit    = gsub(gsub(unit, "^[pP][lL][aA][yY][eE][rR]", "pet"), "^([%a]+)([%d]+)", "%1pet%2")
+                    end
+                    frm:SetAttribute("unit", unit)
                 end
 
                 for i = count + 1, #UnitFrames do
@@ -183,8 +205,11 @@ class "SecureGroupPanel" (function(_ENV)
                 local manager   = self:GetAttribute("Manager")
                 if manager:GetAttribute("showDeadOnly") then
                     manager:RunAttribute("removeDeadPlayer", self:GetID())
-                    manager:RunAttribute("updateStateForChild", self:GetID())
+                    manager:RunAttribute("updateDeadStateForChild", self:GetID())
                 else
+                    if manager:GetAttribute("showVehicle") then
+                        manager:RunAttribute("updateVehicleStateForChild", self:GetID())
+                    end
                     manager:RunAttribute("onShadowUnitChanged", self:GetID(), self:GetAttribute("unit"))
                 end
             ]]
@@ -202,8 +227,11 @@ class "SecureGroupPanel" (function(_ENV)
 
                 if manager:GetAttribute("showDeadOnly") then
                     manager:RunAttribute("removeDeadPlayer", self:GetID())
-                    manager:RunAttribute("updateStateForChild", self:GetID())
+                    manager:RunAttribute("updateDeadStateForChild", self:GetID())
                 else
+                    if manager:GetAttribute("showVehicle") then
+                        manager:RunAttribute("updateVehicleStateForChild", self:GetID())
+                    end
                     manager:RunAttribute("onShadowUnitChanged", self:GetID(), value)
                 end
             elseif name == "isdead" then
@@ -212,6 +240,8 @@ class "SecureGroupPanel" (function(_ENV)
                 else
                     self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
                 end
+            elseif name == "invehicle" then
+                manager:RunAttribute("onShadowUnitChanged", self:GetID())
             end
         ]]
 
@@ -281,7 +311,7 @@ class "SecureGroupPanel" (function(_ENV)
                 end
 
                 for i = 1, #ShadowFrames do
-                    self:RunAttribute("updateStateForChild", i)
+                    self:RunAttribute("updateDeadStateForChild", i)
                 end
             else
                 wipe(DeadFrames)
@@ -301,6 +331,19 @@ class "SecureGroupPanel" (function(_ENV)
                     UnitFrames[i]:SetAttribute("unit", nil)
                 end
             end
+        ]]
+
+        _ToggleShowVehicle      = [[
+            if self:GetAttribute("showVehicle") then
+                for i = 1, #ShadowFrames do
+                    self:RunAttribute("updateVehicleStateForChild", i)
+                end
+            else
+                for i = 1, #ShadowFrames do
+                    UnregisterAttributeDriver(ShadowFrames[i], "invehicle")
+                end
+            end
+            self:RunAttribute("onShadowUnitChanged", self:GetID())
         ]]
 
         ------------------------------------------------------
@@ -368,6 +411,22 @@ class "SecureGroupPanel" (function(_ENV)
             return self:GetAttribute("showDeadOnly") and true or false
         end
 
+        -- Set show the vehicle instead of players
+        __NoCombat__()
+        function SetShowVehicle(self, flag)
+            flag                = flag and true or false
+
+            if flag ~= self:IsShowVehicle() then
+                self:SetAttribute("showVehicle", flag)
+                self:Execute(_ToggleShowVehicle)
+            end
+        end
+
+        -- Whether show the vehicle instead of players
+        function IsShowVehicle(self)
+            return self:GetAttribute("showVehicle") and true or false
+        end
+
         ------------------------------------------------------
         -- Property
         ------------------------------------------------------
@@ -375,6 +434,13 @@ class "SecureGroupPanel" (function(_ENV)
         property "ShowDeadOnly" {
             get                 = IsShowDeadOnly,
             set                 = SetShowDeadOnly,
+            type                = Boolean,
+        }
+
+        -- Whether show the vehicle instead of player
+        property "ShowVehicle"  {
+            get                 = IsShowVehicle,
+            set                 = SetShowVehicle,
             type                = Boolean,
         }
 
@@ -576,6 +642,14 @@ class "SecureGroupPanel" (function(_ENV)
         set                     = function(self, value) self.GroupHeader.ShowDeadOnly = value end,
         type                    = Boolean,
     }
+
+    -- Whether show the vehicle instead of player
+    property "ShowVehicle"  {
+        get                 = function(self) return self.GroupHeader.ShowVehicle end,
+        set                 = function(self, value) self.GroupHeader.ShowVehicle = value end,
+        type                = Boolean,
+    }
+
 
     ------------------------------------------------------
     -- Event Handler
