@@ -73,6 +73,15 @@ function Wow.UnitColor()
 end
 
 __Static__() __AutoCache__()
+function Wow.UnitOwnerColor()
+    return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(function(unit)
+        unit                    = unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
+        local _, cls            = UnitClass(unit)
+        return Color[cls or "PALADIN"]
+    end)
+end
+
+__Static__() __AutoCache__()
 function Wow.UnitExtendColor(withThreat)
     local scolor                = Color(1, 1, 1)
     return Wow.FromUnitEvent("UNIT_FACTION", "UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
