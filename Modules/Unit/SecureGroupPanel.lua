@@ -182,11 +182,12 @@ class "SecureGroupPanel" (function(_ENV)
                 local vehicle   = Manager:GetAttribute("showVehicle")
 
                 for i = 1, count do
+                    local shd   = ShadowFrames[i]
                     local frm   = UnitFrames[i]
                     if not frm then return end
 
-                    local unit  = ShadowFrames[i]:GetAttribute("unit")
-                    if unit and vehicle and UnitHasVehicleUI(unit) then
+                    local unit  = shd:GetAttribute("unit")
+                    if unit and vehicle and shd:GetAttribute("invehicle") then
                         unit    = gsub(gsub(unit, "^[pP][lL][aA][yY][eE][rR]", "pet"), "^([%a]+)([%d]+)", "%1pet%2")
                     end
                     frm:SetAttribute("unit", unit)
