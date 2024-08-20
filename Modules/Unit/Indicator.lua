@@ -845,7 +845,7 @@ Style.UpdateSkin("Default",     {
     },
     [RoleIcon]                  = {
         file                    = [[Interface\LFGFrame\UI-LFG-ICON-PORTRAITROLES]],
-        texCoords               = Wow.UnitRole():Map(function(role)
+        texCoords               = Wow.UnitOwnerRole():Map(function(role)
             if role and role ~= "NONE" then
                 local left, right, top, bottom = GetTexCoordsForRoleSmallCircle(role)
 

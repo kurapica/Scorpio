@@ -19,6 +19,11 @@ import "System.Toolset"
 ------------------------------------------------------------
 local _UnitNameSubject          = Subject()
 local _UnitTimerSubject         = Subject()
+local GetUnitOwner              = function(unit)
+    return unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
+end
+
+Wow.GetUnitOwner                = GetUnitOwner
 
 -- Use service so this can be recover from errors
 __Service__(true)
@@ -46,7 +51,7 @@ end
 
 __Static__()
 function Wow.UnitOwner()
-    return Wow.FromUnitEvent():Map(function(unit) return unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil end)
+    return Wow.FromUnitEvent():Map(GetUnitOwner)
 end
 
 __Static__() __AutoCache__()
@@ -61,12 +66,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitOwnerName(withServer)
-    return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(
-        function(unit)
-            unit                = unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
-            return unit and GetUnitName(unit, withServer)
-        end
-    )
+    return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(function(unit) return GetUnitName(GetUnitOwner(unit), withServer) end)
 end
 
 __Static__() __AutoCache__()
@@ -80,8 +80,7 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitOwnerColor()
     return Wow.FromUnitEvent(_UnitNameSubject):Next():Map(function(unit)
-        unit                    = unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
-        local _, cls            = UnitClass(unit)
+        local _, cls            = UnitClass(GetUnitOwner(unit))
         return Color[cls or "PALADIN"]
     end)
 end
@@ -264,6 +263,11 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitRole()
     return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED"):Map("=>'any'")):Map(UnitGroupRolesAssigned or Toolset.fakefunc)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitOwnerRole()
+    return Wow.FromUnitEvent(Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED"):Map("=>'any'")):Map(GetUnitOwner):Map(UnitGroupRolesAssigned or Toolset.fakefunc)
 end
 
 __Static__() __AutoCache__()
