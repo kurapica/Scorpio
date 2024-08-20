@@ -241,7 +241,7 @@ class "SecureGroupPanel" (function(_ENV)
                     self:GetAttribute("Manager"):RunAttribute("removeDeadPlayer", self:GetID())
                 end
             elseif name == "invehicle" then
-                manager:RunAttribute("onShadowUnitChanged", self:GetID())
+                self:GetAttribute("Manager"):RunAttribute("onShadowUnitChanged", self:GetID())
             end
         ]]
 
