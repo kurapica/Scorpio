@@ -289,6 +289,14 @@ function Wow.UnitInRange()
     end)
 end
 
+__Static__() __AutoCache__()
+function Wow.UnitOwnerInRange()
+    return Wow.UnitTimer():Map(function(unit)
+        unit                    = GetUnitOwner(unit)
+        return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit))
+    end)
+end
+
 ------------------------------------------------------------
 --                      READY CHECK                       --
 ------------------------------------------------------------
