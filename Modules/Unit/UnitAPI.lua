@@ -44,6 +44,11 @@ function Wow.Unit()
     return Wow.FromUnitEvent()
 end
 
+__Static__()
+function Wow.UnitOwner()
+    return Wow.FromUnitEvent():Map(function(unit) return unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil end)
+end
+
 __Static__() __AutoCache__()
 function Wow.UnitTimer()
     return Wow.FromUnitEvent(_UnitTimerSubject)
