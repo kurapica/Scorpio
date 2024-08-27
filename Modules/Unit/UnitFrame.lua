@@ -757,7 +757,7 @@ class "UnitFrame" (function(_ENV)
     end
 
     local function OnLeave(self)
-        GameTooltip:FadeOut()
+        GameTooltip:Hide()
     end
 
     ------------------------------------------------------
