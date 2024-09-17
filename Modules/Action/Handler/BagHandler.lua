@@ -274,9 +274,10 @@ function handler:SetTooltip(tip)
             end
             if Scorpio.IsRetail then
                 if ContainerFrame_CanContainerUseFilterMenu(target) then
-                    local filterFlag = ContainerFrameSettingsManager:GetFilterFlag(target);
-                    if filterFlag then
-                        GameTooltip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[filterFlag]));
+                    local filterList = ContainerFrameSettingsManager:GenerateFilterList(target)
+                    if filterList then
+                        local wrapText = true;
+                        GameTooltip_AddNormalLine(GameTooltip, BAG_FILTER_ASSIGNED_TO:format(filterList), wrapText);
                     end
                 end
             else

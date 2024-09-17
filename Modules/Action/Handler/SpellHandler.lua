@@ -141,7 +141,7 @@ function UpdateStanceMap()
         for _, btn in handler:GetIterator() do
             if _StanceMap[btn.ActionTarget] then
                 btn:SetAttribute("*type*", "click")
-                Manager:BindProxyClick(btn:GetName(), "StanceButton" .. _StanceMap[btn.ActionTarget])
+                handler.Manager:BindProxyClick(btn:GetName(), "StanceButton" .. _StanceMap[btn.ActionTarget])
             end
         end
     end
@@ -180,6 +180,8 @@ end
 
 __NoCombat__()
 function UpdateProfession()
+    if true then return end -- seems no need to do
+
     local lst                   = { GetProfessions() }
     local offset, spell, name
 
