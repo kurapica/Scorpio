@@ -578,7 +578,7 @@ class "InputBox"                (function(_ENV)
         self.OnTextChanged:SetInitFunction(OnTextChangedFix)
 
         if self:IsNumeric() then
-            local orgVal    = self:GetText()
+            --[[local orgVal    = self:GetText()
             local rval      = (tonumber(orgVal or 0) or 0) + 111111
             self:SetNumber(rval)
             rval            = self:GetNumber()
@@ -587,7 +587,7 @@ class "InputBox"                (function(_ENV)
 
             if self:IsNumeric() and self:GetNumber() == rval then
                 self:SetNumber(orgVal or "")
-            end
+            end--]]
         else
             local orgText   = self:GetText() or ""
             local rtext     = Guid.New()
