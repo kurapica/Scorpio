@@ -117,6 +117,7 @@ if _G.C_ToyBox then
 
     __Async__()
     function UpdateToys()
+        if not rawget(_M, "ToyData") then return end
         local cache                 = {}
 
         if not next(_ToyFilter) then
