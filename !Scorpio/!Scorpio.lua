@@ -1,1 +1,1 @@
-(C_AddOns.LoadAddOn or LoadAddOn)("Scorpio")
+(C_AddOns and C_AddOns.LoadAddOn or LoadAddOn)("Scorpio")
