@@ -1,0 +1,9 @@
+## Interface: 11503
+## Title: [Lib] Scorpio Loader
+## Author: kurapica125@outlook.com
+## Version: 1
+## Notes: Scorpio Addon FrameWork Pre-Loader
+## DefaultState: Enabled
+## LoadOnDemand: 0
+
+!Scorpio.lua

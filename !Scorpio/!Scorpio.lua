@@ -1,0 +1,1 @@
+(C_AddOns.LoadAddOn or LoadAddOn)("Scorpio")

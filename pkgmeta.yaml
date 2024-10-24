@@ -5,3 +5,6 @@ manual-changelog: changelog.txt
 
 ignore:
   - Docs
+
+move-folders:
+  Scorpio/!Scorpio: !Scorpio

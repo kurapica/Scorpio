@@ -1,0 +1,14 @@
+## Interface: 110005
+## Interface-Retail: 110005
+## Interface-Classic: 11503
+## Interface-BCC: 20504
+## Interface-Wrath: 30403
+## Interface-Cata: 40400
+## Title: [Lib] Scorpio Loader
+## Author: kurapica125@outlook.com
+## Version: 1
+## Notes: Scorpio Addon FrameWork Pre-Loader
+## DefaultState: Enabled
+## LoadOnDemand: 0
+
+!Scorpio.lua
