@@ -2,5 +2,8 @@ package-as: Scorpio
 
 manual-changelog: changelog.txt
 
+move-folders:
+  Scorpio/!Scorpio: !Scorpio
+
 ignore:
   - Docs
