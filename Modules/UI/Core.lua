@@ -905,6 +905,7 @@ class "UIObject"(function(_ENV)
     end
 
     --- Gets the child with the given name
+    __Final__()
     function GetChild(self, name)
         if name == 0 then return end
 
