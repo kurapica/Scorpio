@@ -1170,15 +1170,17 @@ do
         return handler and handler:PickupAction(target, detail)
     end
 
-    function PreClick(self)
+    function PreClick(self, button, down)
+        if (self:GetAttribute("registeredclicks") or ""):match("down") and not down then return end
+
         local oldKind           = self:GetAttribute("actiontype")
         if InCombatLockdown() or (oldKind and _IFActionTypeHandler[oldKind].ReceiveStyle ~= "Clear") then return end
 
-        local kind, value       = GetCursorInfo()
+        local kind, value, subtype, detail = GetCursorInfo()
         if not (kind and value) then return end
 
         self.__IFActionHandler_PreType  = self:GetAttribute("type")
-        self.__IFActionHandler_PreMsg   = true
+        self.__IFActionHandler_PreMsg   = { kind, value, subtype, detail }
 
         -- Make sure no action used
         self:SetAttribute("type", nil)
@@ -1194,7 +1196,7 @@ do
                     self:SetAttribute("type", self.__IFActionHandler_PreType)
                 end
 
-                local kind, value, subtype, detail = GetCursorInfo()
+                local kind, value, subtype, detail = unpack(self.__IFActionHandler_PreMsg)
 
                 if kind and value and _ReceiveMap[kind] then
                     local oldName   = self.__IFActionHandler_Kind
