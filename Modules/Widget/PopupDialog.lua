@@ -866,3 +866,14 @@ function Scorpio.PickMacroCondition(message, func)
     local value                 = queuePopup(POPUP_TYPE_MACROCONDITION, message, func)
     return value
 end
+
+__Static__()
+function Scorpio.CloseCurrentDialog()
+    if _CurrentPopup then
+        if _CurrentPopup.OnCancel then
+            _CurrentPopup:OnCancel()
+        else
+            _CurrentPopup:OnConfirm()
+        end
+    end
+end
