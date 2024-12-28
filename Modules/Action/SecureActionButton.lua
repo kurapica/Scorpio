@@ -234,19 +234,21 @@ if Scorpio.IsRetail then
     __SystemEvent__()
     function CVAR_UPDATE(name, value)
         if name == "ActionButtonUseKeyDown" then
-            if tonumber(value) == 1 then
-                for kind, handler in pairs(_IFActionTypeHandler) do
-                    for _, button in handler:GetIterator() do
-                        button:RegisterForClicks("AnyUp", "AnyDown")
+            NoCombat(function()
+                if tonumber(value) == 1 then
+                    for kind, handler in pairs(_IFActionTypeHandler) do
+                        for _, button in handler:GetIterator() do
+                            button:RegisterForClicks("AnyUp", "AnyDown")
+                        end
+                    end
+                else
+                    for kind, handler in pairs(_IFActionTypeHandler) do
+                        for _, button in handler:GetIterator() do
+                            button:RegisterForClicks("AnyUp")
+                        end
                     end
                 end
-            else
-                for kind, handler in pairs(_IFActionTypeHandler) do
-                    for _, button in handler:GetIterator() do
-                        button:RegisterForClicks("AnyUp")
-                    end
-                end
-            end
+            end)
         end
     end
 end
@@ -1121,7 +1123,7 @@ do
     _WrapClickPrev              = [[
         local name              = self:GetAttribute("actiontype")
 
-        if _PreClickSnippet[name] then
+        if _PreClickSnippet[name] and (not (self:GetAttribute("registeredclicks") or ""):match("down") or down) then
             return Manager:RunFor(self, _PreClickSnippet[name], button, down)
         end
     ]]
@@ -1334,6 +1336,7 @@ class "SecureActionButton" (function(_ENV)
     export {
         GetRawUI                = UI.GetRawUI,
         IsObjectType            = Class.IsObjectType,
+        concat                  = table.concat,
     }
 
     local _KeyBindingMask       = Mask("Scorpio_SecureActionButton_KeyBindingMask")
@@ -1362,6 +1365,8 @@ class "SecureActionButton" (function(_ENV)
             ClearOverrideBindings(GetRawUI(self))
         end
     end
+
+    local registerForClicks     = Button.RegisterForClicks
 
     ------------------------------------------------------
     --                 Static Property                  --
@@ -1609,6 +1614,13 @@ class "SecureActionButton" (function(_ENV)
     --- Get action for the actionbutton
     function GetAction(self)
         return self.ActionType, self.ActionTarget, self.ActionDetail
+    end
+
+    --- Register for clicks
+    __NoCombat__()
+    function RegisterForClicks(self, ...)
+        registerForClicks(self, ...)
+        self:SetAttribute("registeredclicks", concat({...}, ","):lower())
     end
 
     --- Be called when the action content is changed
