@@ -24,17 +24,19 @@ interface "DeprecatedApi"       (function(_ENV)
     GetSpecialization           = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
     IsWarModeDesired            = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
 
+    if not _G.GetMouseFocus then
+        function GetMouseFocus()
+            local ret           = GetMouseFoci()
+            return ret and ret[1]
+        end
+    end
+
     if version and version >= 110000 then
         local originGetSpellBookItemInfo = _G.C_SpellBook.GetSpellBookItemInfo
         local originGetSpellInfo         = _G.C_Spell.GetSpellInfo
         local GetSpellBookSkillLineInfo  = _G.C_SpellBook.GetSpellBookSkillLineInfo
         local originGetSpellCooldown     = _G.C_Spell.GetSpellCooldown
         local originUnitAura             = _G.C_UnitAuras.GetAuraDataByIndex
-
-        function GetMouseFocus()
-            local ret           = GetMouseFoci()
-            return ret and ret[1]
-        end
 
         function GetSpellBookItemInfo(index, bank)
             local info          = originGetSpellBookItemInfo(index, bank)
