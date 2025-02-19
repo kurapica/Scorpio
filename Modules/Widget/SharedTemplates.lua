@@ -308,6 +308,7 @@ class "Mask"                    (function(_ENV)
                 self.BindingKey = nil
                 return OnKeyClear(self, oldKey)
             end
+            return
         end
 
         -- Remap mouse key
