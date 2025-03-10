@@ -116,7 +116,7 @@ interface "IConfigSubjectHandler" (function(_ENV)
         self.ConfigSubject      = configSubject
 
         if self.__IConfigSubjectObserver then
-            self.__IConfigSubjectObserver:Unsubscribe()
+            self.__IConfigSubjectObserver:Dispose()
             self.__IConfigSubjectObserver = nil
         end
         if not configSubject then return end

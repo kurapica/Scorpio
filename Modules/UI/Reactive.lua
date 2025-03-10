@@ -22,7 +22,7 @@ local getFeature                = Class.GetFeature
 __Static__() __Arguments__{ NEString * 1 }
 function Wow.FromUIProperty(...)
     local name                  = select("#", ...) == 1 and select(1, ...) or { ... }
-    return Observable(function(observer)
+    return Observable(function(observer, subscription)
         local indicator         = getCurrentTarget()
 
         if indicator and isUIObject(indicator) then
@@ -64,7 +64,7 @@ end
 __Static__() __Arguments__{ NEString * 1 }
 function Wow.FromPanelProperty(...)
     local name                  = select("#", ...) == 1 and select(1, ...) or { ... }
-    return Observable(function(observer)
+    return Observable(function(observer, subscription)
         local indicator         = getCurrentTarget()
 
         if indicator and isUIObject(indicator) then
@@ -145,7 +145,7 @@ end
 __Arguments__{ -UIObject, IObservable + String }
 __Static__()
 function Wow.GetFrameByType(ftype, observable)
-    return Observable(function(observer)
+    return Observable(function(observer, subscription)
         local feature
 
         if type(observable) == "string" then
@@ -208,7 +208,7 @@ end
 __Arguments__{ IObservable + String }
 __Static__()
 function Wow.GetFrame(observable)
-    return Observable(function(observer)
+    return Observable(function(observer, subscription)
         local frame             = getCurrentTarget()
         local subject
 

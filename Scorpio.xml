@@ -13,6 +13,7 @@
     <Script file="PLoop\System\Date.lua"/>
     <Script file="PLoop\System\Logger.lua"/>
     <Script file="PLoop\System\Recycle.lua"/>
+    <Script file="PLoop\System\ValueWrapper.lua"/>
 
     <!--System.Collections-->
     <Script file="PLoop\System\Collections\List.lua"/>
@@ -21,6 +22,10 @@
     <Script file="PLoop\System\Collections\IIndexedListSorter.lua"/>
     <Script file="PLoop\System\Collections\Array.lua"/>
     <Script file="PLoop\System\Collections\Queue.lua"/>
+    <Script file="PLoop\System\Collections\Range.lua"/>
+
+    <!-- System.Threading -->
+    <Script file="PLoop\System\Threading\TaskScheduler.lua"/>
 
     <!-- System.UnitTest -->
     <Script file="PLoop\System\UnitTest.lua"/>
@@ -51,6 +56,10 @@
     <Script file="PLoop\System\Reactive\Reactive.lua"/>
     <Script file="PLoop\System\Reactive\Observer.lua"/>
     <Script file="PLoop\System\Reactive\Subject.lua"/>
+    <Script file="PLoop\System\Reactive\ReactiveValue.lua"/>
+    <Script file="PLoop\System\Reactive\ReactiveField.lua"/>
+    <Script file="PLoop\System\Reactive\ReactiveList.lua"/>
+    <Script file="PLoop\System\Reactive\ReactiveDictionary.lua"/>
     <Script file="PLoop\System\Reactive\Observable.lua"/>
     <Script file="PLoop\System\Reactive\Operator.lua"/>
     <Script file="PLoop\System\Reactive\Watch.lua"/>

@@ -64,10 +64,10 @@ class "ConfigSubject"           (function(_ENV)
     --                              method                               --
     -----------------------------------------------------------------------
     function Subscribe(self, ...)
-        local observer          = super.Subscribe(self, ...)
+        local sub, observer     = super.Subscribe(self, ...)
         -- Check value to avoid OnNext when define config node field handlers
         if self[INITED_FIELD] then observer:OnNext(self[VALUE_FIELD]) end
-        return observer
+        return sub, observer
     end
 
     --- Provides the observer with new data

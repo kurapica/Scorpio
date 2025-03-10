@@ -139,8 +139,7 @@ local function applyProperty(self, prop, value)
     -- Check the observable map
     local map                   = _ObsProp[self]
     if map and map[prop] then
-        map[prop]:Unsubscribe()
-        map[prop]:Resubscribe()
+        map[prop].Subscription  = nil
     end
 
     if value == nil then

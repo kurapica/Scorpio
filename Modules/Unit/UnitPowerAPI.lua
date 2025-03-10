@@ -130,15 +130,11 @@ function RefreshClassPower()
     if _ClassPowerType then
         if _PrevClassPowerType ~= _ClassPowerType then
             if _PrevClassPowerType then
-                _ClassPowerSubject:Unsubscribe()
-                _ClassPowerMaxSubject:Unsubscribe()
+                _ClassPowerSubject.Subscription = nil
+                _ClassPowerMaxSubject.Subscription = nil
             end
 
             _PrevClassPowerType = _ClassPowerType
-
-            -- Binding the real event source
-            _ClassPowerSubject:Resubscribe()
-            _ClassPowerMaxSubject:Resubscribe()
 
             if _ClassPowerType == SOULFRAGMENT then
                 -- Use aura to track, keep using Next() for throttling
@@ -155,8 +151,8 @@ function RefreshClassPower()
         end
     else
         _PrevClassPowerType     = false
-        _ClassPowerSubject:Unsubscribe()
-        _ClassPowerMaxSubject:Unsubscribe()
+        _ClassPowerSubject.Subscription = nil
+        _ClassPowerMaxSubject.Subscription = nil
     end
 
     -- Publish the changes
