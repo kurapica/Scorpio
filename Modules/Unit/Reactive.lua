@@ -316,20 +316,11 @@ local function genUnitFrameObservable(unitEvent, useNext)
                 observer:OnNext(unit)
             end)
 
-            local onUnsubscribe
-            onUnsubscribe       = function()
-                observer.OnUnsubscribe = observer.OnUnsubscribe - onUnsubscribe
-
-                obsEvent.Subscription = nil
-                obsUnit.Subscription = nil
-            end
-            observer.OnUnsubscribe = observer.OnUnsubscribe + onUnsubscribe
-
             -- Start the unit watching
             if useNext then
-                unitSubject:Next():Subscribe(obsUnit)
+                unitSubject:Next():Subscribe(obsUnit, subscription)
             else
-                unitSubject:Subscribe(obsUnit)
+                unitSubject:Subscribe(obsUnit, subscription)
             end
         end)
 

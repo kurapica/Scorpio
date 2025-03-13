@@ -82,7 +82,7 @@ do
         return Observable(function(observer, subscription)
             local count         = 0
             local check         = function(chkcnt)
-                return chkcnt == count and observer:OnError("The operation is time out")
+                return chkcnt == count and not subscription.IsUnsubscribed and observer:OnError("The operation is time out")
             end
 
             self:Subscribe(function(...)
