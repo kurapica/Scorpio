@@ -235,9 +235,9 @@ class "__SecureTemplate__" (function(_ENV)
         if default then
             _TempList:Clear()
 
-            _TempList:Extend(default:gmatch("[%w_]+"))
+            _TempList:Splice(#_TempList + 1, 0, default:gmatch("[%w_]+"))
             if type(template) == "string" then
-                _TempList:Extend(template:gmatch("[%w_]+"))
+                _TempList:Splice(#_TempList + 1, 0, template:gmatch("[%w_]+"))
             end
 
             return _TempList:Distinct():Join(",")

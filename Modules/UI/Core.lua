@@ -168,7 +168,7 @@ local function applyProperty(self, prop, value)
                 else
                     observer    = Observer(function(val) if val ~= nil then return pset(self,val) end end )
                 end
-                mapp[prop]      = observer
+                map[prop]       = observer
             end
 
             value:Subscribe(observer, observer.Subscription)

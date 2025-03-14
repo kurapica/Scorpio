@@ -105,6 +105,8 @@ class "ConfigSubject"           (function(_ENV)
     -----------------------------------------------------------------------
     __Arguments__{ String, AnyType, Any/nil, Boolean/nil, String/nil, Localization/nil }
     function __ctor(self, name, type, value, enablequickapply, desc, locale)
+        super(self)
+
         self[NAME_FIELD]        = name
         self[TYPE_FIELD]        = type
         self[VALUE_FIELD]       = value

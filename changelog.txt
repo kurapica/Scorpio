@@ -1,3 +1,7 @@
+2025/03/14 r234
+	1. Fix errors for reactive system updating from PLoop.
+	2. New reactive-watch system added by PLoop.
+
 2023/05/06 v184
 	1. Add `instant` to UI property, so the property child can be applied styles instantly with its owner. Normally used to fix the problem for status bar texture.
 	2. Add `watch` and `reactive` system.

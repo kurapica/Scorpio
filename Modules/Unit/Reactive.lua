@@ -259,6 +259,8 @@ class "UnitFrameSubject" (function(_ENV)
     ----------------------------------------------------
     __Arguments__{ IUnitFrame }
     function __ctor(self, unitfrm)
+        super(self)
+
         self.UnitFrame          = unitfrm
         _UnitFrameMap[unitfrm]  = self
 
