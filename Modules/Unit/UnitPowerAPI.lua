@@ -130,33 +130,29 @@ function RefreshClassPower()
     if _ClassPowerType then
         if _PrevClassPowerType ~= _ClassPowerType then
             if _PrevClassPowerType then
-                _ClassPowerSubject:Unsubscribe()
-                _ClassPowerMaxSubject:Unsubscribe()
+                _ClassPowerSubject.Subscription = nil
+                _ClassPowerMaxSubject.Subscription = nil
             end
 
             _PrevClassPowerType = _ClassPowerType
 
-            -- Binding the real event source
-            _ClassPowerSubject:Resubscribe()
-            _ClassPowerMaxSubject:Resubscribe()
-
             if _ClassPowerType == SOULFRAGMENT then
                 -- Use aura to track, keep using Next() for throttling
-                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
+                Wow.FromEvent("UNIT_AURA"):MatchUnit("player"):Subscribe(_ClassPowerSubject, _ClassPowerSubject.Subscription)
             elseif _ClassPowerType == STAGGER then
-                Wow.FromEvent("UNIT_HEALTH"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
-                Wow.FromEvent("UNIT_MAXHEALTH"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
+                Wow.FromEvent("UNIT_HEALTH"):MatchUnit("player"):Subscribe(_ClassPowerSubject, _ClassPowerSubject.Subscription)
+                Wow.FromEvent("UNIT_MAXHEALTH"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject, _ClassPowerMaxSubject.Subscription)
             elseif _ClassPowerType == PowerType.Runes then
-                Wow.FromEvent("RUNE_POWER_UPDATE"):Map("=>'player'"):Subscribe(_ClassPowerSubject)
+                Wow.FromEvent("RUNE_POWER_UPDATE"):Map("=>'player'"):Subscribe(_ClassPowerSubject, _ClassPowerSubject.Subscription)
             else
-                Wow.FromEvent("UNIT_POWER_FREQUENT", "UNIT_POWER_POINT_CHARGE"):MatchUnit("player"):Subscribe(_ClassPowerSubject)
-                Wow.FromEvent("UNIT_MAXPOWER"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject)
+                Wow.FromEvent("UNIT_POWER_FREQUENT", "UNIT_POWER_POINT_CHARGE"):MatchUnit("player"):Subscribe(_ClassPowerSubject, _ClassPowerSubject.Subscription)
+                Wow.FromEvent("UNIT_MAXPOWER"):MatchUnit("player"):Subscribe(_ClassPowerMaxSubject, _ClassPowerMaxSubject.Subscription)
             end
         end
     else
         _PrevClassPowerType     = false
-        _ClassPowerSubject:Unsubscribe()
-        _ClassPowerMaxSubject:Unsubscribe()
+        _ClassPowerSubject.Subscription = nil
+        _ClassPowerMaxSubject.Subscription = nil
     end
 
     -- Publish the changes

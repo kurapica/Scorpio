@@ -115,15 +115,15 @@ interface "IConfigSubjectHandler" (function(_ENV)
     function SetConfigSubject(self, configSubject)
         self.ConfigSubject      = configSubject
 
-        if self.__IConfigSubjectObserver then
-            self.__IConfigSubjectObserver:Unsubscribe()
-            self.__IConfigSubjectObserver = nil
+        if self.__IConfigSubscribe then
+            self.__IConfigSubscribe:Dispose()
+            self.__IConfigSubscribe = nil
         end
         if not configSubject then return end
 
         local normalMethod      = Class.GetNormalMethod(getmetatable(self), "SetConfigSubject")
         if normalMethod then
-            self.__IConfigSubjectObserver = normalMethod(self, configSubject)
+            self.__IConfigSubscribe = normalMethod(self, configSubject)
         end
     end
 

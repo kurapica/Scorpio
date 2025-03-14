@@ -33,12 +33,7 @@ end)
 
 --- The unsecure unit frame that'd be used as nameplates
 __Sealed__()
-class "InSecureUnitFrame"       (function(_ENV)
-    inherit "Frame"
-    extend "IUnitFrame"
-
-    property "Unit"             { type = String, event = "OnUnitRefresh" }
-end)
+class "InSecureUnitFrame"       { Frame, IUnitFrame }
 
 __Sealed__()
 class "UnitFrameSubject" (function(_ENV)
@@ -57,6 +52,8 @@ class "UnitFrameSubject" (function(_ENV)
 
     local NAMEPLATE_SUBJECT     = FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED")
     local RAID_UNIT_SUBJECT     = FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next() -- Force All
+
+    local subscribe             = Subject.Subscribe
 
     local function refreshUnitGuidMap(unit)
         local guid              = UnitGUID(unit)
@@ -124,8 +121,9 @@ class "UnitFrameSubject" (function(_ENV)
     -- Method
     ----------------------------------------------------
     function Subscribe(self, ...)
-        local observer          = super.Subscribe(self, ...)
+        local sub, observer     = subscribe(self, ...)
         if self.Unit then observer:OnNext(self.RealUnit or self.Unit, self.BlockEvent) end
+        return sub, observer
     end
 
     -- Don't use __AsyncSingle__ here to reduce the memory garbage collect
@@ -261,6 +259,8 @@ class "UnitFrameSubject" (function(_ENV)
     ----------------------------------------------------
     __Arguments__{ IUnitFrame }
     function __ctor(self, unitfrm)
+        super(self)
+
         self.UnitFrame          = unitfrm
         _UnitFrameMap[unitfrm]  = self
 
@@ -298,7 +298,7 @@ local function genUnitFrameObservable(unitEvent, useNext)
     end
 
     if not observable then
-        observable              = Observable(function(observer)
+        observable              = Observable(function(observer, subscription)
             local unitSubject   = getUnitFrameSubject()
 
             if not unitSubject then return unitEvent and unitEvent:Subscribe(observer) end
@@ -309,8 +309,7 @@ local function genUnitFrameObservable(unitEvent, useNext)
 
             -- Unit change observer
             local obsUnit       = Observer(function(unit, noevent)
-                obsEvent:Unsubscribe() -- Clear the previous observable
-                obsEvent:Resubscribe()
+                obsEvent.Subscription = Subscription(subscription)
 
                 if not noevent then
                     unitEvent:MatchUnit(unit):Subscribe(obsEvent)
@@ -319,20 +318,11 @@ local function genUnitFrameObservable(unitEvent, useNext)
                 observer:OnNext(unit)
             end)
 
-            local onUnsubscribe
-            onUnsubscribe       = function()
-                observer.OnUnsubscribe = observer.OnUnsubscribe - onUnsubscribe
-
-                obsEvent:Unsubscribe()
-                obsUnit:Unsubscribe()
-            end
-            observer.OnUnsubscribe = observer.OnUnsubscribe + onUnsubscribe
-
             -- Start the unit watching
             if useNext then
-                unitSubject:Next():Subscribe(obsUnit)
+                unitSubject:Next():Subscribe(obsUnit, subscription)
             else
-                unitSubject:Subscribe(obsUnit)
+                unitSubject:Subscribe(obsUnit, subscription)
             end
         end)
 

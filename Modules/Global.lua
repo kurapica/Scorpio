@@ -14,6 +14,13 @@ namespace          "Scorpio"
 import "System.Serialization"
 
 ------------------------------------------------------------
+--                    Task Scheduler                      --
+------------------------------------------------------------
+TaskScheduler.Default           = TaskScheduler{
+    QueueTask                   = Scorpio.Next
+}
+
+------------------------------------------------------------
 --                    Deprecated API                      --
 ------------------------------------------------------------
 __Sealed__()
@@ -266,7 +273,7 @@ struct "HueValue" {
     function(val, onlyvalid) if (val < 0 or val > 360) then return onlyvalid or "the %s must between [0, 360]" end end
 }
 
-__Sealed__() __ObjectAllowed__()
+__Sealed__() __ObjectAllowed__() __ValueType__()
 struct "ColorType" {
     { name = "r",   type = ColorFloat, require = true },
     { name = "g",   type = ColorFloat, require = true },
@@ -276,14 +283,14 @@ struct "ColorType" {
     __init = function(val) return Color(val) end,
 }
 
-__Sealed__()
+__Sealed__() __ValueType__()
 struct "HSVType" {
     { name = "h",   type = HueValue,    require = true },
     { name = "s",   type = ColorFloat,  require = true },
     { name = "v",   type = ColorFloat,  require = true },
 }
 
-__Sealed__()
+__Sealed__() __ValueType__()
 struct "HSLType" {
     { name = "h",   type = HueValue,    require = true },
     { name = "s",   type = ColorFloat,  require = true },
@@ -557,7 +564,7 @@ end)
 ------------------------------------------------------------
 --                    Special Colors                      --
 ------------------------------------------------------------
-__Sealed__() __Final__()
+__Sealed__() __Final__() __ValueType__()
 class "Color" (function(_ENV)
     ----------------------------------------------
     --             Static Property              --

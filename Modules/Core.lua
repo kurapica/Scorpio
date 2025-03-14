@@ -797,9 +797,8 @@ PLoop(function(_ENV)
         local rycNextObserver   = Recycle(Observer)
 
         function rycNextObserver:OnInit(ob)
-            ob.OnNextCore       = function(...)
-                ob:Unsubscribe()
-                ob:Resubscribe()
+            ob.OnNext           = function(...)
+                ob.Subscription = nil
 
                 local thread    = ob.NextThread
 

@@ -138,9 +138,9 @@ local function applyProperty(self, prop, value)
 
     -- Check the observable map
     local map                   = _ObsProp[self]
-    if map and map[prop] then
-        map[prop]:Unsubscribe()
-        map[prop]:Resubscribe()
+    local observer              = map and map[prop]
+    if observer then
+        observer.Subscription   = nil
     end
 
     if value == nil then
@@ -156,25 +156,26 @@ local function applyProperty(self, prop, value)
                 _ObsProp[self]  = map
             end
 
-            if not map[prop] then
+            if not observer then
                 if prop.clear then
                     local clear = prop.clear
-                    map[prop]   = Observer(function(val) if val ~= nil then return pset(self, val) else return clear(self) end end)
+                    observer    = Observer(function(val) if val ~= nil then return pset(self, val) else return clear(self) end end)
                 elseif prop.nilable then
-                    map[prop]   = Observer(function(val) return pset(self, val) end)
+                    observer    = Observer(function(val) return pset(self, val) end)
                 elseif prop.default ~= nil then
                     local dft   = prop.default
-                    map[prop]   = Observer(function(val) if val ~= nil then return pset(self, val) else return pset(self, dft) end end)
+                    observer    = Observer(function(val) if val ~= nil then return pset(self, val) else return pset(self, dft) end end)
                 else
-                    map[prop]   = Observer(function(val) if val ~= nil then return pset(self,val) end end )
+                    observer    = Observer(function(val) if val ~= nil then return pset(self,val) end end )
                 end
+                map[prop]       = observer
             end
 
-            value:Subscribe(map[prop])
+            value:Subscribe(observer, observer.Subscription)
         else
             -- Check for the child type
             if value == true and prop.childtype then return end
-            if map then map[prop] = nil end
+            if observer then observer:Dispose() map[prop] = nil end
             pset(self, clone(value, true))
         end
     elseif prop.childtype and isObservable(value) then
@@ -182,8 +183,8 @@ local function applyProperty(self, prop, value)
             map                 = {}
             _ObsProp[self]      = map
         end
-        if not map[prop] then
-            map[prop]           = Observer(function(val)
+        if not observer then
+            observer            = Observer(function(val)
                 if type(val) == "table" and getmetatable(val) == nil then
                     local child, new    = prop.get(self)
                     if child then
@@ -198,8 +199,9 @@ local function applyProperty(self, prop, value)
                     prop.clear(self)
                 end
             end)
+            map[prop]           = observer
         end
-        value:Subscribe(map[prop])
+        value:Subscribe(observer, observer.Subscription)
     end
 end
 

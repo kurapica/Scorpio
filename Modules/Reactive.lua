@@ -11,8 +11,6 @@ Scorpio            "Scorpio.Reactive"                     ""
 
 local _M                        = _M
 
-import "System.Reactive"
-
 ------------------------------------------------------------
 --                     Time Operation                     --
 ------------------------------------------------------------
@@ -20,23 +18,23 @@ do
     --- Create an Observable that emits a sequence of integers spaced by a given time interval
     __Static__() __Arguments__{ Number, Number/nil }
     function Observable.Interval(interval, max)
-        return Observable(function(observer, token)
+        return Observable(function(observer, subscription)
             return Continue(
-                function (observer, interval, max, token)
+                function (observer, interval, max, subscription)
                     local i     = 0
                     max         = max or math.huge
 
-                    while not token:IsCancelled() and i <= max do
+                    while not subscription.IsUnsubscribed and i <= max do
                         observer:OnNext(i)
                         Delay(interval)
                         i       = i + 1
                     end
 
-                    if not token:IsCancelled() then
+                    if not subscription.IsUnsubscribed then
                         observer:OnCompleted()
                     end
                 end,
-                observer, interval, max, token
+                observer, interval, max, subscription
             )
         end)
     end
@@ -44,15 +42,15 @@ do
     --- Creates an Observable that emits a particular item after a given delay
     __Static__() __Arguments__{ Number }
     function Observable.Timer(delay)
-        return Observable(function(observer, token)
+        return Observable(function(observer, subscription)
             return Delay(delay,
-                function (observer, token)
-                    if token:IsCancelled() then return end
+                function (observer, subscription)
+                    if subscription.IsUnsubscribed then return end
 
                     observer:OnNext(0)
                     observer:OnCompleted()
                 end,
-                observer, token
+                observer, subscription
             )
         end)
     end
@@ -63,16 +61,12 @@ do
     function IObservable:Delay(delay)
         return Operator(self, function(observer, ...)
             return Delay(delay,
-                function (observer, ...)
-                    observer:OnNext(...)
-                end,
+                function (observer, ...) observer:OnNext(...) end,
                 observer, ...
             )
         end, nil, function(observer)
             return Delay(delay,
-                function (observer)
-                    observer:OnCompleted()
-                end,
+                function (observer) observer:OnCompleted() end,
                 observer
             )
         end)
@@ -85,16 +79,13 @@ do
     __Observable__()
     __Arguments__{ Number }
     function IObservable:Timeout(dueTime)
-        return Observable(function(observer, token)
+        return Observable(function(observer, subscription)
             local count         = 0
             local check         = function(chkcnt)
-                return chkcnt == count and observer:OnError("The operation is time out")
+                return chkcnt == count and not subscription.IsUnsubscribed and observer:OnError("The operation is time out")
             end
 
-            local subOb
-            subOb               = self:Subscribe(function(...)
-                if token:IsCancelled() then return subOb:Unsubscribe() end
-
+            self:Subscribe(function(...)
                 count           = count + 1
                 observer:OnNext(...)
                 Delay(dueTime, check, count)
@@ -102,7 +93,7 @@ do
                 observer:OnError(ex)
             end, function()
                 observer:OnCompleted()
-            end)
+            end, subscription)
 
             Delay(dueTime, check, count)
         end)
@@ -113,8 +104,8 @@ do
     local _RecycleQueue         = Recycle(Queue)
     local fakefunc              = Toolset.fakefunc
 
-    local function processNextQueue(oper, observer, queue, idxmap)
-        if not oper.IsUnsubscribed then
+    local function processNextQueue(subscription, observer, queue, idxmap)
+        if not subscription.IsUnsubscribed then
             local index         = 0
 
             local key, count    = queue:Dequeue(2)
@@ -149,8 +140,8 @@ do
         local queue, idxmap, index
         local currTime          = 0
 
-        local oper
-        oper                    = Operator(self, function(observer, key, ...)
+        local subscription
+        local oper              = Operator(self, function(observer, key, ...)
             local now           = GetTime()
 
             -- Init the queue for this phase
@@ -160,7 +151,7 @@ do
                 currTime        = now
                 index           = 0
 
-                Next(processNextQueue, oper, observer, queue, idxmap)
+                Next(processNextQueue, subscription, observer, queue, idxmap)
             end
 
             -- Use fakefunc to represent nil
@@ -170,6 +161,11 @@ do
             queue:Enqueue(key, select("#", ...), ...)
             idxmap[key]         = index
         end)
+
+        -- get the subscription
+        oper.HandleSubscription = function(self, ...)
+            subscription        = ...
+        end
 
         return oper
     end
@@ -276,7 +272,7 @@ do
             else
                 return ""
             end
-        end):ToSubject(LiteralSubject)
+        end):ToSubject(BehaviorSubject)
     end
 end
 
@@ -308,7 +304,7 @@ interface "Scorpio.Wow" (function(_ENV)
             local token         = List{ ... }:Join("|")
             local ob            = _MultiEventMap[token]
             if not ob then
-                ob              = Observable(function(observer) for i = 1, #ob do _EventMap[ob[i]]:Subscribe(observer) end end)
+                ob              = Observable(function(...) for i = 1, #ob do _EventMap[ob[i]]:Subscribe(...) end end)
                 for i = 1, select("#", ...) do ob[i] = select(i, ...) end
                 _MultiEventMap[token] = ob
             end
