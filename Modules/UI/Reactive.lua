@@ -56,7 +56,7 @@ function Wow.FromUIProperty(...)
                     end
                 end
             end
-            if subject then return subject:Subscribe(observer) end
+            if subject then return subject:Subscribe(observer, subscription) end
         end
     end)
 end
@@ -95,7 +95,7 @@ function Wow.FromPanelProperty(...)
                         psub.__MatchIndex = matchIdx
 
                         psub:Subscribe(function(idx, ...)
-                            local s = matchIdx[idx]
+                            local s     = matchIdx[idx]
                             return s and s:OnNext(...)
                         end)
                     end
@@ -106,7 +106,7 @@ function Wow.FromPanelProperty(...)
                         matchIdx[index] = idxSub
                     end
 
-                    return idxSub:Subscribe(observer)
+                    return idxSub:Subscribe(observer, subscription)
                 else
                     local subject
 
@@ -135,7 +135,7 @@ function Wow.FromPanelProperty(...)
                         subject         = subject and subject:CombineLatest(idxSub) or idxSub
                     end
 
-                    if subject then subject:Subscribe(observer) end
+                    if subject then subject:Subscribe(observer, subscription) end
                 end
             end
         end
@@ -201,7 +201,7 @@ function Wow.GetFrameByType(ftype, observable)
             end
         end
 
-        if subject then subject:Subscribe(observer) end
+        if subject then subject:Subscribe(observer, subscription) end
     end)
 end
 
@@ -254,7 +254,7 @@ function Wow.GetFrame(observable)
             end
         end
 
-        if subject then subject:Subscribe(observer) end
+        if subject then subject:Subscribe(observer, subscription) end
     end)
 end
 
