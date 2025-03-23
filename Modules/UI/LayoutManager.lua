@@ -18,8 +18,9 @@ __Sealed__()
 interface "ILayoutManager"      (function(_ENV)
 
     --- Refresh the layout of the frame by its children with IDs
+    -- will be called when children changes
     __Abstract__()
-    function RefreshLayout(self, frame, iter) end
+    function RefreshLayout(self, frame, iter, padding) end
 
     --- Whether include the hide childrens
     __Abstract__()
@@ -55,7 +56,7 @@ end
 
 __Iterator__()
 function GetLayoutChildren(self, incHide)
-    local yield                 = coroutine.yield
+    local yield                 = yield
     for i, child in XDictionary(self:GetChilds()).Values:Filter(incHide and IsLayoutableWithHidden or IsLayoutable):ToList():Sort(CompareByID):GetIterator() do
         yield(i, child, child[MARGIN])
     end
@@ -70,7 +71,8 @@ function RefreshLayout(self)
     taskToken[self]             = token
 
     -- Wait for several cycle to avoid frequently refreshing
-    for i = 1, 3 do Next() if token ~= taskToken[self] then return end end
+    Delay(0.05)
+    if token ~= taskToken[self] then return end
 
     -- Refresh the layouts
     self[FRAME_MANAGER]:RefreshLayout(self, GetLayoutChildren(self, self[FRAME_MANAGER].IncludeHideChildren), self[PADDING])
