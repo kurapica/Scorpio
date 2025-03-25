@@ -151,6 +151,8 @@ UI.Property                     {
     end,
     override                    = { "PaddingLeft", "PaddingRight", "PaddingTop", "PaddingBottom" }
 }
+
+--- The left padding for layout panel
 UI.Property                     {
     name                        = "PaddingLeft",
     type                        = Number,
@@ -166,6 +168,8 @@ UI.Property                     {
     end,
     override                    = { "Padding" }
 }
+
+--- The right padding for layout panel
 UI.Property                     {
     name                        = "PaddingRight",
     type                        = Number,
@@ -181,6 +185,8 @@ UI.Property                     {
     end,
     override                    = { "Padding" }
 }
+
+--- The top padding for layout panel
 UI.Property                     {
     name                        = "PaddingTop",
     type                        = Number,
@@ -196,6 +202,8 @@ UI.Property                     {
     end,
     override                    = { "Padding" }
 }
+
+--- the bottom padding for layout panel
 UI.Property                     {
     name                        = "PaddingBottom",
     type                        = Number,
@@ -227,6 +235,8 @@ UI.Property                     {
     end,
     override                    = { "MarginLeft", "MarginRight", "MarginTop", "MarginBottom" }
 }
+
+--- The left margin for layout element
 UI.Property                     {
     name                        = "MarginLeft",
     type                        = Number,
@@ -242,6 +252,8 @@ UI.Property                     {
     end,
     override                    = { "Margin" }
 }
+
+--- The right margin for layout element
 UI.Property                     {
     name                        = "MarginRight",
     type                        = Number,
@@ -257,6 +269,8 @@ UI.Property                     {
     end,
     override                    = { "Margin" }
 }
+
+--- The top margin for layout element
 UI.Property                     {
     name                        = "MarginTop",
     type                        = Number,
@@ -272,6 +286,8 @@ UI.Property                     {
     end,
     override                    = { "Margin" }
 }
+
+--- The bottom margin for layout element
 UI.Property                     {
     name                        = "MarginBottom",
     type                        = Number,
