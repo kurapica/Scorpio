@@ -944,16 +944,6 @@ do
         get             = function(self) return self:CanNonSpaceWrap() end,
     }
 
-    --- the text to be displayed in the font string
-    UI.Property         {
-        name            = "Text",
-        type            = String,
-        require         = { FontString, Button, EditBox, SimpleHTML },
-        default         = "",
-        set             = function(self, val) self:SetText(val) end,
-        get             = function(self) return self:GetText() end,
-    }
-
     --- the height of the text displayed in the font string
     UI.Property         {
         name            = "TextHeight",
@@ -972,6 +962,38 @@ do
         set             = function(self, val) self:SetWordWrap(val) end,
         get             = function(self) return self:CanWordWrap() end,
     }
+
+    --- the text to be displayed in the font string
+    UI.Property         {
+        name            = "Text",
+        type            = String,
+        require         = { FontString, Button, EditBox, SimpleHTML },
+        default         = "",
+        set             = function(self, val) self:SetText(val) end,
+        get             = function(self) return self:GetText() end,
+    }
+
+    if FontString.SetTextToFit then
+        --- the text to be displayed in the font string
+        UI.Property     {
+            name        = "Text",
+            type        = String,
+            require     = FontString,
+            default     = "",
+            set         = function(self, val) if self.__AutoFit then self:SetTextToFit(val) else self:SetText(val) end end,
+            get         = function(self) return self:GetText() end,
+        }
+
+        --- whether the text should be automatically resized to fit within the font string's dimensions
+        UI.Property     {
+            name        = "AutoFit",
+            type        = String,
+            require     = FontString,
+            default     = false,
+            set         = function(self, val) self.__AutoFit = val end,
+            get         = function(self) return self.__AutoFit or false end,
+        }
+    end
 end
 
 ------------------------------------------------------------
@@ -1521,6 +1543,15 @@ do
         set             = function(self, val) self:SetUserPlaced(val) end,
         get             = function(self) return self:IsUserPlaced() end,
     }
+
+    if Frame.SetUsingParentLevel then
+        UI.Property     {
+            name        = "UsingParentLevel",
+            default     = false,
+            set         = function(self, val) self:SetUsingParentLevel(val) end,
+            get         = function(self) return self:IsUsingParentLevel() end,
+        }
+    end
 end
 
 ------------------------------------------------------------
@@ -3019,7 +3050,29 @@ Style.UpdateSkin("Default",     {
 ------------------------------------------------------------
 --                  Backdrop Properties                   --
 ------------------------------------------------------------
-if Frame.SetBackdrop then  -- For 8.0 and classic
+--- with new texture slice system
+if Texture.SetTextureSliceMargins then
+    --- The nineslice texture rendering using the specified pixel margins
+    UI.Property         {
+        name            = "SliceMargins",
+        type            = TextureSliceMargins,
+        require         = Texture,
+        clear           = Texture.ClearTextureSlice,
+        set            = function(self, val) self:SetTextureSliceMargins(val.left, val.right, val.top, val.bottom) end,
+        get            = function(self) return TextureSliceMargins(self:GetTextureSliceMargins()) end,
+    }
+
+    --- Controls whether the center and sides are Stretched or Tiled when using nineslice texture rendering
+    UI.Property         {
+        name            = "SliceMode",
+        type            = TextureSliceMode,
+        require         = Texture,
+        default         = TextureSliceMode.Stretched,
+        set             = function(self, val) self:SetTextureSliceMode(val) end,
+        get             = function(self) return self:GetTextureSliceMode() end,
+    }
+
+elseif Frame.SetBackdrop then  -- For 8.0 and classic
     --- the backdrop graphic for the frame
     UI.Property         {
         name            = "Backdrop",

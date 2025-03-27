@@ -10,5 +10,6 @@
 ## Notes: Scorpio Addon FrameWork Pre-Loader
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
+## Group: Scorpio
 
 !Scorpio.lua

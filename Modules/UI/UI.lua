@@ -319,6 +319,12 @@ do
     }
 
     __Sealed__()
+    enum "TextureSliceMode" {
+        Stretched = _G.Enum and _G.Enum.UITextureSliceMode and _G.Enum.UITextureSliceMode.Stretched or 0,
+        Tiled = _G.Enum and _G.Enum.UITextureSliceMode and _G.Enum.UITextureSliceMode.Tiled or 1,
+    }
+
+    __Sealed__()
     enum "ScriptsType" {
         "OnLoad",
         "OnAttributeChanged",
@@ -583,6 +589,14 @@ do
     struct "PropertyAccessor" {
         { name = "set",         type = Function, require = true },
         { name = "get",         type = Any }
+    }
+
+    __Sealed__()
+    struct "TextureSliceMargins" {
+        { name = "left",        type = Number },
+        { name = "top",         type = Number },
+        { name = "right",       type = Number },
+        { name = "bottom",      type = Number },
     }
 end
 
