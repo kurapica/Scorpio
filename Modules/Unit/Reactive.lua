@@ -11,11 +11,6 @@ Scorpio         "Scorpio.Secure.UnitReactive"        "1.0.0"
 
 import "System.Reactive"
 
-local getCurrentTarget          = Scorpio.UI.Style.GetCurrentTarget
-local isUIObject                = UI.IsUIObject
-local isObjectType              = Class.IsObjectType
-local FromEvent                 = Scorpio.Wow.FromEvent
-
 --- The interface should be extended by all unit frame types(include secure and non-secure)
 __Sealed__()
 interface "IUnitFrame"          (function(_ENV)
@@ -35,60 +30,62 @@ end)
 __Sealed__()
 class "InSecureUnitFrame"       { Frame, IUnitFrame }
 
+--- The unit subject of the given unit frame
 __Sealed__()
-class "UnitFrameSubject" (function(_ENV)
+class "UnitFrameSubject"        (function(_ENV)
     inherit "Subject"
 
-    local _UnitFrameMap         = Toolset.newtable(true)
+    export                      {
+        _UnitFrameMap           = Toolset.newtable(true),
+        _Recycle                = Recycle(),
 
-    local function OnUnitRefresh(self, unit)
-        self                    = _UnitFrameMap[self]
-        self.Unit               = unit
-    end
+        -- observables
+        NAMEPLATE_SUBJECT       = Wow.FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED"),
+        RAID_UNIT_SUBJECT       = Wow.FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next(), -- Force All
 
-    local _Recycle              = Recycle()
-    local _UnitGuidMap          = {}
-    local _GuidUnitMap          = {}
+        -- helper
+        subscribe               = Subject.Subscribe,
+        FromEvent               = Wow.FromEvent,
 
-    local NAMEPLATE_SUBJECT     = FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED")
-    local RAID_UNIT_SUBJECT     = FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next() -- Force All
+        -- unit <-> guid
+        _UnitGuidMap            = {},
+        _GuidUnitMap            = {},
+        refreshUnitGuidMap      = function (unit)
+            local guid          = UnitGUID(unit)
+            local oguid         = _UnitGuidMap[unit]
 
-    local subscribe             = Subject.Subscribe
+            if guid == oguid then return end
+            _UnitGuidMap[unit]  = guid
 
-    local function refreshUnitGuidMap(unit)
-        local guid              = UnitGUID(unit)
-        local oguid             = _UnitGuidMap[unit]
+            if guid then
+                local map       = _GuidUnitMap[guid]
+                if not map then
+                    map         = _Recycle()
+                    _GuidUnitMap[guid] = map
+                end
 
-        if guid == oguid then return end
-        _UnitGuidMap[unit]      = guid
-
-        if guid then
-            local map           = _GuidUnitMap[guid]
-            if not map then
-                map             = _Recycle()
-                _GuidUnitMap[guid] = map
+                map[unit]       = true
             end
 
-            map[unit]           = true
-        end
+            if oguid then
+                local map       = _GuidUnitMap[oguid]
+                if map then
+                    map[unit]   = nil
 
-        if oguid then
-            local map           = _GuidUnitMap[oguid]
-            if map then
-                map[unit]       = nil
-
-                if not next(map) then
-                    -- Clear
-                    _GuidUnitMap[oguid] = nil
-                    _Recycle(map)
+                    if not next(map) then
+                        -- Clear
+                        _GuidUnitMap[oguid] = nil
+                        _Recycle(map)
+                    end
                 end
             end
         end
-    end
+    }
 
     ----------------------------------------------------
     -- Extend Method To Scorpio
     ----------------------------------------------------
+    --- Gets the unit based on the GUID
     __Static__()
     function Scorpio.GetUnitFromGUID(guid)
         local map               = _GuidUnitMap[guid]
@@ -103,6 +100,7 @@ class "UnitFrameSubject" (function(_ENV)
         end
     end
 
+    --- Gets all units based on the GUID
     __Static__() __Iterator__()
     function Scorpio.GetUnitsFromGUID(guid)
         local map               = _GuidUnitMap[guid]
@@ -198,8 +196,8 @@ class "UnitFrameSubject" (function(_ENV)
 
                 Next(RAID_UNIT_SUBJECT)
             end
-        elseif unit == "vehicle" or unit:match("^arena%d+$") or unit:match("^boss%d+$") or unit:match("^spectated") then
-            -- Other units: arenaN, bossN, vehicle, spectated<T><N>
+        elseif unit == "vehicle" or unit:match("^arena%d+$") or unit:match("^boss%d+$") or unit:match("^spectated[ab]%d+$") or unit:match("^spectatedpet[ab]%d+$") then
+            -- Other units: arenaN, bossN, vehicle, spectated<T><N>, spectatedpet<T><N>
             while task == self.TaskId do
                 refreshUnitGuidMap(unit)
                 self:OnNext(unit)
@@ -228,10 +226,10 @@ class "UnitFrameSubject" (function(_ENV)
                     Delay(self.Interval)
                 end
 
+                if task ~= self.TaskId then return end
+
                 -- Wait the unit frame re-show
-                if task == self.TaskId then
-                    Next(Observable.From(frm.OnShow))
-                end
+                Next(Observable.From(frm.OnShow))
             end
         end
     end
@@ -252,7 +250,7 @@ class "UnitFrameSubject" (function(_ENV)
     property "BlockEvent"   { type = Boolean, default = false }
 
     --- The current unit
-    property "Interval"     { type = PositiveNumber, default = function(self) return self.UnitFrame.Interval or 0.5 end }
+    property "Interval"     { type = PositiveNumber, default = function(self) return self.UnitFrame.Interval or 1 end }
 
     ----------------------------------------------------
     -- Constructor
@@ -264,7 +262,10 @@ class "UnitFrameSubject" (function(_ENV)
         self.UnitFrame          = unitfrm
         _UnitFrameMap[unitfrm]  = self
 
-        unitfrm.OnUnitRefresh   = unitfrm.OnUnitRefresh + OnUnitRefresh
+        unitfrm.OnUnitRefresh   = unitfrm.OnUnitRefresh + function (self, unit)
+            self                = _UnitFrameMap[self]
+            self.Unit           = unit
+        end
         self.Unit               = unitfrm.Unit
     end
 
@@ -273,7 +274,19 @@ class "UnitFrameSubject" (function(_ENV)
     end
 end)
 
-local function getUnitFrameSubject()
+------------------------------------------------------------
+--                        Wow API                         --
+------------------------------------------------------------
+export                          {
+    getCurrentTarget            = UI.Style.GetCurrentTarget,
+    isUIObject                  = UI.IsUIObject,
+    isObjectType                = Class.IsObjectType,
+    FromEvent                   = Wow.FromEvent,
+    unitFrameObservable         = Toolset.newtable(true),
+    nextUnitFrameObservable     = Toolset.newtable(true),
+}
+
+function getUnitFrameSubject()
     local indicator             = getCurrentTarget()
 
     if indicator and isUIObject(indicator) then
@@ -281,15 +294,11 @@ local function getUnitFrameSubject()
         while unitfrm and not isObjectType(unitfrm, IUnitFrame) do
             unitfrm             = unitfrm:GetParent()
         end
-
         return unitfrm and UnitFrameSubject(unitfrm)
     end
 end
 
-local unitFrameObservable       = Toolset.newtable(true)
-local nextUnitFrameObservable   = Toolset.newtable(true)
-
-local function genUnitFrameObservable(unitEvent, useNext)
+function genUnitFrameObservable(unitEvent, useNext)
     local observable
     if useNext then
         observable              = nextUnitFrameObservable[unitEvent or 0]
@@ -301,28 +310,35 @@ local function genUnitFrameObservable(unitEvent, useNext)
         observable              = Observable(function(observer, subscription)
             local unitSubject   = getUnitFrameSubject()
 
-            if not unitSubject then return unitEvent and unitEvent:Subscribe(observer) end
-            if not unitEvent   then return unitSubject:Subscribe(observer) end
+            if not unitSubject then return unitEvent and unitEvent:Subscribe(observer, subscription) end
+            if not unitEvent   then return unitSubject:Subscribe(observer, subscription) end
 
             -- Unit event observer
-            local obsEvent      = Observer(function(...) return observer:OnNext(...) end)
+            if unitEvent then
+                local obsEvent  = Observer(function(...) return observer:OnNext(...) end)
 
-            -- Unit change observer
-            local obsUnit       = Observer(function(unit, noevent)
-                obsEvent.Subscription = Subscription(subscription)
+                -- Unit change observer
+                local obsUnit   = Observer(function(unit, noevent)
+                    obsEvent.Subscription = Subscription(subscription)
+                    if not noevent then unitEvent:MatchUnit(unit):Subscribe(obsEvent) end
+                    return observer:OnNext(unit)
+                end)
 
-                if not noevent then
-                    unitEvent:MatchUnit(unit):Subscribe(obsEvent)
+                -- Start the unit watching
+                if useNext then
+                    unitSubject:Next():Subscribe(obsUnit, subscription)
+                else
+                    unitSubject:Subscribe(obsUnit, subscription)
                 end
 
-                observer:OnNext(unit)
-            end)
-
-            -- Start the unit watching
-            if useNext then
-                unitSubject:Next():Subscribe(obsUnit, subscription)
+            -- Unit observer
             else
-                unitSubject:Subscribe(obsUnit, subscription)
+                -- Start the unit watching
+                if useNext then
+                    unitSubject:Next():Subscribe(observer, subscription)
+                else
+                    unitSubject:Subscribe(observer, subscription)
+                end
             end
         end)
 
@@ -336,9 +352,6 @@ local function genUnitFrameObservable(unitEvent, useNext)
     return observable
 end
 
-------------------------------------------------------------
---                        Wow API                         --
-------------------------------------------------------------
 --- The data sequences from the wow unit event binding to unit frames
 __Arguments__{ (NEString + IObservable)/nil, NEString * 0 }
 __Static__()

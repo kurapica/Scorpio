@@ -866,6 +866,28 @@ do
         get             = getRotateDegree,
         set             = setRotateDegree,
     }
+
+    if Texture.SetTextureSliceMargins then
+        --- The nineslice texture rendering using the specified pixel margins
+        UI.Property     {
+            name        = "SliceMargins",
+            type        = TextureSliceMargins,
+            require     = Texture,
+            clear       = Texture.ClearTextureSlice,
+            set         = function(self, val) self:SetTextureSliceMargins(val.left, val.right, val.top, val.bottom) end,
+            get         = function(self) return TextureSliceMargins(self:GetTextureSliceMargins()) end,
+        }
+
+        --- Controls whether the center and sides are Stretched or Tiled when using nineslice texture rendering
+        UI.Property     {
+            name        = "SliceMode",
+            type        = TextureSliceMode,
+            require     = Texture,
+            default     = TextureSliceMode.Stretched,
+            set         = function(self, val) self:SetTextureSliceMode(val) end,
+            get         = function(self) return self:GetTextureSliceMode() end,
+        }
+    end
 end
 
 ------------------------------------------------------------
@@ -3051,28 +3073,7 @@ Style.UpdateSkin("Default",     {
 --                  Backdrop Properties                   --
 ------------------------------------------------------------
 --- with new texture slice system
-if Texture.SetTextureSliceMargins then
-    --- The nineslice texture rendering using the specified pixel margins
-    UI.Property         {
-        name            = "SliceMargins",
-        type            = TextureSliceMargins,
-        require         = Texture,
-        clear           = Texture.ClearTextureSlice,
-        set            = function(self, val) self:SetTextureSliceMargins(val.left, val.right, val.top, val.bottom) end,
-        get            = function(self) return TextureSliceMargins(self:GetTextureSliceMargins()) end,
-    }
-
-    --- Controls whether the center and sides are Stretched or Tiled when using nineslice texture rendering
-    UI.Property         {
-        name            = "SliceMode",
-        type            = TextureSliceMode,
-        require         = Texture,
-        default         = TextureSliceMode.Stretched,
-        set             = function(self, val) self:SetTextureSliceMode(val) end,
-        get             = function(self) return self:GetTextureSliceMode() end,
-    }
-
-elseif Frame.SetBackdrop then  -- For 8.0 and classic
+if Frame.SetBackdrop then  -- For 8.0 and classic
     --- the backdrop graphic for the frame
     UI.Property         {
         name            = "Backdrop",
