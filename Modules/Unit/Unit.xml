@@ -1,20 +1,18 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
-	<!-- Unit Event Observable -->
-	<Script file="Reactive.lua"/>
-
-	<!-- Core Unit Frame Template -->
+	<!-- Unit Frame -->
 	<Script file="UnitFrame.lua"/>
-
-	<!-- Unit API -->
-	<Script file="UnitAPI.lua"/>
-	<Script file="UnitHealthAPI.lua"/>
-	<Script file="UnitPowerAPI.lua"/>
-	<Script file="UnitCastAPI.lua"/>
-	<Script file="UnitAuraAPI.lua"/>
-
-	<!-- Unit Frame Indicator -->
-	<Script file="Indicator.lua"/>
 
 	<!-- Raid Panel -->
 	<Script file="SecureGroupPanel.lua"/>
+
+	<!-- Deprecated Indicator System -->
+	<!-- Unit API -->
+	<Script file="Deprecated\UnitAPI.lua"/>
+	<Script file="Deprecated\UnitHealthAPI.lua"/>
+	<Script file="Deprecated\UnitPowerAPI.lua"/>
+	<Script file="Deprecated\UnitCastAPI.lua"/>
+	<Script file="Deprecated\UnitAuraAPI.lua"/>
+
+	<!-- Unit Frame Indicator -->
+	<Script file="Deprecated\Indicator.lua"/>
 </Ui>
