@@ -3,21 +3,22 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2020/12/22                              --
+-- Update Date :  2025/04/01                              --
 --========================================================--
 
 --========================================================--
-Scorpio           "Scorpio.UI.Reactive"              "1.0.0"
+Scorpio           "Scorpio.UI.Reactive"              "1.0.1"
 --========================================================--
 
-import "System.Reactive"
-
-local isUIObject                = UI.IsUIObject
-local isObjectType              = Class.IsObjectType
-local isProperty                = System.Property.Validate
-local isEvent                   = System.Event.Validate
-local isIndexerProperty         = System.Property.IsIndexer
-local getCurrentTarget          = Scorpio.UI.Style.GetCurrentTarget
-local getFeature                = Class.GetFeature
+export                          {
+    isUIObject                  = UI.IsUIObject,
+    isObjectType                = Class.IsObjectType,
+    isProperty                  = System.Property.Validate,
+    isEvent                     = System.Event.Validate,
+    isIndexerProperty           = System.Property.IsIndexer,
+    getCurrentTarget            = Scorpio.UI.Style.GetCurrentTarget,
+    getFeature                  = Class.GetFeature,
+}
 
 __Static__() __Arguments__{ NEString * 1 }
 function Wow.FromUIProperty(...)

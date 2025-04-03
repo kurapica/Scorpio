@@ -34,7 +34,7 @@ function getUnitFrameSubject()
         while unitfrm and not isObjectType(unitfrm, IUnitFrame) do
             unitfrm             = unitfrm:GetParent()
         end
-        return unitfrm and UnitFrameSubject(unitfrm)
+        return unitfrm and unitfrm.Subject
     end
 end
 
@@ -58,9 +58,14 @@ function genUnitFrameObservable(unitEvent, useNext)
                 local obsEvent  = Observer(function(...) return observer:OnNext(...) end)
 
                 -- Unit change observer
-                local obsUnit   = Observer(function(unit, noevent)
+                local obsUnit   = Observer(function(unit)
                     obsEvent.Subscription = Subscription(subscription)
-                    if not noevent then unitEvent:MatchUnit(unit):Subscribe(obsEvent) end
+
+                    -- Check trackable unit
+                    local runit = unit and GetUnitFromGUID(UnitGUID(unit))
+                    if runit then unitEvent:MatchUnit(runit):Subscribe(obsEvent) end
+
+                    -- Push the unit
                     return observer:OnNext(unit)
                 end)
 

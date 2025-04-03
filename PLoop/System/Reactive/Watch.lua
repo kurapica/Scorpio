@@ -31,11 +31,15 @@ PLoop(function(_ENV)
             getobjectclass              = Class.GetObjectClass,
             issubtype                   = Class.IsSubType,
             isobjecttype                = Class.IsObjectType,
+            isclass                     = Class.Validate,
+            isnamesapce                 = Namespace.Validate,
 
             -- check the access value if observable
             makeReactiveProxy           = function (observer, value, parent)
-                local cls               = value and getobjectclass(value)
-                if not cls then return end
+                local cls               = value and getmetatable(value)
+                if cls == Container     then return ReactiveContainerProxy(observer, value) end
+                if isnamesapce(value)   then return ReactiveNamespaceProxy(observer, value) end
+                if not cls or not isclass(cls) then return end
 
                 -- deep watch check
                 if observer and parent and rawget(parent, Subscription) then
@@ -331,7 +335,7 @@ PLoop(function(_ENV)
                 end
             end,
 
-            IObservable, Watch, TaskScheduler, Observer, Exception, Subscription,
+            IObservable, Watch, TaskScheduler, Observer, Exception, Subscription, Container,
             Reactive, ReactiveList, ReactiveDictionary, ReactiveValue, ReactiveField
         }
 
@@ -349,7 +353,7 @@ PLoop(function(_ENV)
                 type                    = type,
                 isobjecttype            = Class.IsObjectType,
                 yield                   = coroutine.yield,
-                setvalue                = Toolset.setvalue,
+                safesetvalue            = Toolset.safesetvalue,
                 stackmod                = Platform.ENABLE_TAIL_CALL_OPTIMIZATIONS and 0 or 1,
 
                 unwrap                  = function(value)
@@ -495,7 +499,7 @@ PLoop(function(_ENV)
 
             function __newindex(self, index, value, stack)
                 makeWritable(self)
-                local ok, err               = pcall(setvalue, rawget(self, Reactive), index, value)
+                local ok, err               = safesetvalue(rawget(self, Reactive), index, value)
                 if not ok then error(err, (stack or 1) + 1) end
             end
 
@@ -512,7 +516,7 @@ PLoop(function(_ENV)
                 rawget                  = rawget,
                 pcall                   = pcall,
                 error                   = error,
-                setvalue                = Toolset.setvalue,
+                safesetvalue            = Toolset.safesetvalue,
 
                 addDeepWatch            = addDeepWatch,
                 makeWritable            = makeWritable,
@@ -549,7 +553,7 @@ PLoop(function(_ENV)
 
             function __newindex(self, key, value, stack)
                 makeWritable(self)
-                local ok, err           = pcall(setvalue, rawget(self, Reactive), key, value)
+                local ok, err           = safesetvalue(rawget(self, Reactive), key, value)
                 if not ok then error(err, (stack or 1) + 1) end
             end
         end)
@@ -563,7 +567,7 @@ PLoop(function(_ENV)
                 type                    = type,
                 pcall                   = pcall,
                 pairs                   = pairs,
-                setvalue                = Toolset.setvalue,
+                safesetvalue            = Toolset.safesetvalue,
                 isobjecttype            = Class.IsObjectType,
 
                 makeReactiveProxy       = makeReactiveProxy,
@@ -642,7 +646,7 @@ PLoop(function(_ENV)
                 end
 
                 -- assignment
-                local ok, err           = pcall(setvalue, react, key, value)
+                local ok, err           = safesetvalue(react, key, value)
                 if not ok then error(err, (stack or 1) + 1) end
 
                 -- add proxy or watch
@@ -662,6 +666,157 @@ PLoop(function(_ENV)
             end
 
             __dtor                      = disposeWatches
+        end)
+
+        --- The proxy used in watch environment for reactive container
+        __Sealed__()
+        class "ReactiveContainerProxy"  (function(_ENV)
+            export                      {
+                rawset                  = rawset,
+                rawget                  = rawget,
+                type                    = type,
+                pcall                   = pcall,
+                pairs                   = pairs,
+                safesetvalue            = Toolset.safesetvalue,
+                isobjecttype            = Class.IsObjectType,
+
+                makeReactiveProxy       = makeReactiveProxy,
+                addProxy                = addProxy,
+                addWatch                = addWatch,
+                addDeepWatch            = addDeepWatch,
+                makeWritable            = makeWritable,
+
+                IObservable, Observer, Watch, Reactive, ReactiveProxy
+            }
+
+            -------------------------------------------------------------------
+            --                          constructor                          --
+            -------------------------------------------------------------------
+            function __ctor(self, observer, container)
+                rawset(self, Observer, observer)
+                rawset(self, Reactive, container)
+            end
+
+            -------------------------------------------------------------------
+            --                          meta method                          --
+            -------------------------------------------------------------------
+            function __index(self, key)
+                if type(key) ~= "string" then return end
+
+                -- get child proxyes
+                local proxyes           = rawget(self, ReactiveProxy)
+                local subject           = proxyes and proxyes[key]
+                if subject then return subject end
+
+                -- check value proxy
+                local react             = rawget(self, Reactive)
+                local watches           = rawget(self, Watch)
+                if watches and watches[key] ~= nil then return react[key].Value end
+
+                -- get from the source
+                local value             = react[key]
+                if value ~= nil then
+                    local r, isv        = makeReactiveProxy(rawget(self, Observer), value)
+                    if r then
+                        if isv then
+                            return addWatch(self, key, r).Value
+                        else
+                            return addProxy(self, key, r)
+                        end
+                    end
+                end
+                return value
+            end
+
+            function __newindex(self, key, value, stack)
+                if type(key) ~= "string" then rawset(self, key, value) end
+
+                local react             = rawget(self, Reactive)
+                local proxyes           = rawget(self, ReactiveProxy)
+                local proxy             = proxyes and proxyes[key]
+                local watches           = rawget(self, Watch)
+                local watch             = watches and watches[key]
+
+                -- make writable
+                if proxy then
+                    makeWritable(proxy)
+                elseif watch then
+                    makeWritable(self, key)
+                end
+
+                -- assignment
+                local ok, err           = safesetvalue(react, key, value)
+                if not ok then error(err, (stack or 1) + 1) end
+
+                -- add proxy or watch
+                if proxy == nil and watch == nil and rawget(self, Observer) then
+                    local value         = react[key]
+                    if value ~= nil then
+                        local r, isv    = makeReactiveProxy(rawget(self, Observer), value)
+                        if r then
+                            if isv then
+                                return makeWritable(addWatch(self, key, r))
+                            else
+                                return makeWritable(addProxy(self, key, r))
+                            end
+                        end
+                    end
+                end
+            end
+
+            __dtor                      = disposeWatches
+        end)
+
+        --- The proxy used in watch environment for namespace
+        __Sealed__()
+        class "ReactiveNamespaceProxy"  (function(_ENV)
+            export                      {
+                rawset                  = rawset,
+                rawget                  = rawget,
+                type                    = type,
+                pairs                   = pairs,
+                getobjectclass          = Class.GetObjectClass,
+                getnamespacename        = Namespace.GetNamespaceName,
+
+                makeReactiveProxy       = makeReactiveProxy,
+
+                Observer, Reactive, ReactiveContainerProxy, Watch
+            }
+
+            -------------------------------------------------------------------
+            --                          constructor                          --
+            -------------------------------------------------------------------
+            function __ctor(self, observer, container)
+                rawset(self, Observer, observer)
+                rawset(self, Reactive, container)
+            end
+
+            -------------------------------------------------------------------
+            --                          meta method                          --
+            -------------------------------------------------------------------
+            function __index(self, key)
+                if type(key) ~= "string" then return end
+
+                -- get from the source
+                local value             = rawget(self, Reactive)[key]
+                if value ~= nil then
+                    value               = makeReactiveProxy(rawget(self, Observer), value) or value
+                    rawset(self, key, value)
+                end
+                return value
+            end
+
+            __newindex                  = Toolset.readonly
+
+            function __dtor(self)
+                for k, v in pairs(self) do
+                    local cls           = getobjectclass(v)
+                    -- classes defined in Watch
+                    if cls and getnamespacename(cls):match("^System.Reactive.Watch") then
+                        v:Dispose()
+                    end
+                end
+            end
         end)
 
         --- The watch environment to provide reactive value access
@@ -687,13 +842,16 @@ PLoop(function(_ENV)
                     local proxy, isvalue= makeReactiveProxy(observer, value)
 
                     if proxy then
+                        -- record
+                        local map       = rawget(self, Watch)
+                        if not map then
+                            map         = {}
+                            rawset(self, Watch, map)
+                        end
+                        map[key]        = proxy
+
+                        -- non-value will be used directly
                         if isvalue then
-                            local map   = rawget(self, Watch)
-                            if not map then
-                                map     = {}
-                                rawset(self, Watch, map)
-                            end
-                            map[key]    = proxy
                             proxy:Subscribe(observer, observer.Subscription)
                             rawset(self, key, nil)
                             return proxy.Value
@@ -740,6 +898,14 @@ PLoop(function(_ENV)
                 -- gets from the base env
                 return parseValue(self, key, getValue(self, key))
             end
+
+            function __dtor(self)
+                local map               = rawget(self, Watch)
+                if not map then return end
+                for k, v in pairs(map) do
+                    v:Dispose()
+                end
+            end
         end)
 
         --- The watch environment to provide reactive value access
@@ -783,19 +949,6 @@ PLoop(function(_ENV)
 
                 Watch, IReactive, IObservable, ReactiveValue, RawEnvironment
             }
-
-            -------------------------------------------------------------------
-            --                         static method                         --
-            -------------------------------------------------------------------
-            --- Install global variables can't be fetched from environment
-            __Static__()
-            function Install(self, reactives)
-                for k, v in pairs(reactives) do
-                    if type(k) == "string" then
-                        parseValue(self, k, v)
-                    end
-                end
-            end
 
             -------------------------------------------------------------------
             --                          constructor                          --
@@ -884,6 +1037,7 @@ PLoop(function(_ENV)
 
             -- apply and call for subscription
             rawset(self,     Observer, observer)
+            rawset(self, WatchEnvironment, watchEnv)
             rawset(watchEnv, Observer, observer)
 
             -- install the reactives
@@ -898,7 +1052,10 @@ PLoop(function(_ENV)
         -----------------------------------------------------------------------
         --                          de-constructor                           --
         -----------------------------------------------------------------------
-        function __dtor(self) return rawget(self, Observer):Dispose() end
+        function __dtor(self)
+            rawget(self, Observer):Dispose()
+            rawget(self, WatchEnvironment):Dispose()
+        end
     end)
 
     --- The watch keyword

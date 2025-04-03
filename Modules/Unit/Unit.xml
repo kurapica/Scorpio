@@ -14,5 +14,5 @@
 	<Script file="Deprecated\UnitAuraAPI.lua"/>
 
 	<!-- Unit Frame Indicator -->
-	<Script file="Deprecated\Indicator.lua"/>
+	<Script file="Indicator.lua"/>
 </Ui>

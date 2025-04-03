@@ -3,14 +3,12 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2020/07/13                              --
--- Update Date :  2021/06/24                              --
+-- Update Date :  2025/04/01                              --
 --========================================================--
 
 --========================================================--
-Scorpio           "Scorpio.UI.Core"                  "1.1.0"
+Scorpio           "Scorpio.UI.Core"                  "1.2.0"
 --========================================================--
-
-import "System.Reactive"
 
 --- Clear the property value of the target object
 local NIL                       = Namespace.SaveNamespace("Scorpio.UI.NIL",   prototype { __tostring = function() return "nil"   end })
@@ -1656,12 +1654,13 @@ function Style.GetProperty(class, name)
     if prop then return prop.childtype or prop.type end
 end
 
+--- Get the current ui element that been apply skins
 function Style.GetCurrentTarget()
     return _CurrentStyleTarget
 end
 
+-- Default skin
 Style.RegisterSkin("Default")
-
 export { Scorpio.UI.Property }
 
 ----------------------------------------------

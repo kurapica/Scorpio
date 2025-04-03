@@ -2,8 +2,11 @@
     <!-- UI Base -->
     <Script file="UI.lua"/>
 
-    <!-- UI Core System:UIObject&Style&Property -->
+    <!-- UI Core System : UIObject X Style X Property -->
     <Script file="Core.lua"/>
+
+    <!-- UI Reactive -->
+    <Script file="Reactive.lua"/>
 
     <!-- UI Widgets -->
     <Script file="Widget.lua"/>
@@ -14,9 +17,6 @@
     <!-- Share Templates -->
     <Script file="ElementPanel.lua"/>
     <Script file="CooldownTemplate.lua"/>
-
-    <!-- UI Property Observable -->
-    <Script file="Reactive.lua"/>
 
     <!-- UI Layout Manager -->
     <Script file="LayoutManager.lua"/>

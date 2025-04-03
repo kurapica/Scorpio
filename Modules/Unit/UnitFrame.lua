@@ -3,17 +3,17 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2020/06/09                              --
--- Update Date :  2025/03/31                              --
+-- Update Date :  2025/04/01                              --
 --========================================================--
 
 --========================================================--
 Scorpio           "Scorpio.Secure.UnitFrame"         "1.0.1"
 --========================================================--
 
+------------------------------------------------------
+--                Hover Spell Helper                --
+------------------------------------------------------
 do
-    ------------------------------------------------------
-    --                Hover Spell Helper                --
-    ------------------------------------------------------
     local _UnitFrameHoverSpellGroup
 
     _UpdateGroupQueue           = Queue()
@@ -694,192 +694,46 @@ do
     end
 end
 
---- The interface should be extended by all unit frame types(include secure and non-secure)
-__Sealed__()
-interface "IUnitFrame"          (function(_ENV)
-    ------------------------------------------------------
-    --                      Event                       --
-    ------------------------------------------------------
-    --- Fired when the unit frame need refreshing
-    __Abstract__()
-    event "OnUnitRefresh"
+------------------------------------------------------
+--                Unit Guid Tracker                 --
+------------------------------------------------------
+do
+    -- unit <-> guid
+    _Recycle                    = Recycle()
+    _UnitGuidMap                = {}
+    _GuidUnitMap                = {}
 
-    --- The current unit
-    __Abstract__()
-    property "Unit"             { type = String, event = OnUnitRefresh }
+    function refreshUnitGuidMap(unit)
+        local guid              = UnitGUID(unit)
+        local oguid             = _UnitGuidMap[unit]
 
-    --- The unit frame subject
-    property "Subject"          { set = false, default = function(self) return UnitFrameSubject(self) end }
-end)
+        if guid == oguid then return end
+        _UnitGuidMap[unit]      = guid
 
---- The unsecure unit frame that'd be used as nameplates
-__Sealed__()
-class "InSecureUnitFrame"       { Frame, IUnitFrame }
-
---- The unit subject of the given unit frame
-__Sealed__()
-class "UnitFrameSubject"        (function(_ENV)
-    inherit "Subject"
-
-    export                      {
-        _UnitFrameMap           = Toolset.newtable(true),
-        _Recycle                = Recycle(),
-
-        -- observables
-        NAMEPLATE_SUBJECT       = Wow.FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED"),
-        RAID_UNIT_SUBJECT       = Wow.FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next(), -- Force All
-
-        -- helper
-        subscribe               = Subject.Subscribe,
-        FromEvent               = Wow.FromEvent,
-
-        -- unit <-> guid
-        _UnitGuidMap            = {},
-        _GuidUnitMap            = {},
-        refreshUnitGuidMap      = function (unit)
-            local guid          = UnitGUID(unit)
-            local oguid         = _UnitGuidMap[unit]
-
-            if guid == oguid then return end
-            _UnitGuidMap[unit]  = guid
-
-            if guid then
-                local map       = _GuidUnitMap[guid]
-                if not map then
-                    map         = _Recycle()
-                    _GuidUnitMap[guid] = map
-                end
-
-                map[unit]       = true
+        if guid then
+            local map           = _GuidUnitMap[guid]
+            if not map then
+                map             = _Recycle()
+                _GuidUnitMap[guid] = map
             end
 
-            if oguid then
-                local map       = _GuidUnitMap[oguid]
-                if map then
-                    map[unit]   = nil
+            map[unit]           = true
+        end
 
-                    if not next(map) then
-                        -- Clear
-                        _GuidUnitMap[oguid] = nil
-                        _Recycle(map)
-                    end
-                end
-            end
-        end,
+        if oguid then
+            local map           = _GuidUnitMap[oguid]
+            if map then
+                map[unit]       = nil
 
-        -- start unit change watching
-        refreshUnit             = function (self, unit, oldunit)
-            self.TaskId         = (self.TaskId or 0) + 1
-            local task          = self.TaskId
-
-            self.BlockEvent     = false
-            self.RealUnit       = nil
-
-            -- May clear the old unit's cache
-            if oldunit then refreshUnitGuidMap(oldunit) end
-
-            if not unit then
-                -- need sepcial unit to be passed to clear the values
-                self:OnNext("clear", true)
-            elseif unit == "player" then
-                refreshUnitGuidMap(unit)
-                self:OnNext(unit)
-            elseif unit == "target" then
-                while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
-                    self:OnNext(unit)
-                    NextEvent("PLAYER_TARGET_CHANGED")
-                end
-            elseif unit == "mouseover" then
-                while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
-                    self:OnNext(unit)
-                    NextEvent("UPDATE_MOUSEOVER_UNIT")
-                end
-            elseif unit == "focus" then
-                while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
-                    self:OnNext(unit)
-                    NextEvent("PLAYER_FOCUS_CHANGED")
-                end
-            elseif unit:match("pet%d*$") then
-                local owner     = unit:match("^(%w+)pet")
-                local index     = owner and unit:match("%d+")
-                if not owner then
-                    owner       = "player"
-                elseif index then
-                    owner       = owner .. index
-                else
-                    -- Not valid
-                    return self:OnNext("none", true)
-                end
-
-                while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
-                    self:OnNext(unit)
-                    Next(FromEvent("UNIT_PET"):MatchUnit(owner))
-                end
-            elseif unit:match("^nameplate%d+$") then
-                while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
-                    self:OnNext(unit)
-                    Next(NAMEPLATE_SUBJECT:MatchUnit(unit))
-                end
-            elseif unit:match("^party%d+$") or unit:match("^raid%d+$") then
-                while task == self.TaskId do
-                    for i = 1, 4 do
-                        -- The unit info may not be stable, try several times
-                        refreshUnitGuidMap(unit)
-                        self:OnNext(unit)
-
-                        Delay(0.5)
-                        if task ~= self.TaskId then break end
-                    end
-
-                    Next(RAID_UNIT_SUBJECT)
-                end
-            elseif unit == "vehicle" or unit:match("^arena%d+$") or unit:match("^boss%d+$") or unit:match("^spectated[ab]%d+$") or unit:match("^spectatedpet[ab]%d+$") then
-                -- Other units: arenaN, bossN, vehicle, spectated<T><N>, spectatedpet<T><N>
-                while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
-                    self:OnNext(unit)
-                    Next(FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
-                end
-            else
-                -- targettarget, xxxx-target-target, xxxxx and etc
-                local frm       = self.UnitFrame
-                local runit     -- the real unit for system event
-
-                while task == self.TaskId do
-                    while frm:IsShown() and task == self.TaskId do
-                        -- Check if the target is an existed unit, use that unit instead the *target
-                        -- So the unit system event can work on it
-                        local guid  = UnitGUID(unit)
-                        local nunit = guid and GetUnitFromGUID(guid)
-
-                        if not nunit or nunit ~= runit then
-                            runit   = nunit
-                            self:OnNext(runit or unit, not runit)
-
-                            self.RealUnit   = runit
-                            self.BlockEvent = not runit
-                        end
-
-                        Delay(self.Interval)
-                    end
-
-                    if task ~= self.TaskId then return end
-
-                    -- Wait the unit frame re-show
-                    Next(Observable.From(frm.OnShow))
+                if not next(map) then
+                    -- Clear
+                    _GuidUnitMap[oguid] = nil
+                    _Recycle(map)
                 end
             end
         end
-    }
+    end
 
-    ----------------------------------------------------
-    -- Extend Method To Scorpio
-    ----------------------------------------------------
     --- Gets the unit based on the GUID
     __Static__()
     function Scorpio.GetUnitFromGUID(guid)
@@ -910,54 +764,168 @@ class "UnitFrameSubject"        (function(_ENV)
         end
     end
 
+end
+
+------------------------------------------------------
+--                UnitFrame FrameWork               --
+------------------------------------------------------
+--- The interface should be extended by all unit frame types(include secure and non-secure)
+__Sealed__()
+interface "IUnitFrame"          (function(_ENV)
+    export                      {
+        -- observables
+        NAMEPLATE_SUBJECT       = Wow.FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED"),
+        RAID_UNIT_SUBJECT       = Wow.FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next(), -- Force All
+
+        -- helper
+        FromEvent               = Wow.FromEvent,
+
+        -- start unit change watching
+        refreshUnit             = function (self, unit, oldunit)
+            self                = self.Subject
+            self.TaskId         = (self.TaskId or 0) + 1
+            local task          = self.TaskId
+
+            -- May clear the old unit's cache
+            if oldunit then     refreshUnitGuidMap(oldunit) end
+
+            if not unit then
+                -- need sepcial unit to be passed to clear the values
+                self:OnNext("clear", true)
+
+            elseif unit == "player" then
+                refreshUnitGuidMap(unit)
+                self:OnNext(unit)
+
+            elseif unit == "target" then
+                while task == self.TaskId do
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
+                    NextEvent("PLAYER_TARGET_CHANGED")
+                end
+
+            elseif unit == "mouseover" then
+                while task == self.TaskId do
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
+                    NextEvent("UPDATE_MOUSEOVER_UNIT")
+                end
+
+            elseif unit == "focus" then
+                while task == self.TaskId do
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
+                    NextEvent("PLAYER_FOCUS_CHANGED")
+                end
+
+            elseif unit:match("pet%d*$") then
+                local owner     = unit:match("^(%w+)pet")
+                local index     = owner and unit:match("%d+")
+                if not owner then
+                    owner       = "player"
+                elseif index then
+                    owner       = owner .. index
+                else
+                    -- Not valid
+                    return self:OnNext("none", true)
+                end
+
+                while task == self.TaskId do
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
+                    Next(FromEvent("UNIT_PET"):MatchUnit(owner))
+                end
+
+            elseif unit:match("^nameplate%d+$") then
+                while task == self.TaskId do
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
+                    Next(NAMEPLATE_SUBJECT:MatchUnit(unit))
+                end
+
+            elseif unit:match("^party%d+$") or unit:match("^raid%d+$") then
+                while task == self.TaskId do
+                    for i = 1, 4 do
+                        -- The unit info may not be stable, try several times
+                        refreshUnitGuidMap(unit)
+                        self:OnNext(unit)
+
+                        Delay(0.5)
+                        if task ~= self.TaskId then break end
+                    end
+
+                    Next(RAID_UNIT_SUBJECT)
+                end
+
+            elseif unit == "vehicle" or unit:match("^arena%d+$") or unit:match("^boss%d+$") or unit:match("^spectated[ab]%d+$") or unit:match("^spectatedpet[ab]%d+$") then
+                -- Other units: arenaN, bossN, vehicle, spectated<T><N>, spectatedpet<T><N>
+                while task == self.TaskId do
+                    refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
+                    Next(FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
+                end
+
+            else
+                -- targettarget, xxxx-target-target, xxxxx and etc
+                local frm       = self.UnitFrame
+                local runit     -- the real unit for system event
+
+                while task == self.TaskId do
+                    while frm:IsShown() and task == self.TaskId do
+                        -- Check if the target is an existed unit, use that unit instead the *target
+                        -- So the unit system event can work on it
+                        local guid  = UnitGUID(unit)
+                        local nunit = guid and GetUnitFromGUID(guid)
+
+                        if not nunit or nunit ~= runit then
+                            runit   = nunit
+                            self:OnNext(runit or unit)
+                        end
+
+                        Delay(self.Interval)
+                    end
+
+                    if task ~= self.TaskId then return end
+
+                    -- Wait the unit frame re-show
+                    Next(Observable.From(frm.OnShow))
+                end
+            end
+        end
+    }
+
+    ------------------------------------------------------
+    --                      Event                       --
+    ------------------------------------------------------
+    --- Fired when the unit frame need refreshing
+    event "OnUnitRefresh"
+
+    ------------------------------------------------------
+    --                     Property                     --
+    ------------------------------------------------------
+    --- The current unit
+    __Abstract__()
+    property "Unit"             { type = String, event = OnUnitRefresh }
+
+    --- The refresh interval seconds of the unit frame for the non-trackable unit like targettarget
+    __Abstract__()
+    property "Interval"         { type = PositiveNumber, default = 0.5 }
+
+    --- The subject of the unit frame
+    __Final__()
+    property "Subject"          { set = false, default = function() return BehaviorSubject() end }
+
     ----------------------------------------------------
     -- Method
     ----------------------------------------------------
-    function Subscribe(self, ...)
-        local sub, observer     = subscribe(self, ...)
-        if self.Unit then observer:OnNext(self.RealUnit or self.Unit, self.BlockEvent) end
-        return sub, observer
-    end
-
-    ----------------------------------------------------
-    -- Property
-    ----------------------------------------------------
-    --- the unit frame
-    property "UnitFrame"    { type = IUnitFrame }
-
-    --- The current unit
-    property "Unit"         { type = String, handler = function(...) return Continue(refreshUnit, ...) end }
-
-    --- The real unit based on the GUID
-    property "RealUnit"     { type = String }
-
-    --- Whether block the unit event
-    property "BlockEvent"   { type = Boolean, default = false }
-
-    --- The current unit
-    property "Interval"     { type = PositiveNumber, default = function(self) return self.UnitFrame.Interval or 1 end }
-
-    ----------------------------------------------------
-    -- Constructor
-    ----------------------------------------------------
-    __Arguments__{ IUnitFrame }
-    function __ctor(self, unitfrm)
-        super(self)
-
-        self.UnitFrame          = unitfrm
-        _UnitFrameMap[unitfrm]  = self
-
-        unitfrm.OnUnitRefresh   = unitfrm.OnUnitRefresh + function (self, unit)
-            self                = _UnitFrameMap[self]
-            self.Unit           = unit
-        end
-        self.Unit               = unitfrm.Unit
-    end
-
-    function __exist(_, unitfrm)
-        return _UnitFrameMap[unitfrm]
+    function __init(self)
+        self.OnUnitRefresh      = self.OnUnitRefresh + function (...) return Continue(refreshUnit, ...) end
     end
 end)
+
+--- The unsecure unit frame that'd be used as nameplates
+__Sealed__()
+class "InSecureUnitFrame"       { Frame, IUnitFrame }
 
 --- The root unit frame widget class include hover spell casting
 -- We can bind short keys to the hover spell group, each unit frame can have a group
@@ -969,8 +937,6 @@ __Sealed__() __SecureTemplate__"SecureUnitButtonTemplate, SecureHandlerAttribute
 class "UnitFrame" (function(_ENV)
     inherit "SecureButton"
     extend "IUnitFrame"
-
-    import "System.Reactive"
 
     ------------------------------------------------------
     --                      Helper                      --
@@ -1029,7 +995,8 @@ class "UnitFrame" (function(_ENV)
     ------------------------------------------------------
     --            Hover Spell Group Accessor            --
     ------------------------------------------------------
-    __Sealed__() class "HoverSpellGroupAccessor" (function(_ENV)
+    __Sealed__()
+    class "HoverSpellGroupAccessor" (function(_ENV)
         local accessor
 
         ------------------------------------------------------
@@ -1209,20 +1176,19 @@ class "UnitFrame" (function(_ENV)
         end,
     }
 
-    --- The refresh interval for special unit like 'targettarget'
-    property "Interval"         { type = PositiveNumber, default = 0.5 }
-
     --- The hover spell group
     property "HoverSpellGroup"  { type = String, handler = initUnitFrame }
 
     ------------------------------------------------------
     --                      Method                      --
     ------------------------------------------------------
+    --- Raise the OnUnitRefresh event to refresh all indicators
     __SecureMethod__()
     function ProcessUnitChange(self, unit)
         return self:OnUnitRefresh(unit)
     end
 
+    --- Update tooltip
     __SecureMethod__()
     function UpdateTooltip(self)
         local unit              = self:GetAttribute("unit")
