@@ -9,8 +9,6 @@
 Scorpio            "Scorpio.Reactive"                     ""
 --========================================================--
 
-local _M                        = _M
-
 ------------------------------------------------------------
 --                     Time Operation                     --
 ------------------------------------------------------------
@@ -277,17 +275,27 @@ do
 end
 
 ------------------------------------------------------------
---                     Wow Observable                     --
+--                 Wow Reactive Container                 --
 ------------------------------------------------------------
-__Final__() __Sealed__()
-interface "Scorpio.Wow" (function(_ENV)
-    local _EventMap             = setmetatable({}, {
+reactive_container "Scorpio.Wow" {
+    -- The observable factory for system event
+    -- work like : Wow.ADDON_LOADED:MatchPrefix("AshToAsh"):Dump()
+    function (event)
+        -- Check if the event is a string and is upper case
+        if type(event) == "string" and event:upper() == event then
+            return Wow.FromEvent(event)
+        end
+    end
+}
+do
+    local _EventMap             = setmetatable({},
+    {
         __index                 = function(self, event)
             local subject       = Subject()
             rawset(self, event, subject)
 
             -- Keep register since if the event is used, it should be used frequently
-            _M:RegisterEvent(event, function(...) subject:OnNext(...) end)
+            _M:RegisterEvent(event, function(...) return subject:OnNext(...) end)
 
             return subject
         end
@@ -296,8 +304,8 @@ interface "Scorpio.Wow" (function(_ENV)
     local _MultiEventMap        = {}
 
     --- The data sequences from the wow event
-    __Static__() __Arguments__{ NEString * 1 }
-    function FromEvent(...)
+    __Arguments__{ NEString * 1 }
+    function Wow.FromEvent(...)
         if select("#", ...) == 1 then
             return _EventMap[(...)]
         else
@@ -308,8 +316,7 @@ interface "Scorpio.Wow" (function(_ENV)
                 for i = 1, select("#", ...) do ob[i] = select(i, ...) end
                 _MultiEventMap[token] = ob
             end
-
             return ob
         end
     end
-end)
+end

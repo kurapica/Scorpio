@@ -656,7 +656,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         if not cursorPos or cursorPos <= 0 then return 0 end
 
         local startp            = getLines(str, cursorPos, false)
-        local byteCnt, isv      = 0
+        local byteCnt, isv      = 0, nil
 
         while startp <= cursorPos do
             startp, isv         = skipColor(str, startp)
@@ -672,7 +672,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
         local startp, endp      = getLines(str, cursorPos)
         startp                  = startp - 1
 
-        local byteCnt, isv      = 0
+        local byteCnt, isv      = 0, nil
 
         while byteCnt < offset and startp <= endp do
             startp, isv         = skipColor(str, startp)
@@ -2756,7 +2756,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
                             if line == 1 then
                                 -- Check a special error
                                 local startp, endp      = getLines(text, cursorPos)
-                                local offset, isv       = 0
+                                local offset, isv       = 0, nil
 
                                 startp, isv             = skipColor(text, startp)
 
@@ -3325,7 +3325,7 @@ __Sealed__() class "CodeEditor" (function(_ENV)
             local text          = self:GetText()
             local startp, endp  = getLines(text, cursorPos)
 
-            local offset, isv   = 0
+            local offset, isv   = 0, nil
 
             startp, isv         = skipColor(text, startp)
 

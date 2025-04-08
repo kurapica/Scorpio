@@ -454,7 +454,7 @@ PLoop(function(_ENV)
         local function queueDelayTask(task, time)
             time                = floor((GetTime() + time) * 100)
 
-            local node, header  = t_DelayTasks
+            local node, header  = t_DelayTasks, nil
 
             while node and node[1] < time do
                 header          = node

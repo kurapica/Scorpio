@@ -216,13 +216,13 @@ function handler:GetActionCharges()
         end
     elseif style == "AllEmpty" or style == "All" then
         if self.ActionTarget <= 4 then
-            local sFree, sTotal, free, total, bagFamily = 0, 0
+            local sFree, sTotal = 0, 0
             local _, tarFamily  = GetContainerNumFreeSlots(self.ActionTarget)
             if not tarFamily then return nil end
 
             for i = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-                free, bagFamily = GetContainerNumFreeSlots(i)
-                total           = GetContainerNumSlots(i)
+                local free, bagFamily = GetContainerNumFreeSlots(i)
+                local total     = GetContainerNumSlots(i)
                 if bagFamily == tarFamily then
                     sFree       = sFree + free
                     sTotal      = sTotal + total
