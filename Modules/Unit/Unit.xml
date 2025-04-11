@@ -5,6 +5,9 @@
 	<!-- Raid Panel -->
 	<Script file="SecureGroupPanel.lua"/>
 
+	<!-- Reactive -->
+	<Script file="Reactive.lua"/>
+
 	<!-- Deprecated Indicator System -->
 	<!-- Unit API -->
 	<Script file="Deprecated\UnitAPI.lua"/>

@@ -277,7 +277,7 @@ end
 ------------------------------------------------------------
 --                 Wow Reactive Container                 --
 ------------------------------------------------------------
-reactive_container "Scorpio.Wow" {
+reactive_container "Scorpio.Wow"{
     -- The observable factory for system event
     -- work like : Wow.ADDON_LOADED:MatchPrefix("AshToAsh"):Dump()
     function (event)
