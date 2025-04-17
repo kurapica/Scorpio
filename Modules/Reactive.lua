@@ -277,35 +277,30 @@ end
 ------------------------------------------------------------
 --                 Wow Reactive Container                 --
 ------------------------------------------------------------
-reactive_container "Scorpio.Wow"{
-    -- The observable factory for system event
-    -- work like : Wow.ADDON_LOADED:MatchPrefix("AshToAsh"):Dump()
-    function (event)
-        -- Check if the event is a string and is upper case
-        if type(event) == "string" and event:upper() == event then
-            return Wow.FromEvent(event)
-        end
+_EventMap                       = setmetatable({}, {
+    __index                     = function(self, event)
+        local subject           = Subject()
+        rawset(self, event, subject)
+
+        -- Keep register since if the event is used, it should be used frequently
+        _M:RegisterEvent(event, function(...) return subject:OnNext(...) end)
+
+        return subject
     end
-}
-do
-    local _EventMap             = setmetatable({},
-    {
-        __index                 = function(self, event)
-            local subject       = Subject()
-            rawset(self, event, subject)
+})
 
-            -- Keep register since if the event is used, it should be used frequently
-            _M:RegisterEvent(event, function(...) return subject:OnNext(...) end)
+--- Scorpio.Wow Reactive Container
+Namespace.SaveNamespace("Scorpio.Wow", class (function(_ENV)
+    inherit "Reactive"
 
-            return subject
-        end
-    })
-
-    local _MultiEventMap        = {}
+    export                      {
+        _MultiEventMap          = {},
+        safesetvalue            = Toolset.safesetvalue,
+    }
 
     --- The data sequences from the wow event
-    __Arguments__{ NEString * 1 }
-    function Wow.FromEvent(...)
+    __Static__() __Arguments__{ NEString * 1 }
+    function FromEvent(...)
         if select("#", ...) == 1 then
             return _EventMap[(...)]
         else
@@ -319,4 +314,17 @@ do
             return ob
         end
     end
-end
+
+    -- override the __index metamethod
+    function __index(self, key)
+        local ret               = super.__index(self, key)
+        if ret ~= nil then return ret end
+        
+        -- handle system event - Scorpio.Wow.UNIT_HEALTH:MatchUnit("player")
+        if type(key) == "string" and key:upper() == key then
+            ret                 = FromEvent(key)
+            safesetvalue(self, key, ret)
+            return ret
+        end
+    end
+end) ())
