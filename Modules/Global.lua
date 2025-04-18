@@ -27,7 +27,8 @@ __Sealed__()
 interface "DeprecatedApi"       (function(_ENV)
     local version               = select(4, GetBuildInfo())
 
-
+    UnitHasVehicleUI            = _G.UnitHasVehicleUI     or Toolset.fakefunc
+    GetThreatStatusColor        = _G.GetThreatStatusColor or function (index) if index == 3 then return 1, 0, 0 elseif index == 2 then return 1, 0.6, 0 elseif index == 1 then return 1, 1, 0.47 else return 0.69, 0.69, 0.69 end end
     GetSpecialization           = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
     IsWarModeDesired            = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
 

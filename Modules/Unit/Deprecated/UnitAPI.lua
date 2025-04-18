@@ -15,112 +15,6 @@ import "System.Reactive"
 import "System.Toolset"
 
 ------------------------------------------------------------
---                        Wow API                         --
-------------------------------------------------------------
-export                          {
-    getCurrentTarget            = UI.Style.GetCurrentTarget,
-    isUIObject                  = UI.IsUIObject,
-    isObjectType                = Class.IsObjectType,
-    FromEvent                   = Wow.FromEvent,
-    unitFrameObservable         = Toolset.newtable(true),
-    nextUnitFrameObservable     = Toolset.newtable(true),
-}
-
-function getUnitFrameSubject()
-    local indicator             = getCurrentTarget()
-
-    if indicator and isUIObject(indicator) then
-        local unitfrm           = indicator
-        while unitfrm and not isObjectType(unitfrm, IUnitFrame) do
-            unitfrm             = unitfrm:GetParent()
-        end
-        return unitfrm and unitfrm.Subject
-    end
-end
-
-function genUnitFrameObservable(unitEvent, useNext)
-    local observable
-    if useNext then
-        observable              = nextUnitFrameObservable[unitEvent or 0]
-    else
-        observable              = unitFrameObservable[unitEvent or 0]
-    end
-
-    if not observable then
-        observable              = Observable(function(observer, subscription)
-            local unitSubject   = getUnitFrameSubject()
-
-            if not unitSubject then return unitEvent and unitEvent:Subscribe(observer, subscription) end
-            if not unitEvent   then return unitSubject:Subscribe(observer, subscription) end
-
-            -- Unit event observer
-            if unitEvent then
-                local obsEvent  = Observer(function(...) return observer:OnNext(...) end)
-
-                -- Unit change observer
-                local obsUnit   = Observer(function(unit)
-                    obsEvent.Subscription = Subscription(subscription)
-
-                    -- Check trackable unit
-                    local runit = unit and GetUnitFromGUID(UnitGUID(unit))
-                    if runit then unitEvent:MatchUnit(runit):Subscribe(obsEvent) end
-
-                    -- Push the unit
-                    return observer:OnNext(unit)
-                end)
-
-                -- Start the unit watching
-                if useNext then
-                    unitSubject:Next():Subscribe(obsUnit, subscription)
-                else
-                    unitSubject:Subscribe(obsUnit, subscription)
-                end
-
-            -- Unit observer
-            else
-                -- Start the unit watching
-                if useNext then
-                    unitSubject:Next():Subscribe(observer, subscription)
-                else
-                    unitSubject:Subscribe(observer, subscription)
-                end
-            end
-        end)
-
-        if useNext then
-            nextUnitFrameObservable[unitEvent or 0] = observable
-        else
-            unitFrameObservable[unitEvent or 0] = observable
-        end
-    end
-
-    return observable
-end
-
---- The data sequences from the wow unit event binding to unit frames
-__Arguments__{ (NEString + IObservable)/nil, NEString * 0 }
-__Static__()
-function Wow.FromUnitEvent(observable, ...)
-    if type(observable) == "string" then
-        return genUnitFrameObservable(FromEvent(observable, ...))
-    else
-        return genUnitFrameObservable(observable)
-    end
-end
-
---- The data sequences from the wow unit event binding to unit frames
--- The unit change event will be delayed for one phase
-__Arguments__{ (NEString + IObservable)/nil, NEString * 0 }
-__Static__()
-function Wow.FromNextUnitEvent(observable, ...)
-    if type(observable) == "string" then
-        return genUnitFrameObservable(FromEvent(observable, ...), true)
-    else
-        return genUnitFrameObservable(observable, true)
-    end
-end
-
-------------------------------------------------------------
 --                    Simple Unit API                     --
 ------------------------------------------------------------
 local _UnitNameSubject          = Subject()
@@ -423,7 +317,7 @@ function READY_CHECK()
         _ReadyChecking          = 2
         _ReadyCheckConfirmSubject:OnNext("any")
 
-        Wait(11, "PLAYER_REGEN_DISABLED")
+        Wait(2, "PLAYER_REGEN_DISABLED")
     end
 
     _ReadyChecking              = 0
@@ -453,11 +347,3 @@ function Wow.UnitReadyCheck()
         return _ReadyChecking == 2 and state == "waiting" and "notready" or state
     end)
 end
-
-------------------------------------------------------------
---                      Wow Classic                       --
-------------------------------------------------------------
-if Scorpio.IsRetail then return end
-
-_Parent.UnitHasVehicleUI        = _G.UnitHasVehicleUI     or Toolset.fakefunc
-_Parent.GetThreatStatusColor    = _G.GetThreatStatusColor or function (index) if index == 3 then return 1, 0, 0 elseif index == 2 then return 1, 0.6, 0 elseif index == 1 then return 1, 1, 0.47 else return 0.69, 0.69, 0.69 end end

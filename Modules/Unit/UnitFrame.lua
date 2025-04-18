@@ -775,7 +775,7 @@ interface "IUnitFrame"          (function(_ENV)
     export                      {
         -- observables
         NAMEPLATE_SUBJECT       = Wow.FromEvent("NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED"),
-        RAID_UNIT_SUBJECT       = Wow.FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next(), -- Force All
+        RAID_UNIT_SUBJECT       = Wow.FromEvent("UNIT_NAME_UPDATE", "GROUP_ROSTER_UPDATE"):Map(function() return "any" end):Next():Debounce(0.5), -- Force All
 
         -- helper
         FromEvent               = Wow.FromEvent,
@@ -799,21 +799,21 @@ interface "IUnitFrame"          (function(_ENV)
 
             elseif unit == "target" then
                 while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
+                    Next() refreshUnitGuidMap(unit)
                     self:OnNext(unit)
                     NextEvent("PLAYER_TARGET_CHANGED")
                 end
 
             elseif unit == "mouseover" then
                 while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
+                    Next() refreshUnitGuidMap(unit)
                     self:OnNext(unit)
                     NextEvent("UPDATE_MOUSEOVER_UNIT")
                 end
 
             elseif unit == "focus" then
                 while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
+                    Next() refreshUnitGuidMap(unit)
                     self:OnNext(unit)
                     NextEvent("PLAYER_FOCUS_CHANGED")
                 end
@@ -831,36 +831,29 @@ interface "IUnitFrame"          (function(_ENV)
                 end
 
                 while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
+                    Next() refreshUnitGuidMap(unit)
                     self:OnNext(unit)
                     Next(FromEvent("UNIT_PET"):MatchUnit(owner))
                 end
 
             elseif unit:match("^nameplate%d+$") then
                 while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
+                    Next() refreshUnitGuidMap(unit)
                     self:OnNext(unit)
                     Next(NAMEPLATE_SUBJECT:MatchUnit(unit))
                 end
 
             elseif unit:match("^party%d+$") or unit:match("^raid%d+$") then
                 while task == self.TaskId do
-                    for i = 1, 4 do
-                        -- The unit info may not be stable, try several times
-                        refreshUnitGuidMap(unit)
-                        self:OnNext(unit)
-
-                        Delay(0.5)
-                        if task ~= self.TaskId then break end
-                    end
-
+                    Next() refreshUnitGuidMap(unit)
+                    self:OnNext(unit)
                     Next(RAID_UNIT_SUBJECT)
                 end
 
             elseif unit == "vehicle" or unit:match("^arena%d+$") or unit:match("^boss%d+$") or unit:match("^spectated[ab]%d+$") or unit:match("^spectatedpet[ab]%d+$") then
                 -- Other units: arenaN, bossN, vehicle, spectated<T><N>, spectatedpet<T><N>
                 while task == self.TaskId do
-                    refreshUnitGuidMap(unit)
+                    Next() refreshUnitGuidMap(unit)
                     self:OnNext(unit)
                     Next(FromEvent("UNIT_NAME_UPDATE"):MatchUnit(unit))
                 end
