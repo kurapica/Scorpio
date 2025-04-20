@@ -10,7 +10,6 @@
 
 	<!-- Deprecated Indicator System -->
 	<!-- Unit API -->
-	<Script file="Deprecated\UnitAPI.lua"/>
 	<Script file="Deprecated\UnitHealthAPI.lua"/>
 	<Script file="Deprecated\UnitPowerAPI.lua"/>
 	<Script file="Deprecated\UnitCastAPI.lua"/>
