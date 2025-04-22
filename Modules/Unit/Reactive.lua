@@ -340,8 +340,11 @@ end
 --                         Health                         --
 ------------------------------------------------------------
 do
-    local _PlayerClass          = select(2, UnitClass("player"))
-    local _DISPELLABLE          = ({
+    --------------------------------------------------------
+    --                       Helper                       --
+    --------------------------------------------------------
+    _PlayerClass                = select(2, UnitClass("player"))
+    _DISPELLABLE                = ({
         ["MAGE"]                = { Curse   = Color.CURSE, },
         ["DRUID"]               = { Poison  = Color.POISON, Curse   = Color.CURSE,   Magic = Color.MAGIC },
         ["PALADIN"]             = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
@@ -349,15 +352,38 @@ do
         ["SHAMAN"]              = { Curse   = Color.CURSE,  Magic   = Color.MAGIC },
         ["WARLOCK"]             = { Magic   = Color.MAGIC, },
         ["MONK"]                = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
-        ["EVOKER"]              = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
+        ["EVOKER"]              = { Poison  = Color.POISON, Disease = Color.DISEASE, Curse = Color.Curse },
     })[_PlayerClass] or false
     
-    local _UnitGUIDMap          = {}
-    local _UnitHealthMap        = {}
-    local _FixUnitMaxHealth     = {}
+    _UnitGUIDMap                = {}
+    _UnitHealthMap              = {}
+    _FixUnitMaxHealth           = {}
     
-    local _UnitHealthSubject    = Subject()
-    local _UnitMaxHealthSubject = Subject()
+    _UnitHealthSubject          = Subject()
+    _UnitMaxHealthSubject       = Subject()
+
+    _UnitInstantHealthObservable= Observable(function(observer, subscription)
+        local unitSub           = GetUnitFrameSubject()
+        if not unitSub  then return _UnitHealthSubject:Subscribe(observer, subscription) end
+
+        -- Unit event observer
+        local obsEvent  = Observer(function(...) return observer:OnNext(...) end)
+
+        -- Unit change observer
+        local obsUnit   = Observer(function(unit)
+            obsEvent.Subscription = Subscription(subscription)
+
+            -- Check trackable unit
+            local runit = unit and GetUnitFromGUID(UnitGUID(unit)) or unit
+            if runit then unitEvent:MatchUnit(runit):Subscribe(obsEvent) end
+
+            -- Push the unit
+            return observer:OnNext(unit)
+        end)
+
+        -- Start the unit watching
+        unitSub:Subscribe(obsUnit, subscription)
+    end)
     
     function RegisterFrequentHealthUnit(unit, guid, health)
         local oguid             = _UnitGUIDMap[unit]
@@ -431,7 +457,7 @@ do
     end
     
     __CombatEvent__ "UNIT_DIED" "UNIT_DESTROYED" "UNIT_DISSIPATES"
-    function COMBAT_UNIT_DIED(_, event, _, _, _, _, _, destGUID)
+    function COMBAT_UNIT_DIED(_, _, _, _, _, _, _, destGUID)
         for unit in Scorpio.GetUnitsFromGUID(destGUID) do
             Delay(0.3, FireSystemEvent, "UNIT_HEALTH", unit)
         end
@@ -443,6 +469,11 @@ do
         wipe(_UnitGUIDMap)
         wipe(_UnitHealthMap)
     end
+
+    __SystemEvent__()
+    function SCORPIO_UNIT_STOP_TRACKING_GUID(guid)
+        _UnitHealthMap[guid]    = nil
+    end
     
     __SystemEvent__("UNIT_HEALTH", "UNIT_HEALTH_FREQUENT")
     function UNIT_HEALTH(unit)
@@ -450,8 +481,7 @@ do
         if _UnitHealthMap[guid] then
             _UnitHealthMap[guid]= UnitHealth(unit)
         end
-    
-        _UnitHealthSubject:OnNext(unit)
+        return _UnitHealthSubject:OnNext(unit)
     end
     
     __SystemEvent__()
@@ -495,44 +525,35 @@ do
         end
     end
     
-    __Static__() __AutoCache__()
-    function Wow.UnitHealthSource()
-        return Wow.FromNextUnitEvent(_UnitHealthSubject)
-    end
+    --------------------------------------------------------
+    --                     Observable                     --
+    --------------------------------------------------------
+    --- Gets the unit health
+    Unit.Health                 = Unit:Watch(_UnitHealthSubject):Map(UnitHealth)
     
-    __Static__() __AutoCache__()
-    function Wow.UnitHealth()
-        return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(UnitHealth)
-    end
-    
-    __Static__() __AutoCache__()
-    function Wow.UnitHealthLost()
-        return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-            local max           = UnitHealthMax(unit)
-            local health        = UnitHealth(unit)
-            if max == 0 or max < health then
-                RegisterFixUnitMaxHealth(unit)
-                return 0
-            end
-            return max - health
-        end)
-    end
-    
-    __Static__() __AutoCache__()
-    function Wow.UnitHealthFrequent()
-        -- Based on the CLEU
-        return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-            local guid          = UnitGUID(unit)
-            local health        = _UnitHealthMap[guid]
-            if health and _UnitGUIDMap[unit] == guid then return health end
-    
-            -- Register the unit
-            health              = health or UnitHealth(unit)
-            RegisterFrequentHealthUnit(unit, guid, health)
-            return health
-        end)
-    end
-    
+    --- Gets the unit lost health
+    Unit.LostHealth             = Unit:Watch(_UnitHealthSubject):Map(function(unit)
+        local max               = UnitHealthMax(unit)
+        local health            = UnitHealth(unit)
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 0
+        end
+        return max - health
+    end)
+
+    --- Gets the unit health with combat event fix
+    Unit.InstantHealth          = Unit:Watch(_UnitHealthSubject):Map(function(unit)
+        local guid          = UnitGUID(unit)
+        local health        = _UnitHealthMap[guid]
+        if health and _UnitGUIDMap[unit] == guid then return health end
+
+        -- Register the unit
+        health              = health or UnitHealth(unit)
+        RegisterFrequentHealthUnit(unit, guid, health)
+        return health
+    end)
+        
     __Static__() __AutoCache__()
     function Wow.UnitHealthLostFrequent()
         -- Based on the CLEU

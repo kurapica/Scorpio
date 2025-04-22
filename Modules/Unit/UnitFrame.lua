@@ -703,7 +703,7 @@ do
     _UnitGuidMap                = {}
     _GuidUnitMap                = {}
 
-    function refreshUnitGuidMap(unit)
+    function refreshUnitGuidMap (unit)
         local guid              = UnitGUID(unit)
         local oguid             = _UnitGuidMap[unit]
 
@@ -715,6 +715,8 @@ do
             if not map then
                 map             = _Recycle()
                 _GuidUnitMap[guid] = map
+
+                FireSystemEvent("SCORPIO_UNIT_START_TRACKING_GUID", guid)
             end
 
             map[unit]           = true
@@ -729,6 +731,8 @@ do
                     -- Clear
                     _GuidUnitMap[oguid] = nil
                     _Recycle(map)
+
+                    FiresystemEvent("SCORPIO_UNIT_STOP_TRACKING_GUID", oguid)
                 end
             end
         end
@@ -763,7 +767,6 @@ do
             end
         end
     end
-
 end
 
 ------------------------------------------------------
