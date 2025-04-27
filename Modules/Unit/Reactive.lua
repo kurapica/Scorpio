@@ -76,6 +76,7 @@ end
 --                 Scorpio Wow Extension                  --
 ------------------------------------------------------------
 --- The data sequences from the wow unit event binding to unit frames
+-- @deprecated
 __Arguments__{ NEString + IObservable, NEString * 0 }
 function Wow.FromUnitEvent(observable, ...)
     if type(observable) == "string" then
@@ -564,8 +565,8 @@ do
         if _PlayerClass == "WARRIOR" then
     
         elseif _PlayerClass == "DEATHKNIGHT" then
-            _ClassPowerToken        = "RUNES"
-            _ClassPowerType         = PowerType.Runes
+            _ClassPowerToken    = "RUNES"
+            _ClassPowerType     = PowerType.Runes
     
             while true do
                 Continue(RefreshClassPower)
@@ -573,78 +574,78 @@ do
             end
     
         elseif _PlayerClass == "PALADIN" and PowerType.HolyPower then
-            _ClassPowerToken        = "HOLY_POWER"
-            _ClassPowerType         = PowerType.HolyPower
+            _ClassPowerToken    = "HOLY_POWER"
+            _ClassPowerType     = PowerType.HolyPower
     
         elseif _PlayerClass == "MONK" then
-            _ClassPowerToken        = "CHI"
+            _ClassPowerToken    = "CHI"
     
             while true do
-                local spec          = GetSpecialization()
-                _ClassPowerType     = spec == SPEC_MONK_WINDWALKER and PowerType.Chi or spec == SPEC_MONK_BREWMASTER and STAGGER or nil
+                local spec      = GetSpecialization()
+                _ClassPowerType = spec == SPEC_MONK_WINDWALKER and PowerType.Chi or spec == SPEC_MONK_BREWMASTER and STAGGER or nil
                 Continue(RefreshClassPower)
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
         elseif _PlayerClass == "PRIEST" and Scorpio.IsRetail then
-            _ClassPowerToken        = "MANA"
+            _ClassPowerToken    = "MANA"
     
             while true do
-                _ClassPowerType     = GetSpecialization() == SPEC_PRIEST_SHADOW and PowerType.Mana or nil
+                _ClassPowerType = GetSpecialization() == SPEC_PRIEST_SHADOW and PowerType.Mana or nil
                 Continue(RefreshClassPower)
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
         elseif _PlayerClass == "SHAMAN" and Scorpio.IsRetail then
-            _ClassPowerToken        = "MANA"
+            _ClassPowerToken    = "MANA"
     
             while true do
-                _ClassPowerType     = GetSpecialization() ~= SPEC_SHAMAN_RESTORATION and PowerType.Mana or nil
+                _ClassPowerType = GetSpecialization() ~= SPEC_SHAMAN_RESTORATION and PowerType.Mana or nil
                 Continue(RefreshClassPower)
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
         elseif _PlayerClass == "DRUID" then
-            _ClassPowerToken        = "COMBO_POINTS"
+            _ClassPowerToken    = "COMBO_POINTS"
     
             while true do
-                _ClassPowerType     = GetShapeshiftFormID() == DRUID_CAT_FORM and PowerType.ComboPoints or nil
+                _ClassPowerType = GetShapeshiftFormID() == DRUID_CAT_FORM and PowerType.ComboPoints or nil
                 Continue(RefreshClassPower)
                 NextEvent("UPDATE_SHAPESHIFT_FORM")
             end
     
         elseif _PlayerClass == "ROGUE" then
-            _ClassPowerToken        = "COMBO_POINTS"
-            _ClassPowerType         = PowerType.ComboPoints
+            _ClassPowerToken    = "COMBO_POINTS"
+            _ClassPowerType     = PowerType.ComboPoints
     
         elseif _PlayerClass == "MAGE" and Scorpio.IsRetail then
-            _ClassPowerToken        = "ARCANE_CHARGES"
+            _ClassPowerToken    = "ARCANE_CHARGES"
     
             while true do
-                _ClassPowerType     = GetSpecialization() == SPEC_MAGE_ARCANE and PowerType.ArcaneCharges or nil
+                _ClassPowerType = GetSpecialization() == SPEC_MAGE_ARCANE and PowerType.ArcaneCharges or nil
                 Continue(RefreshClassPower)
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
         elseif _PlayerClass == "WARLOCK" and Scorpio.IsRetail then
-            _ClassPowerToken        = "SOUL_SHARDS"
-            _ClassPowerType         = PowerType.SoulShards
+            _ClassPowerToken    = "SOUL_SHARDS"
+            _ClassPowerType     = PowerType.SoulShards
     
         elseif _PlayerClass == "HUNTER" then
     
         elseif _PlayerClass == "DEMONHUNTER" then
-            SOULFRAGMENTNAME        = GetSpellInfo(SOULFRAGMENT)
-            _ClassPowerToken        = "DEMONHUNTER"
+            SOULFRAGMENTNAME    = GetSpellInfo(SOULFRAGMENT)
+            _ClassPowerToken    = "DEMONHUNTER"
     
             while true do
-                _ClassPowerType     = GetSpecialization() == SPEC_DEMONHUNTER_VENGENCE and SOULFRAGMENT or nil
+                _ClassPowerType = GetSpecialization() == SPEC_DEMONHUNTER_VENGENCE and SOULFRAGMENT or nil
                 Continue(RefreshClassPower)
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
         elseif _PlayerClass == "EVOKER" then
-            _ClassPowerToken        = "ESSENCE"
-            _ClassPowerType         = PowerType.Essence
+            _ClassPowerToken    = "ESSENCE"
+            _ClassPowerType     = PowerType.Essence
         end
     
         return RefreshClassPower()
@@ -954,5 +955,36 @@ end
 --                          Aura                          --
 ------------------------------------------------------------
 do
+    
 
+    __SystemEvent__()
+    function UNIT_AURA(unit, updateInfo)
+        if updateInfo and not updateInfo.isFullUpdate then
+            local guid              = UnitGUID(unit)
+
+            if updateInfo.addedAuras ~= nil then
+                for _, aura in ipairs(updateInfo.addedAuras) do
+                    PlayerAuras[aura.auraInstanceID] = aura
+                    -- Perform any setup tasks for this aura here.
+                end
+            end
+        
+            if updateInfo.updatedAuraInstanceIDs ~= nil then
+                for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
+                    PlayerAuras[auraInstanceID] = C_UnitAuras.GetAuraDataByAuraInstanceID("player", auraInstanceID)
+                    -- Perform any update tasks for this aura here.
+                end
+            end
+        
+            if updateInfo.removedAuraInstanceIDs ~= nil then
+                for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
+                    PlayerAuras[auraInstanceID] = nil
+                    -- Perform any cleanup tasks for this aura here.
+                end
+            end
+        else
+            -- full update
+
+        end
+    end
 end

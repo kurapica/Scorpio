@@ -3,6 +3,7 @@
 --                                                        --
 -- Author      :  kurapica125@outlook.com                 --
 -- Create Date :  2020/11/25                              --
+-- Update Date :  2025/04/27                              --
 --========================================================--
 
 --========================================================--
@@ -700,6 +701,9 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
 end)
 
 
+------------------------------------------------------------
+--                         Helper                         --
+------------------------------------------------------------
 GetTexCoordsForRoleSmallCircle  = _G.GetTexCoordsForRoleSmallCircle or function(role)
     if ( role == "TANK" ) then
         return 0, 19/64, 22/64, 41/64
@@ -712,9 +716,6 @@ GetTexCoordsForRoleSmallCircle  = _G.GetTexCoordsForRoleSmallCircle or function(
     end
 end
 
-------------------------------------------------------------
---                     Default Style                      --
-------------------------------------------------------------
 shareRect                       = RectType()
 
 shareMyHealPreGraH              = GradientType("VERTICAL", Color(8/255, 93/255, 72/255), Color(11/255, 136/255, 105/255))
@@ -732,28 +733,31 @@ shareOverHealAbsorbGlowV        = { Anchor("TOPRIGHT", 0, 7, nil, "BOTTOMRIGHT")
 shareOrientationSubject         = Wow.FromUIProperty("Orientation"):Next()
 shareSizeSubject                = shareOrientationSubject:Map("=>16")
 
+------------------------------------------------------------
+--                     Default Style                      --
+------------------------------------------------------------
 Style.UpdateSkin("Default",     {
     [NameLabel]                 = {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
-        text                    = Wow.UnitName(true),
-        textColor               = Wow.UnitColor(),
+        text                    = Unit.NameWithServer,
+        textColor               = Unit.Color,
     },
     [LevelLabel]                = {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
-        text                    = Wow.UnitLevel(),
-        vertexColor             = Wow.UnitLevelColor(),
+        text                    = Unit.Level,
+        vertexColor             = Unit.LevelColor,
     },
     [HealthLabel]               = {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
-        text                    = Wow.UnitHealth(),
+        text                    = Unit.Health,
     },
     [PowerLabel]                = {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
-        text                    = Wow.UnitPower(),
+        text                    = Unit.Power,
     },
     [HealthBar]                 = {
         frameStrata             = "LOW",
@@ -762,8 +766,8 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
 
-        value                   = Wow.UnitHealth(),
-        minMaxValues            = Wow.UnitHealthMax(),
+        value                   = Unit.Health,
+        minMaxValues            = Unit.HealthMinMax,
         statusBarColor          = Color.GREEN,
     },
     [PowerBar]                  = {
@@ -773,9 +777,9 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
 
-        value                   = Wow.UnitPower(),
-        minMaxValues            = Wow.UnitPowerMax(),
-        statusBarColor          = Wow.UnitPowerColor(),
+        value                   = Unit.Power,
+        minMaxValues            = Unit.PowerMinMax,
+        statusBarColor          = Unit.PowerColor,
     },
     [HiddenManaBar]             = {
         frameStrata             = "LOW",
@@ -784,10 +788,10 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
 
-        value                   = Wow.UnitMana(),
-        minMaxValues            = Wow.UnitManaMax(),
-        visible                 = Wow.UnitManaVisible(),
+        value                   = Unit.Mana,
+        minMaxValues            = Unit.ManaMinMax,
         statusBarColor          = Color.MANA,
+        visible                 = Unit.ManaVisible,
     },
     [ClassPowerBar]             = {
         frameStrata             = "LOW",
@@ -796,31 +800,31 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
 
-        value                   = Wow.ClassPower(),
-        minMaxValues            = Wow.ClassPowerMax(),
-        statusBarColor          = Wow.ClassPowerColor(),
-        visible                 = Wow.ClassPowerUsable(),
+        value                   = Unit.ClassPower,
+        minMaxValues            = Unit.ClassPowerMinMax,
+        statusBarColor          = Unit.ClassPowerColor,
+        visible                 = Unit.ClassPowerVisible,
     },
     [DisconnectIcon]            = {
         file                    = [[Interface\CharacterFrame\Disconnect-Icon]],
         size                    = Size(16, 16),
-        visible                 = Wow.UnitIsDisconnected(),
+        visible                 = Unit.IsDisconnected,
     },
     [CombatIcon]                = {
         file                    = [[Interface\CharacterFrame\UI-StateIcon]],
         texCoords               = RectType(.5, 1, 0, .49),
         size                    = Size(24, 24),
-        visible                 = Wow.PlayerInCombat(),
+        visible                 = Unit.InCombat,
     },
     [ResurrectIcon]             = {
         file                    = [[Interface\RaidFrame\Raid-Icon-Rez]],
         size                    = Size(16, 16),
-        visible                 = Wow.UnitIsResurrect(),
+        visible                 = Unit.IsResurrect,
     },
     [RaidTargetIcon]            = {
         file                    = [[Interface\TargetingFrame\UI-RaidTargetingIcons]],
         size                    = Size(16, 16),
-        texCoords               = Wow.UnitRaidTargetIndex():Map(function(index)
+        texCoords               = Unit.RaidTargetIndex:Map(function(index)
             if index then
                 index           = index - 1
                 local left, right, top, bottom
@@ -836,20 +840,20 @@ Style.UpdateSkin("Default",     {
             end
             return shareRect
         end),
-        visible                 = Wow.UnitRaidTargetIndex():Map(function(val) return val and true or false end),
+        visible                 = Unit.RaidTargetIndex:Map(function(val) return val and true or false end),
     },
     [ReadyCheckIcon]            = {
-        file                    = Wow.UnitReadyCheck():Map(function(state)
+        file                    = Unit.ReadyCheck:Map(function(state)
             return state == "ready"    and READY_CHECK_READY_TEXTURE
                 or state == "notready" and READY_CHECK_NOT_READY_TEXTURE
                 or state == "waiting"  and READY_CHECK_WAITING_TEXTURE
                 or nil
         end),
-        visible                 = Wow.UnitReadyCheckVisible(),
+        visible                 = Unit.ReadyCheckVisible,
         size                    = Size(16, 16),
     },
     [RaidRosterIcon]            = {
-        file                    = Wow.UnitGroupRoster():Map(function(assign)
+        file                    = Unit.GroupRoster:Map(function(assign)
             return assign == "MAINTANK"   and [[Interface\GROUPFRAME\UI-GROUP-MAINTANKICON]]
                 or assign == "MAINASSIST" and [[Interface\GROUPFRAME\UI-GROUP-MAINASSISTICON]]
                 or nil
@@ -858,7 +862,7 @@ Style.UpdateSkin("Default",     {
     },
     [RoleIcon]                  = {
         file                    = [[Interface\LFGFrame\UI-LFG-ICON-PORTRAITROLES]],
-        texCoords               = Wow.UnitOwnerRole():Map(function(role)
+        texCoords               = Unit.Role:Map(function(role)
             if role and role ~= "NONE" then
                 local left, right, top, bottom = GetTexCoordsForRoleSmallCircle(role)
 
@@ -875,19 +879,20 @@ Style.UpdateSkin("Default",     {
             return shareRect
         end),
         size                    = Size(16, 16),
+        visible                 = Unit.RoleVisible,
     },
     [LeaderIcon]                = {
         file                    = [[Interface\GroupFrame\UI-Group-LeaderIcon]],
         size                    = Size(16, 16),
-        visible                 = Wow.UnitIsLeader(),
+        visible                 = Unit.IsLeader,
     },
     [CastBar]                   = {
-        cooldown                = Wow.UnitCastCooldown(),
-        reverse                 = Wow.UnitCastChannel(),
-        showSafeZone            = Wow.UnitIsPlayer(),
+        cooldown                = Unit.CastCooldown,
+        reverse                 = Unit.CastChannel,
+        showSafeZone            = Unit.IsPlayer,
     },
     [AuraPanel]                 = {
-        refresh                 = Wow.UnitAura(),
+        refresh                 = Unit.Aura,
         elementType             = AuraPanelIcon,
 
         frameStrata             = "MEDIUM",
@@ -914,7 +919,7 @@ Style.UpdateSkin("Default",     {
     },
     [TotemPanel]                = {
         refresh                 = Wow.UnitTotem(),
-        visible                 = Wow.UnitIsPlayer(),
+        visible                 = Unit.IsPlayer,
         elementType             = TotemPanelIcon,
 
         frameStrata             = "MEDIUM",
