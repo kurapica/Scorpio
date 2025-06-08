@@ -20,7 +20,7 @@ __Sealed__() __ChildProperty__(Frame, "Mover")
 class "Mover"                   (function(_ENV)
     inherit "Frame"
 
-    local _Moving               = setmetatable({}, META_WEAKKEY)
+    local _Moving               = Toolset.newtable(true)
 
     -- Fired when start moving
     event "OnStartMoving"
@@ -88,7 +88,7 @@ __Sealed__() __ChildProperty__(Frame, "Resizer")
 class "Resizer"                 (function(_ENV)
     inherit "Button"
 
-    local _ResizingHook         = setmetatable({}, META_WEAKKEY)
+    local _ResizingHook         = Toolset.newtable(true)
     local _Resizing             = {}
 
     -- Fired when start resizing
@@ -232,7 +232,7 @@ class "Mask"                    (function(_ENV)
     ---------------------------------------------------
     --                 Event Handler                 --
     ---------------------------------------------------
-    local _Moving               = setmetatable({}, META_WEAKKEY)
+    local _Moving               = Toolset.newtable(true)
 
     local _BlockKey             = {
         UNKNOWN                 = true,

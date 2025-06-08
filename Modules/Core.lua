@@ -11,7 +11,7 @@ PLoop(function(_ENV)
     --                Scorpio - Addon Class                   --
     ------------------------------------------------------------
     __Sealed__()
-    _G.Scorpio = class "Scorpio" (function (_ENV)
+    _G.Scorpio = class "Scorpio"(function (_ENV)
         inherit "Module"
 
         import "System.Reactive"
@@ -20,21 +20,17 @@ PLoop(function(_ENV)
         --                  Prepare                 --
         ----------------------------------------------
 
-        -------------------- META --------------------
-        META_WEAKKEY            = { __mode = "k" }
-        META_WEAKVAL            = { __mode = "v" }
-
         ------------------- Logger -------------------
         Log                     = Logger("Scorpio")
         Log.LogLevel            = 3
 
-        export {
+        export                  {
             ------------------- Math ---------------------
             min                 = math.min,
             max                 = math.max,
 
             ------------------- String -------------------
-            strtrim             = strtrim or function(s) return (s:gsub("^%s*(.-)%s*$", "%1")) or "" end,
+            strtrim             = Toolset.trim,
 
             ------------------- Error --------------------
             geterrorhandler     = _G.geterrorhandler or function() return print end,
@@ -56,19 +52,23 @@ PLoop(function(_ENV)
 
             DefaultPool         = Threading.ThreadPool.Default,
 
-            debugprofilestop    = debugprofilestop,
+            debugprofilestop    = debugprofilestop or error("No debugprofilestop API, the game version not supported"),
             GetSpecialization   = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end,
-            IsWarModeDesired    = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
+            IsWarModeDesired    = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end,
         }
 
+        --- Call function with a coroutine from pool
+        --@format func[, ...]
+        --@param func           The function
+        --@param ...            method parameter
         ThreadCall              = function(...) return DefaultPool:ThreadCall(...) end
 
         ----------------------------------------------
         --               Addon Cache                --
         ----------------------------------------------
-        _RootAddon              = setmetatable({}, META_WEAKVAL)
-        _NotLoaded              = setmetatable({}, META_WEAKKEY)
-        _DisabledModule         = setmetatable({}, META_WEAKKEY)
+        _RootAddon              = Toolset.newtable(false, true)
+        _NotLoaded              = Toolset.newtable(true)
+        _DisabledModule         = Toolset.newtable(true)
 
         local function callAddonHandlers(map, ...)
             if not map then return end
@@ -86,12 +86,12 @@ PLoop(function(_ENV)
         local t_Cache           = {}    -- Cache Manager
 
         local _RegisterService  = {}
-        local _ResidentService  = setmetatable({}, META_WEAKKEY)
+        local _ResidentService  = Toolset.newtable(true)
 
-        local _ObjectGuidMap    = setmetatable({}, META_WEAKKEY)
-        local _SingleAsync      = setmetatable({}, META_WEAKVAL)
-        local _RunSingleAsync   = setmetatable({}, META_WEAKKEY)
-        local _CancelSingleAsync= setmetatable({}, META_WEAKKEY)
+        local _ObjectGuidMap    = Toolset.newtable(true)
+        local _SingleAsync      = Toolset.newtable(false, true)
+        local _RunSingleAsync   = Toolset.newtable(true)
+        local _CancelSingleAsync= Toolset.newtable(true)
 
         -- For diagnosis
         g_CacheGenerated        = 0
@@ -439,11 +439,11 @@ PLoop(function(_ENV)
 
         _EventDistribution      = {}                                -- System Event
         _CombatEventDistribution= {}                                -- Combat Event
-        _SecureHookDistribution = setmetatable({}, META_WEAKKEY)    -- Secure Hook
+        _SecureHookDistribution = Toolset.newtable(true)    -- Secure Hook
 
         t_EventTasks            = {}                                -- Event Task
         t_WaitEventTasks        = {}                                -- Wait Event Task
-        t_SecureHookTasks       = setmetatable({}, META_WEAKKEY)    -- Secure Hook Task
+        t_SecureHookTasks       = Toolset.newtable(true)    -- Secure Hook Task
 
         -- Wait thread token
         w_Token                 = {}
@@ -480,7 +480,7 @@ PLoop(function(_ENV)
 
         local function queueEventTask(task, event)
             if not _EventDistribution[event] then
-                _EventDistribution[event] = setmetatable({}, META_WEAKKEY)
+                _EventDistribution[event] = Toolset.newtable(true)
                 pcall(ScorpioManager.RegisterEvent, ScorpioManager, event)
             end
 
@@ -507,7 +507,7 @@ PLoop(function(_ENV)
                 local event     = select(i, ...)
 
                 if not _EventDistribution[event] then
-                    _EventDistribution[event] = setmetatable({}, META_WEAKKEY)
+                    _EventDistribution[event] = Toolset.newtable(true)
                     pcall(ScorpioManager.RegisterEvent, ScorpioManager, event)
                 end
 
@@ -563,7 +563,7 @@ PLoop(function(_ENV)
             local map           = _SecureHookDistribution[target]
 
             if not map then
-                map             = setmetatable({}, META_WEAKKEY)
+                map             = Toolset.newtable(true)
                 _SecureHookDistribution[target] = map
             end
 
@@ -574,7 +574,7 @@ PLoop(function(_ENV)
                     error(("No method named '%s' can be found."):format(targetFunc))
                 end
 
-                map             = setmetatable({}, META_WEAKKEY)
+                map             = Toolset.newtable(true)
                 _SecureHookDistribution[target][targetFunc] = map
 
                 hooksecurefunc(target, targetFunc, function(...)
@@ -598,7 +598,7 @@ PLoop(function(_ENV)
 
             local cache         = t_SecureHookTasks[target]
             if not cache then
-                cache           = setmetatable({}, META_WEAKKEY)
+                cache           = Toolset.newtable(true)
                 t_SecureHookTasks[target] = cache
             end
 
@@ -1288,7 +1288,7 @@ PLoop(function(_ENV)
             local map           = _EventDistribution[evt]
             if not map then
                 pcall(ScorpioManager.RegisterEvent, ScorpioManager, evt)
-                map             = setmetatable({}, META_WEAKKEY)
+                map             = Toolset.newtable(true)
                 _EventDistribution[evt] = map
             end
 
@@ -1357,7 +1357,7 @@ PLoop(function(_ENV)
         function RegisterCombatEvent(self, evt, handler)
             local map           = _CombatEventDistribution[evt]
             if not map then
-                map             = setmetatable({}, META_WEAKKEY)
+                map             = Toolset.newtable(true)
                 _CombatEventDistribution[evt] = map
             end
 

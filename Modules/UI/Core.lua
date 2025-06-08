@@ -43,8 +43,8 @@ local INSTANT_STYLE_UI_CLASS    = {}
 local _Property                 = {}
 
 local _RecycleHolder            = CreateFrame("Frame") _RecycleHolder:Hide()
-local _PropertyChildName        = setmetatable({}, META_WEAKKEY)
-local _PropertyChildMap         = setmetatable({}, { __index = function(self, prop) local val = setmetatable({}, META_WEAKALL) rawset(self, prop, val) return val end })
+local _PropertyChildName        = Toolset.newtable(true)
+local _PropertyChildMap         = setmetatable({}, { __index = function(self, prop) local val = Toolset.newtable(true, true) rawset(self, prop, val) return val end })
 local _PropertyChildRecycle     = setmetatable({}, {
     __index                     = function(self, type)
         if isSubType(type, AnimationGroup) or isSubType(type, ControlPoint) or isSubType(type, Animation) then
@@ -74,7 +74,7 @@ local _PropertyChildRecycle     = setmetatable({}, {
 })
 
 -- The objservable map
-local _ObsProp                  = setmetatable({}, META_WEAKKEY)
+local _ObsProp                  = Toolset.newtable(true)
 
 local function dispatchPropertySetting(cls, prop, setting, oldsetting, root)
     local settings              = _Property[cls]
@@ -221,7 +221,7 @@ local _ClassQueue               = Queue()
 local _Recycle                  = Recycle()
 
 local _DefaultStyle             = {}
-local _CustomStyle              = setmetatable({}, META_WEAKKEY)
+local _CustomStyle              = Toolset.newtable(true)
 local _ClassFrames              = {}
 
 local _CurrentStyleTarget       -- The current style target could be used in other systems(ex. Reactive)
@@ -562,7 +562,7 @@ end
 local function registerFrame(cls, frame)
     local map                   = _ClassFrames[cls]
     if not map then
-        map                     = setmetatable({}, META_WEAKKEY)
+        map                     = Toolset.newtable(true)
         _ClassFrames[cls]       = map
     end
 
@@ -731,8 +731,8 @@ class "UIObject"(function(_ENV)
     ----------------------------------------------
     --                 Helpers                  --
     ----------------------------------------------
-    local _NameMap              = setmetatable({}, META_WEAKKEY)
-    local _ChildMap             = setmetatable({}, META_WEAKKEY)
+    local _NameMap              = Toolset.newtable(true)
+    local _ChildMap             = Toolset.newtable(true)
 
     local _SetParent            = getRealMethodCache("SetParent")
     local _GetParent            = getRealMethodCache("GetParent")

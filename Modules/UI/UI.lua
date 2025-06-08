@@ -22,8 +22,8 @@ __Sealed__() struct "Scorpio.UI" (function(_ENV)
     ----------------------------------------------
     --              Static Methods              --
     ----------------------------------------------
-    local _ProxyMap             = setmetatable({}, META_WEAKALL)
-    local _RawUIMap             = setmetatable({}, META_WEAKALL)
+    local _ProxyMap             = Toolset.newtable(true, true)
+    local _RawUIMap             = Toolset.newtable(true, true)
 
     local isSubType             = Class.IsSubType
     local isClass               = Class.Validate

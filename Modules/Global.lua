@@ -105,13 +105,7 @@ end)
 
 Environment.RegisterGlobalNamespace(DeprecatedApi)
 
-
--------------------- META --------------------
-META_WEAKKEY                    = { __mode = "k" }
-META_WEAKVAL                    = { __mode = "v" }
-META_WEAKALL                    = { __mode = "kv"}
-
-------------------- Logger ----------------T--
+------------------- Logger ------------------
 Log                             = System.Logger("Scorpio")
 
 Log.TimeFormat                  = "%X"
@@ -286,9 +280,6 @@ struct "ColorType"              {
 
 __Sealed__() __ValueType__()
 struct "HSVType"                {
-    { name = "h",   type = HueValue,    require = true },
-    { name = "s",   type = ColorFloat,  require = true },
-    { name = "v",   type = ColorFloat,  require = true },
     { name = "h",   type = HueValue,    require = true },
     { name = "s",   type = ColorFloat,  require = true },
     { name = "v",   type = ColorFloat,  require = true },

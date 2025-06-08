@@ -570,9 +570,9 @@ end
 ------------------------------------------------------------
 do
     local _Texture_Deps = { "Color", "Atlas", "FileID", "File" }
-    local _HWrapMode    = setmetatable({}, META_WEAKKEY)
-    local _VWrapMode    = setmetatable({}, META_WEAKKEY)
-    local _FilterMode   = setmetatable({}, META_WEAKKEY)
+    local _HWrapMode    = Toolset.newtable(true)
+    local _VWrapMode    = Toolset.newtable(true)
+    local _FilterMode   = Toolset.newtable(true)
 
     --- the atlas setting of the texture
     UI.Property         {
