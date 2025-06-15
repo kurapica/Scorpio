@@ -304,7 +304,10 @@ Namespace.SaveNamespace("Scorpio.Wow", class (function(_ENV)
         if select("#", ...) == 1 then
             return _EventMap[(...)]
         else
-            local token         = List{ ... }:Join("|")
+            local events        = List{ ... }
+            events:Sort()
+
+            local token         = events:Join("|")
             local ob            = _MultiEventMap[token]
             if not ob then
                 ob              = Observable(function(...) for i = 1, #ob do _EventMap[ob[i]]:Subscribe(...) end end)

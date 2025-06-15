@@ -41,23 +41,19 @@ do
                 local unitSub   = GetUnitFrameSubject()
                 if not unitSub  then return unitEvent and unitEvent:Subscribe(observer, subscription) end
 
-                -- Unit event observer
-                local obsEvent  = Observer(function(...) return observer:OnNext(...) end)
-
-                -- Unit change observer
-                local obsUnit   = Observer(function(unit)
-                    obsEvent.Subscription = Subscription(subscription)
+                -- Start the unit watching
+                local eventSub
+                unitSub:Subscribe(Observer(function(unit)
+                    if eventSub then eventSub:Dispose() end
+                    eventSub    = Subscription(subscription)
 
                     -- Check trackable unit
                     local runit = unit and GetUnitFromGUID(UnitGUID(unit)) or unit
-                    if runit then unitEvent:MatchUnit(runit):Subscribe(obsEvent) end
+                    if runit then unitEvent:MatchUnit(runit):Subscribe(observer, eventSub) end
 
                     -- Push the unit
                     return observer:OnNext(unit)
-                end)
-
-                -- Start the unit watching
-                unitSub:Subscribe(obsUnit, subscription)
+                end), subscription)
             end)
 
             unitFrameObservable[unitEvent] = observable
