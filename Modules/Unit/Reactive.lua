@@ -61,11 +61,6 @@ do
 
         return observable
     end
-
-    --- Gets the unit owner
-    function GetUnitOwner(unit)
-        return unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
-    end
 end
 
 ------------------------------------------------------------
@@ -216,9 +211,7 @@ do
     Unit.RaidTargetIndex        = Unit:Watch(Wow.FromEvent("RAID_TARGET_UPDATE"):Map("=>'any'")):Map(GetRaidTargetIndex)
 
     --- Gets the unit's threat level
-    Unit.ThreatLevel             = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
-        return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0
-    end)
+    Unit.ThreatLevel             = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit) return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0 end)
 
     --- Gets the unit's group roster
     roleSubject                 = Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED", "PARTY_LEADER_CHANGED"):Map("=>'any'"):Debounce(0.5):ToSubject()
@@ -256,24 +249,26 @@ end
 --                       Unit Owner                       --
 ------------------------------------------------------------
 do
+    --- Gets the unit owner
+    function GetUnitOwner(unit)
+        return unit and (unit:match("^[pP][eE][tT]$") and "player" or unit:gsub("[pP][eE][tT]", "")) or nil
+    end
+
     --- Gets the unit's owner
     Unit.Owner                  = Unit:Map(GetUnitOwner)
 
     --- Gets the unit's owner name
-    Unit.OwnerName              = Unit:Map(function(unit)
-        local owner             = GetUnitOwner(unit)
-        return owner and GetUnitName(owner) or nil
-    end)
+    Unit.OwnerName              = Unit.Owner:Map(GetUnitName)
 
     --- Gets the unit's owner name with server
-    Unit.OwnerNameWithServer    = Unit:Map(function(unit)
-        local name, server      = GetUnitName(GetUnitOwner(unit), true)
+    Unit.OwnerNameWithServer    = Unit.Owner:Map(function(unit)
+        local name, server      = GetUnitName(unit, true)
         return name and server and (name .. "-" .. server) or name
     end)
 
     --- Gets the unit's owner class color
-    Unit.OwnerColor             = Unit:Map(function(unit)
-        local _, cls            = UnitClass(GetUnitOwner(unit))
+    Unit.OwnerColor             = Unit.Owner:Map(function(unit)
+        local _, cls            = UnitClass(unit)
         return Color[cls or "PALADIN"]
     end)
 
