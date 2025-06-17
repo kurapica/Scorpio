@@ -140,7 +140,7 @@ do
 
     --- Gets the unit level
     Unit.Level                  = Unit:Watch(Wow.FromEvent("PLAYER_LEVEL_UP"):Map(function(level) return "player", level end))
-        :Map(UnitBattlePetLevel and function(unit, level)
+        :Map(_G.UnitBattlePetLevel and function(unit, level)
             level               = level or UnitLevel(unit)
             if level and level > 0 then
                 if UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit) then
@@ -166,22 +166,17 @@ do
     Unit.Classification         = Unit:Watch("UNIT_CLASSIFICATION_CHANGED"):Map(UnitClassification)
 
     --- Gets the unit's classification color
-    Unit.ClassificationColor    = Unit.Classification:Map(function(class)
-        if class == "elite" then
-            return Color.YELLOW
-        elseif class == "rare" then
-            return Color.WHITE
-        elseif class == "rareelite" then
-            return Color.CYAN
-        elseif class == "worldboss" then
-            return Color.RAGE
-        else
-            return Color.NORMAL
-        end
+    Unit.ClassificationColor    = Unit:Watch("UNIT_CLASSIFICATION_CHANGED"):Map(function(unit)
+        local c                 = UnitClassification(unit)
+        return c == "elite"     and Color.YELLOW
+            or c == "rare"      and Color.WHITE
+            or c == "rareelite" and Color.CYAN
+            or c == "worldboss" and Color.RAGE
+            or Color.NORMAL
     end)
 
     --- Gets the unit's disconnected
-    Unit.Disconnected           = Unit:Watch("UNIT_HEALTH", "UNIT_CONNECTION"):Map(function(unit) return not UnitIsConnected(unit) end)
+    Unit.Disconnected           = Unit:Watch("UNIT_CONNECTION"):Map(function(unit) return not UnitIsConnected(unit) end)
 
     --- Gets the unit is target
     Unit.IsTarget               = Unit:Watch(Wow.FromEvent("PLAYER_TARGET_CHANGED"):Map("=>'any'")):Map(function(unit) return UnitIsUnit(unit, "target") end)
