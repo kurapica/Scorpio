@@ -216,19 +216,16 @@ do
                 return "MAINTANK"
             elseif GetPartyAssignment('MAINASSIST', unit) then
                 return "MAINASSIST"
-            else
-                return "NONE"
             end
-        else
-            return "NONE"
         end
+        return "NONE"
     end)
 
     --- Gets the unit's group roster visibility
-    Unit.GroupRosterVisible     = Unit.GroupRoster:Map(function(assign) return assign and assign ~= "NONE" or false end)
+    Unit.GroupRosterVisible     = Unit:Watch(roleSubject):Map(function(unit) return IsInRaid() and not UnitHasVehicleUI(unit) and (GetPartyAssignment('MAINTANK', unit) or GetPartyAssignment('MAINASSIST', unit)) end)
 
     --- Gets the unit's role
-    Unit.Role                   = Unit:Watch(roleSubject):Map(UnitGroupRolesAssigned or Toolset.fakefunc)
+    Unit.Role                   = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(UnitGroupRolesAssigned) or BehaviorSubject("NONE")
 
     --- Gets the unit role's visibility
     Unit.RoleVisible            = Unit.Role:Map(function(role) return role and role ~= "NONE" or false end)
