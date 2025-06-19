@@ -1,5 +1,5 @@
-## Interface: 110105
-## Interface-Retail: 110105
+## Interface: 110107
+## Interface-Retail: 110107
 ## Interface-Classic: 11503
 ## Interface-BCC: 20504
 ## Interface-Wrath: 30403
