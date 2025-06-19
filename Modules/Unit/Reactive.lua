@@ -228,7 +228,7 @@ do
     Unit.Role                   = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(UnitGroupRolesAssigned) or BehaviorSubject("NONE")
 
     --- Gets the unit role's visibility
-    Unit.RoleVisible            = Unit.Role:Map(function(role) return role and role ~= "NONE" or false end)
+    Unit.RoleVisible            = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(function(unit) return (UnitGroupRolesAssigned(unit) or "NONE") ~= "NONE" end) or BehaviorSubject(false)
 
     --- Gets whether the unit is leader
     Unit.IsLeader               = Unit:Watch(roleSubject):Map(function(unit) return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit) or false end)
@@ -250,25 +250,25 @@ do
     Unit.Owner                  = Unit:Map(GetUnitOwner)
 
     --- Gets the unit's owner name
-    Unit.OwnerName              = Unit.Owner:Map(GetUnitName)
+    Unit.OwnerName              = Unit:Map(function(unit) return GetUnitName(GetUnitOwner(unit)) end)
 
     --- Gets the unit's owner name with server
-    Unit.OwnerNameWithServer    = Unit.Owner:Map(function(unit)
-        local name, server      = GetUnitName(unit, true)
+    Unit.OwnerNameWithServer    = Unit:Map(function(unit)
+        local name, server      = GetUnitName(GetUnitOwner(unit), true)
         return name and server and (name .. "-" .. server) or name
     end)
 
     --- Gets the unit's owner class color
-    Unit.OwnerColor             = Unit.Owner:Map(function(unit)
-        local _, cls            = UnitClass(unit)
+    Unit.OwnerColor             = Unit:Map(function(unit)
+        local _, cls            = UnitClass(GetUnitOwner(unit))
         return Color[cls or "PALADIN"]
     end)
 
     --- Gets the unit owner's role
-    Unit.OwnerRole              = Unit:Watch(roleSubject):Map(GetUnitOwner):Map(UnitGroupRolesAssigned or Toolset.fakefunc)
+    Unit.OwnerRole              = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(function(unit) return UnitGroupRolesAssigned(GetUnitOwner(unit)) end) or BehaviorSubject("NONE")
 
     --- Gets whether the unit's owner is in range or the player
-    Unit.OwnerInRange           = Unit.Timer:Map(function(unit) unit = GetUnitOwner(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(GetUnitOwner(unit))) end)
+    Unit.OwnerInRange           = Unit.Timer:Map(function(unit) unit = GetUnitOwner(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)) end)
 end
 
 ------------------------------------------------------------
@@ -328,7 +328,7 @@ do
     --                       Helper                       --
     --------------------------------------------------------
     _PlayerClass                = select(2, UnitClass("player"))
-    _DISPELLABLE                = ({
+    _DISPELLABLE                = {
         ["MAGE"]                = { Curse   = Color.CURSE, },
         ["DRUID"]               = { Poison  = Color.POISON, Curse   = Color.CURSE,   Magic = Color.MAGIC },
         ["PALADIN"]             = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
@@ -337,7 +337,7 @@ do
         ["WARLOCK"]             = { Magic   = Color.MAGIC, },
         ["MONK"]                = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
         ["EVOKER"]              = { Poison  = Color.POISON, Disease = Color.DISEASE, Curse = Color.Curse },
-    })[_PlayerClass] or false
+    }[_PlayerClass] or false
     
     _UnitHealthMap              = {}
     _FixUnitMaxHealth           = {}
@@ -482,11 +482,11 @@ do
         end
         return max - health
     end)
-        
+
     --- Gets the unit health percent
     Unit.HealthPercent          = Unit:Watch(_UnitHealthSubject):Map(function(unit)
-        local health            = UnitHealth(unit)
-        local max               = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
+        local max               = UnitHealthMax(unit)
+        local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
         if max == 0 or max < health then
             RegisterFixUnitMaxHealth(unit)
             return 100
@@ -516,7 +516,7 @@ do
         return healthMinMax
     end)
     
-    --- Gets the health prediction
+    --- Gets the health prediction @TODO split event handler
     Unit.HealthPrediction        = Unit:Watch(Wow.FromEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED"):Next())
 end
 
@@ -570,7 +570,7 @@ do
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
-        elseif _PlayerClass == "PRIEST" and Scorpio.IsRetail then
+        elseif _PlayerClass == "PRIEST" then
             _ClassPowerToken    = "MANA"
     
             while true do
@@ -579,7 +579,7 @@ do
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
-        elseif _PlayerClass == "SHAMAN" and Scorpio.IsRetail then
+        elseif _PlayerClass == "SHAMAN" then
             _ClassPowerToken    = "MANA"
     
             while true do
@@ -610,7 +610,7 @@ do
                 NextEvent("PLAYER_SPECIALIZATION_CHANGED")
             end
     
-        elseif _PlayerClass == "WARLOCK" and Scorpio.IsRetail then
+        elseif _PlayerClass == "WARLOCK" and PowerType.SoulShards then
             _ClassPowerToken    = "SOUL_SHARDS"
             _ClassPowerType     = PowerType.SoulShards
     
@@ -678,26 +678,19 @@ do
     --- Gets the unit class power, works for player only
     Unit.ClassPower             =  _PlayerClass == "DEATHKNIGHT" and Unit:Watch(_ClassPowerSubject):Map(function(unit) local count = 0 for i = 1, 6 do local _, _, ready = GetRuneCooldown(i) if ready then count = count + 1 end end return count end)
                                 or _PlayerClass == "DEMONHUNTER" and Unit:Watch(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and min((select(3, FindAuraByName(SOULFRAGMENTNAME, "player", "PLAYER|HELPFUL"))) or 0, 5) or 0 end)
-                                or _PlayerClass == "MONK" and Unit:Watch(_ClassPowerSubject):Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
-                                or Unit:Watch(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
+                                or _PlayerClass == "MONK"        and Unit:Watch(_ClassPowerSubject):Map(function(unit) return (_ClassPowerType == STAGGER and UnitStagger(unit) or _ClassPowerType and UnitPower(unit, _ClassPowerType)) or 0 end)
+                                or                                   Unit:Watch(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
     
     --- Gets the unit max class power, works for player only
-    Unit.ClassPowerMax          = _PlayerClass == "DEATHKNIGHT" and Unit:Watch(_ClassPowerMaxSubject):Map(function() return 6 end)
-                                or _PlayerClass == "DEMONHUNTER" and Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return 5 end)
-                                or _PlayerClass == "MONK" and Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
-                                or Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
+    Unit.ClassPowerMax          =  _PlayerClass == "DEATHKNIGHT" and BehaviorSubject(6)
+                                or _PlayerClass == "DEMONHUNTER" and BehaviorSubject(5)
+                                or _PlayerClass == "MONK"        and Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
+                                or                                   Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
     
     --- Gets the unit min max class power, works for player only
-    local classPowerMinMax      = { min = 0, max = _PlayerClass == "DEATHKNIGHT" and 6 or _PlayerClass == "DEMONHUNTER" and 5 or 100 }
-    Unit.ClassPowerMinMax       = (_PlayerClass == "DEATHKNIGHT" or _PlayerClass == "DEMONHUNTER") and Unit:Watch(_ClassPowerMaxSubject):Map(function() return minMax end)
-                                or _PlayerClass == "MONK" and Unit:Watch(_ClassPowerMaxSubject):Map(function(unit)
-                                    classPowerMinMax.max  = _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
-                                    return classPowerMinMax
-                                end)
-                                or Unit:Watch(_ClassPowerMaxSubject):Map(function(unit)
-                                    classPowerMinMax.max  = _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
-                                    return classPowerMinMax
-                                end)
+    Unit.ClassPowerMinMax       =  _PlayerClass == "DEATHKNIGHT" and BehaviorSubject{ min = 0, max = 6 }
+                                or _PlayerClass == "DEMONHUNTER" and BehaviorSubject{ min = 0, max = 5 }
+                                or Unit.ClassPowerMax:Map(function(max) return { min = 0, max = max } end)
     
     --- Gets the unit class power color
     Unit.ClassPowerColor        = _PlayerClass == "MONK" and Unit:Watch(_ClassPowerSubject):Map(function(unit)
@@ -726,7 +719,7 @@ do
                                 or Unit:Watch(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and Color[_ClassPowerToken] or Color.DISABLED end)
     
     --- Gets the unit class power visible
-    Unit.ClassPowerVisible    = Unit:Watch(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
+    Unit.ClassPowerVisible      = Unit:Watch(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
     
     --- Gets the unit power
     Unit.Power                  = Unit:Watch(_UnitPowerObservable):Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
@@ -735,8 +728,7 @@ do
     Unit.PowerMax               = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, (UnitPowerType(unit))) end)
 
     --- Gets the unit min max power
-    local powerMinMax           = { min = 0 }
-    Unit.PowerMinMax            = Unit.PowerMax:Map(function(max) powerMinMax.max = max return powerMinMax end)
+    Unit.PowerMinMax            = Unit.PowerMax:Map(function(max) return { min = 0, max = max } end)
     
     --- Gets the unit power color
     local powerColor            = Color(1, 1, 1)
@@ -938,8 +930,6 @@ end
 --                          Aura                          --
 ------------------------------------------------------------
 do
-    
-
     __SystemEvent__()
     function UNIT_AURA(unit, updateInfo)
         if updateInfo and not updateInfo.isFullUpdate then
