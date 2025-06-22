@@ -106,33 +106,39 @@ do
     Unit.Name                   = Unit:Map(GetUnitName)
 
     --- Gets the unit's name with server
-    Unit.NameWithServer         = Unit:Map(function(unit)
+    Unit.Name.Server            = Unit:Map(function(unit)
         local name, server      = GetUnitName(unit, true)
         return name and server and (name .. "-" .. server) or name
     end)
 
     --- Gets the unit class color
-    Unit.Color                  = Unit:Map(function(unit)
-        local _, cls            = UnitClass(unit)
-        return Color[cls or "PALADIN"]
-    end)
-
-    --- Gets the npc unit color with faction and threat status
-    local scolor                = Color(1, 1, 1) -- share since lua is single thread
-    Unit.ExtendColor            = Unit:Watch("UNIT_FACTION", "UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
+    local tColor                = {}
+    Unit.Color                  = Unit:Watch("UNIT_FACTION", "UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit)
         if not UnitIsPlayer(unit) then
             if UnitIsTapDenied(unit) then return Color.RUNES end
 
             if withThreat and UnitCanAttack("player", unit) then
                 local threat    = UnitThreatSituation("player", unit)
                 if threat and threat > 0 then
-                    scolor.r, scolor.g, scolor.b = GetThreatStatusColor(threat)
-                    return scolor
+                    local color = tColor[threat]
+                    if not color then
+                        local r, g, b = GetThreatStatusColor(threat)
+                        color   = { r = r, g = g, b = b }
+                        tColor[threat] = color
+                    end
+                    return color
                 end
             end
 
-            scolor.r, scolor.g, scolor.b = UnitSelectionColor(unit, true)
-            return scolor
+            local r, g, b       = UnitSelectionColor(unit, true)
+            local rgb           = ("%.2x%.2x%.2x"):format(r * 255, g * 255, b * 255)
+            local color         = tColor[rgb]
+            if not color then
+                color           = { r = r, g = g, b = b }
+                tColor[rgb]     = color
+            end
+
+            return color
         end
         local _, cls            = UnitClass(unit)
         return Color[cls or "PALADIN"]
@@ -160,13 +166,13 @@ do
         end)
 
     --- Gets the unit's level color
-    Unit.LevelColor             = Unit:Map(function(unit) return UnitCanAttack("player", unit) and GetQuestDifficultyColor(UnitLevel(unit) or 99) or Color.NORMAL end)
+    Unit.Level.Color            = Unit:Map(function(unit) return UnitCanAttack("player", unit) and GetQuestDifficultyColor(UnitLevel(unit) or 99) or Color.NORMAL end)
 
     --- Gets the unit's classification
     Unit.Classification         = Unit:Watch("UNIT_CLASSIFICATION_CHANGED"):Map(UnitClassification)
 
     --- Gets the unit's classification color
-    Unit.ClassificationColor    = Unit:Watch("UNIT_CLASSIFICATION_CHANGED"):Map(function(unit)
+    Unit.Classification.Color   = Unit:Watch("UNIT_CLASSIFICATION_CHANGED"):Map(function(unit)
         local c                 = UnitClassification(unit)
         return c == "elite"     and Color.YELLOW
             or c == "rare"      and Color.WHITE
@@ -208,9 +214,9 @@ do
     --- Gets the unit's threat level
     Unit.ThreatLevel             = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit) return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0 end)
 
-    --- Gets the unit's group roster
+    --- Gets the unit's party assignment
     roleSubject                 = Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED", "PARTY_LEADER_CHANGED"):Map("=>'any'"):Debounce(0.5):ToSubject()
-    Unit.GroupRoster            = Unit:Watch(roleSubject):Map(function(unit)
+    Unit.Assignment             = Unit:Watch(roleSubject):Map(function(unit)
         if IsInRaid() and not UnitHasVehicleUI(unit) then
             if GetPartyAssignment('MAINTANK', unit) then
                 return "MAINTANK"
@@ -221,17 +227,23 @@ do
         return "NONE"
     end)
 
-    --- Gets the unit's group roster visibility
-    Unit.GroupRosterVisible     = Unit:Watch(roleSubject):Map(function(unit) return IsInRaid() and not UnitHasVehicleUI(unit) and (GetPartyAssignment('MAINTANK', unit) or GetPartyAssignment('MAINASSIST', unit)) end)
+    --- Whether the unit is main tank
+    Unit.Assignment.MainTank    = Unit.Assignment:Map(function(assign) return assign == "MAINTANK" end)
+
+    --- Whether the unit is main assist
+    Unit.Assignment.MainAssist  = Unit.Assignment:Map(function(assign) return assign == "MAINASSIST" end)
+
+    --- Gets the unit's party assignment visibility
+    Unit.Assignment.Visible     = Unit.Assignment:Map(function(assign) return assign ~= "NONE" end)
 
     --- Gets the unit's role
     Unit.Role                   = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(UnitGroupRolesAssigned) or BehaviorSubject("NONE")
 
     --- Gets the unit role's visibility
-    Unit.RoleVisible            = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(function(unit) return (UnitGroupRolesAssigned(unit) or "NONE") ~= "NONE" end) or BehaviorSubject(false)
+    Unit.Role.Visible           = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(function(unit) return (UnitGroupRolesAssigned(unit) or "NONE") ~= "NONE" end) or BehaviorSubject(false)
 
     --- Gets whether the unit is leader
-    Unit.IsLeader               = Unit:Watch(roleSubject):Map(function(unit) return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit) or false end)
+    Unit.Role.IsLeader          = Unit:Watch(roleSubject):Map(function(unit) return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit) or false end)
 
     --- Gets whether the unit is in range of the player
     Unit.InRange                = Unit.Timer:Map(function(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)) end)
@@ -250,25 +262,22 @@ do
     Unit.Owner                  = Unit:Map(GetUnitOwner)
 
     --- Gets the unit's owner name
-    Unit.OwnerName              = Unit:Map(function(unit) return GetUnitName(GetUnitOwner(unit)) end)
+    Unit.Owner.Name             = Unit:Map(function(unit) return GetUnitName(GetUnitOwner(unit)) end)
 
     --- Gets the unit's owner name with server
-    Unit.OwnerNameWithServer    = Unit:Map(function(unit)
+    Unit.Owner.Name.Server      = Unit:Map(function(unit)
         local name, server      = GetUnitName(GetUnitOwner(unit), true)
         return name and server and (name .. "-" .. server) or name
     end)
 
     --- Gets the unit's owner class color
-    Unit.OwnerColor             = Unit:Map(function(unit)
+    Unit.Owner.Color            = Unit:Map(function(unit)
         local _, cls            = UnitClass(GetUnitOwner(unit))
         return Color[cls or "PALADIN"]
     end)
 
-    --- Gets the unit owner's role
-    Unit.OwnerRole              = _G.UnitGroupRolesAssigned and Unit:Watch(roleSubject):Map(function(unit) return UnitGroupRolesAssigned(GetUnitOwner(unit)) end) or BehaviorSubject("NONE")
-
     --- Gets whether the unit's owner is in range or the player
-    Unit.OwnerInRange           = Unit.Timer:Map(function(unit) unit = GetUnitOwner(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)) end)
+    Unit.Owner.InRange          = Unit.Timer:Map(function(unit) unit = GetUnitOwner(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)) end)
 end
 
 ------------------------------------------------------------
@@ -304,9 +313,6 @@ do
         return _ReadyCheckConfirmSubject:OnNext("any")
     end
 
-    --- Gets the unit's ready check visibility
-    Unit.ReadyCheckVisible      = Unit:Watch(_ReadyCheckVisibleSubject):Map(function(unit) return _ReadyChecking > 0 and UnitGUID(unit) ~= nil end)
-
     --- Gets the unit's ready check status
     Unit.ReadyCheck             = Unit:Watch(_ReadyCheckConfirmSubject):Map(function(unit)
         if _ReadyChecking == 0 then return end
@@ -318,6 +324,9 @@ do
         _ReadyCheckCache[guid]  = state
         return _ReadyChecking == 2 and state == "waiting" and "notready" or state
     end)
+
+    --- Gets the unit's ready check visibility
+    Unit.ReadyCheck.Visible     = Unit:Watch(_ReadyCheckVisibleSubject):Map(function(unit) return _ReadyChecking > 0 and UnitGUID(unit) ~= nil end)
 end
 
 ------------------------------------------------------------
@@ -327,18 +336,6 @@ do
     --------------------------------------------------------
     --                       Helper                       --
     --------------------------------------------------------
-    _PlayerClass                = select(2, UnitClass("player"))
-    _DISPELLABLE                = {
-        ["MAGE"]                = { Curse   = Color.CURSE, },
-        ["DRUID"]               = { Poison  = Color.POISON, Curse   = Color.CURSE,   Magic = Color.MAGIC },
-        ["PALADIN"]             = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
-        ["PRIEST"]              = { Disease = Color.DISEASE,Magic   = Color.MAGIC },
-        ["SHAMAN"]              = { Curse   = Color.CURSE,  Magic   = Color.MAGIC },
-        ["WARLOCK"]             = { Magic   = Color.MAGIC, },
-        ["MONK"]                = { Poison  = Color.POISON, Disease = Color.DISEASE, Magic = Color.MAGIC },
-        ["EVOKER"]              = { Poison  = Color.POISON, Disease = Color.DISEASE, Curse = Color.Curse },
-    }[_PlayerClass] or false
-    
     _UnitHealthMap              = {}
     _FixUnitMaxHealth           = {}
     
@@ -403,16 +400,6 @@ do
         end
     end
     
-    __SystemEvent__()
-    function PLAYER_ENTERING_WORLD()
-        wipe(_UnitHealthMap)
-    end
-
-    __SystemEvent__()
-    function SCORPIO_UNIT_STOP_TRACKING_GUID(guid)
-        _UnitHealthMap[guid]    = nil
-    end
-    
     __SystemEvent__("UNIT_HEALTH", "UNIT_HEALTH_FREQUENT")
     function UNIT_HEALTH(unit)
         local guid              = UnitGUID(unit)
@@ -429,6 +416,16 @@ do
         _UnitHealthSubject:OnNext(unit)
     end
     
+    __SystemEvent__()
+    function PLAYER_ENTERING_WORLD()
+        wipe(_UnitHealthMap)
+    end
+
+    __SystemEvent__()
+    function SCORPIO_UNIT_STOP_TRACKING_GUID(guid)
+        _UnitHealthMap[guid]    = nil
+    end
+
     __Service__(true)
     function FixUnitMaxHealth()
         while true do
@@ -473,7 +470,7 @@ do
     end)
     
     --- Gets the unit lost health
-    Unit.HealthLost             = Unit:Watch(_UnitHealthSubject):Map(function(unit)
+    Unit.Health.Loss            = Unit:Watch(_UnitHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
         local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
         if max == 0 or max < health then
@@ -484,7 +481,7 @@ do
     end)
 
     --- Gets the unit health percent
-    Unit.HealthPercent          = Unit:Watch(_UnitHealthSubject):Map(function(unit)
+    Unit.Health.Percent         = Unit:Watch(_UnitHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
         local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
         if max == 0 or max < health then
@@ -494,8 +491,19 @@ do
         return floor(0.5 + health / max * 100)
     end)
 
+    --- Gets the unit health loss percent
+    Unit.Health.LossPercent     = Unit:Watch(_UnitHealthSubject):Map(function(unit)
+        local max               = UnitHealthMax(unit)
+        local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
+        if max == 0 or max < health then
+            RegisterFixUnitMaxHealth(unit)
+            return 100
+        end
+        return floor(0.5 + (max - health) / max * 100)
+    end)
+
     --- Gets the unit max health
-    Unit.HealthMax              = Unit:Watch(_UnitMaxHealthSubject):Map(function(unit)
+    Unit.Health.Max             = Unit:Watch(_UnitMaxHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
         if max == 0 then
             RegisterFixUnitMaxHealth(unit)
@@ -503,21 +511,20 @@ do
         end
         return max
     end)
-
-    --- Gets the unit min-max health
-    local healthMinMax          = { min = 0 }
-    Unit.HealthMinMax           = Unit:Watch(_UnitMaxHealthSubject):Map(function (unit)
-        local max               = UnitHealthMax(unit)
-        if max == 0 then
-            RegisterFixUnitMaxHealth(unit)
-            max                 = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
-        end
-        healthMinMax.max        = max
-        return healthMinMax
-    end)
     
-    --- Gets the health prediction @TODO split event handler
-    Unit.HealthPrediction        = Unit:Watch(Wow.FromEvent("UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED"):Next())
+    --- Gets the player incoming heals
+    Unit.Health.PlayerIncoming  = Unit:Watch("UNIT_HEAL_PREDICTION"):Map(_G.UnitGetIncomingHeals and function(unit)
+        return UnitGetIncomingHeals(unit, "player")
+    end or Toolset.fakefunc)
+
+    --- Gets the total incoming heals
+    Unit.Health.TotalIncoming   = Unit:Watch("UNIT_HEAL_PREDICTION"):Map(_G.UnitGetIncomingHeals or Toolset.fakefunc)
+
+    --- Gets the total absorbs
+    Unit.Health.TotalAbsorb     = Unit:Watch("UNIT_ABSORB_AMOUNT_CHANGED"):Map(_G.UnitGetTotalAbsorbs or Toolset.fakefunc)
+
+    --- Gets the total heal absorbs
+    Unit.Health.TotalHealAbsorb = Unit:Watch("UNIT_HEAL_ABSORB_AMOUNT_CHANGED"):Map(_G.UnitGetTotalHealAbsorbs or Toolset.fakefunc)
 end
 
 ------------------------------------------------------------
@@ -686,12 +693,7 @@ do
                                 or _PlayerClass == "DEMONHUNTER" and BehaviorSubject(5)
                                 or _PlayerClass == "MONK"        and Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
                                 or                                   Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
-    
-    --- Gets the unit min max class power, works for player only
-    Unit.ClassPowerMinMax       =  _PlayerClass == "DEATHKNIGHT" and BehaviorSubject{ min = 0, max = 6 }
-                                or _PlayerClass == "DEMONHUNTER" and BehaviorSubject{ min = 0, max = 5 }
-                                or Unit.ClassPowerMax:Map(function(max) return { min = 0, max = max } end)
-    
+
     --- Gets the unit class power color
     Unit.ClassPowerColor        = _PlayerClass == "MONK" and Unit:Watch(_ClassPowerSubject):Map(function(unit)
                                     if _ClassPowerType and UnitIsUnit(unit, "player") then
@@ -727,9 +729,6 @@ do
     --- Gets the unit max powr
     Unit.PowerMax               = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, (UnitPowerType(unit))) end)
 
-    --- Gets the unit min max power
-    Unit.PowerMinMax            = Unit.PowerMax:Map(function(max) return { min = 0, max = max } end)
-    
     --- Gets the unit power color
     local powerColor            = Color(1, 1, 1)
     Unit.PowerColor             = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit)
@@ -760,9 +759,6 @@ do
     --- Gets the unit max mana
     Unit.ManaMax                = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, PowerType.MANA) end)
 
-    --- Gets the unit min max mana
-    Unit.ManaMinMax             = Unit.ManaMax:Map(function(max) powerMinMax.max = max return powerMinMax end)
-                                
     --- Gets the unit mana visible
     Unit.ManaVisible            = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerType(unit) ~= PowerType.MANA and (UnitPowerMax(unit, PowerType.MANA) or 0) > 0 end)
 end
@@ -924,40 +920,4 @@ do
 
     --- Gets the unit cast delay
     Unit.CastDelay              = Unit:Watch(_UnitCastDelay):Map(function(unit, delay) return delay end)
-end
-
-------------------------------------------------------------
---                          Aura                          --
-------------------------------------------------------------
-do
-    __SystemEvent__()
-    function UNIT_AURA(unit, updateInfo)
-        if updateInfo and not updateInfo.isFullUpdate then
-            local guid              = UnitGUID(unit)
-
-            if updateInfo.addedAuras ~= nil then
-                for _, aura in ipairs(updateInfo.addedAuras) do
-                    PlayerAuras[aura.auraInstanceID] = aura
-                    -- Perform any setup tasks for this aura here.
-                end
-            end
-        
-            if updateInfo.updatedAuraInstanceIDs ~= nil then
-                for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
-                    PlayerAuras[auraInstanceID] = C_UnitAuras.GetAuraDataByAuraInstanceID("player", auraInstanceID)
-                    -- Perform any update tasks for this aura here.
-                end
-            end
-        
-            if updateInfo.removedAuraInstanceIDs ~= nil then
-                for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
-                    PlayerAuras[auraInstanceID] = nil
-                    -- Perform any cleanup tasks for this aura here.
-                end
-            end
-        else
-            -- full update
-
-        end
-    end
 end

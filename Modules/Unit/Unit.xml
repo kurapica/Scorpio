@@ -8,13 +8,9 @@
 	<!-- Reactive -->
 	<Script file="Reactive.lua"/>
 
-	<!-- Deprecated Indicator System -->
-	<!-- Unit API -->
-	<Script file="Deprecated\UnitHealthAPI.lua"/>
-	<Script file="Deprecated\UnitPowerAPI.lua"/>
-	<Script file="Deprecated\UnitCastAPI.lua"/>
-	<Script file="Deprecated\UnitAuraAPI.lua"/>
-
 	<!-- Unit Frame Indicator -->
 	<Script file="Indicator.lua"/>
+
+	<!-- Too comlex to be standalone -->
+	<Script file="Aura.lua"/>
 </Ui>

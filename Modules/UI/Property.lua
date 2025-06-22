@@ -2252,6 +2252,15 @@ do
         get             = function(self) return MinMax(self:GetMinMaxValues()) end,
     }
 
+    --- the max value of the slider, min set to 0
+    UI.Property         {
+        name            = "MaxValue",
+        type            = Number,
+        require         = { Slider, StatusBar },
+        set             = function(self, val) self:SetMinMaxValues(0, max) end,
+        get             = function(self) return select(2, self:GetMinMaxValues()) end,
+    }
+
     --- the orientation of the slider
     UI.Property         {
         name            = "Orientation",

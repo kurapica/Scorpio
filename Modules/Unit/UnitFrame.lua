@@ -16,6 +16,8 @@ Scorpio           "Scorpio.Secure.UnitFrame"         "1.0.1"
 do
     local _UnitFrameHoverSpellGroup
 
+    _PlayerClass                = select(2, UnitClass("player"))
+
     _UpdateGroupQueue           = Queue()
 
     _ActionType                 = {

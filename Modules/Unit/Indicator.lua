@@ -12,391 +12,79 @@ Scorpio         "Scorpio.Secure.UnitFrame.Indicator" "1.0.0"
 
 namespace "Scorpio.Secure.UnitFrame"
 
-import "System.Reactive"
-
 ------------------------------------------------------------
 --                       Indicator                        --
 ------------------------------------------------------------
-__ChildProperty__(UnitFrame,         "NameLabel")
-__ChildProperty__(InSecureUnitFrame, "NameLabel")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "NameLabel"       { FontString }
 
-__ChildProperty__(UnitFrame,         "LevelLabel")
-__ChildProperty__(InSecureUnitFrame, "LevelLabel")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "LevelLabel"      { FontString }
 
-__ChildProperty__(UnitFrame,         "HealthLabel")
-__ChildProperty__(InSecureUnitFrame, "HealthLabel")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "HealthLabel"     { FontString }
 
-__ChildProperty__(UnitFrame,         "PowerLabel")
-__ChildProperty__(InSecureUnitFrame, "PowerLabel")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "PowerLabel"      { FontString }
 
-__ChildProperty__(UnitFrame,         "HealthBar")
-__ChildProperty__(InSecureUnitFrame, "HealthBar")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "HealthBar"       { StatusBar }
 
-__ChildProperty__(UnitFrame,         "PowerBar")
-__ChildProperty__(InSecureUnitFrame, "PowerBar")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "PowerBar"        { StatusBar }
 
-__ChildProperty__(UnitFrame,         "ClassPowerBar")
-__ChildProperty__(InSecureUnitFrame, "ClassPowerBar")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "ClassPowerBar"   { StatusBar }
 
-__ChildProperty__(UnitFrame,         "HiddenManaBar")
-__ChildProperty__(InSecureUnitFrame, "HiddenManaBar")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "HiddenManaBar"   { StatusBar }
 
-__ChildProperty__(UnitFrame,         "DisconnectIcon")
-__ChildProperty__(InSecureUnitFrame, "DisconnectIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "DisconnectIcon"  { Texture }
 
-__ChildProperty__(UnitFrame,         "CombatIcon")
-__ChildProperty__(InSecureUnitFrame, "CombatIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "CombatIcon"      { Texture }
 
-__ChildProperty__(UnitFrame,         "ResurrectIcon")
-__ChildProperty__(InSecureUnitFrame, "ResurrectIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "ResurrectIcon"   { Texture }
 
-__ChildProperty__(UnitFrame,         "RaidTargetIcon")
-__ChildProperty__(InSecureUnitFrame, "RaidTargetIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "RaidTargetIcon"  { Texture }
 
-__ChildProperty__(UnitFrame,         "ReadyCheckIcon")
-__ChildProperty__(InSecureUnitFrame, "ReadyCheckIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "ReadyCheckIcon"  { Texture }
 
-__ChildProperty__(UnitFrame,         "RaidRosterIcon")
-__ChildProperty__(InSecureUnitFrame, "RaidRosterIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "RaidRosterIcon"  { Texture }
 
-__ChildProperty__(UnitFrame,         "RoleIcon")
-__ChildProperty__(InSecureUnitFrame, "RoleIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "RoleIcon"        { Texture }
 
-__ChildProperty__(UnitFrame,         "LeaderIcon")
-__ChildProperty__(InSecureUnitFrame, "LeaderIcon")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "LeaderIcon"      { Texture }
 
-__ChildProperty__(UnitFrame,         "CastBar")
-__ChildProperty__(InSecureUnitFrame, "CastBar")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "CastBar"         { CooldownStatusBar }
 
-__ChildProperty__(UnitFrame,        "AuraPanel")
-__ChildProperty__(InSecureUnitFrame,"AuraPanel")
-__Sealed__() class "AuraPanel"      (function(_ENV)
-    inherit "ElementPanel"
-
-    import "System.Reactive"
-
-    local tconcat               = table.concat
-    local tinsert               = table.insert
-    local wipe                  = wipe
-    local strtrim               = Toolset.trim
-    local validate              = Enum.ValidateValue
-    local shareCooldown         = { start = 0, duration = 0 }
-    local cache                 = {}
-    local slotMap               = {}
-
-    local refreshAura, refreshAuraByPriorty
-    local hasUnitAuraSlots      = _G.UnitAuraSlots and true or false
-
-    if hasUnitAuraSlots then
-        function refreshAura(self, unit, filter, eleIdx, auraIdx, continuationToken, ...)
-            local notPlayer         = not UnitIsUnit(unit, "player")
-            for i = 1, select("#", ...) do
-                local slot          = select(i, ...)
-
-                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = UnitAuraBySlot(unit, slot)
-
-                if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3) then
-                    self.Elements[eleIdx]:Show()
-
-                    shareCooldown.start             = expires - duration
-                    shareCooldown.duration          = duration
-
-                    self.AuraIndex[eleIdx]          = auraIdx
-                    self.AuraName[eleIdx]           = name
-                    self.AuraIcon[eleIdx]           = icon
-                    self.AuraCount[eleIdx]          = count
-                    self.AuraDebuff[eleIdx]         = dtype
-                    self.AuraCooldown[eleIdx]       = shareCooldown
-                    self.AuraStealable[eleIdx]      = isStealable and notPlayer
-                    self.AuraSpellID[eleIdx]        = spellId
-                    self.AuraBossDebuff[eleIdx]     = isBossDebuff
-                    self.AuraCastByPlayer[eleIdx]   = castByPlayer
-
-                    eleIdx          = eleIdx + 1
-
-                    if eleIdx > self.MaxCount then return eleIdx end
-                end
-                auraIdx             = auraIdx + 1
-            end
-
-            if continuationToken then
-                return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAuraSlots(unit, filter, self.MaxCount - eleIdx + 1, continuationToken))
-            else
-                return eleIdx
-            end
-        end
-
-        function refreshAuraByPriorty(self, unit, filter, priority, auraIdx, continuationToken, ...)
-            for i = 1, select("#", ...) do
-                local slot          = select(i, ...)
-
-                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3 = UnitAuraBySlot(unit, slot)
-
-                if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1, arg2, arg3) then
-                    local order     = priority[name] or priority[spellId]
-                    if order then
-                        cache[order]= slot
-                    else
-                        tinsert(cache, slot)
-                    end
-
-                    slotMap[slot]   = auraIdx
-                end
-
-                auraIdx             = auraIdx + 1
-            end
-
-            return continuationToken and refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAuraSlots(unit, filter, self.MaxCount, continuationToken))
-        end
-    else
-        function refreshAura(self, unit, filter, eleIdx, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
-            if not name or eleIdx > self.MaxCount then return eleIdx end
-
-            if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...) then
-                self.Elements[eleIdx]:Show()
-
-                shareCooldown.start             = expires - duration
-                shareCooldown.duration          = duration
-
-                self.AuraIndex[eleIdx]          = auraIdx
-                self.AuraName[eleIdx]           = name
-                self.AuraIcon[eleIdx]           = icon
-                self.AuraCount[eleIdx]          = count
-                self.AuraDebuff[eleIdx]         = dtype
-                self.AuraCooldown[eleIdx]       = shareCooldown
-                self.AuraStealable[eleIdx]      = isStealable and not UnitIsUnit(unit, "player")
-                self.AuraSpellID[eleIdx]        = spellID
-                self.AuraBossDebuff[eleIdx]     = isBossDebuff
-                self.AuraCastByPlayer[eleIdx]   = castByPlayer
-
-                eleIdx              = eleIdx + 1
-            end
-
-            auraIdx                 = auraIdx + 1
-            return refreshAura(self, unit, filter, eleIdx, auraIdx, UnitAura(unit, auraIdx, filter))
-        end
-
-        function refreshAuraByPriorty(self, unit, filter, priority, auraIdx, name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...)
-            if not name then return end
-
-            if not self.CustomFilter or self.CustomFilter(name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer, ...) then
-                local order         = priority[name] or priority[spellID]
-                if order then
-                    cache[order]    = auraIdx
-                else
-                    tinsert(cache, auraIdx)
-                end
-            end
-
-            auraIdx                 = auraIdx + 1
-            return refreshAuraByPriorty(self, unit, filter, priority, auraIdx, UnitAura(unit, auraIdx, filter))
-        end
-    end
-
-    local function OnElementCreated(self, ele)
-        return ele:InstantApplyStyle()
-    end
-
-    local function OnShow(self)
-        self.Refresh            = self.Unit
-    end
-
-    --- The aura filters
-    __Sealed__() enum "AuraFilter" { "HELPFUL", "HARMFUL", "PLAYER", "RAID", "CANCELABLE", "NOT_CANCELABLE", "INCLUDE_NAME_PLATE_ONLY", "MAW" }
-
-    ------------------------------------------------------
-    -- Property
-    ------------------------------------------------------
-    --- The aura filter
-    property "AuraFilter"       {
-        type                    = struct{ AuraFilter } + String,
-        field                   = "__AuraPanel_AuraFilter",
-        set                     = function(self, filter)
-            -- No more check, just keep it simple
-            if type(filter) == "table" then
-                filter          = tconcat(filter, "|")
-            else
-                filter          = filter and strtrim(filter) or ""
-            end
-
-            if filter == "" then
-                self.Count      = 0
-            end
-
-            self.__AuraPanel_AuraFilter = filter
-        end,
-    }
-
-    --- The custom filter
-    property "CustomFilter"     { type = Function }
-
-    --- The aura priority with order
-    property "AuraPriority"      { type = struct { String + Number }, handler = function(self, val) self._AuraPriorityCache = {} if val then for i, v in ipairs(val) do self._AuraPriorityCache[v] = i end end end }
-
-    --- The property to drive the refreshing
-    property "Refresh"          {
-        set                     = function(self, unit)
-            self.Unit           = unit
-            local filter        = self.AuraFilter
-            if not (unit and filter and filter ~= "" and self:IsVisible()) then return end
-
-            local auraPriority  = self.AuraPriority
-            if not auraPriority or #auraPriority == 0 then
-                if hasUnitAuraSlots then
-                    self.Count  = refreshAura(self, unit, filter, 1, 1, UnitAuraSlots(unit, filter, self.MaxCount)) - 1
-                else
-                    self.Count  = refreshAura(self, unit, filter, 1, 1, UnitAura(unit, 1, filter)) - 1
-                end
-            else
-                wipe(cache) for i = 1, #auraPriority do cache[i] = false end
-                if hasUnitAuraSlots then
-                    refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAuraSlots(unit, filter, self.MaxCount))
-                else
-                    refreshAuraByPriorty(self, unit, filter, self._AuraPriorityCache, 1, UnitAura(unit, 1, filter))
-                end
-
-                local eleIdx    = 1
-                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer
-                for i = 1, #cache do
-                    local slot  = cache[i]
-                    if slot then
-                        if hasUnitAuraSlots then
-                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAuraBySlot(unit, slot)
-                        else
-                            name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, castByPlayer = UnitAura(unit, slot, filter)
-                        end
-
-                        self.Elements[eleIdx]:Show()
-
-                        shareCooldown.start             = expires - duration
-                        shareCooldown.duration          = duration
-
-                        self.AuraIndex[eleIdx]          = slotMap[slot]
-                        self.AuraName[eleIdx]           = name
-                        self.AuraIcon[eleIdx]           = icon
-                        self.AuraCount[eleIdx]          = count
-                        self.AuraDebuff[eleIdx]         = dtype
-                        self.AuraCooldown[eleIdx]       = shareCooldown
-                        self.AuraStealable[eleIdx]      = isStealable and not UnitIsUnit(unit, "player")
-                        self.AuraSpellID[eleIdx]        = spellID
-                        self.AuraBossDebuff[eleIdx]     = isBossDebuff
-                        self.AuraCastByPlayer[eleIdx]   = castByPlayer
-
-                        eleIdx  = eleIdx + 1
-                        if eleIdx > self.MaxCount then break end
-                    end
-                end
-
-                self.Count      = eleIdx - 1
-            end
-        end
-    }
-
-    --- The unit of the current aura
-    property "Unit"             { type = String }
-
-    ------------------------------------------------------
-    -- Observable Property
-    ------------------------------------------------------
-    __Indexer__() __Observable__()
-    property "AuraIndex"        { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraName"         { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraIcon"         { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraCount"        { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraDebuff"       { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraCooldown"     { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraStealable"    { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraSpellID"      { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraBossDebuff"   { set = Toolset.fakefunc }
-
-    __Indexer__() __Observable__()
-    property "AuraCastByPlayer" { set = Toolset.fakefunc }
-
-    ------------------------------------------------------
-    -- Constructor
-    ------------------------------------------------------
-    function __ctor(self)
-        self.OnElementCreated   = self.OnElementCreated + OnElementCreated
-        self.OnShow             = self.OnShow           + OnShow
-    end
-end)
-
-__ChildProperty__(UnitFrame,         "BuffPanel")
-__ChildProperty__(InSecureUnitFrame, "BuffPanel")
-__Sealed__() class "BuffPanel"       { AuraPanel }
-
-__ChildProperty__(UnitFrame,         "DebuffPanel")
-__ChildProperty__(InSecureUnitFrame, "DebuffPanel")
-__Sealed__() class "DebuffPanel"     { AuraPanel }
-
-__ChildProperty__(UnitFrame,         "ClassBuffPanel")
-__ChildProperty__(InSecureUnitFrame, "ClassBuffPanel")
-__Sealed__() class "ClassBuffPanel"  { AuraPanel }
-
-__Sealed__() class "AuraPanelIcon"  (function(_ENV)
-    inherit "Frame"
-
-    local isObjectType          = Class.IsObjectType
-
-    local function OnEnter(self)
-        if self.ShowTooltip and self.AuraIndex then
-            local parent        = self:GetParent()
-            if not parent then return end
-
-            GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT')
-            GameTooltip:SetUnitAura(parent.Unit, self.AuraIndex, parent.AuraFilter)
-        end
-    end
-
-    local function OnLeave(self)
-        GameTooltip:Hide()
-    end
-
-    property "ShowTooltip"      { type = Boolean, default = true }
-
-    property "AuraIndex"        { type = Number }
-
-    function __ctor(self)
-        self.OnEnter            = self.OnEnter + OnEnter
-        self.OnLeave            = self.OnLeave + OnLeave
-    end
-end)
-
-__ChildProperty__(UnitFrame,        "TotemPanel")
-__ChildProperty__(InSecureUnitFrame,"TotemPanel")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "TotemPanel"     (function(_ENV)
     inherit "ElementPanel"
 
@@ -486,16 +174,16 @@ __Sealed__() class "TotemPanelIcon"  (function(_ENV)
 end)
 
 -- A health bar with prediction elements
-__ChildProperty__(UnitFrame,        "PredictionHealthBar")
-__ChildProperty__(InSecureUnitFrame,"PredictionHealthBar")
+__ChildProperty__(UnitFrame)
+__ChildProperty__(InSecureUnitFrame)
 __Sealed__() class "PredictionHealthBar" (function(_ENV)
     inherit "StatusBar"
 
     local  function updateFillBar(self, previousTexture, bar, amount, barOffsetXPercent)
-        local totalWidth, totalHeight   = self:GetSize()
+        local tWidth, tHeight   = self:GetSize()
         local isVertical        = self:GetOrientation() == "VERTICAL"
 
-        local total             = isVertical and totalHeight or totalWidth
+        local total             = isVertical and tHeight or tWidth
 
         if ( total == 0 or amount == 0 ) then
             bar:Hide()
@@ -521,7 +209,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
             bar:SetHeight(barSize)
             bar:Show()
             if ( bar.overlay ) then
-                bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(totalHeight / bar.overlay.tileSize, 0, 1))
+                bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(tHeight / bar.overlay.tileSize, 0, 1))
                 Style[bar.overlay].rotateDegree = 270
                 bar.overlay:Show()
             end
@@ -532,7 +220,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
             bar:SetWidth(barSize)
             bar:Show()
             if ( bar.overlay ) then
-                bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(totalHeight / bar.overlay.tileSize, 0, 1))
+                bar.overlay:SetTexCoord(0, Clamp(barSize / bar.overlay.tileSize, 0, 1), 0, Clamp(tHeight / bar.overlay.tileSize, 0, 1))
                 Style[bar.overlay].rotateDegree = 0
                 bar.overlay:Show()
             end
@@ -543,7 +231,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
 
     property "HealPrediction"   {
         set                     = function(self, unit)
-            local maxHealth                 = unit and UnitHealthMax(unit) or 0
+            local maxHealth     = unit and UnitHealthMax(unit) or 0
 
             if maxHealth <= 0 then
                 self.myHealPrediction:Hide()
@@ -557,7 +245,7 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
                 return
             end
 
-            local health                    = unit and UnitHealth(unit)
+            local health        = unit and UnitHealth(unit)
             if health > maxHealth then maxHealth = health end -- Just avoid some bugs
 
             local myIncomingHeal            = UnitGetIncomingHeals(unit, "player") or 0
@@ -700,7 +388,6 @@ __Sealed__() class "PredictionHealthBar" (function(_ENV)
     end
 end)
 
-
 ------------------------------------------------------------
 --                         Helper                         --
 ------------------------------------------------------------
@@ -740,7 +427,7 @@ Style.UpdateSkin("Default",     {
     [NameLabel]                 = {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
-        text                    = Unit.NameWithServer,
+        text                    = Unit.Name,
         textColor               = Unit.Color,
     },
     [LevelLabel]                = {
@@ -765,7 +452,6 @@ Style.UpdateSkin("Default",     {
         statusBarTexture        = {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
-
         value                   = Unit.Health,
         minMaxValues            = Unit.HealthMinMax,
         statusBarColor          = Color.GREEN,
@@ -776,7 +462,6 @@ Style.UpdateSkin("Default",     {
         statusBarTexture        = {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
-
         value                   = Unit.Power,
         minMaxValues            = Unit.PowerMinMax,
         statusBarColor          = Unit.PowerColor,
@@ -787,11 +472,10 @@ Style.UpdateSkin("Default",     {
         statusBarTexture        = {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
-
         value                   = Unit.Mana,
         minMaxValues            = Unit.ManaMinMax,
-        statusBarColor          = Color.MANA,
         visible                 = Unit.ManaVisible,
+        statusBarColor          = Color.MANA,
     },
     [ClassPowerBar]             = {
         frameStrata             = "LOW",
@@ -799,7 +483,6 @@ Style.UpdateSkin("Default",     {
         statusBarTexture        = {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
-
         value                   = Unit.ClassPower,
         minMaxValues            = Unit.ClassPowerMinMax,
         statusBarColor          = Unit.ClassPowerColor,
@@ -891,32 +574,6 @@ Style.UpdateSkin("Default",     {
         reverse                 = Unit.CastChannel,
         showSafeZone            = Unit.IsPlayer,
     },
-    [AuraPanel]                 = {
-        refresh                 = Unit.Aura,
-        elementType             = AuraPanelIcon,
-
-        frameStrata             = "MEDIUM",
-        columnCount             = 6,
-        rowCount                = 6,
-        elementWidth            = 16,
-        elementHeight           = 16,
-        hSpacing                = 2,
-        vSpacing                = 2,
-        enableMouse             = false,
-    },
-    [BuffPanel]                 = {
-        auraFilter              = "HELPFUL",
-    },
-    [DebuffPanel]               = {
-        auraFilter              = "HARMFUL",
-    },
-    [ClassBuffPanel]            = {
-        auraFilter              = "PLAYER",
-    },
-    [AuraPanelIcon]             = {
-        enableMouse             = true,
-        auraIndex               = Wow.FromPanelProperty("AuraIndex"),
-    },
     [TotemPanel]                = {
         refresh                 = Wow.UnitTotem(),
         visible                 = Unit.IsPlayer,
@@ -937,14 +594,14 @@ Style.UpdateSkin("Default",     {
     [PredictionHealthBar]       = {
         frameStrata             = "LOW",
         enableMouse             = false,
-        statusBarColor          = Wow.UnitConditionColor(true, Color.RED),
+        statusBarColor          = Unit.ConditionColor(true, Color.RED),
         statusBarTexture        = {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
 
-        value                   = Wow.UnitHealthFrequent(),
-        minMaxValues            = Wow.UnitHealthMax(),
-        healPrediction          = Wow.UnitHealPrediction(),
+        value                   = Unit.Health,
+        minMaxValues            = Unit.HealthMinMax,
+        healPrediction          = Unit.HealthPrediction,
 
         MyHealPrediction        = {
             drawLayer           = "BORDER",

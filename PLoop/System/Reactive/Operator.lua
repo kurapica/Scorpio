@@ -1203,7 +1203,7 @@ PLoop(function(_ENV)
                     observable:Subscribe(subobs, subobs.Subscription)
                 end
             end)
-        end
+    end
         Merge                           = Observable.Merge
 
         --- Switch will subscribe to the outer sequence and as each inner sequence is
