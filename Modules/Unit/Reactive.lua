@@ -212,7 +212,10 @@ do
     Unit.RaidTargetIndex        = Unit:Watch(Wow.FromEvent("RAID_TARGET_UPDATE"):Map("=>'any'")):Map(GetRaidTargetIndex)
 
     --- Gets the unit's threat level
-    Unit.ThreatLevel             = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit) return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0 end)
+    Unit.ThreatLevel            = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit) return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0 end)
+
+    --- Whether the unit is targeted by enemy
+    Unit.HasThreat              = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit) return UnitIsPlayer(unit) and (UnitThreatSituation(unit) or 0) >= 2 end)
 
     --- Gets the unit's party assignment
     roleSubject                 = Wow.FromEvent("GROUP_ROSTER_UPDATE", "PLAYER_ROLES_ASSIGNED", "PARTY_LEADER_CHANGED"):Map("=>'any'"):Debounce(0.5):ToSubject()
@@ -228,10 +231,10 @@ do
     end)
 
     --- Whether the unit is main tank
-    Unit.Assignment.MainTank    = Unit.Assignment:Map(function(assign) return assign == "MAINTANK" end)
+    Unit.Assignment.MainTank    = Unit:Watch(roleSubject):Map(function(unit) return IsInRaid() and not UnitHasVehicleUI(unit) and GetPartyAssignment('MAINTANK', unit) end)
 
     --- Whether the unit is main assist
-    Unit.Assignment.MainAssist  = Unit.Assignment:Map(function(assign) return assign == "MAINASSIST" end)
+    Unit.Assignment.MainAssist  = Unit:Watch(roleSubject):Map(function(unit) return IsInRaid() and not UnitHasVehicleUI(unit) and GetPartyAssignment('MAINASSIST', unit) end)
 
     --- Gets the unit's party assignment visibility
     Unit.Assignment.Visible     = Unit.Assignment:Map(function(assign) return assign ~= "NONE" end)
@@ -513,9 +516,7 @@ do
     end)
     
     --- Gets the player incoming heals
-    Unit.Health.PlayerIncoming  = Unit:Watch("UNIT_HEAL_PREDICTION"):Map(_G.UnitGetIncomingHeals and function(unit)
-        return UnitGetIncomingHeals(unit, "player")
-    end or Toolset.fakefunc)
+    Unit.Health.PlayerIncoming  = Unit:Watch("UNIT_HEAL_PREDICTION"):Map(_G.UnitGetIncomingHeals and function(unit) return UnitGetIncomingHeals(unit, "player") end or Toolset.fakefunc)
 
     --- Gets the total incoming heals
     Unit.Health.TotalIncoming   = Unit:Watch("UNIT_HEAL_PREDICTION"):Map(_G.UnitGetIncomingHeals or Toolset.fakefunc)
@@ -689,13 +690,13 @@ do
                                 or                                   Unit:Watch(_ClassPowerSubject):Map(function(unit) return _ClassPowerType and UnitPower(unit, _ClassPowerType) or 0 end)
     
     --- Gets the unit max class power, works for player only
-    Unit.ClassPowerMax          =  _PlayerClass == "DEATHKNIGHT" and BehaviorSubject(6)
+    Unit.ClassPower.Max         =  _PlayerClass == "DEATHKNIGHT" and BehaviorSubject(6)
                                 or _PlayerClass == "DEMONHUNTER" and BehaviorSubject(5)
                                 or _PlayerClass == "MONK"        and Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType == STAGGER and UnitHealthMax(unit) or _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
                                 or                                   Unit:Watch(_ClassPowerMaxSubject):Map(function(unit) return _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100 end)
 
     --- Gets the unit class power color
-    Unit.ClassPowerColor        = _PlayerClass == "MONK" and Unit:Watch(_ClassPowerSubject):Map(function(unit)
+    Unit.ClassPower.Color       = _PlayerClass == "MONK" and Unit:Watch(_ClassPowerSubject):Map(function(unit)
                                     if _ClassPowerType and UnitIsUnit(unit, "player") then
                                         if _ClassPowerType == STAGGER then
                                             local curr          = UnitStagger(unit)
@@ -721,46 +722,46 @@ do
                                 or Unit:Watch(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and Color[_ClassPowerToken] or Color.DISABLED end)
     
     --- Gets the unit class power visible
-    Unit.ClassPowerVisible      = Unit:Watch(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
+    Unit.ClassPower.Visible     = Unit:Watch(_ClassPowerRefresh):Map(function(unit) return UnitIsUnit(unit, "player") and _ClassPowerType and true or false end)
     
     --- Gets the unit power
     Unit.Power                  = Unit:Watch(_UnitPowerObservable):Map(function(unit) return UnitPower(unit, (UnitPowerType(unit))) end)
 
     --- Gets the unit max powr
-    Unit.PowerMax               = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, (UnitPowerType(unit))) end)
+    Unit.Power.Max              = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, (UnitPowerType(unit))) end)
 
     --- Gets the unit power color
-    local powerColor            = Color(1, 1, 1)
-    Unit.PowerColor             = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit)
+    local tColor                = {}
+    Unit.Power.Color            = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit)
                                     if not UnitIsConnected(unit) then
-                                        powerColor.r    = 0.5
-                                        powerColor.g    = 0.5
-                                        powerColor.b    = 0.5
+                                        return Color.RUNES
                                     else
                                         local ptype, ptoken, r, g, b = UnitPowerType(unit)
                                         local color     = ptoken and Color[ptoken]
                                         if color then return color end
                         
                                         if r then
-                                            powerColor.r= r
-                                            powerColor.g= g
-                                            powerColor.b= b
-                                        else
-                                            return Color.MANA
+                                            local rgb   = ("%.2x%.2x%.2x"):format(r * 255, g * 255, b * 255)
+                                            color       = tColor[rgb]
+                                            if not color then
+                                                color   = { r = r, g = g, b = b }
+                                                tColor[rgb] = color
+                                            end
+
+                                            return color
                                         end
                                     end
-                        
-                                    return powerColor
+                                    return Color.MANA
                                 end)
     
     --- Gets the unit mana
     Unit.Mana                   = Unit:Watch(_UnitPowerObservable):Map(function(unit) return UnitPower(unit, PowerType.MANA) end)
     
     --- Gets the unit max mana
-    Unit.ManaMax                = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, PowerType.MANA) end)
+    Unit.Mana.Max               = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerMax(unit, PowerType.MANA) end)
 
     --- Gets the unit mana visible
-    Unit.ManaVisible            = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerType(unit) ~= PowerType.MANA and (UnitPowerMax(unit, PowerType.MANA) or 0) > 0 end)
+    Unit.Mana.Visible           = Unit:Watch(_UnitMaxPowerObservable):Map(function(unit) return UnitPowerType(unit) ~= PowerType.MANA and (UnitPowerMax(unit, PowerType.MANA) or 0) > 0 end)
 end
 
 ------------------------------------------------------------
@@ -891,9 +892,12 @@ do
     --------------------------------------------------------
     --                     Observable                     --
     --------------------------------------------------------
+    --- Gets the unit cast event
+    Unit.Cast                   = Unit:Watch(_UnitCastSubject)
+
     --- Gets the unit cast cooldown
     local shareCooldown         = { start = 0, duration = 0 }
-    Unit.CastCooldown           = Unit:Watch(_UnitCastSubject):Map(function(unit, name, icon, start, duration)
+    Unit.Cast.Cooldown          = Unit.Cast:Map(function(unit, name, icon, start, duration)
                                     if name then
                                         shareCooldown.start     = start
                                         shareCooldown.duration  = duration
@@ -906,18 +910,78 @@ do
                                     return shareCooldown
                                 end)
 
-    --- Gets whether the unit is casting channel spell
-    Unit.CastChannel            = Unit:Watch(_UnitCastChannel):Map(function(unit, val) return val or false end)
-
-    -- Gets whether the unit's casting is interruptible
-    Unit.CastInterruptible      = Unit:Watch(_UnitCastInterruptible):Map(function(unit, val) return val or false end)
-
     --- Gets the unit cast name
-    Unit.CastName               = Unit:Watch(_UnitCastSubject):Map(function(unit, name) return name end)
+    Unit.Cast.Name              = Unit.Cast:Map(function(unit, name) return name end)
 
     --- Gets the unit cast  icon
-    Unit.CastIcon               = Unit:Watch(_UnitCastSubject):Map(function(unit, name, icon) return icon end)
+    Unit.Cast.Icon              = Unit.Cast:Map(function(unit, name, icon) return icon end)
+
+    --- Gets whether the unit is casting channel spell
+    Unit.Cast.Channel           = Unit:Watch(_UnitCastChannel):Map(function(unit, val) return val or false end)
+
+    -- Gets whether the unit's casting is interruptible
+    Unit.Cast.Interruptible     = Unit:Watch(_UnitCastInterruptible):Map(function(unit, val) return val or false end)
 
     --- Gets the unit cast delay
-    Unit.CastDelay              = Unit:Watch(_UnitCastDelay):Map(function(unit, delay) return delay end)
+    Unit.Cast.Delay             = Unit:Watch(_UnitCastDelay):Map(function(unit, delay) return delay end)
+end
+
+------------------------------------------------------------
+--                          Aura                          --
+------------------------------------------------------------
+do
+    _UnitAuraCache              = {}
+
+    -- From 10.0
+    if _G.C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
+
+
+        __SystemEvent__()
+        function UNIT_AURA(unit, updateInfo)
+            local guid          = UnitGUID(unit)
+            local map           = _GuidUnitMap[guid]
+            if not map then return end -- no unit track
+
+            if updateInfo and not updateInfo.isFullUpdate then
+                if updateInfo.addedAuras ~= nil then
+                    for _, aura in ipairs(updateInfo.addedAuras) do
+                        PlayerAuras[aura.auraInstanceID] = aura
+                        -- Perform any setup tasks for this aura here.
+                    end
+                end
+
+                if updateInfo.updatedAuraInstanceIDs ~= nil then
+                    for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
+                        PlayerAuras[auraInstanceID] = C_UnitAuras.GetAuraDataByAuraInstanceID("player", auraInstanceID)
+                        -- Perform any update tasks for this aura here.
+                    end
+                end
+
+                if updateInfo.removedAuraInstanceIDs ~= nil then
+                    for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
+                        PlayerAuras[auraInstanceID] = nil
+                        -- Perform any cleanup tasks for this aura here.
+                    end
+                end
+            else
+                -- full update
+                PlayerAuras = {}
+
+                local function HandleAura(aura)
+                    PlayerAuras[aura.auraInstanceID] = aura
+                    -- Perform any setup or update tasks for this aura here.
+                end
+
+                local batchCount = nil
+                local usePackedAura = true
+                AuraUtil.ForEachAura("player", "HELPFUL", batchCount, HandleAura, usePackedAura)
+                AuraUtil.ForEachAura("player", "HARMFUL", batchCount, HandleAura, usePackedAura)
+            end
+        end
+
+    elseif _G.UnitAuraSlots then
+
+    else
+
+    end
 end
