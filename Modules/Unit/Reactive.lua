@@ -145,7 +145,7 @@ do
     end)
 
     --- Gets the unit level
-    Unit.Level                  = Unit:Watch(Wow.FromEvent("PLAYER_LEVEL_UP"):Map(function(level) return "player", level end))
+    Unit.Level                  = Unit:Watch(Wow.PLAYER_LEVEL_UP:Map(function(level) return "player", level end))
         :Map(_G.UnitBattlePetLevel and function(unit, level)
             level               = level or UnitLevel(unit)
             if level and level > 0 then
@@ -185,7 +185,7 @@ do
     Unit.Disconnected           = Unit:Watch("UNIT_CONNECTION"):Map(function(unit) return not UnitIsConnected(unit) end)
 
     --- Gets the unit is target
-    Unit.IsTarget               = Unit:Watch(Wow.FromEvent("PLAYER_TARGET_CHANGED"):Map("=>'any'")):Map(function(unit) return UnitIsUnit(unit, "target") end)
+    Unit.IsTarget               = Unit:Watch(Wow.PLAYER_TARGET_CHANGED:Map("=>'any'")):Map(function(unit) return UnitIsUnit(unit, "target") end)
 
     --- Gets the unit is player
     Unit.IsPlayer               = Unit:Map(function(unit) return UnitIsUnit(unit, "player") end)
@@ -193,9 +193,12 @@ do
     --- Whether the player is in combat
     Unit.InCombat               = Wow.FromEvent("PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED"):Map(function() return UnitAffectingCombat("player") or false end):ToSubject(BehaviorSubject)
 
+    --- Gets whether the unit is in range of the player
+    Unit.InRange                = Unit.Timer:Map(function(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)) end)
+
     --- Whether the unit is resurrect
     resurrectSubject            = Subject()
-    Wow.FromEvent("INCOMING_RESURRECT_CHANGED"):Next():Subscribe(function(unit)
+    Wow.INCOMING_RESURRECT_CHANGED:Next():Subscribe(function(unit)
         resurrectSubject:OnNext(unit)
 
         if UnitHasIncomingResurrection(unit) then
@@ -209,7 +212,7 @@ do
     Unit.IsResurrect            = Unit:Watch(resurrectSubject):Map(UnitHasIncomingResurrection)
 
     --- Gets the unit's raid target index
-    Unit.RaidTargetIndex        = Unit:Watch(Wow.FromEvent("RAID_TARGET_UPDATE"):Map("=>'any'")):Map(GetRaidTargetIndex)
+    Unit.RaidTargetIndex        = Unit:Watch(Wow.RAID_TARGET_UPDATE:Map("=>'any'")):Map(GetRaidTargetIndex)
 
     --- Gets the unit's threat level
     Unit.ThreatLevel            = Unit:Watch("UNIT_THREAT_SITUATION_UPDATE"):Map(function(unit) return UnitIsPlayer(unit) and UnitThreatSituation(unit) or 0 end)
@@ -248,8 +251,8 @@ do
     --- Gets whether the unit is leader
     Unit.Role.IsLeader          = Unit:Watch(roleSubject):Map(function(unit) return (UnitInParty(unit) or UnitInRaid(unit)) and UnitIsGroupLeader(unit) or false end)
 
-    --- Gets whether the unit is in range of the player
-    Unit.InRange                = Unit.Timer:Map(function(unit) return UnitExists(unit) and (UnitIsUnit(unit, "player") or not (UnitInParty(unit) or UnitInRaid(unit)) or UnitInRange(unit)) end)
+    --- Gets the unit totem update
+    Unit.Totem                  = Unit:Watch(Wow.PLAYER_TOTEM_UPDATE:Map("=>'player'"))
 end
 
 ------------------------------------------------------------
@@ -345,6 +348,11 @@ do
     _UnitHealthSubject          = Subject()
     _UnitMaxHealthSubject       = Subject()
     
+    -- clear
+    Wow.PLAYER_ENTERING_WORLD:Subscribe(function() wipe(_UnitHealthMap) end)
+    Wow.SCORPIO_UNIT_STOP_TRACKING_GUID:Subscribe(function(guid) _UnitHealthMap[guid] = nil end)
+
+    -- events
     __CombatEvent__ "SWING_DAMAGE" "RANGE_DAMAGE" "SPELL_DAMAGE" "SPELL_PERIODIC_DAMAGE" "DAMAGE_SPLIT" "DAMAGE_SHIELD" "ENVIRONMENTAL_DAMAGE" "SPELL_HEAL" "SPELL_PERIODIC_HEAL"
     function COMBAT_HEALTH_CHANGE(_, event, _, _, _, _, _, destGUID, _, _, _, arg12, arg13, arg14, arg15, arg16)
         local health            = _UnitHealthMap[destGUID]
@@ -419,16 +427,6 @@ do
         _UnitHealthSubject:OnNext(unit)
     end
     
-    __SystemEvent__()
-    function PLAYER_ENTERING_WORLD()
-        wipe(_UnitHealthMap)
-    end
-
-    __SystemEvent__()
-    function SCORPIO_UNIT_STOP_TRACKING_GUID(guid)
-        _UnitHealthMap[guid]    = nil
-    end
-
     __Service__(true)
     function FixUnitMaxHealth()
         while true do
@@ -930,12 +928,16 @@ end
 --                          Aura                          --
 ------------------------------------------------------------
 do
-    _UnitAuraCache              = {}
+    _AuraCache                  = {}
+    _AuraFilter                 = { HELPFUL = 1, HARMFUL = 2, PLAYER = 3, RAID = 4, CANCELABLE = 5, NOT_CANCELABLE = 6, INCLUDE_NAME_PLATE_ONLY = 7, MAW = 8 }
+    _UnitAuraSubject            = Subject()
+    _UnitAuraDelaySubject       = Subject:Next():ToSubject()
 
-    -- From 10.0
+    -- clear
+    Wow.SCORPIO_UNIT_STOP_TRACKING_GUID:Subscribe(function(guid) _AuraCache[guid] = nil end)
+
+    -- event handler
     if _G.C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
-
-
         __SystemEvent__()
         function UNIT_AURA(unit, updateInfo)
             local guid          = UnitGUID(unit)
@@ -943,45 +945,110 @@ do
             if not map then return end -- no unit track
 
             if updateInfo and not updateInfo.isFullUpdate then
+                local auras     = _AuraCache[guid]
+                if not auras then return end -- wait for full scan
+
                 if updateInfo.addedAuras ~= nil then
                     for _, aura in ipairs(updateInfo.addedAuras) do
-                        PlayerAuras[aura.auraInstanceID] = aura
+                        auras[aura.auraInstanceID] = aura
                         -- Perform any setup tasks for this aura here.
                     end
                 end
 
                 if updateInfo.updatedAuraInstanceIDs ~= nil then
                     for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
-                        PlayerAuras[auraInstanceID] = C_UnitAuras.GetAuraDataByAuraInstanceID("player", auraInstanceID)
+                        auras[auraInstanceID] = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
                         -- Perform any update tasks for this aura here.
                     end
                 end
 
                 if updateInfo.removedAuraInstanceIDs ~= nil then
                     for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
-                        PlayerAuras[auraInstanceID] = nil
+                        auras[auraInstanceID] = nil
                         -- Perform any cleanup tasks for this aura here.
                     end
                 end
             else
-                -- full update
-                PlayerAuras = {}
-
-                local function HandleAura(aura)
-                    PlayerAuras[aura.auraInstanceID] = aura
-                    -- Perform any setup or update tasks for this aura here.
-                end
-
-                local batchCount = nil
-                local usePackedAura = true
-                AuraUtil.ForEachAura("player", "HELPFUL", batchCount, HandleAura, usePackedAura)
-                AuraUtil.ForEachAura("player", "HARMFUL", batchCount, HandleAura, usePackedAura)
+                -- full update, wait for next
+                _AuraCache[guid]= nil
             end
+
+            return _UnitAuraSubject:OnNext(unit)
         end
 
-    elseif _G.UnitAuraSlots then
+        function scanForUnit(unit)
+            local guid          = UnitGUID(unit)
+            local auras         = _AuraCache[guid]
+            if auras then return auras end
 
+            auras               = {}
+            _AuraCache[guid]    = auras
+
+            local function HandleAura(aura)
+                auras[aura.auraInstanceID] = aura
+            end
+
+            AuraUtil.ForEachAura("player", "HELPFUL", 16, HandleAura, true)
+            AuraUtil.ForEachAura("player", "HARMFUL", 16, HandleAura, true)
+        end
     else
+        __SystemEvent__()
+        function UNIT_AURA(unit)
+            _AuraCache[UnitGUID(unit)] = nil
+            return _UnitAuraSubject:OnNext(unit)
+        end
 
+        if _G.UnitAuraSlots then
+            local function refreshAura(cache, unit, filter, auraIdx, continuationToken, ...)
+                local singleSpellIDMap  = singleSpellID[filter]
+                local singleSpellNameMap= singleSpellName[filter]
+
+                for i = 1, select("#", ...) do
+                    local slot          = select(i, ...)
+                    local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAuraBySlot(unit, slot)
+
+                    if singleSpellIDMap[spellId] then
+                        cache[spellId]  = auraIdx
+                    end
+
+                    if singleSpellNameMap[name] then
+                        cache[name]     = auraIdx
+                    end
+
+                    auraIdx             = auraIdx + 1
+                end
+
+                return continuationToken and refreshAura(cache, unit, filter, auraIdx, UnitAuraSlots(unit, filter, 16, continuationToken))
+            end
+
+            function scanForUnit(cache, unit, filter)
+                return refreshAura(cache, unit, filter, 1, UnitAuraSlots(unit, filter, 16))
+            end
+
+        else
+            function scanForUnit(cache, unit, filter)
+                local singleSpellIDMap  = singleSpellID[filter]
+                local singleSpellNameMap= singleSpellName[filter]
+
+                local auraIdx           = 1
+                local name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAura(unit, auraIdx, filter)
+
+                while name do
+                    if singleSpellIDMap[spellId] then
+                        cache[spellId]  = auraIdx
+                    end
+
+                    if singleSpellNameMap[name] then
+                        cache[name]     = auraIdx
+                    end
+
+                    auraIdx             = auraIdx + 1
+                    name, icon, count, dtype, duration, expires, caster, isStealable, nameplateShowPersonal, spellId = UnitAura(unit, auraIdx, filter)
+                end
+            end
+        end
     end
+
+
+    function passFilter(filter) return XList(filter:gmatch("[%w_]+")):Filter(function(a) return _AuraFilter[a] end):ToList():Sort(function(a, b) return auraFilter[a] < auraFilter[b] end):Join("|") end
 end

@@ -434,7 +434,7 @@ Style.UpdateSkin("Default",     {
         drawLayer               = "BORDER",
         fontObject              = GameFontNormalSmall,
         text                    = Unit.Level,
-        vertexColor             = Unit.LevelColor,
+        vertexColor             = Unit.Level.Color,
     },
     [HealthLabel]               = {
         drawLayer               = "BORDER",
@@ -453,7 +453,7 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
         value                   = Unit.Health,
-        minMaxValues            = Unit.HealthMinMax,
+        MaxValue                = Unit.Health.Max,
         statusBarColor          = Color.GREEN,
     },
     [PowerBar]                  = {
@@ -463,8 +463,8 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
         value                   = Unit.Power,
-        minMaxValues            = Unit.PowerMinMax,
-        statusBarColor          = Unit.PowerColor,
+        MaxValue                = Unit.Power.Max,
+        statusBarColor          = Unit.Power.Color,
     },
     [HiddenManaBar]             = {
         frameStrata             = "LOW",
@@ -473,8 +473,8 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
         value                   = Unit.Mana,
-        minMaxValues            = Unit.ManaMinMax,
-        visible                 = Unit.ManaVisible,
+        MaxValue                = Unit.Mana.Max,
+        visible                 = Unit.Mana.Visible,
         statusBarColor          = Color.MANA,
     },
     [ClassPowerBar]             = {
@@ -484,9 +484,9 @@ Style.UpdateSkin("Default",     {
             file                = [[Interface\TargetingFrame\UI-StatusBar]],
         },
         value                   = Unit.ClassPower,
-        minMaxValues            = Unit.ClassPowerMinMax,
-        statusBarColor          = Unit.ClassPowerColor,
-        visible                 = Unit.ClassPowerVisible,
+        MaxValue                = Unit.ClassPower.Max,
+        statusBarColor          = Unit.ClassPower.Color,
+        visible                 = Unit.ClassPower.Visible,
     },
     [DisconnectIcon]            = {
         file                    = [[Interface\CharacterFrame\Disconnect-Icon]],
@@ -532,11 +532,11 @@ Style.UpdateSkin("Default",     {
                 or state == "waiting"  and READY_CHECK_WAITING_TEXTURE
                 or nil
         end),
-        visible                 = Unit.ReadyCheckVisible,
+        visible                 = Unit.ReadyCheck.Visible,
         size                    = Size(16, 16),
     },
     [RaidRosterIcon]            = {
-        file                    = Unit.GroupRoster:Map(function(assign)
+        file                    = Unit.Assignment:Map(function(assign)
             return assign == "MAINTANK"   and [[Interface\GROUPFRAME\UI-GROUP-MAINTANKICON]]
                 or assign == "MAINASSIST" and [[Interface\GROUPFRAME\UI-GROUP-MAINASSISTICON]]
                 or nil
@@ -562,20 +562,20 @@ Style.UpdateSkin("Default",     {
             return shareRect
         end),
         size                    = Size(16, 16),
-        visible                 = Unit.RoleVisible,
+        visible                 = Unit.Role.Visible,
     },
     [LeaderIcon]                = {
         file                    = [[Interface\GroupFrame\UI-Group-LeaderIcon]],
         size                    = Size(16, 16),
-        visible                 = Unit.IsLeader,
+        visible                 = Unit.Role.IsLeader,
     },
     [CastBar]                   = {
-        cooldown                = Unit.CastCooldown,
-        reverse                 = Unit.CastChannel,
+        cooldown                = Unit.Cast.Cooldown,
+        reverse                 = Unit.Cast.Channel,
         showSafeZone            = Unit.IsPlayer,
     },
     [TotemPanel]                = {
-        refresh                 = Wow.UnitTotem(),
+        refresh                 = Unit.Totem,
         visible                 = Unit.IsPlayer,
         elementType             = TotemPanelIcon,
 
