@@ -161,7 +161,7 @@ __Sealed__() class "SVManager" (function(_ENV)
     __Sealed__() class "SVCharManager" (function(_ENV)
         inherit (SVProxy)
 
-        if Scorpio.IsRetail or Scorpio.IsWLK then
+        if _G.GetSpecialization or _G.GetActiveTalentGroup then
             ----------------------------------------------
             --               SVSpecManager              --
             ----------------------------------------------
@@ -285,7 +285,7 @@ __Sealed__() class "SVManager" (function(_ENV)
 
             local _CurrentSpec  = 1
             local _DBSpecMap    = {}
-            local GetSpecialization = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
+            local GetSpecialization = _G.GetSpecialization or _G.GetActiveTalentGroup
 
 
             ----------------------------------------------
