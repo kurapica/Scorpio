@@ -285,8 +285,6 @@ __Sealed__() class "SVManager" (function(_ENV)
 
             local _CurrentSpec  = 1
             local _DBSpecMap    = {}
-            local GetSpecialization = _G.GetSpecialization or _G.GetActiveTalentGroup
-
 
             ----------------------------------------------
             --                 Property                 --

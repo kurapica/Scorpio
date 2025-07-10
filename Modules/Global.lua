@@ -28,7 +28,7 @@ interface "DeprecatedApi"       (function(_ENV)
     local version               = select(4, GetBuildInfo())
 
 
-    GetSpecialization           = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
+    GetSpecialization           = _G.GetSpecialization and pcall(_G.GetSpecialization) and _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end
     IsWarModeDesired            = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end
 
     if not _G.GetMouseFocus then
