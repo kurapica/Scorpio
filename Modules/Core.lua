@@ -57,7 +57,7 @@ PLoop(function(_ENV)
             DefaultPool         = Threading.ThreadPool.Default,
 
             debugprofilestop    = debugprofilestop,
-            GetSpecialization   = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end,
+            GetSpecialization   = _G.GetSpecialization and pcall(_G.GetSpecialization) and _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end,
             IsWarModeDesired    = C_PvP and C_PvP.IsWarModeDesired or function() return false end,
         }
 
