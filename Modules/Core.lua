@@ -53,7 +53,7 @@ PLoop(function(_ENV)
             DefaultPool         = Threading.ThreadPool.Default,
 
             debugprofilestop    = debugprofilestop or error("No debugprofilestop API, the game version not supported"),
-            GetSpecialization   = _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end,
+            GetSpecialization   = _G.GetSpecialization and pcall(_G.GetSpecialization) and _G.GetSpecialization or _G.GetActiveTalentGroup or function() return 1 end,
             IsWarModeDesired    = _G.C_PvP and _G.C_PvP.IsWarModeDesired or function() return false end,
         }
 
