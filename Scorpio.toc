@@ -1,9 +1,4 @@
-## Interface: 110107
-## Interface-Retail: 110107
-## Interface-Classic: 11503
-## Interface-BCC: 20504
-## Interface-Wrath: 30405
-## Interface-Cata: 40400
+## Interface: 110107, 11503, 20504, 30405, 40400, 50500
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: @project-version@
