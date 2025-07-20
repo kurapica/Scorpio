@@ -1047,33 +1047,37 @@ PLoop(function(_ENV)
             local cache         = t_DelayTasks
             now                 = floor(now * 100)
 
-            while cache and cache[1] <= now do
-                local i         = 2
-                local task      = cache[i]
-                repeat
-                    if type(task) == "number" then
-                        local rtask = w_Token[task]
-                        if rtask then
-                            w_Token[task] = nil
+            while cache do
+                local t         = cache[1]
+                if t and t > now then break end
+
+                if t then
+                    local i     = 2
+                    local task  = cache[i]
+                    repeat
+                        if type(task) == "number" then
+                            local rtask = w_Token[task]
+                            if rtask then
+                                w_Token[task] = nil
+                            end
+                            task= rtask
                         end
-                        task    = rtask
-                    end
 
-                    if task then
-                        resume(task, now)
-                        queueTask(LOW_PRIORITY, task)
-                    end
+                        if task then
+                            resume(task, now)
+                            queueTask(LOW_PRIORITY, task)
+                        end
 
-                    i           = i + 1
-                    task        = cache[i]
-                until not task
+                        i       = i + 1
+                        task    = cache[i]
+                    until not task
+                end
 
                 local ncache    = cache[0]
                 recycleCache(cache)
 
                 cache           = ncache
             end
-
             t_DelayTasks        = cache
 
             return processPhase()
