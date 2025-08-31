@@ -13,6 +13,7 @@ Scorpio           "Scorpio.UI.Reactive"              "1.0.1"
 export                          {
     isUIObject                  = UI.IsUIObject,
     isObjectType                = Class.IsObjectType,
+    isUIObjectType              = UI.IsUIObjectType,
     isProperty                  = System.Property.Validate,
     isEvent                     = System.Event.Validate,
     isIndexerProperty           = System.Property.IsIndexer,
@@ -20,52 +21,73 @@ export                          {
     getFeature                  = Class.GetFeature,
 }
 
-__Static__() __Arguments__{ NEString * 1 }
-function Wow.FromUIProperty(...)
-    local name                  = select("#", ...) == 1 and select(1, ...) or { ... }
-    return Observable(function(observer, subscription)
-        local indicator         = getCurrentTarget()
-
-        if indicator and isUIObject(indicator) then
-            local frame         = indicator
-            local subject
-
-            if type(name) == "string" then
-                while frame do
-                    subject     = Observable.From(frame, name)
-                    if subject then break end
-
-                    frame       = frame:GetParent()
-                end
-            else
-                local nsubject
-                for _, n in ipairs(name) do
-                    frame       = indicator
-                    nsubject    = nil
-
-                    while frame do
-                        nsubject= Observable.From(frame, n)
-                        if nsubject then break end
-
-                        frame   = frame:GetParent()
-                    end
-
-                    if nsubject then
-                        subject = subject and subject:CombineLatest(nsubject) or nsubject
-                    else
-                        return
-                    end
-                end
-            end
-            if subject then return subject:Subscribe(observer, subscription) end
-        end
-    end)
+------------------------------------------------------------
+--                     UI Observable                      --
+------------------------------------------------------------
+--- Gets the frame by given type
+function GetFrameByType(frameType, frame)
+    frame                       = frame or getCurrentTarget()
+    while frame do
+        if not frameType or isObjectType(frame, frameType) then break end
+        frame                   = frame:GetParent()
+    end
+    return frame
 end
 
-__Static__() __Arguments__{ NEString * 1 }
-function Wow.FromPanelProperty(...)
-    local name                  = select("#", ...) == 1 and select(1, ...) or { ... }
-    return Observable(function(observer, subscription)
+--- Gets the observable properties by given frame type
+function GetFrameObservable(frameType, ...)
+    local count                 = select("#", ...)
+    if count == 0 then return end
+
+    local name                  = count == 1 and select(1, ...) or { ... }
+    return type(name) == "string"
+
+    and Observable(function(observer, subscription)
+        local indicator         = GetFrameByType(frameType)
+        while indicator do
+            subject             = Observable.From(indicator, name)
+            if subject then
+                return subject:Subscribe(observer, subscription)
+            end
+
+            indicator           = GetFrameByType(frameType, indicator:GetParent())
+        end
+    end)
+
+    or type(name) == "table" and Observable(function(observer, subscription)
+        local indicator         = GetFrameByType(frameType)
+        if not indicator then return end
+
+        local subject
+        for _, n in ipairs(name) do
+            local frame             = indicator
+            local nsubject          = nil
+
+            while frame do
+                nsubject            = Observable.From(frame, n)
+                if nsubject then break end
+                frame               = GetFrameByType(frameType, frame:GetParent())
+            end
+
+            if nsubject then
+                subject             = subject and subject:CombineLatest(nsubject) or nsubject
+            else
+                return
+            end
+        end
+
+        if subject then return subject:Subscribe(observer, subscription) end
+    end) or nil
+end
+
+--- Gets the observable panel index properties for child elements
+function GetPanelObservable(frameType, ...)
+    local count                 = select("#", ...)
+    if count == 0 then return end
+
+    local name                  = count == 1 and select(1, ...) or { ... }
+    return type(name) == "string"
+    and Observable(function(observer, subscription)
         local indicator         = getCurrentTarget()
 
         if indicator and isUIObject(indicator) then
@@ -85,63 +107,107 @@ function Wow.FromPanelProperty(...)
             end
 
             if index then
-                if type(name) == "string" then
-                    local prop          = getFeature(getmetatable(parent), name, true)
-                    local psub          = prop and isIndexerProperty(prop) and Observable.From(parent, name)
+                local prop          = getFeature(getmetatable(parent), name, true)
+                local psub          = prop and isIndexerProperty(prop) and Observable.From(parent, name)
+                if not psub then return end
+
+                local matchIdx      = psub.__MatchIndex
+                if not matchIdx then
+                    matchIdx        = {}
+                    psub.__MatchIndex = matchIdx
+
+                    psub:Subscribe(function(idx, ...)
+                        local s     = matchIdx[idx]
+                        return s and s:OnNext(...)
+                    end)
+                end
+
+                local idxSub        = matchIdx[index]
+                if not idxSub then
+                    idxSub          = Subject()
+                    matchIdx[index] = idxSub
+                end
+
+                return idxSub:Subscribe(observer, subscription)
+            end
+        end
+    end)
+    or type(name) == "table" and Observable(function(observer, subscription)
+        local indicator         = getCurrentTarget()
+
+        if indicator and isUIObject(indicator) then
+            local frame         = indicator
+            local parent        = indicator:GetParent()
+            local index
+
+            while parent do
+                if isObjectType(parent, ElementPanel) then
+                    -- Only check the nearest element panel
+                    index       = frame:GetID()
+                    break
+                end
+
+                frame           = parent
+                parent          = parent:GetParent()
+            end
+
+            if index then
+                local subject
+
+                for _, n in ipairs(name) do
+                    local prop      = getFeature(getmetatable(parent), n, true)
+                    local psub      = prop and isIndexerProperty(prop) and Observable.From(parent, n)
                     if not psub then return end
 
-                    local matchIdx      = psub.__MatchIndex
+                    local matchIdx  = psub.__MatchIndex
                     if not matchIdx then
-                        matchIdx        = {}
+                        matchIdx    = {}
                         psub.__MatchIndex = matchIdx
 
                         psub:Subscribe(function(idx, ...)
-                            local s     = matchIdx[idx]
+                            local s = matchIdx[idx]
                             return s and s:OnNext(...)
                         end)
                     end
 
-                    local idxSub        = matchIdx[index]
+                    local idxSub    = matchIdx[index]
                     if not idxSub then
-                        idxSub          = Subject()
+                        idxSub      = Subject()
                         matchIdx[index] = idxSub
                     end
 
-                    return idxSub:Subscribe(observer, subscription)
-                else
-                    local subject
-
-                    for _, n in ipairs(name) do
-                        local prop      = getFeature(getmetatable(parent), n, true)
-                        local psub      = prop and isIndexerProperty(prop) and Observable.From(parent, n)
-                        if not psub then return end
-
-                        local matchIdx  = psub.__MatchIndex
-                        if not matchIdx then
-                            matchIdx    = {}
-                            psub.__MatchIndex = matchIdx
-
-                            psub:Subscribe(function(idx, ...)
-                                local s = matchIdx[idx]
-                                return s and s:OnNext(...)
-                            end)
-                        end
-
-                        local idxSub    = matchIdx[index]
-                        if not idxSub then
-                            idxSub      = Subject()
-                            matchIdx[index] = idxSub
-                        end
-
-                        subject         = subject and subject:CombineLatest(idxSub) or idxSub
-                    end
-
-                    if subject then subject:Subscribe(observer, subscription) end
+                    subject         = subject and subject:CombineLatest(idxSub) or idxSub
                 end
+
+                if subject then subject:Subscribe(observer, subscription) end
             end
         end
-    end)
+    end) or nil
 end
+
+--- Used to get the parent with special frame type
+-- @example Scorpio.Wow.UnitFrame.SizeChanged
+-- @example Scorpio.Wow[TickButton].Tick
+Scorpio.Wow:AddObservableGenerator(function(key)
+    if type(key) == "string" then
+        key                     = Scorpio.UI[key] or Scorpio.Secure[key]
+    end
+
+    if key and isUIObjectType(key) then
+        local container         = ReactiveContainer()
+        container:AddObservableGenerator(function(name) return GetFrameObservable(key, name) end)
+        return container
+    end
+end)
+
+------------------------------------------------------------
+--                       Deprecated                       --
+------------------------------------------------------------
+__Arguments__{ NEString * 1 }
+Wow.FromUIProperty              = function(...) return GetFrameObservable(nil, ...) end
+
+__Arguments__{ NEString * 1 }
+Wow.FromPanelProperty(...)      = function(...) return GetPanelObservable(nil, ...) end
 
 __Arguments__{ -UIObject, IObservable + String }
 __Static__()

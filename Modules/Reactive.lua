@@ -277,6 +277,54 @@ end
 ------------------------------------------------------------
 --                 Wow Reactive Container                 --
 ------------------------------------------------------------
+__Sealed__() __ObjFuncAttr__()
+class "ReactiveContainer"       (function(_ENV)
+
+    export                      {
+        generators              = Toolset.newtable(true),
+        safesetvalue            = Toolset.safesetvalue,
+    }
+
+    --- Add observable generator to Wow
+    __Arguments__{ Function }
+    function AddObservableGenerator(self, func)
+        local generator         = generators[self]
+        if not generator then
+            generator           = {}
+            generators[self]    = generator
+        end
+        generator[#generator+1] = func
+    end
+
+    -- override the __index metamethod
+    function __index(self, key)
+        local ret               = super.__index(self, key)
+        if ret ~= nil then return ret end
+
+        local generator         = generators[self]
+        if not generator then return end
+
+        for i = 1, #generator do
+            local ok, ret       = pcall(generator[i], key)
+            if ok and ret then
+                if type(key) ~= "table" or getmetatable(key) ~= nil then
+                    -- for unique key
+                    safesetvalue(self, key, ret)
+                end
+                return ret
+            end
+        end
+    end
+end)
+
+--- Scorpio.Wow Reactive Container
+__ObjFuncAttr__()
+Namespace.SaveNamespace("Scorpio.Wow", ReactiveContainer())
+
+
+------------------------------------------------------------
+--                  Wow Event Observable                  --
+------------------------------------------------------------
 _EventMap                       = setmetatable({}, {
     __index                     = function(self, event)
         local subject           = Subject()
@@ -288,46 +336,28 @@ _EventMap                       = setmetatable({}, {
         return subject
     end
 })
+_MultiEventMap                  = {}
 
---- Scorpio.Wow Reactive Container
-Namespace.SaveNamespace("Scorpio.Wow", class (function(_ENV)
-    inherit "Reactive"
+function FromEvent (...)
+    if select("#", ...) == 1 then return _EventMap[(...)] end
 
-    export                      {
-        _MultiEventMap          = {},
-        safesetvalue            = Toolset.safesetvalue,
-    }
+    local events                = List{ ... }
+    events:Sort()
 
-    --- The data sequences from the wow event
-    __Static__() __Arguments__{ NEString * 1 }
-    function FromEvent(...)
-        if select("#", ...) == 1 then
-            return _EventMap[(...)]
-        else
-            local events        = List{ ... }
-            events:Sort()
-
-            local token         = events:Join("|")
-            local ob            = _MultiEventMap[token]
-            if not ob then
-                ob              = Observable(function(...) for i = 1, #ob do _EventMap[ob[i]]:Subscribe(...) end end)
-                for i = 1, select("#", ...) do ob[i] = select(i, ...) end
-                _MultiEventMap[token] = ob
-            end
-            return ob
-        end
+    local token                 = events:Join("|")
+    local ob                    = _MultiEventMap[token]
+    if not ob then
+        ob                      = Observable(function(...) for i = 1, #ob do _EventMap[ob[i]]:Subscribe(...) end end)
+        for i = 1, select("#", ...) do ob[i] = select(i, ...) end
+        _MultiEventMap[token]   = ob
     end
+    return ob
+end
 
-    -- override the __index metamethod
-    function __index(self, key)
-        local ret               = super.__index(self, key)
-        if ret ~= nil then return ret end
-        
-        -- handle system event - Scorpio.Wow.UNIT_HEALTH:MatchUnit("player")
-        if type(key) == "string" and key:upper() == key then
-            ret                 = FromEvent(key)
-            safesetvalue(self, key, ret)
-            return ret
-        end
-    end
-end) ())
+--- Auto convert system event to observable
+-- @example Scorpio.Wow.UNIT_HEALTH:MatchUnit("player")
+Scorpio.Wow:AddObservableGenerator(function(name) return type(key) == "string" and key:upper() == key and FromEvent(key) end)
+
+--- The data sequences from the wow event
+__Arguments__{ NEString * 1 }
+Scorpio.Wow.FromEvent           = FromEvent
