@@ -33,6 +33,8 @@ local STAGGER                   = 100 -- DIFF to other class type
 local FindAuraByName            = _G.AuraUtil.FindAuraByName
 local PowerType                 = _G.Enum.PowerType
 
+local _UseSecret                = Scorpio.UseSecretValue
+
 __Async__()
 OnEnable                        = OnEnable + function ()
     -- Use the custom unit event to provide the API
@@ -195,7 +197,14 @@ function Wow.ClassPowerMax()
             return minMax
         end)
     else
-        return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(function(unit)
+        return Wow.FromUnitEvent(_ClassPowerMaxSubject):Map(_UseSecret and function(unit)
+            if _ClassPowerType then
+                minMax.max      = UnitPowerMax(unit, _ClassPowerType)
+            else
+                minMax.max      = 100
+            end
+            return minMax
+        end or function(unit)
             minMax.max          = _ClassPowerType and UnitPowerMax(unit, _ClassPowerType) or 100
             return minMax
         end)
@@ -204,7 +213,7 @@ end
 
 __Static__() __AutoCache__()
 function Wow.ClassPowerColor()
-    if _PlayerClass == "MONK" then
+    if _PlayerClass == "MONK" and not _UseSecret then
         local STAGGER_YELLOW_TRANSITION = _G.STAGGER_YELLOW_TRANSITION
         local STAGGER_RED_TRANSITION    = _G.STAGGER_RED_TRANSITION
 

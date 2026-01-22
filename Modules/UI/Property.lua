@@ -2254,7 +2254,9 @@ do
         type            = Number,
         require         = { Slider, StatusBar },
         default         = 0,
-        set             = function(self, val)
+        set             = Scorpio.UseSecretValue
+        and function(self, val) self:SetValue(val) end
+        or  function(self, val)
             if not next(smoothRealValue) then
                 FireSystemEvent("SCORPIO_UI_SMOOTH_VALUE_PROCESS")
             end
