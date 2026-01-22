@@ -303,8 +303,8 @@ function handler:IsUsableAction()
 end
 
 function handler:IsConsumableAction()
-    local target                = _MacroMap[self.ActionTarget]
-    return target and IsConsumableSpell(_MacroMap[target])
+    local target                = self.ActionTarget
+    return target and _MacroMap[target] and IsConsumableSpell(_MacroMap[target])
 end
 
 function handler:IsInRange()

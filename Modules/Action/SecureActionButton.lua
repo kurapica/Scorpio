@@ -268,6 +268,8 @@ interface "ActionTypeHandler" (function(_ENV)
 
     _ActionButtonMap            = Toolset.newtable(true, true)
 
+    local useSecret             = Scorpio.UseSecretValue
+
     local function refreshButton(self, button)
         _AutoAttackButtons[button] = self.IsAttackAction(button) or nil
         _AutoRepeatButtons[button] = self.IsAutoRepeatAction(button) or nil
@@ -276,7 +278,7 @@ interface "ActionTypeHandler" (function(_ENV)
         button.IsAutoAttack     = _AutoAttackButtons[button] or _AutoRepeatButtons[button]
 
         local c, m              = self.GetActionCharges(button)
-        button.IsChargable      = c and m and m > 0
+        button.IsChargable      = m and m > 1
 
         local spell             = self.GetSpellId(button)
         local ospell            = _Spell4Buttons[button]
@@ -444,7 +446,7 @@ interface "ActionTypeHandler" (function(_ENV)
             if button.IsChargable then
                 local c, m, cs, cd, cr      = GetActionCharges(button)
 
-                if c and m and c < m then
+                if m > 1 then
                     shareCooldown.start     = cs or 0
                     shareCooldown.duration  = cd or 0
                     button.ChargeCooldown   = shareCooldown
@@ -465,7 +467,7 @@ interface "ActionTypeHandler" (function(_ENV)
                 if button.IsChargable then
                     local c, m, cs, cd, cr      = GetActionCharges(button)
 
-                    if c and m and c < m then
+                    if m > 1 then
                         shareCooldown.start     = cs or 0
                         shareCooldown.duration  = cd or 0
                         button.ChargeCooldown   = shareCooldown

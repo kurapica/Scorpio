@@ -82,7 +82,7 @@ interface "DeprecatedApi"       (function(_ENV)
         GetSpellCooldown        = function(id)
             local info          = originGetSpellCooldown(id)
             if info then
-                return info.startTime, info.duration, info.isEnabled and 1 or 0, info.modRate
+                return info.startTime, info.duration, info.isEnabled, info.modRate
             end
         end
     end
