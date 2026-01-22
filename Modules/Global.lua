@@ -57,7 +57,12 @@ interface "DeprecatedApi"       (function(_ENV)
         IsHelpfulSpell          = _G.C_Spell.IsSpellHelpful
         IsPassiveSpell          = _G.C_Spell.IsSpellPassive
 
-        UnitAura                = function(...)
+        UnitAura                = Scorpio.UseSecretValue and function(...)
+            local aura          = originUnitAura(...)
+            if aura then
+                return aura.name, aura.icon, aura.applications, aura.dispelName, aura.duration, aura.expirationTime, aura.sourceUnit, aura.isStealable, aura.nameplateShowPersonal, aura.spellId, aura.canApplyAura, aura.isBossAura, aura.isFromPlayerOrPlayerPet, aura.nameplateShowAll, aura.timeMod, aura.points
+            end
+        end or function(...)
             local aura          = originUnitAura(...)
             if aura then
                 return aura.name, aura.icon, aura.applications, aura.dispelName, aura.duration, aura.expirationTime, aura.sourceUnit, aura.isStealable, aura.nameplateShowPersonal, aura.spellId, aura.canApplyAura, aura.isBossAura, aura.isFromPlayerOrPlayerPet, aura.nameplateShowAll, aura.timeMod, unpack(aura.points)
@@ -83,7 +88,7 @@ interface "DeprecatedApi"       (function(_ENV)
         GetSpellCooldown        = function(id)
             local info          = originGetSpellCooldown(id)
             if info then
-                return info.startTime, info.duration, info.isEnabled and 1 or 0, info.modRate
+                return info.startTime, info.duration, info.isEnabled, info.modRate
             end
         end
     end
@@ -712,6 +717,9 @@ class "Color" (function(_ENV)
 
     --- The poison debuff's default color
     __Static__() property "POISON"          { default = Color(0.00, 0.60, 0.00) }
+
+    --- The none debuff color
+    __Static__() property "NONEDEBUFF"      { default = Color(0.80, 0, 0) }
 
     --------------- Common Color ----------------
     --- The normal font color

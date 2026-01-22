@@ -34,6 +34,7 @@ local _FixUnitMaxHealth         = {}
 
 local _UnitHealthSubject        = Subject()
 local _UnitMaxHealthSubject     = Subject()
+local _UseSecret                = Scorpio.UseSecretValue
 
 function RegisterFrequentHealthUnit(unit, guid, health)
     local oguid                 = _UnitGUIDMap[unit]
@@ -180,22 +181,11 @@ function Wow.UnitHealth()
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitHealthLost()
-    return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-        local max               = UnitHealthMax(unit)
-        local health            = UnitHealth(unit)
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 0
-        end
-        return max - health
-    end)
-end
-
-__Static__() __AutoCache__()
 function Wow.UnitHealthFrequent()
     -- Based on the CLEU
-    return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
+    return _UseSecret
+    and Wow.FromNextUnitEvent(_UnitHealthSubject):Map(UnitHealth)
+    or  Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
         local guid              = UnitGUID(unit)
         local health            = _UnitHealthMap[guid]
         if health and _UnitGUIDMap[unit] == guid then return health end
@@ -208,98 +198,13 @@ function Wow.UnitHealthFrequent()
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitHealthLostFrequent()
-    -- Based on the CLEU
-    return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-        local max               = UnitHealthMax(unit)
-        local guid              = UnitGUID(unit)
-        local health            = _UnitHealthMap[guid]
-
-        if not (health and _UnitGUIDMap[unit] == guid) then
-            -- Register the unit
-            health              = health or UnitHealth(unit)
-            RegisterFrequentHealthUnit(unit, guid, health)
-        end
-
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 0
-        end
-        return max - health
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthPercent()
-    return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-        local health            = UnitHealth(unit)
-        local max               = UnitHealthMax(unit)
-
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 100
-        end
-
-        return floor(0.5 + health / max * 100)
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthPercentFrequent()
-    -- Based on the CLEU
-    return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-        local guid              = UnitGUID(unit)
-        local health            = _UnitHealthMap[guid]
-
-        if not (health and _UnitGUIDMap[unit] == guid) then
-            -- Register the unit
-            health              = health or UnitHealth(unit)
-            RegisterFrequentHealthUnit(unit, guid, health)
-        end
-
-        local max               = UnitHealthMax(unit)
-
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 100
-        end
-
-        return floor(0.5 + health / max * 100)
-    end)
-end
-
-__Static__() __AutoCache__()
-function Wow.UnitHealthLostPercentFrequent()
-    -- Based on the CLEU
-    return Wow.FromNextUnitEvent(_UnitHealthSubject):Map(function(unit)
-        local guid              = UnitGUID(unit)
-        local health            = _UnitHealthMap[guid]
-
-        if not (health and _UnitGUIDMap[unit] == guid) then
-            -- Register the unit
-            health              = health or UnitHealth(unit)
-            RegisterFrequentHealthUnit(unit, guid, health)
-        end
-
-        local max               = UnitHealthMax(unit)
-
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 0
-        end
-
-        return floor(0.5 + (max - health) / max * 100)
-    end)
-end
-
-__Static__() __AutoCache__()
 function Wow.UnitHealthMax()
     local minMax                = { min = 0 }
     return Wow.FromUnitEvent(_UnitMaxHealthSubject):Map(function(unit)
         local health            = UnitHealth(unit)
         local max               = UnitHealthMax(unit)
 
-        if max == 0 or max < health then
+        if not _UseSecret and (max == 0 or max < health) then
             RegisterFixUnitMaxHealth(unit)
             max                 = health
         end
@@ -320,7 +225,7 @@ function Wow.UnitConditionColor(useClassColor, smoothEndColor)
     local defaultColor          = type(useClassColor) == "table" and useClassColor or Color.GREEN
     useClassColor               = useClassColor == true
 
-    if smoothEndColor then
+    if not _UseSecret and smoothEndColor then
         local cache             = Color{ r = 1, g = 1, b = 1 }
         local br, bg, bb        = smoothEndColor.r, smoothEndColor.g, smoothEndColor.b
 

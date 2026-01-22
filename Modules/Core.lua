@@ -1776,6 +1776,9 @@ PLoop(function(_ENV)
         --- Whether the game is Cataclysm
         __Static__() property "IsCataclysm"     { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CATACLYSM_CLASSIC end }
 
+        --- Whether the game is using secret value
+        __Static__() property "UseSecretValue"  { type = Boolean, default = rawget(_G, "issecretvalue") ~= nil }
+
         ----------------------------------------------
         --                 Property                 --
         ----------------------------------------------
@@ -2218,7 +2221,6 @@ PLoop(function(_ENV)
 
         ScorpioManager:SetScript("OnEvent", ScorpioManager.OnEvent)
         ScorpioManager:SetScript("OnUpdate", ScorpioManager.OnUpdate)
-        ScorpioManager:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
         RegisterEvent(ScorpioManager, "ADDON_LOADED")
         RegisterEvent(ScorpioManager, "PLAYER_LOGIN")
@@ -2290,5 +2292,10 @@ PLoop(function(_ENV)
                 Delay(DIAGNOSE_DELAY)
             end
         end)
+
+        -- Secret value checking
+        if not rawget(_G, "issecretvalue") then
+            ScorpioManager:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+        end
     end)
 end)

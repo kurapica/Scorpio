@@ -14,6 +14,14 @@ namespace "Scorpio.Secure.UnitFrame"
 import "System.Reactive"
 import "System.Toolset"
 
+if Scorpio.UseSecretValue then
+    local temp                  = Subject()
+
+    __Static__()
+    Wow.UnitAura                = function() return temp end
+    return
+end
+
 
 __Final__() interface "UnitAuraPredicate" (function(_ENV)
     local obUnitAura            = Wow.FromUnitEvent("UNIT_AURA"):Next()

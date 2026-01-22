@@ -12,6 +12,29 @@ Scorpio        "Scorpio.Secure.ActionHandler"        "1.0.0"
 _Enabled                        = false
 NUM_ACTIONBAR_BUTTONS           = 12
 
+if Scorpio.IsRetail then
+    GetActionCount              = GetActionUseCount or GetActionCount
+
+    local oldGetActionCharges   = C_ActionBar.GetActionCharges
+
+    local maxChargs             = {}
+
+    function GetActionCharges(id)
+        local r                 = oldGetActionCharges(id)
+        if r then
+            if InCombatLockdown() then
+                if maxChargs[id] then
+                    return r.currentCharges, maxChargs[id], r.cooldownStartTime, r.cooldownDuration, r.chargeModRate
+                end
+            else
+                maxChargs[id] = r.maxChargs or 0
+            end
+            return r.currentCharges, r.maxCharges, r.cooldownStartTime, r.cooldownDuration, r.chargeModRate
+        end
+        return 0, 0, 0, 0, 1
+    end
+end
+
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
@@ -235,7 +258,7 @@ end
 
 function handler:IsConsumableAction()
     local target                = self.ActionTarget
-    return IsConsumableAction(target) or IsStackableAction(target) or (not IsItemAction(target) and GetActionCount(target) > 0)
+    return IsConsumableAction(target) or IsStackableAction(target) -- or (not IsItemAction(target) and GetActionCount(target) > 0)
 end
 
 function handler:IsInRange()

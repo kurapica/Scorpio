@@ -14,6 +14,13 @@ namespace "Scorpio.Secure.UnitFrame"
 import "System.Reactive"
 import "System.Toolset"
 
+if Scorpio.UseSecretValue then
+    local func
+    func = function() return func end
+
+    __SystemEvent__ = func
+end -- fix later
+
 ------------------------------------------------------------
 --                     Unit Cast API                      --
 ------------------------------------------------------------
