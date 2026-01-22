@@ -470,39 +470,6 @@ do
         return _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
     end)
     
-    --- Gets the unit lost health
-    Unit.Health.Loss            = Unit:Watch(_UnitHealthSubject):Map(function(unit)
-        local max               = UnitHealthMax(unit)
-        local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 0
-        end
-        return max - health
-    end)
-
-    --- Gets the unit health percent
-    Unit.Health.Percent         = Unit:Watch(_UnitHealthSubject):Map(function(unit)
-        local max               = UnitHealthMax(unit)
-        local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 100
-        end
-        return floor(0.5 + health / max * 100)
-    end)
-
-    --- Gets the unit health loss percent
-    Unit.Health.LossPercent     = Unit:Watch(_UnitHealthSubject):Map(function(unit)
-        local max               = UnitHealthMax(unit)
-        local health            = _UnitHealthMap[UnitGUID(unit)] or UnitHealth(unit)
-        if max == 0 or max < health then
-            RegisterFixUnitMaxHealth(unit)
-            return 100
-        end
-        return floor(0.5 + (max - health) / max * 100)
-    end)
-
     --- Gets the unit max health
     Unit.Health.Max             = Unit:Watch(_UnitMaxHealthSubject):Map(function(unit)
         local max               = UnitHealthMax(unit)
