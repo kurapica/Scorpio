@@ -120,7 +120,9 @@ function PLAYER_ENTERING_WORLD()
 end
 
 __SystemEvent__(Scorpio.IsRetail and "UNIT_HEALTH" or "UNIT_HEALTH_FREQUENT")
-function UNIT_HEALTH(unit)
+UNIT_HEALTH                     = _UseSecret and function (unit)
+    return _UnitHealthSubject:OnNext(unit)
+end or function (unit)
     local guid                  = UnitGUID(unit)
     if _UnitHealthMap[guid] then
         _UnitHealthMap[guid]    = UnitHealth(unit)
