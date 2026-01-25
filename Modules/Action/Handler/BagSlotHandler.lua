@@ -62,11 +62,11 @@ LE_ITEM_QUALITY_POOR            = _G.LE_ITEM_QUALITY_POOR or _G.Enum.ItemQuality
 REPAIR_COST                     = _G.REPAIR_COST
 
 BACKPACK_CONTAINER              = _G.BACKPACK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Backpack
-BANK_CONTAINER                  = _G.BANK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Bank
-REAGENTBANK_CONTAINER           = _G.REAGENTBANK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Reagentbank
+BANK_CONTAINER                  = _G.BANK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Bank or -4
+REAGENTBANK_CONTAINER           = _G.REAGENTBANK_CONTAINER or _G.Enum and _G.Enum.BagIndex and _G.Enum.BagIndex.Reagentbank or -3
 NUM_BAG_SLOTS                   = _G.NUM_BAG_SLOTS or _G.Constants.InventoryConstants.NumBagSlots
-NUM_BANKBAGSLOTS                = _G.NUM_BANKBAGSLOTS or _G.Constants.InventoryConstants.NumBankBagSlots
-NUM_BANKGENERIC_SLOTS           = _G.NUM_BANKGENERIC_SLOTS or _G.Constants.InventoryConstants.NumGenericBankSlots
+NUM_BANKBAGSLOTS                = _G.NUM_BANKBAGSLOTS or _G.Constants.InventoryConstants.NumBankBagSlots or _G.Constants.InventoryConstants.NumCharacterBankSlots
+NUM_BANKGENERIC_SLOTS           = _G.NUM_BANKGENERIC_SLOTS or _G.Constants.InventoryConstants.NumGenericBankSlots or -99
 
 _ContainerBag                   = { BACKPACK_CONTAINER, 1, 2, 3, 4 }
 _BankBag                        = { BANK_CONTAINER, 5, 6, 7, 8, 9, 10, 11 }

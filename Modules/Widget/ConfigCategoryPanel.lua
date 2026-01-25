@@ -11,13 +11,11 @@ Scorpio        "Scorpio.Widget.ConfigCategoryPanel"  "1.0.0"
 
 InterfaceOptions_AddCategory    = _G.InterfaceOptions_AddCategory or function (frame, addOn, position)
     if frame.parent then
-        local category          = _G.Settings.GetCategory(frame.parent)
+        local category          = frame.parent.Category
         local subcategory, layout = _G.Settings.RegisterCanvasLayoutSubcategory(category, frame, frame.name, frame.name)
-        subcategory.ID = frame.name
         return subcategory, category
     else
         local category, layout  = _G.Settings.RegisterCanvasLayoutCategory(frame, frame.name, frame.name)
-        category.ID = frame.name
         _G.Settings.RegisterAddOnCategory(category)
         return category
     end
@@ -89,7 +87,7 @@ class "ConfigCategoryPanel"     (function(_ENV)
         panel.ConfigNode        = node
         panel.ShowAllSubNodes   = showAllSubNodes
 
-        return InterfaceOptions_AddCategory(self)
+        self.Category           = InterfaceOptions_AddCategory(self)
     end
 
     __Arguments__{ NEString, UI, ConfigNode, NEString, NEString/nil, Boolean/nil }

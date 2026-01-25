@@ -14,61 +14,83 @@ namespace "Scorpio.Secure.UnitFrame"
 import "System.Reactive"
 import "System.Toolset"
 
-if Scorpio.UseSecretValue then
-    local func
-    func = function() return func end
-
-    __SystemEvent__ = func
-end -- fix later
-
 ------------------------------------------------------------
 --                     Unit Cast API                      --
 ------------------------------------------------------------
 local _CurrentCastID            = {}
 local _CurrentCastEndTime       = {}
 
+local _UnitCasting              = Subject()
 local _UnitCastSubject          = Subject()
 local _UnitCastDelay            = Subject()
-local _UnitCastInterruptible    = Subject()
+local _UnitCastNotInterruptible = Subject()
 local _UnitCastChannel          = Subject()
+local _UnitCastDuration         = Subject()
+
+local defaultDuration           = Scorpio.UseSecretValue and C_DurationUtil.CreateDuration() or nil
 
 __SystemEvent__()
-function UNIT_SPELLCAST_START(unit, castID)
+UNIT_SPELLCAST_START            = Scorpio.UseSecretValue and function(unit, castID)
+    local n, _, t, _, _, _, _, i= UnitCastingInfo(unit)
+    local duration              = UnitCastingDuration(unit)
+
+    _CurrentCastID[unit]        = castID
+
+    _UnitCasting:OnNext(unit, true)
+    _UnitCastChannel:OnNext(unit, false)
+    _UnitCastSubject:OnNext(unit, n, t, 0, 0)
+    _UnitCastDelay:OnNext(unit, 0)
+    _UnitCastNotInterruptible:OnNext(unit, i)
+    _UnitCastDuration:OnNext(unit, duration)
+
+end or function (unit, castID)
     local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
     if not n then return end
+
     s, e                        = s / 1000, e / 1000
 
     _CurrentCastID[unit]        = castID
     _CurrentCastEndTime[unit]   = e
 
+    _UnitCasting:OnNext(unit, true)
     _UnitCastChannel:OnNext(unit, false)
     _UnitCastSubject:OnNext(unit, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, not i)
+    _UnitCastNotInterruptible:OnNext(unit, i)
 end
 
 __SystemEvent__ "UNIT_SPELLCAST_FAILED" "UNIT_SPELLCAST_STOP" "UNIT_SPELLCAST_INTERRUPTED"
 function UNIT_SPELLCAST_FAILED(unit, castID)
-    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+    --if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+        _UnitCasting:OnNext(unit, false)
         _UnitCastSubject:OnNext(unit, nil, nil, 0, 0)
         _UnitCastDelay:OnNext(unit, 0)
-    end
+        _UnitCastDuration:OnNext(unit, defaultDuration)
+    --end
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_INTERRUPTIBLE(unit)
     if not _CurrentCastID[unit] then return end
-    _UnitCastInterruptible:OnNext(unit, true)
+    _UnitCastNotInterruptible:OnNext(unit, false)
 end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_NOT_INTERRUPTIBLE(unit)
     if not _CurrentCastID[unit] then return end
-    _UnitCastInterruptible:OnNext(unit, false)
+    _UnitCastNotInterruptible:OnNext(unit, true)
 end
 
 __SystemEvent__()
-function UNIT_SPELLCAST_DELAYED(unit, castID)
+UNIT_SPELLCAST_DELAYED              = Scorpio.UseSecretValue and function(unit, castID)
+    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
+        local n, _, t, _, _, _, _, i= UnitCastingInfo(unit)
+        if not n then return end
+        local duration              = UnitCastingDuration(unit)
+
+        _UnitCastDuration:OnNext(unit, duration)
+    end
+end or function (unit, castID)
     if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
         local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)
         if not n then return end
@@ -82,7 +104,21 @@ function UNIT_SPELLCAST_DELAYED(unit, castID)
 end
 
 __SystemEvent__()
-function UNIT_SPELLCAST_CHANNEL_START(unit)
+UNIT_SPELLCAST_CHANNEL_START    = Scorpio.UseSecretValue and function(unit)
+    local n, _, t, _, _, _, i   = UnitChannelInfo(unit)
+    if not n then return end
+    local duration              = UnitChannelDuration(unit)
+
+    _CurrentCastID[unit]        = nil
+
+    _UnitCasting:OnNext(unit, true)
+    _UnitCastChannel:OnNext(unit, true)
+    _UnitCastSubject:OnNext(unit, n, t, 0, 0)
+    _UnitCastDelay:OnNext(unit, 0)
+    _UnitCastNotInterruptible:OnNext(unit, i)
+    _UnitCastDuration:OnNext(unit, duration)
+
+end or  function (unit)
     local n, _, t, s, e, _, i   = UnitChannelInfo(unit)
     if not n then return end
     s, e                        = s / 1000, e / 1000
@@ -90,14 +126,18 @@ function UNIT_SPELLCAST_CHANNEL_START(unit)
     _CurrentCastID[unit]        = nil
     _CurrentCastEndTime[unit]   = e
 
+    _UnitCasting:OnNext(unit, true)
     _UnitCastChannel:OnNext(unit, true)
     _UnitCastSubject:OnNext(unit, n, t, s, e - s)
     _UnitCastDelay:OnNext(unit, 0)
-    _UnitCastInterruptible:OnNext(unit, not i)
+    _UnitCastNotInterruptible:OnNext(unit, i)
 end
 
 __SystemEvent__()
-function UNIT_SPELLCAST_CHANNEL_UPDATE(unit)
+UNIT_SPELLCAST_CHANNEL_UPDATE   = Scorpio.UseSecretValue and function(unit)
+    local duration              = UnitChannelDuration(unit)
+    _UnitCastDuration:OnNext(unit, duration)
+end or function (unit)
     local n, _, t, s, e         = UnitChannelInfo(unit)
     if not n then return end
     s, e                        = s / 1000, e / 1000
@@ -110,8 +150,15 @@ end
 
 __SystemEvent__()
 function UNIT_SPELLCAST_CHANNEL_STOP(unit)
+    _UnitCasting:OnNext(unit, false)
     _UnitCastSubject:OnNext(unit, nil, nil, 0, 0)
     _UnitCastDelay:OnNext(unit, 0)
+    _UnitCastDuration:OnNext(unit, defaultDuration)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitCasting()
+    return Wow.FromUnitEvent(_UnitCasting):Map(function(unit, val) return val and true or false end)
 end
 
 __Static__() __AutoCache__()
@@ -133,12 +180,12 @@ end
 
 __Static__() __AutoCache__()
 function Wow.UnitCastChannel()
-    return Wow.FromUnitEvent(_UnitCastChannel):Map(function(unit, val) return val or false end)
+    return Wow.FromUnitEvent(_UnitCastChannel):Map(function(unit, val) return val end)
 end
 
 __Static__() __AutoCache__()
-function Wow.UnitCastInterruptible()
-    return Wow.FromUnitEvent(_UnitCastInterruptible):Map(function(unit, val) return val or false end)
+function Wow.UnitCastNotInterruptible()
+    return Wow.FromUnitEvent(_UnitCastNotInterruptible):Map(function(unit, val) return val end)
 end
 
 __Static__() __AutoCache__()
@@ -154,6 +201,11 @@ end
 __Static__() __AutoCache__()
 function Wow.UnitCastDelay()
     return Wow.FromUnitEvent(_UnitCastDelay):Map(function(unit, delay) return delay end)
+end
+
+__Static__() __AutoCache__()
+function Wow.UnitCastDuration()
+    return Wow.FromUnitEvent(_UnitCastDuration):Map(function(unit, duration) return duration end)
 end
 
 ------------------------------------------------------------

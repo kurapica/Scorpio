@@ -882,9 +882,13 @@ Style.UpdateSkin("Default",     {
         visible                 = Wow.UnitIsLeader(),
     },
     [CastBar]                   = {
-        cooldown                = Wow.UnitCastCooldown(),
         reverse                 = Wow.UnitCastChannel(),
-        showSafeZone            = Wow.UnitIsPlayer(),
+        showSafeZone            = Scorpio.UseSecretValue and NIL or Wow.UnitIsPlayer(),
+        minMaxValues            = MinMax(0, 100),
+        cooldown                = Scorpio.UseSecretValue and NIL or Wow.UnitCastCooldown(),
+
+        timerReverse            = Scorpio.UseSecretValue and Wow.UnitCastChannel() or nil,
+        timerDuration           = Scorpio.UseSecretValue and Wow.UnitCastDuration() or nil,
     },
     [AuraPanel]                 = {
         refresh                 = Wow.UnitAura(),

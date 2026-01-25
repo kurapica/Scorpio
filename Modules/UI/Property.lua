@@ -370,6 +370,34 @@ do
         secure          = true,
         set             = function(self, val) if val then self:SetPassThroughButtons(unpack(val)) else self:SetPassThroughButtons(nil) end end
     } end
+
+    if Frame.SetAlphaFromBoolean then
+    UI.Property         {
+        name            = "AlphaIfTrue",
+        require         = LayoutFrame,
+        type            = Number,
+        default         = 1,
+        get             = function(self) return rawget(self, "__alphaiftrue") end,
+        set             = function(self, value) rawset(self, "__alphaiftrue", value) end,
+    }
+
+    UI.Property         {
+        name            = "AlphaIfFalse",
+        require         = LayoutFrame,
+        type            = Number,
+        default         = 1,
+        get             = function(self) return rawget(self, "__alphaiffalse") end,
+        set             = function(self, value) rawset(self, "__alphaiffalse", value) end,
+    }
+
+    UI.Property         {
+        name            = "AlphaCond",
+        require         = LayoutFrame,
+        type            = Boolean,
+        default         = false,
+        set             = function(self, val) return self:SetAlphaFromBoolean(val, rawget(self, "__alphaiftrue") or 1, rawget(self, "__alphaiffalse") or 1) end,
+    }
+    end
 end
 
 ------------------------------------------------------------
@@ -405,6 +433,34 @@ do
         get             = function(self) return select(2, self:GetDrawLayer()) end,
         set             = function(self, sublevel) self:SetDrawLayer(self:GetDrawLayer(), sublevel) end,
     }
+
+    if Texture.SetVertexColorFromBoolean then
+    UI.Property         {
+        name            = "VertexColorIfTrue",
+        require         = { Texture, FontString, Line },
+        type            = ColorType,
+        default         = Color.WHITE,
+        get             = function(self) return rawget(self, "__vcoloriftrue") end,
+        set             = function(self, value) rawset(self, "__vcoloriftrue", value) end,
+    }
+
+    UI.Property         {
+        name            = "VertexColorIfFalse",
+        require         = { Texture, FontString, Line },
+        type            = ColorType,
+        default         = Color.WHITE,
+        get             = function(self) return rawget(self, "__vcoloriffalse") end,
+        set             = function(self, value) rawset(self, "__vcoloriffalse", value) end,
+    }
+
+    UI.Property         {
+        name            = "VertexColorCond",
+        require         = { Texture, FontString, Line },
+        type            = Boolean,
+        default         = false,
+        set             = function(self, val) return self:SetVertexColorFromBoolean(val, rawget(self, "__vcoloriftrue") or Color.WHITE, rawget(self, "__vcoloriffalse") or Color.WHITE) end,
+    }
+    end
 end
 
 ------------------------------------------------------------
@@ -2366,6 +2422,27 @@ do
         get             = function(self) return self:IsStatusBarDesaturated() end,
         set             = function(self, val) self:SetStatusBarDesaturated(val) end,
     } end
+
+    -- Timer duration
+    if StatusBar.SetTimerDuration then
+    UI.Property         {
+        name            = "TimerDuration",
+        type            = UserData,
+        require         = StatusBar,
+        set             = function(self, val) self:SetTimerDuration(val, 0, self.__timerdir and 1 or 0) end,
+        get             = function(self) return self:GetTimerDuration() end,
+        clear           = function(self) self:SetTimerDuration(C_DurationUtil.CreateDuration()) end,
+    }
+
+    UI.Property         {
+        name            = "TimerReverse",
+        type            = Boolean,
+        require         = StatusBar,
+        set             = function(self, val) rawset(self, "__timerdir", val) end,
+        get             = function(self, val) return rawget(self, "__timerdir") end,
+        default         = false,
+    }
+    end
 end
 
 ------------------------------------------------------------
@@ -3313,6 +3390,45 @@ else  -- For 9.0
         depends             = { "Backdrop" },
     }
 
+    if Texture.SetVertexColorFromBoolean then
+    UI.Property         {
+        name            = "BackdropBorderColorIfTrue",
+        require         = Frame,
+        type            = ColorType,
+        default         = Color.WHITE,
+        get             = function(self) return rawget(self, "__backdropbordercoloriftrue") end,
+        set             = function(self, value) rawset(self, "__backdropbordercoloriftrue", value) end,
+    }
+
+    UI.Property         {
+        name            = "BackdropBorderColorIfFalse",
+        require         = Frame,
+        type            = ColorType,
+        default         = Color.WHITE,
+        get             = function(self) return rawget(self, "__backdropbordercoloriffalse") end,
+        set             = function(self, value) rawset(self, "__backdropbordercoloriffalse", value) end,
+    }
+
+    UI.Property         {
+        name            = "BackdropBorderColorCond",
+        require         = Frame,
+        type            = Boolean,
+        default         = false,
+        set             = function(self, val)
+            local tcolor= rawget(self, "__backdropbordercoloriftrue") or Color.WHITE
+            local fcolor= rawget(self, "__backdropbordercoloriffalse") or Color.WHITE
+            for name in pairs(textureUVs) do
+                if name ~= "BackdropCenter" then
+                    local texture   = getPropertyChild(self, name)
+                    if texture then
+                        texture:SetVertexColorFromBoolean(val, tcolor, fcolor)
+                    end
+                end
+            end
+        end,
+    }
+    end
+
     --- the shading color for the frame's background graphic
     UI.Property             {
         name                = "BackdropColor",
@@ -3337,6 +3453,38 @@ else  -- For 9.0
         end,
         depends             = { "Backdrop" },
     }
+
+    if Texture.SetVertexColorFromBoolean then
+    UI.Property         {
+        name            = "BackdropColorIfTrue",
+        require          = Frame,
+        type            = ColorType,
+        default         = Color.WHITE,
+        get             = function(self) return rawget(self, "__backdropcoloriftrue") end,
+        set             = function(self, value) rawset(self, "__backdropcoloriftrue", value) end,
+    }
+
+    UI.Property         {
+        name            = "BackdropColorIfFalse",
+        require         = Frame,
+        type            = ColorType,
+        default         = Color.WHITE,
+        get             = function(self) return rawget(self, "__backdropcoloriffalse") end,
+        set             = function(self, value) rawset(self, "__backdropcoloriffalse", value) end,
+    }
+
+    UI.Property         {
+        name            = "BackdropColorCond",
+        require         = Frame,
+        type            = Boolean,
+        default         = false,
+        set             = function(self, val)
+            local tcolor= rawget(self, "__backdropcoloriftrue") or Color.WHITE
+            local fcolor= rawget(self, "__backdropcoloriffalse") or Color.WHITE
+            texture:SetVertexColorFromBoolean(val, color.g, color.b, color.a)
+        end,
+    }
+    end
 
     --- The blend mode of the backdrop border
     UI.Property             {
