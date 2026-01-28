@@ -83,13 +83,11 @@ end
 
 __SystemEvent__()
 UNIT_SPELLCAST_DELAYED              = Scorpio.UseSecretValue and function(unit, castID)
-    if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
-        local n, _, t, _, _, _, _, i= UnitCastingInfo(unit)
-        if not n then return end
-        local duration              = UnitCastingDuration(unit)
+    local n, _, t, _, _, _, _, i    = UnitCastingInfo(unit)
+    if not n then return end
+    local duration                  = UnitCastingDuration(unit)
 
-        _UnitCastDuration:OnNext(unit, duration)
-    end
+    _UnitCastDuration:OnNext(unit, duration)
 end or function (unit, castID)
     if _CurrentCastID[unit] and (not castID or castID == _CurrentCastID[unit]) then
         local n, _, t, s, e, _, _, i= UnitCastingInfo(unit)

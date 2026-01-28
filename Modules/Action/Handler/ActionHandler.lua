@@ -22,14 +22,13 @@ if Scorpio.IsRetail then
     function GetActionCharges(id)
         local r                 = oldGetActionCharges(id)
         if r then
-            if InCombatLockdown() then
-                if maxChargs[id] then
-                    return r.currentCharges, maxChargs[id], r.cooldownStartTime, r.cooldownDuration, r.chargeModRate
-                end
+            local maxCharges    = r.maxCharges
+            if issecretvalue(maxChargs) then
+                maxCharges      = maxChargs[id] or 0
             else
-                maxChargs[id] = r.maxChargs or 0
+                maxChargs[id]   = maxCharges or 0
             end
-            return r.currentCharges, r.maxCharges, r.cooldownStartTime, r.cooldownDuration, r.chargeModRate
+            return r.currentCharges, maxCharges, r.cooldownStartTime, r.cooldownDuration, r.chargeModRate
         end
         return 0, 0, 0, 0, 1
     end
