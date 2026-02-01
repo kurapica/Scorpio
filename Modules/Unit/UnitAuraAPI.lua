@@ -15,10 +15,10 @@ import "System.Reactive"
 import "System.Toolset"
 
 if Scorpio.UseSecretValue then
-    local temp                  = Subject()
-
     __Static__()
-    Wow.UnitAura                = function() return temp end
+    function Wow.UnitAura()
+        return Wow.FromUnitEvent("UNIT_AURA"):Next()
+    end
     return
 end
 

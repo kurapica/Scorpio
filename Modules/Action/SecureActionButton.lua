@@ -37,6 +37,7 @@ local _Locale                   = _Locale
 local _KeyBindingMode           = false
 
 IsSpellOverlayed                = _G.IsSpellOverlayed or Toolset.fakefunc
+issecretvalue                   = _G.issecretvalue or Toolset.fakefunc
 
 ------------------------------------------------------
 --               Module Event Handler               --
@@ -425,7 +426,7 @@ interface "ActionTypeHandler" (function(_ENV)
                     button.Count    = GetActionCount(button)
                 else
                     local cha, max  = GetActionCharges(button)
-                    if max and max > 1 then
+                    if max and not issecretvalue(max) and max > 1 then
                         button.Count= cha
                     else
                         button.Count= nil

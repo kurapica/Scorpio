@@ -1862,6 +1862,17 @@ do
         get             = function(self) self:GetCooldownDuration() end,
     }
 
+    if Cooldown.SetCooldownFromDurationObject then
+    --- Sets the cooldown from a duration object
+    UI.Property         {
+        name            = "CooldownDurationObject",
+        type            = Any,
+        require         = Cooldown,
+        clear           = function(self) self:SetCooldownFromDurationObject(C_DurationUtil.CreateDuration()) end,
+        set             = function(self, val) self:SetCooldownFromDurationObject(val) end,
+    }
+    end
+
     --- Whether the cooldown 'bling' when finsihed
     UI.Property         {
         name            = "DrawBling",

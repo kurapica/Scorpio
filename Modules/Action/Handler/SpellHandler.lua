@@ -9,6 +9,27 @@
 Scorpio        "Scorpio.Secure.SpellHandler"         "1.0.0"
 --========================================================--
 
+if Scorpio.IsRetail then
+    local oldGetSpellCharges   = C_Spell.GetSpellCharges
+
+    local maxChargs             = {}
+
+    function GetSpellCharges(id)
+        local r                 = oldGetSpellCharges(id)
+        if r then
+            local maxCharges    = r.maxCharges
+            if issecretvalue(maxChargs) then
+                maxCharges      = maxChargs[id] or 0
+            else
+                maxChargs[id]   = maxCharges or 0
+            end
+            return r.currentCharges, maxCharges, r.cooldownStartTime, r.cooldownDuration, r.chargeModRate
+        end
+        return 0, 0, 0, 0, 1
+    end
+end
+
+
 ------------------------------------------------------
 -- Action Handler
 ------------------------------------------------------
