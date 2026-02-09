@@ -85,9 +85,13 @@ class (Scorpio)                (function(_ENV)
         self                    = self._Addon
         if InCombatLockdown() or not _PanelMap[self._Config] then return end
 
-        InterfaceOptionsFrame_OpenToCategory(self._Name)
-        Next() -- Make sure open to the category
-        InterfaceOptionsFrame_OpenToCategory(self._Name)
+        if Scorpio.IsRetail then
+            _G.Settings.OpenToCategory(_PanelMap[self._Config].Category:GetID())
+        else
+            InterfaceOptionsFrame_OpenToCategory(self._Name)
+            Next() -- Make sure open to the category
+            InterfaceOptionsFrame_OpenToCategory(self._Name)
+        end
     end
 end)
 

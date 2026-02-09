@@ -9,7 +9,7 @@
 Scorpio        "Scorpio.Widget.ConfigCategoryPanel"  "1.0.0"
 --========================================================--
 
-InterfaceOptions_AddCategory    = _G.InterfaceOptions_AddCategory or function (frame, addOn, position)
+InterfaceOptions_AddCategory    = not Scorpio.IsRetail and  _G.InterfaceOptions_AddCategory or function (frame, addOn, position)
     if frame.parent then
         local category          = frame.parent.Category
         local subcategory, layout = _G.Settings.RegisterCanvasLayoutSubcategory(category, frame, frame.name, frame.name)
