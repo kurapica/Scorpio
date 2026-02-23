@@ -1,4 +1,4 @@
-## Interface: 120000, 11503, 20504, 30405, 40400, 50500
+## Interface: 120001, 11503, 20504, 30405, 40400, 50500
 ## Title: [Lib] Scorpio
 ## Author: kurapica125@outlook.com
 ## Version: @project-version@

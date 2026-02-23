@@ -131,7 +131,7 @@ class "ConfigNode"              (function(_ENV)
 
     --- Whether enable ui for the config node
     __Abstract__()
-    property "_IsUIEnabled"      { get = function(self) return _EnableUI[self] end }
+    property "_IsUIEnabled"     { get = function(self) return _EnableUI[self] end }
 
     ----------------------------------------------
     --                  Method                  --
