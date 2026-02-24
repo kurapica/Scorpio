@@ -403,6 +403,7 @@ Style.UpdateSkin("Default",     {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
                 justifyH        = "RIGHT",
                 Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
+                Tooltip         = Wow.FromUIProperty("ConfigSubject"):Map("x=> x and x.Description"),
             },
 
             marginLeft          = 80,
@@ -500,6 +501,7 @@ Style.UpdateSkin("Default",     {
                 location        = { Anchor("TOPRIGHT", -10, -4, nil, "TOPLEFT") },
                 justifyH        = "RIGHT",
                 Text            = Wow.FromUIProperty("ConfigSubject"):Map("x=>x and x.Name"),
+                Tooltip         = Wow.FromUIProperty("ConfigSubject"):Map("x=> x and x.Description"),
             },
 
             marginLeft          = 230,

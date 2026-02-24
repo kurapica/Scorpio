@@ -3057,7 +3057,28 @@ __ChildProperty__(Frame, "Label")
 __ChildProperty__(Frame, "Label1")
 __ChildProperty__(Frame, "Label2")
 __ChildProperty__(Frame, "Label3")
-class "UIPanelLabel"    { FontString }
+class "UIPanelLabel"    (function(_ENV)
+    inherit "FontString"
+
+    local function OnEnter(self)
+        if self.Tooltip and #self.Tooltip > 0 then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(self.Tooltip)
+            GameTooltip:Show()
+        end
+    end
+
+    local function OnLeave(self)
+        GameTooltip:Hide()
+    end
+
+    property "Tooltip"  { type = String }
+
+    function __ctor(self, ...)
+        self.OnEnter    = OnEnter
+        self.OnLeave    = OnLeave
+    end
+end)
 
 Style.UpdateSkin("Default",     {
     [UIPanelLabel]              = {
