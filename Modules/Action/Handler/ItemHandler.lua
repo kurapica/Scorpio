@@ -203,11 +203,23 @@ end
 
 function handler:GetActionTexture()
     local target                = self.ActionTarget
-    if _ToyFilter[target] then
-        return (select(3, C_ToyBox.GetToyInfo(target))) or GetItemIcon(target)
-    else
-        return GetItemIcon(target)
+    local icon                  = _ToyFilter[target] and (select(3, C_ToyBox.GetToyInfo(target))) or GetItemIcon(target)
+
+    if target and not icon then
+        local task              = math.random(1000000)
+        self.__UpdateActionIcon = task
+        Continue(function()
+            for i = 1, 10 do
+                if task ~= self.__UpdateActionIcon then return end
+                Delay(1)
+                if _ToyFilter[target] and (select(3, C_ToyBox.GetToyInfo(target))) or GetItemIcon(target) then
+                    return handler:RefreshActionButtons(self)
+                end
+            end
+        end)
     end
+
+    return icon
 end
 
 function handler:GetActionCount()
