@@ -204,7 +204,7 @@ end
 function handler:GetActionTexture()
     local target                = self.ActionTarget
     if _ToyFilter[target] then
-        return (select(3, C_ToyBox.GetToyInfo(target)))
+        return (select(3, C_ToyBox.GetToyInfo(target))) or GetItemIcon(target)
     else
         return GetItemIcon(target)
     end
