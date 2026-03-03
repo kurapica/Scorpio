@@ -268,7 +268,8 @@ __Sealed__() class "AuraPanel"      (function(_ENV)
 
             for i = 1, #auras do
                 local aura      = auras[i]
-                if DoesAuraHaveExpirationTime(unit, aura.auraInstanceID) then
+                local dose      = DoesAuraHaveExpirationTime(unit, aura.auraInstanceID)
+                if issecretvalue(dose) or dose then
                     count       = count + 1
                     local ele   = self.Elements[count]
                     ele:Show()

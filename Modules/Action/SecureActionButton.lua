@@ -270,6 +270,7 @@ interface "ActionTypeHandler" (function(_ENV)
     _ActionButtonMap            = Toolset.newtable(true, true)
 
     local useSecret             = Scorpio.UseSecretValue
+    local issecretvalue         = _G.issecretvalue or Toolset.fakefunc
 
     local function refreshButton(self, button)
         _AutoAttackButtons[button] = self.IsAttackAction(button) or nil
@@ -279,7 +280,7 @@ interface "ActionTypeHandler" (function(_ENV)
         button.IsAutoAttack     = _AutoAttackButtons[button] or _AutoRepeatButtons[button]
 
         local c, m              = self.GetActionCharges(button)
-        button.IsChargable      = m and m > 1
+        button.IsChargable      = not issecretvalue(m) and m and m > 1
 
         local spell             = self.GetSpellId(button)
         local ospell            = _Spell4Buttons[button]
@@ -414,7 +415,7 @@ interface "ActionTypeHandler" (function(_ENV)
                 button.Count    = GetActionCount(button)
             else
                 local cha, max  = GetActionCharges(button)
-                if max and max > 1 then
+                if not issecretvalue(max) and max and max > 1 then
                     button.Count= cha
                 else
                     button.Count= nil
@@ -426,7 +427,7 @@ interface "ActionTypeHandler" (function(_ENV)
                     button.Count    = GetActionCount(button)
                 else
                     local cha, max  = GetActionCharges(button)
-                    if max and not issecretvalue(max) and max > 1 then
+                    if not issecretvalue(max) and max and max > 1 then
                         button.Count= cha
                     else
                         button.Count= nil
@@ -1440,7 +1441,7 @@ class "SecureActionButton" (function(_ENV)
 
     --- The count/charge of the action
     __Observable__()
-    property "Count"            { type = Number }
+    property "Count"            { type = Number, set = Toolset.fakefunc }
 
     --- The cooldown of the action
     __Observable__()

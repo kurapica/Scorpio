@@ -3077,8 +3077,10 @@ class "UIPanelLabel"    (function(_ENV)
     function __ctor(self, ...)
         self.OnEnter    = OnEnter
         self.OnLeave    = OnLeave
-        self:SetPropagateMouseClicks(true)
-        self:SetPropagateMouseMotion(true)
+        NoCombat(function()
+            self:SetPropagateMouseClicks(true)
+            self:SetPropagateMouseMotion(true)
+        end)
     end
 end)
 
