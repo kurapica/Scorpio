@@ -295,6 +295,22 @@ function handler:GetActionCooldown()
     end
 end
 
+function handler:GetCooldownDuration()
+    local target                = self.ActionTarget
+
+    if _StanceMap[target] then
+        return GetSpellCooldownDuration(target)
+    elseif _MacroMap[target] then
+        return GetSpellCooldownDuration(_MacroMap[target])
+    else
+        return GetSpellCooldownDuration(target)
+    end
+end
+
+function handler:GetChargeDuration()
+    return GetSpellChargeDuration(self.ActionTarget)
+end
+
 function handler:IsAttackAction()
     return IsAttackSpell(GetSpellInfo(self.ActionTarget))
 end

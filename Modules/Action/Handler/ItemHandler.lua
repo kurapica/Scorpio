@@ -231,6 +231,18 @@ function handler:GetActionCooldown()
     return GetItemCooldown(self.ActionTarget)
 end
 
+function handler:GetCooldownDuration()
+    local duration = C_DurationUtil.CreateDuration()
+    if not duration then return nil end
+
+    local start, dura, enable = GetItemCooldown(self.ActionTarget)
+    if start and start > 0 and dura and dura > 0 then
+        duration:SetTimeFromStart(start, dura, 1)
+    end
+
+    return duration
+end
+
 function handler:IsEquippedItem()
     local target = self.ActionTarget
     return not _ToyFilter[target] and IsEquippedItem(target)

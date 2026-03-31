@@ -438,7 +438,19 @@ interface "ActionTypeHandler" (function(_ENV)
     end
 
     local shareCooldown         = { start = 0, duration = 0 }
-    function RefreshCooldown(self, button)
+    RefreshCooldown             = Scorpio.IsRetail and function(self, button)
+        local GetCooldownDuration = self.GetCooldownDuration
+        local GetChargeDuration = self.GetChargeDuration
+        if button then
+            button.CooldownDurationObject = GetCooldownDuration(button)
+            button.ChargeCooldownDurationObject = GetChargeDuration(button)
+        else
+            for _, button in self:GetIterator() do
+                button.CooldownDurationObject = GetCooldownDuration(button)
+                button.ChargeCooldownDurationObject = GetChargeDuration(button)
+            end
+        end
+    end or function (self, button)
         local GetActionCooldown = self.GetActionCooldown
         local GetActionCharges  = self.GetActionCharges
 
@@ -759,6 +771,10 @@ interface "ActionTypeHandler" (function(_ENV)
 
     -- Whether the action has range spell
     function IsRangeSpell(self) return false end
+
+    function GetCooldownDuration(self) end
+
+    function GetChargeDuration(self) end
 
     ------------------------------------------------------
     -- Property
@@ -1450,6 +1466,12 @@ class "SecureActionButton" (function(_ENV)
     --- The cooldown of the charge action
     __Observable__()
     property "ChargeCooldown"   { type = CooldownStatus, set = Toolset.fakefunc }
+
+    __Observable__()
+    property "CooldownDurationObject" { type = Any, set = Toolset.fakefunc }
+
+    __Observable__()
+    property "ChargeCooldownDurationObject" { type = Any, set = Toolset.fakefunc }
 
     --- Whether the action is auto attack or auto repeat
     __Observable__()

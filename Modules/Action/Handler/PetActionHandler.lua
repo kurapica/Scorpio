@@ -116,6 +116,18 @@ function handler:GetActionCooldown()
     return GetPetActionCooldown(self.ActionTarget)
 end
 
+function handler:GetCooldownDuration()
+    local duration = C_DurationUtil.CreateDuration()
+    if not duration then return nil end
+
+    local start, dura, enable = GetPetActionCooldown(self.ActionTarget)
+    if start and start > 0 and dura and dura > 0 then
+        duration:SetTimeFromStart(start, dura, 1)
+    end
+
+    return duration
+end
+
 function handler:IsUsableAction()
     return GetPetActionSlotUsable(self.ActionTarget)
 end

@@ -723,7 +723,8 @@ Style.UpdateSkin("Default",     {
         },
         Cooldown                = {
             setAllPoints        = true,
-            cooldown            = Wow.FromUIProperty("Cooldown"),
+            cooldown            = Scorpio.IsRetail and NIL or Wow.FromUIProperty("Cooldown"),
+            cooldownDurationObject = Scorpio.IsRetail and Wow.FromUIProperty("CooldownDurationObject") or nil,
             hideCountdownNumbers= false,
         },
 
@@ -942,6 +943,7 @@ SearchOverlaySkin               = {
 
 ChargeCooldownSkin              = {
     setAllPoints                = true,
-    cooldown                    = Wow.FromUIProperty("ChargeCooldown"),
+    cooldown                    = Scorpio.IsRetail and NIL or Wow.FromUIProperty("ChargeCooldown"),
+    cooldownDurationObject      = Scorpio.IsRetail and Wow.FromUIProperty("ChargeCooldownDurationObject") or nil,
     frameStrata                 = "TOOLTIP",
 }

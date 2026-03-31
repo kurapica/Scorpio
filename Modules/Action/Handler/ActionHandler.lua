@@ -235,6 +235,14 @@ function handler:GetActionCooldown()
     return GetActionCooldown(self.ActionTarget)
 end
 
+function handler:GetCooldownDuration()
+    return GetActionCooldownDuration(self.ActionTarget)
+end
+
+function handler:GetChargeDuration()
+    return GetActionChargeDuration(self.ActionTarget)
+end
+
 function handler:IsAttackAction()
     return IsAttackAction(self.ActionTarget)
 end

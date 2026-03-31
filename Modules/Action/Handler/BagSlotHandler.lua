@@ -468,6 +468,18 @@ function handler:GetActionCooldown()
     return GetContainerItemCooldown(self.ActionTarget, self.ActionDetail)
 end
 
+function handler:GetCooldownDuration()
+    local duration = C_DurationUtil.CreateDuration()
+    if not duration then return nil end
+
+    local start, dura, enable = GetContainerItemCooldown(self.ActionTarget, self.ActionDetail)
+    if start and start > 0 and dura and dura > 0 then
+        duration:SetTimeFromStart(start, dura, 1)
+    end
+
+    return duration
+end
+
 function handler:IsEquippedItem()
     return false
 end
