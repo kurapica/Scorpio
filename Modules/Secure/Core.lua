@@ -24,6 +24,36 @@ import "Scorpio.UI"
 -- so the system can keep those functions defined in the wrapper/origin at the same time
 _SecureCallMap                          = {}
 
+local LOCAL_Wrap_Handlers = {
+    OnClick = true;
+    OnDoubleClick = true;
+    PreClick = true;
+    PostClick = true;
+
+    OnEnter = true;
+    OnLeave = true;
+
+    OnShow = true;
+    OnHide = true;
+
+    OnDragStart = true;
+    OnReceiveDrag = true;
+
+    OnMouseWheel = true;
+
+    OnAttributeChanged = true;
+};
+
+
+function HookScript(self, name, handler)
+    if LOCAL_Wrap_Handlers[name] then
+        GetRawUI(self)["__hook" .. name] = function(self) return handler(GetProxyUI(self)) end
+        self:WrapScript(self, name, "self:CallMethod(\"__hook" .. name .. "\")")
+    else
+        Frame.HookScript(self, name, handler) -- fallback
+    end
+end
+
 --- The interface that provide the basic features for secure widgets
 __Sealed__()__ObjFuncAttr__{ Inheritable= true }
 interface "ISecureHandler" (function(_ENV)
@@ -266,6 +296,8 @@ __Sealed__() __SecureTemplate__"SecureFrameTemplate"
 class "SecureFrame" {
     Frame, ISecureHandler,
 
+    HookScript                  = HookScript,
+
     __new                       = function(cls, name, parent, inherits)
         local ui                = CreateFrame("Frame", name, parent, __SecureTemplate__.GetTemplate(cls, inherits))
         local self              = { [0] = ui[0] }
@@ -280,6 +312,8 @@ __Sealed__() __SecureTemplate__"SecureActionButtonTemplate"
 class "SecureButton"  {
     Button, ISecureHandler,
 
+    HookScript                  = HookScript,
+
     __new                       = function(cls, name, parent, inherits)
         local ui                = CreateFrame("Button", name, parent, __SecureTemplate__.GetTemplate(cls, inherits))
         local self              = { [0] = ui[0] }
@@ -293,6 +327,8 @@ class "SecureButton"  {
 __Sealed__()  __SecureTemplate__"SecureActionButtonTemplate"
 class "SecureCheckButton" {
     CheckButton, ISecureHandler,
+
+    HookScript                  = HookScript,
 
     __new                       = function(cls, name, parent, inherits)
         local ui                = CreateFrame("CheckButton", name, parent, __SecureTemplate__.GetTemplate(cls, inherits))
