@@ -236,6 +236,11 @@ end)
 --- Lines are used to link two anchor points.
 __Sealed__() class "Line"                   (function(_ENV) inherit(UIObject)   __new = function (_, name, parent, ...) return parent:CreateLine(nil, ...) end InstallPrototype(_ENV) end)
 
+--- The VectorGraphics
+if UIParent.CreateVectorGraphics then
+__Sealed__() class "VectorGraphics"         (function(_ENV) inherit(LayoutFrame)__new = function (_, name, parent, ...) return parent:CreateVectorGraphics(nil, ...) end InstallPrototype(_ENV) end)
+end
+
 ------------------------------------------------------------
 --                      Animation                         --
 ------------------------------------------------------------

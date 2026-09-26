@@ -3542,3 +3542,25 @@ else  -- For 9.0
         depends             = { "Backdrop" },
     }
 end
+
+------------------------------------------------------------
+--               VectorGraphics Properties                --
+------------------------------------------------------------
+if UIParent.CreateVectorGraphics then
+    --- the SVG file
+    UI.Property         {
+        name            = "SVG",
+        type            = String,
+        require         = { Texture, VectorGraphics},
+        clear           = function(self) self:ClearSVG() end,
+        set             = function(self, val) self:SetSVG(val) end,
+        get             = function(self) return (self.GetSVGFileID or self.GetTextureFileID)(self)  end,
+    }
+
+    -- svg
+    UI.Property         {
+        name            = "Svg",
+        require         = Frame,
+        childtype       = VectorGraphics,
+    }
+end
