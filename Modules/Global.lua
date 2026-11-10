@@ -38,7 +38,7 @@ interface "DeprecatedApi"       (function(_ENV)
         end
     end
 
-    if version and version >= 110000 then
+    if version and (version >= 110000  or version >= 16001 and version < 17000 ) then
         local originGetSpellBookItemInfo = _G.C_SpellBook.GetSpellBookItemInfo
         local originGetSpellInfo         = _G.C_Spell.GetSpellInfo
         local GetSpellBookSkillLineInfo  = _G.C_SpellBook.GetSpellBookSkillLineInfo
