@@ -1776,6 +1776,9 @@ PLoop(function(_ENV)
         --- Whether the game is Cataclysm
         __Static__() property "IsCataclysm"     { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CATACLYSM_CLASSIC end }
 
+        --- Whether the game is forever
+        __Static__() property "IsForever"       { type = Boolean, default = function() return _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CAMELOT end }
+
         --- Whether the game is using secret value
         __Static__() property "UseSecretValue"  { type = Boolean, default = rawget(_G, "issecretvalue") ~= nil }
 
